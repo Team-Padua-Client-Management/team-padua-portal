@@ -1,0 +1,120 @@
+@reference "../../globals/globals.css";
+
+/* ======================================================
+   AttendanceTable.module.css
+   Style definitions for: app/(user)/attendance/AttendanceTable.module.css
+====================================================== */
+
+/* ======================================================
+   Interactive Actions & Cards
+   Visual control elements and cards
+====================================================== */
+.card_0 {
+  @apply overflow-x-auto border border-border rounded-xl shadow-2xs bg-card;
+}
+
+.card_1 {
+  @apply w-full border-collapse text-left bg-card;
+}
+
+
+/* ======================================================
+   Structural Layout Components
+   Main grid and layout flex wraps
+====================================================== */
+.div_2 {
+  @apply bg-muted/30 dark:bg-muted/10 border-b border-border;
+}
+
+.table_3 {
+  @apply p-3 text-[9px] font-bold text-muted-foreground uppercase tracking-wider;
+}
+
+.table_4 {
+  @apply p-3 text-[9px] font-bold text-muted-foreground uppercase tracking-wider;
+}
+
+.table_5 {
+  @apply p-3 text-[9px] font-bold text-muted-foreground uppercase tracking-wider;
+}
+
+.table_6 {
+  @apply p-3 text-[9px] font-bold text-muted-foreground uppercase tracking-wider;
+}
+
+.table_7 {
+  @apply p-3 text-[9px] font-bold text-muted-foreground uppercase tracking-wider;
+}
+
+.table_8 {
+  @apply p-3 text-[9px] font-bold text-muted-foreground uppercase tracking-wider;
+}
+
+.table_9 {
+  @apply p-3 text-[9px] font-bold text-muted-foreground uppercase tracking-wider;
+}
+
+.table_10 {
+  @apply p-3 text-[9px] font-bold text-muted-foreground uppercase tracking-wider;
+}
+
+.table_11 {
+  @apply p-3 text-[9px] font-bold text-muted-foreground uppercase tracking-wider;
+}
+
+.div_12 {
+  @apply divide-y divide-border;
+}
+
+.card_13 {
+  @apply p-8 text-center text-xs text-muted-foreground font-semibold tracking-wide bg-card;
+}
+
+.table_14 {
+  @apply hover:bg-muted/40 transition-colors cursor-pointer;
+}
+
+
+/* ======================================================
+   Typography & Label Aesthetics
+   Font weights, leading scales, and text colors
+====================================================== */
+.text_15 {
+  @apply p-3 text-xs font-serif font-semibold text-foreground;
+}
+
+.text_16 {
+  @apply p-3 text-[11px] font-mono text-muted-foreground;
+}
+
+.text_17 {
+  @apply p-3 text-[11px] font-mono text-muted-foreground;
+}
+
+.text_18 {
+  @apply p-3 text-[11px] font-mono text-muted-foreground;
+}
+
+.text_19 {
+  @apply p-3 text-[11px] font-mono text-muted-foreground;
+}
+
+.text_20 {
+  @apply p-3 text-[11px] font-mono font-bold text-foreground;
+}
+
+.table_21 {
+  @apply p-3 text-xs text-muted-foreground max-w-[150px] truncate;
+}
+
+.table_22 {
+  @apply p-3 text-xs text-muted-foreground max-w-[150px] truncate;
+}
+
+.text_23 {
+  @apply p-3 text-xs;
+}
+
+.table_24 {
+  @apply inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider;
+}

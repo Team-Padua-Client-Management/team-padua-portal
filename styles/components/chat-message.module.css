@@ -1,0 +1,27 @@
+@reference "../globals/globals.css";
+
+/* ======================================================
+   chat-message.module.css
+   Style definitions for: components/chat-message.module.css
+====================================================== */
+
+/* ======================================================
+   Typography & Label Aesthetics
+   Font weights, leading scales, and text colors
+====================================================== */
+.text_0 {
+  @apply text-foreground/50 text-xs;
+}
+
+.text_1 {
+  @apply font-medium;
+}
+
+
+/* ======================================================
+   Structural Layout Components
+   Main grid and layout flex wraps
+====================================================== */
+.container_2 {
+  @apply flex mt-2;
+}

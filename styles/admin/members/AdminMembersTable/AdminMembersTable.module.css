@@ -1,0 +1,172 @@
+@reference "../../../globals/globals.css";
+
+/* ======================================================
+   AdminMembersTable.module.css
+   Style definitions for: app/(admin)/admin/members/AdminMembersTable/AdminMembersTable.module.css
+====================================================== */
+
+/* ======================================================
+   Structural Layout Components
+   Main grid and layout flex wraps
+====================================================== */
+.div_0 {
+  @apply space-y-6;
+}
+
+.container_1 {
+  @apply flex flex-col md:flex-row gap-3 items-center justify-between;
+}
+
+.div_2 {
+  @apply w-full md:max-w-md;
+}
+
+
+/* ======================================================
+   Interactive Actions & Cards
+   Visual control elements and cards
+====================================================== */
+.card_3 {
+  @apply w-full text-xs px-3 py-2 bg-card border border-border rounded-lg focus:outline-none focus:border-[#F4C542] placeholder-muted-foreground/50 text-foreground transition h-9 shadow-2xs;
+}
+
+.container_4 {
+  @apply flex flex-wrap items-center gap-2 w-full md:w-auto;
+}
+
+.card_5 {
+  @apply text-xs border border-border rounded-lg px-3 py-1.5 bg-card text-foreground focus:outline-none focus:border-[#F4C542] h-9 cursor-pointer;
+}
+
+.card_6 {
+  @apply text-xs border border-border rounded-lg px-3 py-1.5 bg-card text-foreground focus:outline-none focus:border-[#F4C542] h-9 cursor-pointer;
+}
+
+.card_7 {
+  @apply text-xs border border-border rounded-lg px-3 py-1.5 bg-card text-foreground focus:outline-none focus:border-[#F4C542] h-9 cursor-pointer;
+}
+
+.card_8 {
+  @apply border border-border rounded-xl overflow-hidden bg-card shadow-2xs;
+}
+
+.div_9 {
+  @apply overflow-x-auto;
+}
+
+
+/* ======================================================
+   Typography & Label Aesthetics
+   Font weights, leading scales, and text colors
+====================================================== */
+.text_10 {
+  @apply w-full text-left border-collapse text-xs;
+}
+
+.table_11 {
+  @apply bg-muted/30 border-b border-border font-medium text-muted-foreground uppercase text-[10px] tracking-wider;
+}
+
+.div_12 {
+  @apply p-4;
+}
+
+.div_13 {
+  @apply p-4;
+}
+
+.div_14 {
+  @apply p-4;
+}
+
+.div_15 {
+  @apply p-4;
+}
+
+.div_16 {
+  @apply p-4;
+}
+
+.text_17 {
+  @apply p-4 text-right;
+}
+
+.card_18 {
+  @apply divide-y divide-border text-foreground bg-card;
+}
+
+.text_19 {
+  @apply p-8 text-center text-muted-foreground font-normal;
+}
+
+.table_20 {
+  @apply hover:bg-muted/30 transition;
+}
+
+.div_21 {
+  @apply p-4;
+}
+
+.container_22 {
+  @apply flex items-center gap-3 cursor-pointer;
+}
+
+.div_23 {
+  @apply w-8 h-8 rounded-full object-cover shrink-0 border border-border;
+}
+
+.text_24 {
+  @apply w-8 h-8 rounded-full bg-[#FFF7D6] dark:bg-[#2E2818] text-black dark:text-[#F4C542] font-semibold flex items-center justify-center text-xs shrink-0;
+}
+
+.div_25 {
+  @apply min-w-0;
+}
+
+.table_26 {
+  @apply font-medium text-foreground hover:underline block truncate;
+}
+
+.table_27 {
+  @apply block text-[11px] text-muted-foreground truncate mt-0.5;
+}
+
+.table_28 {
+  @apply p-4 font-mono text-muted-foreground tracking-tight;
+}
+
+.div_29 {
+  @apply p-4;
+}
+
+.card_30 {
+  @apply bg-transparent border-none text-xs text-foreground p-0 pr-6 focus:ring-0 focus:outline-none cursor-pointer font-medium bg-card;
+}
+
+.div_31 {
+  @apply p-4;
+}
+
+.card_32 {
+  @apply bg-transparent border-none text-xs text-foreground p-0 pr-6 focus:ring-0 focus:outline-none cursor-pointer font-medium bg-card;
+}
+
+.div_33 {
+  @apply p-4;
+}
+
+.text_34 {
+  @apply p-4 text-right;
+}
+
+.card_35 {
+  @apply text-foreground hover:text-foreground/80 text-[11px] font-medium border border-border rounded-md px-3 py-1 bg-card hover:bg-muted transition shadow-2xs;
+}
+
+.text_36 {
+  @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold;
+}
+
+.div_37 {
+  @apply w-1 h-1 rounded-full;
+}

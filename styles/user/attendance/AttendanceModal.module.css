@@ -1,0 +1,31 @@
+@reference "../../globals/globals.css";
+
+/* ======================================================
+   AttendanceModal.module.css
+   Style definitions for: app/(user)/attendance/AttendanceModal.module.css
+====================================================== */
+
+/* ======================================================
+   Structural Layout Components
+   Main grid and layout flex wraps
+====================================================== */
+.container_0 {
+  @apply fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm;
+}
+
+
+/* ======================================================
+   Interactive Actions & Cards
+   Visual control elements and cards
+====================================================== */
+.card_1 {
+  @apply relative w-full max-w-sm bg-card border border-border rounded-lg shadow-[0_10px_40px_rgba(0,0,0,0.08)] p-5;
+}
+
+.table_2 {
+  @apply absolute top-4 right-4 text-[#7C7A77] hover:text-[#1C1A19] transition-colors;
+}
+
+.div_3 {
+  @apply w-4 h-4;
+}

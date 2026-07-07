@@ -1,0 +1,564 @@
+@reference "../../../globals/globals.css";
+
+/* ======================================================
+   page.module.css
+   Style definitions for: app/(admin)/admin/cpst/greetings/page.module.css
+====================================================== */
+
+/* ======================================================
+   Typography & Label Aesthetics
+   Font weights, leading scales, and text colors
+====================================================== */
+.text_0 {
+  @apply flex min-h-screen bg-background text-foreground font-sans antialiased;
+}
+
+
+/* ======================================================
+   Structural Layout Components
+   Main grid and layout flex wraps
+====================================================== */
+.container_1 {
+  @apply flex-1 flex flex-col min-w-0;
+}
+
+.div_2 {
+  @apply p-4 md:p-8 max-w-full w-full space-y-6 overflow-y-auto;
+}
+
+.div_3 {
+  @apply border-b border-border pb-5;
+}
+
+
+/* ======================================================
+   Interactive Actions & Cards
+   Visual control elements and cards
+====================================================== */
+.table_4 {
+  @apply text-xl font-serif font-semibold text-foreground tracking-tight;
+}
+
+.table_5 {
+  @apply text-[10px] text-muted-foreground uppercase font-semibold tracking-wider mt-0.5;
+}
+
+.monthSelect {
+  @apply bg-transparent border-0 text-[10px] font-extrabold uppercase tracking-wider text-[#A97800] dark:text-[#F4C542] focus:outline-none cursor-pointer p-0 ml-1 font-sans;
+}
+
+.container_6 {
+  @apply grid grid-cols-1 lg:grid-cols-3 gap-6;
+}
+
+.div_7 {
+  @apply lg:col-span-2 space-y-6;
+}
+
+.card_8 {
+  @apply bg-card shadow-2xs p-6 border border-border/80 rounded-xl space-y-6;
+}
+
+.table_9 {
+  @apply text-sm font-bold text-foreground font-serif tracking-tight uppercase;
+}
+
+.text_10 {
+  @apply text-[10px] text-muted-foreground mt-0.5;
+}
+
+.container_11 {
+  @apply grid grid-cols-1 md:grid-cols-2 gap-6;
+}
+
+.div_12 {
+  @apply space-y-1.5;
+}
+
+.table_13 {
+  @apply text-[9px] font-bold uppercase tracking-widest text-muted-foreground;
+}
+
+.text_14 {
+  @apply w-full bg-muted/20 border border-border rounded-lg px-3.5 py-2 text-xs font-semibold focus:border-[#F4C542] outline-none h-10 text-foreground cursor-pointer;
+}
+
+.div_15 {
+  @apply space-y-1.5;
+}
+
+.table_16 {
+  @apply text-[9px] font-bold uppercase tracking-widest text-muted-foreground;
+}
+
+.text_17 {
+  @apply w-full bg-muted/20 border border-border rounded-lg px-3 py-2 text-xs font-semibold focus:border-[#F4C542] outline-none h-10 text-foreground cursor-pointer;
+}
+
+.div_18 {
+  @apply space-y-1.5 animate-in fade-in duration-150;
+}
+
+.table_19 {
+  @apply text-[9px] font-bold uppercase tracking-widest text-muted-foreground;
+}
+
+.text_20 {
+  @apply w-full bg-muted/20 border border-border rounded-lg px-3.5 py-2 text-xs font-medium focus:border-[#F4C542] outline-none h-10 text-foreground;
+}
+
+.div_21 {
+  @apply space-y-2;
+}
+
+.table_22 {
+  @apply text-[9px] font-bold uppercase tracking-widest text-muted-foreground block;
+}
+
+.container_23 {
+  @apply grid grid-cols-2 sm:grid-cols-3 gap-3;
+}
+
+.table_24 {
+  @apply text-[10px] tracking-wide;
+}
+
+.input_25 {
+  @apply absolute top-1 right-1 bg-amber-400/10 text-[#A97800] dark:text-[#F4C542] text-[6px] font-bold px-1 rounded uppercase scale-75 select-none;
+}
+
+.div_26 {
+  @apply space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-150;
+}
+
+.table_27 {
+  @apply text-[9px] font-bold uppercase tracking-widest text-muted-foreground;
+}
+
+.text_28 {
+  @apply w-full bg-muted/20 border border-border rounded-lg px-3.5 py-2 text-xs font-semibold focus:border-[#F4C542] outline-none text-foreground h-10;
+}
+
+.div_29 {
+  @apply space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-150;
+}
+
+.table_30 {
+  @apply text-[9px] font-bold uppercase tracking-widest text-muted-foreground;
+}
+
+.text_31 {
+  @apply w-full bg-muted/20 border border-border rounded-lg px-3.5 py-2 text-xs font-semibold focus:border-[#F4C542] outline-none text-foreground h-10;
+}
+
+.div_32 {
+  @apply space-y-2;
+}
+
+.table_33 {
+  @apply text-[9px] font-bold uppercase tracking-widest text-muted-foreground;
+}
+
+.container_34 {
+  @apply flex flex-wrap gap-2;
+}
+
+.div_35 {
+  @apply space-y-1.5;
+}
+
+.table_36 {
+  @apply text-[9px] font-bold uppercase tracking-widest text-muted-foreground;
+}
+
+.text_37 {
+  @apply w-full bg-muted/20 border border-border rounded-lg px-3.5 py-2 text-xs font-semibold focus:border-[#F4C542] outline-none text-foreground h-10;
+}
+
+.div_38 {
+  @apply space-y-1.5;
+}
+
+.table_39 {
+  @apply text-[9px] font-bold uppercase tracking-widest text-muted-foreground;
+}
+
+.text_40 {
+  @apply w-full bg-muted/20 border border-border rounded-lg p-3.5 text-xs font-medium focus:border-[#F4C542] outline-none font-mono text-foreground leading-relaxed resize-none;
+}
+
+.div_41 {
+  @apply space-y-1.5 bg-[#FAF9F5]/40 dark:bg-muted/10 border border-border p-4 rounded-lg;
+}
+
+.table_42 {
+  @apply text-[9px] uppercase tracking-widest text-muted-foreground font-bold;
+}
+
+.text_43 {
+  @apply text-xs text-foreground font-medium leading-relaxed whitespace-pre-wrap mt-2;
+}
+
+.container_44 {
+  @apply pt-4 border-t border-border flex justify-end;
+}
+
+.input_45 {
+  @apply flex items-center gap-2 bg-[#F4C542] hover:bg-[#c59d28] disabled:opacity-50 text-black font-bold px-6 py-2.5 rounded-lg text-xs transition duration-150 shadow-2xs cursor-pointer select-none;
+}
+
+.div_46 {
+  @apply animate-spin;
+}
+
+.div_47 {
+  @apply space-y-6;
+}
+
+.card_48 {
+  @apply bg-card shadow-2xs p-6 border border-border/80 rounded-xl space-y-4;
+}
+
+.table_49 {
+  @apply text-sm font-bold text-foreground font-serif tracking-tight uppercase;
+}
+
+.text_50 {
+  @apply text-[10px] text-muted-foreground mt-0.5;
+}
+
+.container_51 {
+  @apply relative w-full border border-border/80 overflow-hidden flex items-center justify-center p-0.5 bg-muted/10 shadow-xs rounded-lg;
+}
+
+.div_52 {
+  @apply w-full h-auto object-contain rounded-md;
+}
+
+.container_53 {
+  @apply relative aspect-video rounded-lg border border-border/80 overflow-hidden flex flex-col justify-between p-4 shadow-inner;
+}
+
+.text_54 {
+  @apply relative z-10 w-full flex justify-between items-start text-white;
+}
+
+.table_55 {
+  @apply text-[9px] font-bold tracking-widest uppercase font-mono bg-black/30 backdrop-blur-xs px-2 py-0.5 rounded-md;
+}
+
+.text_56 {
+  @apply text-[8px] font-bold font-serif bg-black/40 backdrop-blur-xs px-2 py-0.5 rounded-md text-[#FFF7D6];
+}
+
+.text_57 {
+  @apply relative z-10 space-y-1 w-full text-white text-center pb-2;
+}
+
+.text_58 {
+  @apply text-base font-serif font-bold text-shadow-md drop-shadow-md leading-tight;
+}
+
+.table_59 {
+  @apply text-[8px] tracking-wide font-mono font-medium drop-shadow-sm text-white/95;
+}
+
+.div_60 {
+  @apply space-y-3 pt-2;
+}
+
+.table_61 {
+  @apply text-[9px] font-bold uppercase tracking-widest text-muted-foreground block;
+}
+
+.container_62 {
+  @apply flex items-center gap-2;
+}
+
+.div_63 {
+  @apply hidden;
+}
+
+.input_64 {
+  @apply flex-1 flex items-center justify-center gap-1.5 border border-border bg-muted/20 hover:bg-muted text-xs font-bold px-4 py-2.5 rounded-lg transition cursor-pointer select-none h-10;
+}
+
+.text_65 {
+  @apply text-muted-foreground;
+}
+
+.table_66 {
+  @apply p-2.5 border border-rose-500/20 bg-rose-500/5 text-rose-500 rounded-lg hover:bg-rose-500/10 transition cursor-pointer h-10 w-10 flex items-center justify-center;
+}
+
+.text_67 {
+  @apply text-[8px] text-muted-foreground font-mono leading-normal;
+}
+
+.card_68 {
+  @apply bg-card shadow-2xs p-6 border border-border/80 rounded-xl space-y-4;
+}
+
+.table_69 {
+  @apply text-sm font-bold text-foreground font-serif tracking-tight uppercase;
+}
+
+.text_70 {
+  @apply text-[10px] text-muted-foreground mt-0.5;
+}
+
+.container_71 {
+  @apply grid grid-cols-2 gap-3.5;
+}
+
+.card_72 {
+  @apply p-2.5 bg-card flex justify-between items-center w-full;
+}
+
+.table_73 {
+  @apply text-[9px] font-bold text-foreground truncate w-20;
+}
+
+.text_74 {
+  @apply text-[#F4C542] shrink-0;
+}
+
+.card_75 {
+  @apply bg-card shadow-2xs p-6 border border-border/80 rounded-xl space-y-4;
+}
+
+.container_76 {
+  @apply flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3;
+}
+
+.table_77 {
+  @apply text-sm font-bold text-foreground font-serif tracking-tight uppercase;
+}
+
+.text_78 {
+  @apply text-[10px] text-muted-foreground mt-0.5;
+}
+
+.div_79 {
+  @apply relative w-full sm:max-w-xs;
+}
+
+.text_80 {
+  @apply absolute left-3 top-2.5 h-4 w-4 text-muted-foreground;
+}
+
+.text_81 {
+  @apply w-full bg-muted/40 border border-border rounded-lg pl-9 pr-4 py-2 text-xs focus:outline-none focus:border-muted-foreground/50 text-foreground;
+}
+
+.div_82 {
+  @apply overflow-x-auto border border-border rounded-lg;
+}
+
+.text_83 {
+  @apply w-full text-left border-collapse text-xs;
+}
+
+.table_84 {
+  @apply border-b border-border text-[9px] font-bold uppercase tracking-widest text-muted-foreground bg-muted/15 font-mono;
+}
+
+.text_85 {
+  @apply py-2.5 px-4 font-bold;
+}
+
+.text_86 {
+  @apply py-2.5 px-4 font-bold;
+}
+
+.text_87 {
+  @apply py-2.5 px-4 font-bold;
+}
+
+.text_88 {
+  @apply py-2.5 px-4 font-bold;
+}
+
+.text_89 {
+  @apply py-2.5 px-4 font-bold;
+}
+
+.text_90 {
+  @apply py-2.5 px-4 font-bold;
+}
+
+.text_91 {
+  @apply py-2.5 px-4 font-bold;
+}
+
+.text_92 {
+  @apply py-2.5 px-4 font-bold text-center w-[50px];
+}
+
+.text_93 {
+  @apply divide-y divide-border/50 font-medium;
+}
+
+.text_94 {
+  @apply py-6 text-center text-muted-foreground;
+}
+
+.table_95 {
+  @apply hover:bg-muted/10 transition;
+}
+
+.text_96 {
+  @apply py-3 px-4 text-foreground font-bold;
+}
+
+.div_97 {
+  @apply py-3 px-4;
+}
+
+.container_98 {
+  @apply inline-flex items-center gap-1.5;
+}
+
+.text_99 {
+  @apply text-blue-500;
+}
+
+.text_100 {
+  @apply text-pink-500;
+}
+
+.text_101 {
+  @apply text-rose-500;
+}
+
+.text_102 {
+  @apply text-red-500;
+}
+
+.text_103 {
+  @apply text-green-500;
+}
+
+.text_104 {
+  @apply text-amber-500;
+}
+
+.text_105 {
+  @apply text-[10px] font-semibold;
+}
+
+.text_106 {
+  @apply py-3 px-4 font-mono font-bold text-muted-foreground;
+}
+
+.text_107 {
+  @apply py-3 px-4 font-mono font-bold text-muted-foreground;
+}
+
+.div_108 {
+  @apply py-3 px-4;
+}
+
+.text_109 {
+  @apply py-3 px-4 font-mono font-bold text-muted-foreground;
+}
+
+.text_110 {
+  @apply py-3 px-4 text-muted-foreground;
+}
+
+.text_111 {
+  @apply py-3 px-4 text-center;
+}
+
+.table_112 {
+  @apply p-1 text-muted-foreground hover:text-red-500 transition rounded opacity-0 group-hover:opacity-100 cursor-pointer;
+}
+
+.container_113 {
+  @apply fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4;
+}
+
+.card_114 {
+  @apply bg-card border border-border w-full max-w-2xl shadow-xl flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-150 rounded-xl overflow-hidden;
+}
+
+.container_115 {
+  @apply px-5 py-4 border-b border-border flex items-center justify-between;
+}
+
+.table_116 {
+  @apply text-sm font-bold text-foreground font-serif tracking-tight uppercase;
+}
+
+.text_117 {
+  @apply text-[10px] text-muted-foreground mt-0.5;
+}
+
+.table_118 {
+  @apply w-6 h-6 flex items-center justify-center hover:bg-muted text-muted-foreground hover:text-foreground transition cursor-pointer rounded-md border border-border;
+}
+
+.container_119 {
+  @apply flex-1 p-6 overflow-y-auto bg-muted/10 flex flex-col items-center justify-center min-h-[300px];
+}
+
+.card_120 {
+  @apply border border-border/80 bg-card p-1 shadow-inner relative max-w-full rounded-xl overflow-hidden;
+}
+
+.div_121 {
+  @apply max-h-[50vh] max-w-full object-contain mx-auto rounded-lg;
+}
+
+.text_122 {
+  @apply mt-4 flex flex-wrap justify-center items-center gap-x-4 gap-y-1.5 text-[10px] text-muted-foreground font-mono font-semibold;
+}
+
+.text_123 {
+  @apply text-foreground;
+}
+
+.text_124 {
+  @apply text-foreground;
+}
+
+.card_125 {
+  @apply p-4 border-t border-border bg-card flex justify-end gap-3;
+}
+
+.table_126 {
+  @apply px-4 py-2 border border-border text-muted-foreground hover:text-foreground text-xs font-bold rounded-lg transition cursor-pointer h-9;
+}
+
+.table_127 {
+  @apply px-5 py-2 bg-[#F4C542] hover:bg-[#c59d28] text-black text-xs font-bold rounded-lg transition cursor-pointer h-9 flex items-center gap-1.5;
+}
+
+.table_128 {
+  @apply flex flex-col items-center justify-center p-3.5 border rounded-lg text-xs font-bold transition duration-200 cursor-pointer relative gap-1.5 h-16;
+}
+
+.table_129 {
+  @apply px-3 py-1.5 rounded-lg border text-xs font-bold transition cursor-pointer;
+}
+
+.text_130 {
+  @apply p-3 rounded-lg border flex items-center gap-2 text-xs font-medium;
+}
+
+.div_131 {
+  @apply absolute inset-0 bg-gradient-to-br;
+}
+
+.input_132 {
+  @apply flex flex-col text-left border rounded-lg overflow-hidden shadow-2xs transition-all duration-200 select-none cursor-pointer;
+}
+
+.div_133 {
+  @apply h-12 bg-gradient-to-br;
+}
+
+.text_134 {
+  @apply px-2 py-0.5 rounded-full text-[9px] font-bold inline-block border;
+}

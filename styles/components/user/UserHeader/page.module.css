@@ -1,0 +1,192 @@
+@reference "../../../globals/globals.css";
+
+/* ======================================================
+   page.module.css
+   Style definitions for: app/components/user/UserHeader/page.module.css
+====================================================== */
+
+/* ======================================================
+   Structural Layout Components
+   Main grid and layout flex wraps
+====================================================== */
+.div_0 {
+  @apply h-full w-full object-cover;
+}
+
+
+/* ======================================================
+   Interactive Actions & Cards
+   Visual control elements and cards
+====================================================== */
+.card_1 {
+  @apply sticky top-0 z-30 h-16 border-b border-border bg-card/80 backdrop-blur-md px-6 shrink-0 flex items-center justify-between text-foreground;
+}
+
+.container_2 {
+  @apply flex items-center gap-2;
+}
+
+.table_3 {
+  @apply md:hidden p-1.5 rounded-md text-foreground hover:bg-muted transition-colors mr-1;
+}
+
+
+/* ======================================================
+   Typography & Label Aesthetics
+   Font weights, leading scales, and text colors
+====================================================== */
+.text_4 {
+  @apply text-base font-serif font-semibold leading-tight;
+}
+
+.table_5 {
+  @apply text-[10px] text-muted-foreground uppercase font-semibold tracking-wider mt-0.5;
+}
+
+.container_6 {
+  @apply flex items-center gap-4;
+}
+
+.div_7 {
+  @apply relative;
+}
+
+.card_8 {
+  @apply relative flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground hover:text-foreground transition shadow-2xs cursor-pointer;
+}
+
+.card_9 {
+  @apply absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-[#F4C542] ring-2 ring-card;
+}
+
+.card_10 {
+  @apply absolute right-0 mt-2 w-80 overflow-hidden rounded-xl border border-border bg-card shadow-xl animate-in fade-in slide-in-from-top-1 duration-150 z-50;
+}
+
+.card_11 {
+  @apply p-4 border-b border-border bg-[#FAF9F5]/30 dark:bg-card flex justify-between items-center;
+}
+
+.table_12 {
+  @apply text-xs font-bold uppercase tracking-wider text-foreground;
+}
+
+.text_13 {
+  @apply text-[9px] text-muted-foreground mt-0.5;
+}
+
+.text_14 {
+  @apply bg-[#FFF9E5] text-[#A3843B] text-[8px] font-bold px-2 py-0.5 rounded border border-[#F4C542]/20 uppercase;
+}
+
+.div_15 {
+  @apply max-h-[300px] overflow-y-auto divide-y divide-border/50;
+}
+
+.input_16 {
+  @apply p-6 text-center text-xs text-muted-foreground/60 select-none font-semibold;
+}
+
+.container_17 {
+  @apply flex items-center justify-between gap-2;
+}
+
+.div_18 {
+  @apply h-1.5 w-1.5 rounded-full bg-[#F4C542] shrink-0;
+}
+
+.text_19 {
+  @apply text-[10px] text-muted-foreground leading-normal;
+}
+
+.text_20 {
+  @apply flex items-center justify-between mt-1 text-[8px] font-mono text-muted-foreground;
+}
+
+.table_21 {
+  @apply text-[#B28200] hover:underline font-bold uppercase tracking-wider cursor-pointer;
+}
+
+.div_22 {
+  @apply relative;
+}
+
+.card_23 {
+  @apply flex items-center gap-2 rounded-lg border border-border bg-card p-1 pr-2 transition hover:border-muted-foreground/40 shadow-2xs;
+}
+
+.text_24 {
+  @apply text-xs font-semibold hidden md:block pl-1;
+}
+
+.table_25 {
+  @apply text-muted-foreground transition-transform duration-150;
+}
+
+.card_26 {
+  @apply absolute right-0 mt-2 w-64 overflow-hidden rounded-xl border border-border bg-card shadow-xl animate-in fade-in slide-in-from-top-1 duration-150;
+}
+
+.card_27 {
+  @apply p-4 border-b border-border bg-[#FAF9F5]/30 dark:bg-card;
+}
+
+.container_28 {
+  @apply flex items-center gap-3;
+}
+
+.div_29 {
+  @apply min-w-0;
+}
+
+.table_30 {
+  @apply truncate text-xs font-semibold;
+}
+
+.text_31 {
+  @apply text-[10px] font-mono font-bold text-[#F4C542] uppercase mt-0.5;
+}
+
+.table_32 {
+  @apply truncate text-[10px] text-muted-foreground mt-0.5;
+}
+
+.div_33 {
+  @apply p-1.5 space-y-0.5;
+}
+
+.table_34 {
+  @apply flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider hover:bg-muted transition;
+}
+
+.text_35 {
+  @apply text-muted-foreground;
+}
+
+.table_36 {
+  @apply flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider hover:bg-muted transition;
+}
+
+.container_37 {
+  @apply flex items-center gap-2.5;
+}
+
+.text_38 {
+  @apply text-[#F4C542];
+}
+
+.text_39 {
+  @apply text-[8px] font-mono text-muted-foreground uppercase;
+}
+
+.table_40 {
+  @apply flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 transition border-t border-border/50 pt-2;
+}
+
+.table_41 {
+  @apply p-3.5 hover:bg-muted/30 transition flex flex-col gap-1 relative;
+}
+
+.text_42 {
+  @apply font-bold text-xs;
+}

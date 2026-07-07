@@ -1,0 +1,132 @@
+@reference "../../globals/globals.css";
+
+/* ======================================================
+   AttendanceStats.module.css
+   Style definitions for: app/(user)/attendance/AttendanceStats.module.css
+====================================================== */
+
+/* ======================================================
+   Structural Layout Components
+   Main grid and layout flex wraps
+====================================================== */
+.container_0 {
+  @apply grid grid-cols-1 md:grid-cols-2 gap-6;
+}
+
+
+/* ======================================================
+   Interactive Actions & Cards
+   Visual control elements and cards
+====================================================== */
+.card_1 {
+  @apply bg-card border border-border rounded-xl p-5 shadow-2xs;
+}
+
+.table_2 {
+  @apply text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-5;
+}
+
+.div_3 {
+  @apply space-y-4;
+}
+
+.container_4 {
+  @apply flex items-center gap-3;
+}
+
+.table_5 {
+  @apply w-8 text-[10px] font-bold text-muted-foreground uppercase tracking-wider;
+}
+
+.container_6 {
+  @apply flex-1 bg-muted h-3 rounded overflow-hidden border border-border;
+}
+
+.table_7 {
+  @apply bg-[#F4C542] h-full rounded transition-all duration-500;
+}
+
+
+/* ======================================================
+   Typography & Label Aesthetics
+   Font weights, leading scales, and text colors
+====================================================== */
+.text_8 {
+  @apply w-12 text-right text-[11px] font-mono text-foreground font-semibold;
+}
+
+.card_9 {
+  @apply bg-card border border-border rounded-xl p-5 shadow-2xs flex flex-col justify-between;
+}
+
+.table_10 {
+  @apply text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-4;
+}
+
+.container_11 {
+  @apply flex items-center justify-center py-2;
+}
+
+.table_12 {
+  @apply w-28 h-28 transform -rotate-90;
+}
+
+.text_13 {
+  @apply text-muted/20;
+}
+
+.table_14 {
+  @apply transition-all duration-500;
+}
+
+.container_15 {
+  @apply flex justify-around border-t border-border pt-4 mt-2;
+}
+
+.text_16 {
+  @apply text-center;
+}
+
+.div_17 {
+  @apply w-2.5 h-2.5 rounded-full bg-[#F4C542] mx-auto mb-1;
+}
+
+.table_18 {
+  @apply text-[9px] font-bold text-muted-foreground uppercase tracking-wider;
+}
+
+.text_19 {
+  @apply text-xs font-serif font-semibold text-foreground mt-0.5;
+}
+
+.text_20 {
+  @apply text-center;
+}
+
+.div_21 {
+  @apply w-2.5 h-2.5 rounded-full bg-[#FFF7D6] dark:bg-[#2E2818]/60 mx-auto mb-1 border border-[#F4C542];
+}
+
+.table_22 {
+  @apply text-[9px] font-bold text-muted-foreground uppercase tracking-wider;
+}
+
+.text_23 {
+  @apply text-xs font-serif font-semibold text-foreground mt-0.5;
+}
+
+.text_24 {
+  @apply text-center;
+}
+
+.div_25 {
+  @apply w-2.5 h-2.5 rounded-full bg-red-500/10 mx-auto mb-1 border border-red-500/20;
+}
+
+.table_26 {
+  @apply text-[9px] font-bold text-muted-foreground uppercase tracking-wider;
+}
+
+.text_27 {
+  @apply text-xs font-serif font-semibold text-foreground mt-0.5;
+}

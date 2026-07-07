@@ -1,0 +1,72 @@
+@reference "../../../globals/globals.css";
+
+/* ======================================================
+   ChatHeader.module.css
+   Style definitions for: app/(admin)/admin/chatbot/components/ChatHeader.module.css
+====================================================== */
+
+/* ======================================================
+   Structural Layout Components
+   Main grid and layout flex wraps
+====================================================== */
+.container_0 {
+  @apply flex items-center justify-between px-5 py-3 border-b border-black/8 bg-white shrink-0;
+}
+
+.container_1 {
+  @apply flex items-center gap-3;
+}
+
+.container_2 {
+  @apply relative w-8 h-8 rounded-xl bg-[#F4C542] flex items-center justify-center shadow-sm shadow-[#F4C542]/40;
+}
+
+.div_3 {
+  @apply w-5 h-5;
+}
+
+.container_4 {
+  @apply flex items-center gap-2;
+}
+
+
+/* ======================================================
+   Interactive Actions & Cards
+   Visual control elements and cards
+====================================================== */
+.table_5 {
+  @apply text-[13px] font-bold text-black tracking-tight;
+}
+
+.table_6 {
+  @apply px-1.5 py-0.5 rounded-md bg-[#F4C542] text-[8px] font-black text-black uppercase tracking-widest;
+}
+
+.container_7 {
+  @apply flex items-center gap-1.5 mt-0.5;
+}
+
+.div_8 {
+  @apply w-1.5 h-1.5 rounded-full bg-emerald-500;
+}
+
+
+/* ======================================================
+   Typography & Label Aesthetics
+   Font weights, leading scales, and text colors
+====================================================== */
+.text_9 {
+  @apply text-[10px] text-black/40 font-medium;
+}
+
+.container_10 {
+  @apply flex items-center gap-2;
+}
+
+.table_11 {
+  @apply flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold text-black/40 hover:text-red-500 hover:bg-red-50 border border-black/8 hover:border-red-200 transition-all duration-150 uppercase tracking-wide;
+}
+
+.table_12 {
+  @apply flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold text-black/40 hover:text-black hover:bg-black/5 border border-black/8 transition-all duration-150 uppercase tracking-wide;
+}

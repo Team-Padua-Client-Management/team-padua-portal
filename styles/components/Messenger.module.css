@@ -1,0 +1,128 @@
+@reference "../globals/globals.css";
+
+/* ======================================================
+   Messenger.module.css
+   Style definitions for: components/Messenger.module.css
+====================================================== */
+
+/* ======================================================
+   Interactive Actions & Cards
+   Visual control elements and cards
+====================================================== */
+.card_0 {
+  @apply flex flex-1 flex-col items-center justify-center p-8 bg-card h-full;
+}
+
+
+/* ======================================================
+   Typography & Label Aesthetics
+   Font weights, leading scales, and text colors
+====================================================== */
+.text_1 {
+  @apply w-8 h-8 animate-spin text-[#F4C542] mb-2;
+}
+
+.table_2 {
+  @apply text-xs text-muted-foreground font-semibold uppercase tracking-wider;
+}
+
+.card_3 {
+  @apply flex flex-1 flex-col items-center justify-center p-8 bg-card h-full text-center;
+}
+
+.text_4 {
+  @apply text-sm font-bold text-red-500 mb-2;
+}
+
+.table_5 {
+  @apply text-xs font-bold uppercase tracking-wider bg-[#FFF7D6] hover:bg-[#F4C542]/20 border border-[#F4C542]/30 text-black dark:text-[#F4C542];
+}
+
+.text_6 {
+  @apply flex flex-col h-full w-full bg-background text-foreground antialiased overflow-hidden;
+}
+
+
+/* ======================================================
+   Structural Layout Components
+   Main grid and layout flex wraps
+====================================================== */
+.container_7 {
+  @apply flex items-center justify-between px-6 py-2 border-b border-border bg-muted/20 shrink-0;
+}
+
+.container_8 {
+  @apply flex items-center gap-1.5;
+}
+
+.table_9 {
+  @apply flex items-center gap-1 text-[9px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider;
+}
+
+.div_10 {
+  @apply h-1 w-1 rounded-full bg-emerald-500 animate-pulse;
+}
+
+.table_11 {
+  @apply flex items-center gap-1 text-[9px] text-red-500 font-bold uppercase tracking-wider;
+}
+
+.div_12 {
+  @apply h-1 w-1 rounded-full bg-red-500;
+}
+
+.text_13 {
+  @apply text-[9px] font-mono text-muted-foreground/60;
+}
+
+.container_14 {
+  @apply flex-1 overflow-y-auto p-6 space-y-4 bg-muted/5 min-h-0;
+}
+
+.text_15 {
+  @apply flex flex-col items-center justify-center h-full text-center py-8;
+}
+
+.container_16 {
+  @apply h-10 w-10 rounded-full bg-muted border border-border flex items-center justify-center mb-2;
+}
+
+.table_17 {
+  @apply text-xs text-muted-foreground font-semibold uppercase tracking-wider;
+}
+
+.text_18 {
+  @apply text-[10px] text-muted-foreground/75 mt-0.5;
+}
+
+.div_19 {
+  @apply space-y-3;
+}
+
+.div_20 {
+  @apply animate-in fade-in slide-in-from-bottom-2 duration-200;
+}
+
+.text_21 {
+  @apply text-[8px] font-normal text-muted-foreground/50 lowercase;
+}
+
+.card_22 {
+  @apply flex w-full gap-2 border-t border-border bg-card p-4 shrink-0;
+}
+
+.table_23 {
+  @apply rounded-xl bg-muted/30 border border-border text-xs focus-visible:ring-[#F4C542]/30 focus:border-[#F4C542] transition-all duration-200 h-9 font-medium;
+}
+
+.table_24 {
+  @apply aspect-square rounded-xl bg-[#FFF7D6] hover:bg-[#F4C542]/20 border border-[#F4C542]/30 text-black dark:text-[#F4C542] shrink-0 h-9 w-9 p-0 cursor-pointer transition-colors;
+}
+
+.div_25 {
+  @apply size-3.5 animate-spin;
+}
+
+.div_26 {
+  @apply size-3.5;
+}

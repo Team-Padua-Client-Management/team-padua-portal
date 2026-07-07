@@ -1,0 +1,47 @@
+@reference "../../globals/globals.css";
+
+/* ======================================================
+   page.module.css
+   Style definitions for: app/(user)/attendance/page.module.css
+====================================================== */
+
+/* ======================================================
+   Interactive Actions & Cards
+   Visual control elements and cards
+====================================================== */
+.card_0 {
+  @apply min-h-[60vh] flex items-center justify-center bg-card;
+}
+
+
+/* ======================================================
+   Structural Layout Components
+   Main grid and layout flex wraps
+====================================================== */
+.container_1 {
+  @apply flex flex-col items-center gap-4;
+}
+
+.container_2 {
+  @apply relative w-12 h-12 flex items-center justify-center;
+}
+
+.div_3 {
+  @apply absolute inset-0 rounded-full bg-[#F4C542]/20 blur-md animate-pulse;
+}
+
+.div_4 {
+  @apply absolute inset-0 rounded-full border-2 border-dashed border-[#F4C542]/20;
+}
+
+.table_5 {
+  @apply absolute inset-0 rounded-full border-2 border-t-[#F4C542] border-r-transparent border-b-[#D89D00]/50 border-l-transparent animate-spin duration-1000;
+}
+
+.div_6 {
+  @apply w-4 h-4 rounded-full bg-gradient-to-br from-[#FFECA0] to-[#B28200] shadow-[0_0_10px_rgba(244,197,66,0.8)] animate-pulse;
+}
+
+.table_7 {
+  @apply text-[#7C7A77] text-[10px] font-mono font-bold tracking-widest uppercase animate-pulse;
+}

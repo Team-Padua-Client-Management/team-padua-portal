@@ -1,0 +1,57 @@
+@reference "../../../globals/globals.css";
+
+/* ======================================================
+   EmptyState.module.css
+   Style definitions for: app/(admin)/admin/chatbot/components/EmptyState.module.css
+====================================================== */
+
+.input_0 {
+  @apply flex flex-col items-center justify-center h-full px-6 py-12 select-none;
+}
+
+
+/* ======================================================
+   Structural Layout Components
+   Main grid and layout flex wraps
+====================================================== */
+.container_1 {
+  @apply w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center mb-5 shadow-xl shadow-violet-500/25;
+}
+
+
+/* ======================================================
+   Typography & Label Aesthetics
+   Font weights, leading scales, and text colors
+====================================================== */
+.text_2 {
+  @apply text-white;
+}
+
+.text_3 {
+  @apply text-lg font-semibold text-white mb-1;
+}
+
+.text_4 {
+  @apply text-sm text-white/40 text-center mb-8 max-w-xs leading-relaxed;
+}
+
+.container_5 {
+  @apply w-full max-w-sm flex flex-col gap-2;
+}
+
+
+/* ======================================================
+   Interactive Actions & Cards
+   Visual control elements and cards
+====================================================== */
+.table_6 {
+  @apply flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-white/5 border border-white/8 text-left text-sm text-white/60 hover:text-white hover:bg-white/8 hover:border-white/15 transition-all duration-200;
+}
+
+.table_7 {
+  @apply text-violet-400 flex-shrink-0 group-hover:text-violet-300 transition-colors;
+}
+
+.text_8 {
+  @apply leading-snug;
+}

@@ -1,0 +1,14 @@
+@reference "../../globals/globals.css";
+
+/* ======================================================
+   page.module.css
+   Style definitions for: app/(admin)/admin/messages/page.module.css
+====================================================== */
+
+/* ======================================================
+   Typography & Label Aesthetics
+   Font weights, leading scales, and text colors
+====================================================== */
+.text_0 {
+  @apply flex h-screen items-center justify-center text-sm text-red-500;
+}

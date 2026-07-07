@@ -1,0 +1,80 @@
+@reference "../../globals/globals.css";
+
+/* ======================================================
+   loading.module.css
+   Style definitions for: app/(admin)/loading.module.css
+====================================================== */
+
+/* ======================================================
+   Typography & Label Aesthetics
+   Font weights, leading scales, and text colors
+====================================================== */
+.text_0 {
+  @apply w-14 h-14 text-[#F4C542];
+}
+
+
+/* ======================================================
+   Interactive Actions & Cards
+   Visual control elements and cards
+====================================================== */
+.table_1 {
+  @apply stroke-white dark:stroke-[#0d1117] opacity-70;
+}
+
+.table_2 {
+  @apply stroke-white dark:stroke-[#0d1117] opacity-70;
+}
+
+.table_3 {
+  @apply stroke-white dark:stroke-[#0d1117] opacity-50;
+}
+
+.table_4 {
+  @apply stroke-white dark:stroke-[#0d1117] opacity-70;
+}
+
+.table_5 {
+  @apply stroke-white dark:stroke-[#0d1117] opacity-50;
+}
+
+.table_6 {
+  @apply stroke-white dark:stroke-[#0d1117] opacity-50;
+}
+
+.table_7 {
+  @apply stroke-white dark:stroke-[#0d1117];
+}
+
+.table_8 {
+  @apply fixed inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-white via-[#FFFDF5] to-[#FFF9E5] dark:from-[#0d1117] dark:via-[#161b22] dark:to-[#1a1505] z-50 transition-colors duration-300;
+}
+
+
+/* ======================================================
+   Structural Layout Components
+   Main grid and layout flex wraps
+====================================================== */
+.container_9 {
+  @apply flex flex-col items-center space-y-6;
+}
+
+.container_10 {
+  @apply relative w-28 h-28 flex items-center justify-center rounded-full border-2 border-[#F4C542]/10 dark:border-[#F4C542]/5 shadow-inner;
+}
+
+.table_11 {
+  @apply absolute inset-0 rounded-full border-2 border-transparent border-t-[#F4C542] border-r-[#F4C542]/30 animate-spin;
+}
+
+.table_12 {
+  @apply relative z-10 flex items-center justify-center transform transition duration-500 hover:scale-105;
+}
+
+.container_13 {
+  @apply px-6 py-2.5 bg-black/90 dark:bg-black/95 border-2 border-zinc-800 rounded-full shadow-2xl flex items-center justify-center animate-pulse;
+}
+
+.table_14 {
+  @apply text-[10px] font-mono font-black tracking-widest text-[#F4C542] uppercase;
+}

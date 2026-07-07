@@ -1,0 +1,23 @@
+@reference "../../../globals/globals.css";
+
+/* ======================================================
+   ChatWindow.module.css
+   Style definitions for: app/(admin)/admin/chatbot/components/ChatWindow.module.css
+====================================================== */
+
+/* ======================================================
+   Interactive Actions & Cards
+   Visual control elements and cards
+====================================================== */
+.table_0 {
+  @apply flex-1 overflow-y-auto bg-[#FAFAFA] px-5 py-6 space-y-5 scrollbar-thin scrollbar-thumb-black/10 scrollbar-track-transparent hover:scrollbar-thumb-black/20;
+}
+
+
+/* ======================================================
+   Structural Layout Components
+   Main grid and layout flex wraps
+====================================================== */
+.div_1 {
+  @apply h-2;
+}

@@ -1,0 +1,14 @@
+@reference "../../globals/globals.css";
+
+/* ======================================================
+   layout.module.css
+   Style definitions for: app/layout.module.css
+====================================================== */
+
+/* ======================================================
+   Typography & Label Aesthetics
+   Font weights, leading scales, and text colors
+====================================================== */
+.text_0 {
+  @apply min-h-full flex flex-col bg-background text-foreground;
+}

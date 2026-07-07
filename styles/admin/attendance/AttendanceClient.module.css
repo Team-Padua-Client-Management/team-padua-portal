@@ -1,0 +1,312 @@
+@reference "../../globals/globals.css";
+
+/* ======================================================
+   AttendanceClient.module.css
+   Style definitions for: app/(admin)/admin/attendance/AttendanceClient.module.css
+====================================================== */
+
+/* ======================================================
+   Typography & Label Aesthetics
+   Font weights, leading scales, and text colors
+====================================================== */
+.text_0 {
+  @apply rounded-full border border-border bg-[#FFF7D6] dark:bg-[#2E2818] flex items-center justify-center text-black dark:text-[#F4C542] font-serif font-bold shrink-0;
+}
+
+
+/* ======================================================
+   Structural Layout Components
+   Main grid and layout flex wraps
+====================================================== */
+.div_1 {
+  @apply rounded-full border border-border object-cover shrink-0;
+}
+
+.div_2 {
+  @apply rounded-full border border-border overflow-hidden shrink-0;
+}
+
+.text_3 {
+  @apply flex min-h-screen bg-background text-foreground font-sans antialiased;
+}
+
+.container_4 {
+  @apply flex-1 flex flex-col min-w-0;
+}
+
+.div_5 {
+  @apply p-8 w-full space-y-8;
+}
+
+.container_6 {
+  @apply flex flex-col md:flex-row justify-between items-start md:items-center border-b border-border pb-6 gap-4;
+}
+
+.text_7 {
+  @apply text-3xl font-serif font-normal text-foreground;
+}
+
+
+/* ======================================================
+   Interactive Actions & Cards
+   Visual control elements and cards
+====================================================== */
+.table_8 {
+  @apply text-xs tracking-wider text-muted-foreground mt-1 uppercase font-semibold;
+}
+
+.container_9 {
+  @apply flex flex-wrap items-center gap-3;
+}
+
+.card_10 {
+  @apply flex items-center border border-border bg-card rounded-md p-1 shadow-2xs;
+}
+
+.table_11 {
+  @apply p-1.5 hover:bg-muted rounded text-foreground transition-colors;
+}
+
+.container_12 {
+  @apply relative flex items-center px-2;
+}
+
+.table_13 {
+  @apply text-xs font-mono bg-transparent border-none outline-none text-foreground cursor-pointer w-28;
+}
+
+.table_14 {
+  @apply p-1.5 hover:bg-muted rounded text-foreground transition-colors;
+}
+
+.card_15 {
+  @apply px-4 py-2 bg-card border border-border rounded-md hover:bg-[#FFF7D6] dark:hover:bg-[#2E2818] text-xs font-semibold text-foreground tracking-wide transition-all shadow-2xs;
+}
+
+.card_16 {
+  @apply bg-card border border-border px-3 py-2 rounded-md text-xs font-semibold text-foreground focus:outline-none focus:border-[#F4C542] shadow-2xs h-9 cursor-pointer;
+}
+
+.card_17 {
+  @apply flex items-center w-full max-w-xs relative bg-card border border-border rounded-md shadow-2xs h-9;
+}
+
+.text_18 {
+  @apply absolute left-3 text-muted-foreground;
+}
+
+.table_19 {
+  @apply w-full bg-transparent pl-9 pr-3 py-2 rounded-md text-xs outline-none text-foreground placeholder-muted-foreground/50;
+}
+
+.card_20 {
+  @apply border border-border rounded-lg overflow-hidden bg-card shadow-2xs;
+}
+
+.div_21 {
+  @apply overflow-x-auto;
+}
+
+.text_22 {
+  @apply w-full text-left border-collapse text-xs;
+}
+
+.table_23 {
+  @apply bg-muted/30 border-b border-border text-[10px] font-bold text-muted-foreground tracking-wider uppercase;
+}
+
+.div_24 {
+  @apply p-4 w-60;
+}
+
+.text_25 {
+  @apply p-4 text-center;
+}
+
+.table_26 {
+  @apply px-2 py-0.5 bg-[#FFF7D6] dark:bg-[#2E2818] text-black dark:text-[#F4C542] font-extrabold uppercase rounded-xs tracking-wider;
+}
+
+.text_27 {
+  @apply p-4 text-center;
+}
+
+.table_28 {
+  @apply px-2 py-0.5 bg-[#FFF7D6] dark:bg-[#2E2818] text-black dark:text-[#F4C542] font-extrabold uppercase rounded-xs tracking-wider;
+}
+
+.text_29 {
+  @apply p-4 text-center;
+}
+
+.table_30 {
+  @apply px-2 py-0.5 bg-[#FFF7D6] dark:bg-[#2E2818] text-black dark:text-[#F4C542] font-extrabold uppercase rounded-xs tracking-wider;
+}
+
+.text_31 {
+  @apply p-4 text-center;
+}
+
+.table_32 {
+  @apply px-2 py-0.5 bg-[#FFF7D6] dark:bg-[#2E2818] text-black dark:text-[#F4C542] font-extrabold uppercase rounded-xs tracking-wider;
+}
+
+.text_33 {
+  @apply p-4 text-center;
+}
+
+.table_34 {
+  @apply px-2 py-0.5 bg-[#FFF7D6] dark:bg-[#2E2818] text-black dark:text-[#F4C542] font-extrabold uppercase rounded-xs tracking-wider;
+}
+
+.text_35 {
+  @apply p-4 text-center;
+}
+
+.table_36 {
+  @apply px-2 py-0.5 bg-[#FFF7D6] dark:bg-[#2E2818] text-black dark:text-[#F4C542] font-extrabold uppercase rounded-xs tracking-wider;
+}
+
+.text_37 {
+  @apply p-4 text-center;
+}
+
+.table_38 {
+  @apply px-2 py-0.5 bg-[#FFF7D6] dark:bg-[#2E2818] text-black dark:text-[#F4C542] font-extrabold uppercase rounded-xs tracking-wider;
+}
+
+.card_39 {
+  @apply divide-y divide-border text-foreground bg-card;
+}
+
+.table_40 {
+  @apply p-10 text-center text-muted-foreground font-medium tracking-wide;
+}
+
+.table_41 {
+  @apply hover:bg-muted/5 transition-colors;
+}
+
+.div_42 {
+  @apply p-4;
+}
+
+.container_43 {
+  @apply flex items-center gap-3;
+}
+
+.text_44 {
+  @apply font-serif text-sm text-foreground block leading-snug;
+}
+
+.table_45 {
+  @apply block text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mt-0.5;
+}
+
+.text_46 {
+  @apply p-4 text-center font-mono font-medium text-foreground;
+}
+
+.text_47 {
+  @apply p-4 text-center font-mono font-medium text-foreground;
+}
+
+.text_48 {
+  @apply p-4 text-center font-mono font-medium text-foreground;
+}
+
+.text_49 {
+  @apply p-4 text-center font-mono font-medium text-foreground;
+}
+
+.text_50 {
+  @apply p-4 text-center;
+}
+
+.text_51 {
+  @apply inline-flex items-center px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-[#4ade80] border border-emerald-200 dark:border-emerald-800/20 text-[10px] font-mono font-semibold;
+}
+
+.text_52 {
+  @apply text-muted-foreground;
+}
+
+.text_53 {
+  @apply p-4 text-center;
+}
+
+.table_54 {
+  @apply inline-flex items-center justify-between gap-1.5 px-3 py-1.5 border border-border hover:bg-[#FFF7D6] dark:hover:bg-[#2E2818] rounded transition-colors w-32 text-[10px] text-foreground font-semibold;
+}
+
+.text_55 {
+  @apply text-muted-foreground;
+}
+
+.text_56 {
+  @apply text-muted-foreground text-[10px] font-medium;
+}
+
+.text_57 {
+  @apply p-4 text-center;
+}
+
+.table_58 {
+  @apply inline-flex items-center justify-between gap-1.5 px-3 py-1.5 border border-border hover:bg-[#FFF7D6] dark:hover:bg-[#2E2818] rounded transition-colors w-36 text-[10px] text-foreground font-semibold text-left;
+}
+
+.table_59 {
+  @apply truncate max-w-[100px];
+}
+
+.text_60 {
+  @apply text-muted-foreground shrink-0;
+}
+
+.container_61 {
+  @apply fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs;
+}
+
+.card_62 {
+  @apply relative w-full max-w-md bg-card border border-border rounded-lg shadow-lg p-5 text-foreground;
+}
+
+.table_63 {
+  @apply absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors;
+}
+
+.text_64 {
+  @apply text-base font-serif font-normal text-foreground pr-6;
+}
+
+.table_65 {
+  @apply text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mt-1;
+}
+
+.div_66 {
+  @apply mt-4;
+}
+
+.input_67 {
+  @apply w-full border border-border rounded-md p-4 bg-muted text-xs leading-relaxed text-foreground min-h-[8rem] select-text font-sans;
+}
+
+.table_68 {
+  @apply w-full border border-border rounded-md p-3 text-xs outline-none focus:border-[#F4C542] transition-all bg-muted text-foreground placeholder-muted-foreground/50 resize-none font-sans leading-relaxed;
+}
+
+.container_69 {
+  @apply mt-4 flex gap-2;
+}
+
+.table_70 {
+  @apply flex-1 py-2 border border-border rounded-md hover:bg-muted text-xs font-semibold text-foreground tracking-wider uppercase transition-colors;
+}
+
+.table_71 {
+  @apply flex-1 py-2 bg-[#FFF7D6] dark:bg-[#2E2818] hover:bg-[#F4C542] dark:hover:bg-[#3d331a] disabled:bg-muted rounded-md text-xs font-semibold text-black dark:text-[#F4C542] tracking-wider uppercase transition-all flex items-center justify-center gap-2 border border-[#F4C542]/20;
+}
+
+.table_72 {
+  @apply w-3.5 h-3.5 border-2 border-black dark:border-[#F4C542] border-t-transparent rounded-full animate-spin;
+}

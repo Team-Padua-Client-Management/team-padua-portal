@@ -1,0 +1,44 @@
+@reference "../../globals/globals.css";
+
+/* ======================================================
+   AttendanceTimeline.module.css
+   Style definitions for: app/(user)/attendance/AttendanceTimeline.module.css
+====================================================== */
+
+/* ======================================================
+   Interactive Actions & Cards
+   Visual control elements and cards
+====================================================== */
+.card_0 {
+  @apply bg-card border border-border rounded-xl p-6 shadow-2xs;
+}
+
+
+/* ======================================================
+   Structural Layout Components
+   Main grid and layout flex wraps
+====================================================== */
+.div_1 {
+  @apply relative border-l border-border ml-3 space-y-6;
+}
+
+.div_2 {
+  @apply relative pl-8;
+}
+
+.table_3 {
+  @apply text-[9px] font-bold text-muted-foreground uppercase tracking-widest block;
+}
+
+.card_4 {
+  @apply absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full border bg-card transition-all;
+}
+
+
+/* ======================================================
+   Typography & Label Aesthetics
+   Font weights, leading scales, and text colors
+====================================================== */
+.text_5 {
+  @apply text-sm font-mono mt-0.5 block;
+}

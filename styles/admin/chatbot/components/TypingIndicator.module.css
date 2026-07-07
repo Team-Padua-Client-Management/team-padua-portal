@@ -1,0 +1,42 @@
+@reference "../../../globals/globals.css";
+
+/* ======================================================
+   TypingIndicator.module.css
+   Style definitions for: app/(admin)/admin/chatbot/components/TypingIndicator.module.css
+====================================================== */
+
+/* ======================================================
+   Structural Layout Components
+   Main grid and layout flex wraps
+====================================================== */
+.container_0 {
+  @apply flex items-end gap-2.5;
+}
+
+.container_1 {
+  @apply flex-shrink-0 w-7 h-7 rounded-xl bg-[#F4C542] flex items-center justify-center shadow-sm shadow-[#F4C542]/30 self-end mb-0.5;
+}
+
+.div_2 {
+  @apply w-4 h-4;
+}
+
+.div_3 {
+  @apply bg-white border border-black/8 rounded-2xl rounded-bl-md px-4 py-3 shadow-sm;
+}
+
+.container_4 {
+  @apply flex items-center gap-1.5;
+}
+
+.div_5 {
+  @apply w-1.5 h-1.5 rounded-full bg-[#F4C542] animate-bounce;
+}
+
+.div_6 {
+  @apply w-1.5 h-1.5 rounded-full bg-[#F4C542] animate-bounce;
+}
+
+.div_7 {
+  @apply w-1.5 h-1.5 rounded-full bg-[#F4C542] animate-bounce;
+}

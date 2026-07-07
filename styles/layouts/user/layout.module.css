@@ -1,0 +1,27 @@
+@reference "../../globals/globals.css";
+
+/* ======================================================
+   layout.module.css
+   Style definitions for: app/(user)/layout.module.css
+====================================================== */
+
+/* ======================================================
+   Typography & Label Aesthetics
+   Font weights, leading scales, and text colors
+====================================================== */
+.text_0 {
+  @apply min-h-screen bg-background text-foreground font-sans antialiased flex;
+}
+
+
+/* ======================================================
+   Structural Layout Components
+   Main grid and layout flex wraps
+====================================================== */
+.container_1 {
+  @apply flex-1 flex flex-col min-w-0;
+}
+
+.container_2 {
+  @apply flex-1 overflow-y-auto bg-background p-6;
+}

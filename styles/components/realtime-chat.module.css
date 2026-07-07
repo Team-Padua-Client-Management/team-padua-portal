@@ -1,0 +1,47 @@
+@reference "../globals/globals.css";
+
+/* ======================================================
+   realtime-chat.module.css
+   Style definitions for: components/realtime-chat.module.css
+====================================================== */
+
+/* ======================================================
+   Typography & Label Aesthetics
+   Font weights, leading scales, and text colors
+====================================================== */
+.text_0 {
+  @apply flex flex-col h-full w-full bg-background text-foreground antialiased;
+}
+
+
+/* ======================================================
+   Structural Layout Components
+   Main grid and layout flex wraps
+====================================================== */
+.container_1 {
+  @apply flex-1 overflow-y-auto p-4 space-y-4;
+}
+
+.text_2 {
+  @apply text-center text-sm text-muted-foreground;
+}
+
+.div_3 {
+  @apply space-y-1;
+}
+
+.div_4 {
+  @apply animate-in fade-in slide-in-from-bottom-4 duration-300;
+}
+
+.container_5 {
+  @apply flex w-full gap-2 border-t border-border p-4;
+}
+
+.div_6 {
+  @apply aspect-square rounded-full animate-in fade-in slide-in-from-right-4 duration-300;
+}
+
+.div_7 {
+  @apply size-4;
+}

@@ -1,0 +1,480 @@
+@reference "../../globals/globals.css";
+
+/* ======================================================
+   AttendanceDashboard.module.css
+   Style definitions for: app/(user)/attendance/AttendanceDashboard.module.css
+====================================================== */
+
+/* ======================================================
+   Structural Layout Components
+   Main grid and layout flex wraps
+====================================================== */
+.container_0 {
+  @apply relative flex flex-col items-center;
+}
+
+
+/* ======================================================
+   Interactive Actions & Cards
+   Visual control elements and cards
+====================================================== */
+.table_1 {
+  @apply text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1;
+}
+
+.card_2 {
+  @apply w-32 px-3 py-2 bg-card border border-border hover:border-[#F4C542] hover:bg-[#FFF7D6]/10 dark:hover:bg-[#2E2818]/30 text-foreground font-mono text-xs rounded-lg transition-all text-center focus:outline-none shadow-2xs h-9;
+}
+
+.card_3 {
+  @apply absolute top-14 z-50 bg-card border border-border rounded-xl shadow-lg p-3 w-48 flex flex-col gap-2 animate-in fade-in slide-in-from-top-1 duration-150;
+}
+
+.container_4 {
+  @apply flex gap-1 justify-center items-center;
+}
+
+.card_5 {
+  @apply border border-border bg-card rounded p-1 text-xs font-mono text-foreground outline-none focus:border-[#F4C542];
+}
+
+
+/* ======================================================
+   Typography & Label Aesthetics
+   Font weights, leading scales, and text colors
+====================================================== */
+.text_6 {
+  @apply text-foreground font-bold;
+}
+
+.card_7 {
+  @apply border border-border bg-card rounded p-1 text-xs font-mono text-foreground outline-none focus:border-[#F4C542];
+}
+
+.card_8 {
+  @apply border border-border bg-card rounded p-1 text-xs font-bold text-foreground outline-none focus:border-[#F4C542];
+}
+
+.container_9 {
+  @apply flex gap-1.5 mt-1;
+}
+
+.table_10 {
+  @apply flex-1 py-1 text-[10px] font-semibold uppercase tracking-wider text-red-600 bg-red-500/10 hover:bg-red-500/20 rounded transition-colors;
+}
+
+.table_11 {
+  @apply flex-1 py-1 text-[10px] font-semibold uppercase tracking-wider text-black dark:text-[#F4C542] bg-[#FFF7D6] dark:bg-[#2E2818]/60 hover:bg-[#F4C542] dark:hover:bg-[#3d331a] rounded transition-colors;
+}
+
+.text_12 {
+  @apply bg-background text-foreground min-h-screen font-sans;
+}
+
+.div_13 {
+  @apply max-w-7xl mx-auto space-y-7;
+}
+
+.container_14 {
+  @apply grid grid-cols-1 md:grid-cols-3 gap-5;
+}
+
+.card_15 {
+  @apply bg-card border border-border rounded-2xl p-5 flex items-center justify-between shadow-sm hover:border-[#F4C542]/40 hover:-translate-y-0.5 transition-all duration-200;
+}
+
+.div_16 {
+  @apply space-y-1;
+}
+
+.table_17 {
+  @apply text-[10px] font-bold text-muted-foreground uppercase tracking-widest block;
+}
+
+.container_18 {
+  @apply flex gap-4 mt-2;
+}
+
+.text_19 {
+  @apply text-xl font-semibold text-foreground;
+}
+
+.text_20 {
+  @apply text-[10px] text-muted-foreground block;
+}
+
+.div_21 {
+  @apply border-l border-border pl-4;
+}
+
+.text_22 {
+  @apply text-xl font-semibold text-foreground;
+}
+
+.text_23 {
+  @apply text-[10px] text-muted-foreground block;
+}
+
+.div_24 {
+  @apply border-l border-zinc-200 dark:border-zinc-800 pl-4;
+}
+
+.text_25 {
+  @apply text-xl font-semibold text-foreground;
+}
+
+.text_26 {
+  @apply text-[10px] text-muted-foreground block;
+}
+
+.container_27 {
+  @apply h-10 w-10 bg-zinc-50 dark:bg-zinc-900/40 rounded-xl flex items-center justify-center border border-border;
+}
+
+.text_28 {
+  @apply text-[#F4C542];
+}
+
+.card_29 {
+  @apply bg-card border border-border rounded-2xl p-5 flex items-center justify-between shadow-sm hover:border-[#F4C542]/40 hover:-translate-y-0.5 transition-all duration-200;
+}
+
+.div_30 {
+  @apply space-y-1;
+}
+
+.table_31 {
+  @apply text-[10px] font-bold text-muted-foreground uppercase tracking-widest block;
+}
+
+.container_32 {
+  @apply flex gap-4 mt-2;
+}
+
+.text_33 {
+  @apply text-xl font-semibold text-foreground;
+}
+
+.text_34 {
+  @apply text-[10px] text-muted-foreground block;
+}
+
+.div_35 {
+  @apply border-l border-zinc-200 dark:border-zinc-800 pl-4;
+}
+
+.text_36 {
+  @apply text-xl font-semibold text-foreground;
+}
+
+.text_37 {
+  @apply text-[10px] text-muted-foreground block;
+}
+
+.container_38 {
+  @apply h-10 w-10 bg-zinc-50 dark:bg-zinc-900 rounded-xl flex items-center justify-center border border-zinc-200/50 dark:border-zinc-800/50;
+}
+
+.text_39 {
+  @apply text-[#F4C542];
+}
+
+.card_40 {
+  @apply bg-card border border-border rounded-2xl p-5 flex items-center justify-between shadow-sm hover:border-[#F4C542]/40 hover:-translate-y-0.5 transition-all duration-200;
+}
+
+.div_41 {
+  @apply space-y-1;
+}
+
+.table_42 {
+  @apply text-[10px] font-bold text-muted-foreground uppercase tracking-widest block;
+}
+
+.div_43 {
+  @apply mt-2;
+}
+
+.container_44 {
+  @apply h-10 w-10 bg-zinc-50 dark:bg-zinc-900 rounded-xl flex items-center justify-center border border-zinc-200/50 dark:border-zinc-800/50;
+}
+
+.div_45 {
+  @apply w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse;
+}
+
+.card_46 {
+  @apply bg-card border border-border rounded-2xl shadow-sm p-6 space-y-6;
+}
+
+.container_47 {
+  @apply flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-zinc-100 dark:border-zinc-800/60 pb-5 gap-4;
+}
+
+.container_48 {
+  @apply flex items-center gap-2;
+}
+
+.text_49 {
+  @apply text-xl font-semibold text-foreground font-serif;
+}
+
+.table_50 {
+  @apply text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#FFF9E5] dark:bg-[#2E2818] text-[#A3843B] dark:text-[#F4C542] border border-[#F4C542]/20 uppercase tracking-wider;
+}
+
+.table_51 {
+  @apply text-[11px] text-muted-foreground font-semibold uppercase tracking-wider mt-1;
+}
+
+.container_52 {
+  @apply flex gap-2;
+}
+
+.table_53 {
+  @apply px-4 py-2 bg-zinc-50 dark:bg-zinc-900 hover:bg-[#FFF9E5] dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-200 text-xs font-bold uppercase tracking-wider rounded-xl transition flex items-center gap-1.5 shadow-2xs h-9;
+}
+
+.table_54 {
+  @apply px-4 py-2 bg-[#FFF7D6] dark:bg-[#2E2818]/60 hover:bg-[#F4C542] dark:hover:bg-[#3d331a] disabled:bg-muted text-black dark:text-[#F4C542] border border-[#F4C542]/20 font-bold text-xs uppercase tracking-wider rounded-xl transition flex items-center gap-1.5 shadow-2xs h-9;
+}
+
+.table_55 {
+  @apply w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin;
+}
+
+.text_56 {
+  @apply bg-[#FFF9E5]/40 dark:bg-[#2E2818]/30 border border-[#F4C542]/20 rounded-xl p-3.5 flex items-center gap-2 text-xs text-zinc-700 dark:text-zinc-300;
+}
+
+.text_57 {
+  @apply text-[#F4C542];
+}
+
+.container_58 {
+  @apply grid grid-cols-1 lg:grid-cols-12 gap-6 items-center;
+}
+
+.text_59 {
+  @apply lg:col-span-4 bg-zinc-50 dark:bg-zinc-900/40 border border-border rounded-2xl p-5 flex flex-col justify-center items-center text-center;
+}
+
+.table_60 {
+  @apply text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-1;
+}
+
+.table_61 {
+  @apply text-2xl font-mono font-semibold text-[#F4C542] tracking-tight;
+}
+
+.div_62 {
+  @apply border-t border-border w-full my-3;
+}
+
+.table_63 {
+  @apply text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-1;
+}
+
+.text_64 {
+  @apply text-xl font-serif font-normal text-foreground;
+}
+
+.div_65 {
+  @apply lg:col-span-5 bg-zinc-50/50 dark:bg-zinc-900/20 border border-border rounded-2xl p-5 space-y-3;
+}
+
+.table_66 {
+  @apply text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-1;
+}
+
+.div_67 {
+  @apply space-y-2.5;
+}
+
+.text_68 {
+  @apply flex items-center justify-between text-xs;
+}
+
+.container_69 {
+  @apply flex items-center gap-2;
+}
+
+.table_70 {
+  @apply lg:col-span-3 flex flex-col justify-center items-stretch h-full min-h-[8rem];
+}
+
+.div_71 {
+  @apply space-y-3;
+}
+
+.table_72 {
+  @apply text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest block text-center;
+}
+
+.table_73 {
+  @apply w-full py-4 bg-[#FFF7D6] dark:bg-[#2E2818] hover:bg-[#F4C542] dark:hover:bg-[#3d331a] text-black dark:text-[#F4C542] border border-[#F4C542]/20 font-bold text-xs uppercase tracking-wider rounded-2xl transition shadow-xs flex items-center justify-center gap-2;
+}
+
+.container_74 {
+  @apply flex flex-col gap-2;
+}
+
+.table_75 {
+  @apply w-full py-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:bg-[#FFF9E5] dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 font-bold text-xs uppercase tracking-wider rounded-2xl transition flex items-center justify-center gap-2 shadow-xs;
+}
+
+.table_76 {
+  @apply w-full py-3 bg-[#FFF7D6] dark:bg-[#2E2818] hover:bg-[#F4C542] dark:hover:bg-[#3d331a] text-black dark:text-[#F4C542] border border-[#F4C542]/20 font-bold text-xs uppercase tracking-wider rounded-2xl transition flex items-center justify-center gap-2 shadow-xs;
+}
+
+.table_77 {
+  @apply w-full py-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:bg-[#FFF9E5] dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 font-bold text-xs uppercase tracking-wider rounded-2xl transition flex items-center justify-center gap-2 shadow-xs;
+}
+
+.table_78 {
+  @apply w-full py-4 bg-[#FFF7D6] dark:bg-[#2E2818] hover:bg-[#F4C542] dark:hover:bg-[#3d331a] text-black dark:text-[#F4C542] border border-[#F4C542]/20 font-bold text-xs uppercase tracking-wider rounded-2xl transition flex items-center justify-center gap-2 shadow-xs;
+}
+
+.table_79 {
+  @apply py-4 bg-emerald-500/10 text-emerald-600 dark:text-[#4ade80] border border-emerald-500/20 font-bold text-xs uppercase tracking-wider rounded-2xl flex items-center justify-center gap-1.5;
+}
+
+.div_80 {
+  @apply space-y-3;
+}
+
+.table_81 {
+  @apply text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest block text-center;
+}
+
+.container_82 {
+  @apply grid grid-cols-2 gap-2;
+}
+
+.container_83 {
+  @apply grid grid-cols-1 md:grid-cols-2 gap-6 pt-2;
+}
+
+.div_84 {
+  @apply space-y-2;
+}
+
+.container_85 {
+  @apply flex justify-between items-center;
+}
+
+.table_86 {
+  @apply text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest;
+}
+
+.text_87 {
+  @apply text-[10px] text-zinc-400 dark:text-zinc-500 font-semibold;
+}
+
+.table_88 {
+  @apply w-full border border-zinc-200 dark:border-zinc-800 rounded-xl p-3.5 text-xs outline-none focus:border-[#F4C542] transition bg-zinc-50/50 dark:bg-zinc-900/30 text-zinc-800 dark:text-zinc-100 placeholder-zinc-400 resize-none font-sans leading-relaxed;
+}
+
+.div_89 {
+  @apply space-y-2;
+}
+
+.container_90 {
+  @apply flex justify-between items-center;
+}
+
+.table_91 {
+  @apply text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest;
+}
+
+.table_92 {
+  @apply text-[10px] text-[#A3843B] dark:text-[#F4C542] font-semibold uppercase tracking-wider bg-[#FFF9E5] dark:bg-[#2E2818]/40 px-2 py-0.5 rounded border border-[#F4C542]/20;
+}
+
+.input_93 {
+  @apply w-full border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 text-xs bg-zinc-50/50 dark:bg-zinc-900/30 text-zinc-700 dark:text-zinc-300 min-h-[4.7rem] leading-relaxed select-all;
+}
+
+.container_94 {
+  @apply grid grid-cols-1 gap-6;
+}
+
+.div_95 {
+  @apply space-y-4;
+}
+
+.container_96 {
+  @apply flex border-b border-zinc-200 dark:border-zinc-800 pb-2 gap-6;
+}
+
+.div_97 {
+  @apply pt-2;
+}
+
+.div_98 {
+  @apply pt-6 border-t border-zinc-200 dark:border-zinc-800;
+}
+
+.card_99 {
+  @apply bg-card border border-border rounded-2xl p-6 shadow-sm space-y-4;
+}
+
+.table_100 {
+  @apply text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest pb-2 border-b border-zinc-100 dark:border-zinc-800;
+}
+
+.text_101 {
+  @apply grid grid-cols-1 md:grid-cols-3 gap-6 text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed;
+}
+
+.text_102 {
+  @apply font-semibold text-zinc-800 dark:text-zinc-200 text-sm mb-1 flex items-center gap-1;
+}
+
+.text_103 {
+  @apply text-[#F4C542];
+}
+
+.div_104 {
+  @apply border-t md:border-t-0 md:border-l border-zinc-100 dark:border-zinc-800 pt-4 md:pt-0 md:pl-6;
+}
+
+.text_105 {
+  @apply font-semibold text-zinc-800 dark:text-zinc-200 text-sm mb-1 flex items-center gap-1;
+}
+
+.div_106 {
+  @apply border-t md:border-t-0 md:border-l border-zinc-100 dark:border-zinc-800 pt-4 md:pt-0 md:pl-6;
+}
+
+.text_107 {
+  @apply font-semibold text-zinc-800 dark:text-zinc-200 text-sm mb-1 flex items-center gap-1;
+}
+
+.text_108 {
+  @apply font-mono bg-[#FFF9E5] dark:bg-[#2E2818]/40 px-2 py-1 rounded text-[10px] text-zinc-800 dark:text-zinc-200 mt-1 border border-[#F4C542]/20;
+}
+
+.div_109 {
+  @apply mt-1;
+}
+
+.text_110 {
+  @apply inline-block px-3 py-1 text-[11px] font-bold uppercase rounded-xl;
+}
+
+.container_111 {
+  @apply w-5 h-5 rounded-full flex items-center justify-center;
+}
+
+.text_112 {
+  @apply font-semibold;
+}
+
+.text_113 {
+  @apply font-mono;
+}
+
+.table_114 {
+  @apply pb-2 text-xs tracking-wider uppercase font-semibold transition-all -mb-[10px] border-b-2;
+}

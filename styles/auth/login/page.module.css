@@ -1,0 +1,56 @@
+@reference "../../globals/globals.css";
+
+/* ======================================================
+   page.module.css
+   Style definitions for: app/auth/login/page.module.css
+====================================================== */
+
+/* ======================================================
+   Structural Layout Components
+   Main grid and layout flex wraps
+====================================================== */
+.container_0 {
+  @apply min-h-screen flex items-center justify-center bg-radial from-[#FFF9E5] via-white to-white px-6;
+}
+
+
+/* ======================================================
+   Interactive Actions & Cards
+   Visual control elements and cards
+====================================================== */
+.table_1 {
+  @apply w-full max-w-md bg-white border border-[#F4C542]/20 rounded-3xl shadow-xl p-8 hover:shadow-2xl hover:border-[#F4C542]/30 transition-all duration-300 relative overflow-hidden;
+}
+
+.div_2 {
+  @apply absolute -top-10 -right-10 w-24 h-24 bg-[#F4C542]/10 rounded-full blur-xl pointer-events-none;
+}
+
+.table_3 {
+  @apply inline-flex items-center gap-1 text-[10px] font-extrabold text-zinc-500 hover:text-[#A3843B] transition-all mb-6 focus-visible:outline-none uppercase tracking-widest bg-zinc-50 hover:bg-[#FFF9E5] px-3 py-1.5 rounded-full border border-zinc-100;
+}
+
+.table_4 {
+  @apply w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5 text-zinc-400 group-hover:text-[#F4C542];
+}
+
+
+/* ======================================================
+   Typography & Label Aesthetics
+   Font weights, leading scales, and text colors
+====================================================== */
+.text_5 {
+  @apply flex flex-col items-center text-center mb-8 gap-4;
+}
+
+.div_6 {
+  @apply rounded-2xl shadow-md border border-[#F4C542]/15;
+}
+
+.table_7 {
+  @apply text-3xl font-bold tracking-tight text-[#F4C542];
+}
+
+.table_8 {
+  @apply text-xs text-zinc-400 font-medium uppercase tracking-widest mt-1;
+}

@@ -1,0 +1,192 @@
+@reference "../../globals/globals.css";
+
+/* ======================================================
+   AdminMessagesClient.module.css
+   Style definitions for: app/(admin)/admin/messages/AdminMessagesClient.module.css
+====================================================== */
+
+/* ======================================================
+   Typography & Label Aesthetics
+   Font weights, leading scales, and text colors
+====================================================== */
+.text_0 {
+  @apply rounded-full border border-border bg-[#FFF7D6] dark:bg-[#2E2818] flex items-center justify-center text-black dark:text-[#F4C542] font-serif font-bold shrink-0;
+}
+
+
+/* ======================================================
+   Structural Layout Components
+   Main grid and layout flex wraps
+====================================================== */
+.div_1 {
+  @apply rounded-full border border-border object-cover shrink-0;
+}
+
+.div_2 {
+  @apply rounded-full border border-border overflow-hidden shrink-0;
+}
+
+.input_3 {
+  @apply flex min-h-screen bg-background text-foreground font-sans antialiased selection:bg-[#F4C542]/30;
+}
+
+.container_4 {
+  @apply flex-1 flex flex-col min-w-0 h-screen overflow-hidden;
+}
+
+
+/* ======================================================
+   Interactive Actions & Cards
+   Visual control elements and cards
+====================================================== */
+.card_5 {
+  @apply flex flex-1 overflow-hidden bg-card border border-border rounded-xl m-6 shadow-2xs;
+}
+
+.card_6 {
+  @apply flex w-80 flex-col border-r border-border bg-card shrink-0;
+}
+
+.div_7 {
+  @apply p-5 border-b border-border space-y-4;
+}
+
+.container_8 {
+  @apply flex items-center justify-between;
+}
+
+.table_9 {
+  @apply text-xl font-bold tracking-tight text-foreground;
+}
+
+.container_10 {
+  @apply flex gap-1 bg-muted p-1 rounded-lg border border-border;
+}
+
+.div_11 {
+  @apply relative;
+}
+
+.text_12 {
+  @apply absolute left-3 top-2.5 text-muted-foreground/60;
+}
+
+.card_13 {
+  @apply w-full rounded-lg border border-border bg-muted pl-9 pr-3 py-2 text-xs text-foreground placeholder-muted-foreground/50 focus:border-[#F4C542] focus:bg-card h-9 transition shadow-2xs;
+}
+
+.container_14 {
+  @apply flex-1 overflow-y-auto divide-y divide-border;
+}
+
+.text_15 {
+  @apply px-4 py-8 text-center text-xs text-muted-foreground;
+}
+
+.div_16 {
+  @apply shrink-0 relative;
+}
+
+.card_17 {
+  @apply absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-card;
+}
+
+.container_18 {
+  @apply flex-1 min-w-0;
+}
+
+.container_19 {
+  @apply flex justify-between items-baseline;
+}
+
+.div_20 {
+  @apply h-2 w-2 rounded-full bg-[#F4C542] shrink-0 ml-1 animate-pulse;
+}
+
+.text_21 {
+  @apply text-[9px] font-mono text-muted-foreground shrink-0;
+}
+
+.container_22 {
+  @apply flex flex-1 flex-col overflow-hidden bg-muted/10;
+}
+
+.card_23 {
+  @apply flex flex-1 flex-col items-center justify-center text-center p-10 bg-card;
+}
+
+.container_24 {
+  @apply h-12 w-12 rounded-full bg-muted border border-border flex items-center justify-center mb-3;
+}
+
+.text_25 {
+  @apply text-muted-foreground text-lg;
+}
+
+.text_26 {
+  @apply text-xs font-medium text-foreground/90;
+}
+
+.text_27 {
+  @apply text-[11px] text-muted-foreground mt-0.5;
+}
+
+.card_28 {
+  @apply flex items-center gap-3 border-b border-border bg-card px-6 py-4 shrink-0 shadow-2xs;
+}
+
+.div_29 {
+  @apply shrink-0;
+}
+
+.div_30 {
+  @apply min-w-0;
+}
+
+.table_31 {
+  @apply text-xs font-bold text-foreground truncate;
+}
+
+.table_32 {
+  @apply text-[11px] text-muted-foreground font-mono tracking-tight mt-0.5;
+}
+
+.text_33 {
+  @apply ml-auto flex items-center gap-1.5 text-[10px] text-green-600 dark:text-green-400 font-mono font-bold bg-green-500/10 border border-green-500/20 px-2 py-0.5 rounded-md;
+}
+
+.div_34 {
+  @apply h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse;
+}
+
+.container_35 {
+  @apply flex-1 overflow-hidden relative;
+}
+
+.card_36 {
+  @apply flex flex-1 flex-col items-center justify-center p-8 bg-card h-full;
+}
+
+.text_37 {
+  @apply w-8 h-8 animate-spin text-[#F4C542] mb-2;
+}
+
+.table_38 {
+  @apply text-xs text-muted-foreground font-semibold uppercase tracking-wider;
+}
+
+.table_39 {
+  @apply text-[10px] font-semibold px-2 py-1 rounded-md transition uppercase tracking-wider;
+}
+
+.table_40 {
+  @apply w-full flex items-center gap-3 px-4 py-3.5 text-left transition;
+}
+
+.table_41 {
+  @apply text-xs truncate text-foreground;
+}
+
+.table_42 {
+  @apply text-[11px] truncate mt-0.5;
+}

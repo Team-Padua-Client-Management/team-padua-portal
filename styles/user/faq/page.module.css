@@ -1,0 +1,156 @@
+@reference "../../globals/globals.css";
+
+/* ======================================================
+   page.module.css
+   Style definitions for: app/(user)/faq/page.module.css
+====================================================== */
+
+/* ======================================================
+   Typography & Label Aesthetics
+   Font weights, leading scales, and text colors
+====================================================== */
+.text_0 {
+  @apply flex min-h-screen bg-background text-foreground font-sans antialiased;
+}
+
+
+/* ======================================================
+   Structural Layout Components
+   Main grid and layout flex wraps
+====================================================== */
+.container_1 {
+  @apply flex-1 flex flex-col min-w-0;
+}
+
+.div_2 {
+  @apply p-8 w-full space-y-8 overflow-y-auto;
+}
+
+.div_3 {
+  @apply border-b border-border pb-5;
+}
+
+
+/* ======================================================
+   Interactive Actions & Cards
+   Visual control elements and cards
+====================================================== */
+.table_4 {
+  @apply text-[10px] font-bold tracking-widest text-muted-foreground uppercase font-mono flex items-center gap-2;
+}
+
+.text_5 {
+  @apply text-border;
+}
+
+.text_6 {
+  @apply text-[#F4C542];
+}
+
+.table_7 {
+  @apply text-2xl font-bold tracking-tight text-foreground mt-1;
+}
+
+.text_8 {
+  @apply text-xs text-muted-foreground mt-0.5;
+}
+
+.container_9 {
+  @apply flex flex-col sm:flex-row gap-4;
+}
+
+.container_10 {
+  @apply flex-1 relative;
+}
+
+.text_11 {
+  @apply absolute left-3 top-2.5 text-muted-foreground/60;
+}
+
+.card_12 {
+  @apply w-full bg-card border border-border pl-9 pr-3 py-2 rounded-lg text-xs focus:outline-none focus:border-gray-400 placeholder-gray-400 text-foreground transition h-9 shadow-2xs;
+}
+
+.div_13 {
+  @apply w-full sm:w-48;
+}
+
+.card_14 {
+  @apply w-full bg-card border border-border px-3 py-1.5 rounded-lg text-xs font-medium text-foreground/80 focus:outline-none focus:border-gray-300 shadow-2xs h-9;
+}
+
+.div_15 {
+  @apply space-y-4;
+}
+
+.table_16 {
+  @apply text-xs text-muted-foreground animate-pulse text-center py-12 uppercase font-bold tracking-wider;
+}
+
+.card_17 {
+  @apply text-center py-12 bg-card border border-border rounded-xl;
+}
+
+.text_18 {
+  @apply w-8 h-8 text-muted-foreground/40 mx-auto mb-2;
+}
+
+.table_19 {
+  @apply text-xs text-muted-foreground font-semibold uppercase tracking-wider;
+}
+
+.div_20 {
+  @apply space-y-3;
+}
+
+.table_21 {
+  @apply w-full px-5 py-4 text-left flex justify-between items-center gap-4 cursor-pointer hover:bg-muted/10 transition-colors;
+}
+
+.div_22 {
+  @apply space-y-1;
+}
+
+.container_23 {
+  @apply flex items-center gap-2;
+}
+
+.text_24 {
+  @apply text-[#F4C542] text-[10px];
+}
+
+.text_25 {
+  @apply text-xs font-bold font-mono uppercase bg-muted/80 text-muted-foreground px-2 py-0.5 rounded text-[9px];
+}
+
+.text_26 {
+  @apply text-sm font-semibold text-foreground mt-1;
+}
+
+.text_27 {
+  @apply text-[#F4C542];
+}
+
+.text_28 {
+  @apply text-muted-foreground;
+}
+
+.div_29 {
+  @apply px-5 pb-5 pt-1 border-t border-border/40 space-y-4 animate-in fade-in slide-in-from-top-1 duration-150;
+}
+
+.text_30 {
+  @apply text-xs leading-relaxed text-muted-foreground whitespace-pre-wrap;
+}
+
+.container_31 {
+  @apply flex flex-wrap gap-1.5 pt-2;
+}
+
+.table_32 {
+  @apply inline-flex items-center gap-1 bg-[#FFF9E5] text-[#A3843B] text-[9px] font-bold px-2 py-0.5 rounded border border-[#F4C542]/20 uppercase tracking-wider;
+}
+
+.card_33 {
+  @apply bg-card border rounded-xl overflow-hidden transition-all duration-200;
+}

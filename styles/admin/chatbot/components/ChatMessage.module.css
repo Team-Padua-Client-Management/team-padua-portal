@@ -1,0 +1,68 @@
+@reference "../../../globals/globals.css";
+
+/* ======================================================
+   ChatMessage.module.css
+   Style definitions for: app/(admin)/admin/chatbot/components/ChatMessage.module.css
+====================================================== */
+
+/* ======================================================
+   Structural Layout Components
+   Main grid and layout flex wraps
+====================================================== */
+.div_0 {
+  @apply w-4 h-4;
+}
+
+.div_1 {
+  @apply w-3.5 h-3.5;
+}
+
+
+/* ======================================================
+   Interactive Actions & Cards
+   Visual control elements and cards
+====================================================== */
+.table_2 {
+  @apply flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200 px-1;
+}
+
+.table_3 {
+  @apply flex items-center gap-1 text-[10px] text-black/30 hover:text-black/60 transition-colors py-0.5 px-1.5 rounded hover:bg-black/5;
+}
+
+
+/* ======================================================
+   Typography & Label Aesthetics
+   Font weights, leading scales, and text colors
+====================================================== */
+.text_4 {
+  @apply text-emerald-500;
+}
+
+.text_5 {
+  @apply text-emerald-500;
+}
+
+.text_6 {
+  @apply text-black/15;
+}
+
+.table_7 {
+  @apply flex items-center gap-1 text-[10px] text-black/30 hover:text-black/60 transition-colors py-0.5 px-1.5 rounded hover:bg-black/5;
+}
+
+.container_8 {
+  @apply flex items-end gap-2.5;
+}
+
+.container_9 {
+  @apply flex-shrink-0 w-7 h-7 rounded-xl flex items-center justify-center self-end mb-0.5 shadow-sm;
+}
+
+.container_10 {
+  @apply flex flex-col gap-1.5 max-w-[76%];
+}
+
+.text_11 {
+  @apply px-4 py-3 text-[13px] leading-relaxed whitespace-pre-wrap break-words font-[430];
+}

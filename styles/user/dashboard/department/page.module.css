@@ -1,0 +1,228 @@
+@reference "../../../globals/globals.css";
+
+/* ======================================================
+   page.module.css
+   Style definitions for: app/(user)/dashboard/department/page.module.css
+====================================================== */
+
+/* ======================================================
+   Typography & Label Aesthetics
+   Font weights, leading scales, and text colors
+====================================================== */
+.text_0 {
+  @apply space-y-8 bg-background text-foreground;
+}
+
+
+/* ======================================================
+   Structural Layout Components
+   Main grid and layout flex wraps
+====================================================== */
+.container_1 {
+  @apply border-b border-border pb-5 flex justify-between items-center;
+}
+
+.text_2 {
+  @apply text-2xl font-serif font-normal text-foreground;
+}
+
+
+/* ======================================================
+   Interactive Actions & Cards
+   Visual control elements and cards
+====================================================== */
+.table_3 {
+  @apply text-xs text-muted-foreground font-semibold tracking-wider uppercase mt-1;
+}
+
+.container_4 {
+  @apply flex items-center gap-2;
+}
+
+.text_5 {
+  @apply px-3 py-1.5 text-[10px] font-mono font-bold uppercase bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded-full;
+}
+
+.container_6 {
+  @apply grid grid-cols-1 md:grid-cols-3 gap-6;
+}
+
+.card_7 {
+  @apply bg-card border border-border p-6 rounded-xl shadow-2xs space-y-3 hover:border-border/80 transition-colors;
+}
+
+.text_8 {
+  @apply w-10 h-10 rounded-full bg-[#F4C542]/10 border border-[#F4C542]/20 flex items-center justify-center text-[#F4C542];
+}
+
+.table_9 {
+  @apply text-xs font-bold uppercase tracking-wider text-foreground;
+}
+
+.text_10 {
+  @apply text-xs text-muted-foreground leading-relaxed;
+}
+
+.card_11 {
+  @apply bg-card border border-border p-6 rounded-xl shadow-2xs space-y-3 hover:border-border/80 transition-colors;
+}
+
+.text_12 {
+  @apply w-10 h-10 rounded-full bg-[#F4C542]/10 border border-[#F4C542]/20 flex items-center justify-center text-[#F4C542];
+}
+
+.table_13 {
+  @apply text-xs font-bold uppercase tracking-wider text-foreground;
+}
+
+.text_14 {
+  @apply text-xs text-muted-foreground leading-relaxed;
+}
+
+.card_15 {
+  @apply bg-card border border-border p-6 rounded-xl shadow-2xs space-y-3 hover:border-border/80 transition-colors;
+}
+
+.text_16 {
+  @apply w-10 h-10 rounded-full bg-[#F4C542]/10 border border-[#F4C542]/20 flex items-center justify-center text-[#F4C542];
+}
+
+.table_17 {
+  @apply text-xs font-bold uppercase tracking-wider text-foreground;
+}
+
+.text_18 {
+  @apply text-xs text-muted-foreground leading-relaxed;
+}
+
+.container_19 {
+  @apply grid grid-cols-1 md:grid-cols-2 gap-6;
+}
+
+.card_20 {
+  @apply bg-card border border-border rounded-xl p-6 shadow-2xs space-y-4;
+}
+
+.table_21 {
+  @apply text-sm font-bold uppercase tracking-wider text-foreground flex items-center gap-2 border-b border-border pb-3;
+}
+
+.text_22 {
+  @apply text-[#F4C542];
+}
+
+.div_23 {
+  @apply space-y-4;
+}
+
+.table_24 {
+  @apply text-xs text-muted-foreground animate-pulse text-center py-4 uppercase font-bold tracking-wider;
+}
+
+.table_25 {
+  @apply text-xs text-muted-foreground text-center py-4 uppercase font-bold tracking-wider;
+}
+
+.div_26 {
+  @apply space-y-1.5 p-3.5 rounded-lg bg-muted/20 border border-border/50;
+}
+
+.container_27 {
+  @apply flex justify-between items-center;
+}
+
+.text_28 {
+  @apply text-[9px] text-muted-foreground font-mono;
+}
+
+.text_29 {
+  @apply text-xs font-bold text-foreground;
+}
+
+.text_30 {
+  @apply text-[11px] text-muted-foreground leading-relaxed;
+}
+
+.card_31 {
+  @apply bg-card border border-border rounded-xl p-6 shadow-2xs space-y-4;
+}
+
+.table_32 {
+  @apply text-sm font-bold uppercase tracking-wider text-foreground flex items-center gap-2 border-b border-border pb-3;
+}
+
+.text_33 {
+  @apply text-[#F4C542];
+}
+
+.div_34 {
+  @apply space-y-2;
+}
+
+.table_35 {
+  @apply flex items-center justify-between p-3 rounded-lg hover:bg-muted/40 transition-colors border border-transparent hover:border-border;
+}
+
+.text_36 {
+  @apply flex items-center gap-2.5 text-xs text-foreground font-medium;
+}
+
+.text_37 {
+  @apply text-[#F4C542];
+}
+
+.text_38 {
+  @apply text-muted-foreground;
+}
+
+.table_39 {
+  @apply flex items-center justify-between p-3 rounded-lg hover:bg-muted/40 transition-colors border border-transparent hover:border-border;
+}
+
+.text_40 {
+  @apply flex items-center gap-2.5 text-xs text-foreground font-medium;
+}
+
+.text_41 {
+  @apply text-[#F4C542];
+}
+
+.text_42 {
+  @apply text-muted-foreground;
+}
+
+.table_43 {
+  @apply flex items-center justify-between p-3 rounded-lg hover:bg-muted/40 transition-colors border border-transparent hover:border-border;
+}
+
+.text_44 {
+  @apply flex items-center gap-2.5 text-xs text-foreground font-medium;
+}
+
+.text_45 {
+  @apply text-[#F4C542];
+}
+
+.text_46 {
+  @apply text-muted-foreground;
+}
+
+.table_47 {
+  @apply flex items-center justify-between p-3 rounded-lg hover:bg-muted/40 transition-colors border border-transparent hover:border-border;
+}
+
+.text_48 {
+  @apply flex items-center gap-2.5 text-xs text-foreground font-medium;
+}
+
+.text_49 {
+  @apply text-[#F4C542];
+}
+
+.text_50 {
+  @apply text-muted-foreground;
+}
+
+.text_51 {
+  @apply px-2 py-0.5 text-[8px] font-mono font-bold uppercase rounded;
+}

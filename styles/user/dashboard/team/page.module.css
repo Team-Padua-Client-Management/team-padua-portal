@@ -1,0 +1,188 @@
+@reference "../../../globals/globals.css";
+
+/* ======================================================
+   page.module.css
+   Style definitions for: app/(user)/dashboard/team/page.module.css
+====================================================== */
+
+/* ======================================================
+   Typography & Label Aesthetics
+   Font weights, leading scales, and text colors
+====================================================== */
+.text_0 {
+  @apply space-y-8 bg-background text-foreground;
+}
+
+
+/* ======================================================
+   Structural Layout Components
+   Main grid and layout flex wraps
+====================================================== */
+.container_1 {
+  @apply border-b border-border pb-5 flex justify-between items-center;
+}
+
+.text_2 {
+  @apply text-2xl font-serif font-normal text-foreground;
+}
+
+
+/* ======================================================
+   Interactive Actions & Cards
+   Visual control elements and cards
+====================================================== */
+.table_3 {
+  @apply text-xs text-muted-foreground font-semibold tracking-wider uppercase mt-1;
+}
+
+.container_4 {
+  @apply flex items-center gap-2;
+}
+
+.text_5 {
+  @apply px-3 py-1.5 text-[10px] font-mono font-bold uppercase bg-blue-500/10 text-blue-500 border border-blue-500/20 rounded-full;
+}
+
+.div_6 {
+  @apply space-y-4;
+}
+
+.container_7 {
+  @apply flex items-center justify-between;
+}
+
+.table_8 {
+  @apply text-xs font-bold uppercase tracking-wider text-muted-foreground font-mono;
+}
+
+.card_9 {
+  @apply flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 bg-card hover:bg-muted border border-border rounded-lg text-foreground transition-all;
+}
+
+.container_10 {
+  @apply grid grid-cols-1 md:grid-cols-3 gap-6;
+}
+
+.card_11 {
+  @apply bg-card border border-border rounded-xl p-5 shadow-2xs space-y-4 hover:border-border/80 transition-colors;
+}
+
+.container_12 {
+  @apply flex items-center gap-3;
+}
+
+.text_13 {
+  @apply w-10 h-10 rounded-full bg-[#F4C542]/10 border border-[#F4C542]/20 flex items-center justify-center font-bold text-xs text-[#F4C542];
+}
+
+.text_14 {
+  @apply text-xs font-bold text-foreground;
+}
+
+.text_15 {
+  @apply text-[10px] text-muted-foreground font-mono;
+}
+
+.div_16 {
+  @apply space-y-2;
+}
+
+.table_17 {
+  @apply flex justify-between text-[9px] uppercase tracking-wider text-muted-foreground font-mono;
+}
+
+.text_18 {
+  @apply font-bold text-foreground;
+}
+
+.div_19 {
+  @apply w-full bg-muted/65 h-1.5 rounded-full overflow-hidden;
+}
+
+.table_20 {
+  @apply bg-[#F4C542] h-full transition-all duration-500;
+}
+
+.container_21 {
+  @apply grid grid-cols-1 gap-6;
+}
+
+.card_22 {
+  @apply bg-card border border-border rounded-xl p-6 shadow-2xs space-y-4;
+}
+
+.table_23 {
+  @apply text-sm font-bold uppercase tracking-wider text-foreground flex items-center gap-2 border-b border-border pb-3;
+}
+
+.text_24 {
+  @apply text-[#F4C542];
+}
+
+.div_25 {
+  @apply space-y-4;
+}
+
+.container_26 {
+  @apply flex gap-3;
+}
+
+.text_27 {
+  @apply w-6 h-6 rounded-full bg-[#F4C542]/10 border border-[#F4C542]/20 flex items-center justify-center font-bold text-[9px] text-[#F4C542] shrink-0;
+}
+
+.text_28 {
+  @apply text-xs text-foreground;
+}
+
+.text_29 {
+  @apply font-semibold;
+}
+
+.text_30 {
+  @apply text-[9px] text-muted-foreground mt-0.5;
+}
+
+.container_31 {
+  @apply flex gap-3;
+}
+
+.text_32 {
+  @apply w-6 h-6 rounded-full bg-[#F4C542]/10 border border-[#F4C542]/20 flex items-center justify-center font-bold text-[9px] text-[#F4C542] shrink-0;
+}
+
+.text_33 {
+  @apply text-xs text-foreground;
+}
+
+.text_34 {
+  @apply font-semibold;
+}
+
+.text_35 {
+  @apply text-muted-foreground font-mono;
+}
+
+.text_36 {
+  @apply text-[9px] text-muted-foreground mt-0.5;
+}
+
+.container_37 {
+  @apply flex gap-3;
+}
+
+.text_38 {
+  @apply w-6 h-6 rounded-full bg-[#F4C542]/10 border border-[#F4C542]/20 flex items-center justify-center font-bold text-[9px] text-[#F4C542] shrink-0;
+}
+
+.text_39 {
+  @apply text-xs text-foreground;
+}
+
+.text_40 {
+  @apply font-semibold;
+}
+
+.text_41 {
+  @apply text-[9px] text-muted-foreground mt-0.5;
+}

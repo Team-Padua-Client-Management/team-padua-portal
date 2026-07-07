@@ -1,0 +1,76 @@
+@reference "../../globals/globals.css";
+
+/* ======================================================
+   AttendanceCalendar.module.css
+   Style definitions for: app/(user)/attendance/AttendanceCalendar.module.css
+====================================================== */
+
+/* ======================================================
+   Interactive Actions & Cards
+   Visual control elements and cards
+====================================================== */
+.card_0 {
+  @apply text-foreground bg-card select-none;
+}
+
+
+/* ======================================================
+   Structural Layout Components
+   Main grid and layout flex wraps
+====================================================== */
+.container_1 {
+  @apply flex items-center justify-between border-b border-border pb-3 mb-4 gap-2;
+}
+
+.container_2 {
+  @apply flex items-center gap-0.5;
+}
+
+.table_3 {
+  @apply p-1 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors;
+}
+
+.table_4 {
+  @apply p-1 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors;
+}
+
+
+/* ======================================================
+   Typography & Label Aesthetics
+   Font weights, leading scales, and text colors
+====================================================== */
+.text_5 {
+  @apply font-serif font-semibold text-sm text-foreground;
+}
+
+.container_6 {
+  @apply flex items-center gap-0.5;
+}
+
+.table_7 {
+  @apply p-1 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors;
+}
+
+.table_8 {
+  @apply p-1 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors;
+}
+
+.text_9 {
+  @apply grid grid-cols-7 gap-1 text-center mb-2;
+}
+
+.table_10 {
+  @apply text-[10px] font-bold text-muted-foreground uppercase tracking-wider;
+}
+
+.container_11 {
+  @apply grid grid-cols-7 gap-1.5;
+}
+
+.text_12 {
+  @apply text-[6px] uppercase font-bold text-muted-foreground -mt-0.5 leading-none;
+}
+
+.table_13 {
+  @apply h-8 w-8 mx-auto rounded-lg flex flex-col items-center justify-center text-xs tracking-wide transition-all;
+}

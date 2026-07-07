@@ -1,0 +1,64 @@
+@reference "../../../globals/globals.css";
+
+/* ======================================================
+   ChatInput.module.css
+   Style definitions for: app/(admin)/admin/chatbot/components/ChatInput.module.css
+====================================================== */
+
+/* ======================================================
+   Structural Layout Components
+   Main grid and layout flex wraps
+====================================================== */
+.div_0 {
+  @apply px-4 pb-4 pt-3 bg-white border-t border-black/8;
+}
+
+
+/* ======================================================
+   Interactive Actions & Cards
+   Visual control elements and cards
+====================================================== */
+.table_1 {
+  @apply resize-none bg-transparent text-[13px] text-black placeholder:text-black/30 outline-none leading-relaxed max-h-40 disabled:opacity-50 font-[440];
+}
+
+.container_2 {
+  @apply flex items-center justify-between;
+}
+
+.container_3 {
+  @apply flex items-center gap-0.5;
+}
+
+.table_4 {
+  @apply w-7 h-7 flex items-center justify-center rounded-lg text-black/30 hover:text-black/60 hover:bg-black/5 transition-all duration-150;
+}
+
+.table_5 {
+  @apply w-7 h-7 flex items-center justify-center rounded-lg text-black/30 hover:text-black/60 hover:bg-black/5 transition-all duration-150;
+}
+
+.container_6 {
+  @apply flex items-center gap-2;
+}
+
+
+/* ======================================================
+   Typography & Label Aesthetics
+   Font weights, leading scales, and text colors
+====================================================== */
+.text_7 {
+  @apply text-[9px] text-black/25 font-mono tabular-nums;
+}
+
+.table_8 {
+  @apply text-center text-[9px] text-black/20 mt-2 font-medium tracking-wide;
+}
+
+.table_9 {
+  @apply relative flex flex-col gap-2.5 bg-white border rounded-2xl px-4 py-3 transition-all duration-200 shadow-sm;
+}
+
+.table_10 {
+  @apply w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-200 font-bold;
+}

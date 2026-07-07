@@ -1,0 +1,64 @@
+@reference "../../globals/globals.css";
+
+/* ======================================================
+   page.module.css
+   Style definitions for: app/(admin)/admin/members/page.module.css
+====================================================== */
+
+/* ======================================================
+   Typography & Label Aesthetics
+   Font weights, leading scales, and text colors
+====================================================== */
+.text_0 {
+  @apply flex min-h-screen bg-background text-foreground font-sans antialiased;
+}
+
+
+/* ======================================================
+   Structural Layout Components
+   Main grid and layout flex wraps
+====================================================== */
+.container_1 {
+  @apply flex-1 flex flex-col min-w-0;
+}
+
+.div_2 {
+  @apply p-8 max-w-[1600px] mx-auto w-full space-y-8;
+}
+
+.container_3 {
+  @apply flex justify-between items-center border-b border-border pb-6;
+}
+
+
+/* ======================================================
+   Interactive Actions & Cards
+   Visual control elements and cards
+====================================================== */
+.table_4 {
+  @apply text-3xl font-bold tracking-tight text-foreground;
+}
+
+.text_5 {
+  @apply text-sm text-muted-foreground mt-1;
+}
+
+.table_6 {
+  @apply bg-[#FFF7D6] dark:bg-[#2E2818] hover:bg-[#F4C542] dark:hover:bg-[#3d331a] text-black dark:text-[#F4C542] font-semibold px-4 py-2 text-sm rounded transition-colors shadow-2xs border border-[#F4C542]/20;
+}
+
+.container_7 {
+  @apply grid gap-6 sm:grid-cols-2 lg:grid-cols-4;
+}
+
+.card_8 {
+  @apply border border-border rounded-lg p-6 bg-card shadow-2xs;
+}
+
+.table_9 {
+  @apply text-xs font-semibold uppercase tracking-wider text-muted-foreground;
+}
+
+.text_10 {
+  @apply text-3xl font-bold mt-2;
+}

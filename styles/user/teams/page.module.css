@@ -1,0 +1,416 @@
+@reference "../../globals/globals.css";
+
+/* ======================================================
+   page.module.css
+   Style definitions for: app/(user)/teams/page.module.css
+====================================================== */
+
+/* ======================================================
+   Typography & Label Aesthetics
+   Font weights, leading scales, and text colors
+====================================================== */
+.text_0 {
+  @apply space-y-8 bg-background text-foreground min-h-screen;
+}
+
+
+/* ======================================================
+   Structural Layout Components
+   Main grid and layout flex wraps
+====================================================== */
+.div_1 {
+  @apply relative overflow-hidden rounded-2xl border border-border bg-linear-to-br from-[#FFF9E5] via-white to-[#FFF7D6] dark:from-[#1C1A14] dark:via-[#141414] dark:to-[#1A1812] p-6 shadow-sm;
+}
+
+
+/* ======================================================
+   Interactive Actions & Cards
+   Visual control elements and cards
+====================================================== */
+.table_2 {
+  @apply absolute top-0 right-0 w-48 h-48 bg-blue-400/5 rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl pointer-events-none;
+}
+
+.div_3 {
+  @apply relative;
+}
+
+.container_4 {
+  @apply flex items-center gap-2 mb-1;
+}
+
+.text_5 {
+  @apply w-5 h-5 text-[#F4C542];
+}
+
+.table_6 {
+  @apply text-[10px] font-bold text-muted-foreground uppercase tracking-widest;
+}
+
+.table_7 {
+  @apply text-2xl font-serif font-normal text-foreground tracking-tight;
+}
+
+.table_8 {
+  @apply text-xs text-muted-foreground font-semibold tracking-wider uppercase mt-1;
+}
+
+.text_9 {
+  @apply text-center py-6;
+}
+
+.container_10 {
+  @apply flex flex-col items-center;
+}
+
+.card_11 {
+  @apply inline-flex flex-col sm:flex-row items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 text-xs font-semibold text-foreground shadow-sm;
+}
+
+.container_12 {
+  @apply flex items-center gap-1.5;
+}
+
+.text_13 {
+  @apply h-4 w-4 text-[#F4C542];
+}
+
+.text_14 {
+  @apply hidden sm:inline text-muted-foreground/40;
+}
+
+.container_15 {
+  @apply flex items-center gap-1.5;
+}
+
+.text_16 {
+  @apply h-4 w-4 text-[#F4C542];
+}
+
+.table_17 {
+  @apply mt-8 text-5xl font-serif font-bold tracking-tight sm:text-6xl text-foreground;
+}
+
+.text_18 {
+  @apply text-[#F4C542];
+}
+
+.table_19 {
+  @apply mt-4 max-w-2xl text-xs sm:text-sm text-muted-foreground font-semibold tracking-wide uppercase leading-relaxed;
+}
+
+.container_20 {
+  @apply mt-10 grid gap-3 grid-cols-2 sm:grid-cols-5;
+}
+
+.card_21 {
+  @apply rounded-xl border border-border bg-card p-4 transition-all hover:border-[#F4C542] hover:bg-[#FFF7D6]/5 dark:hover:bg-[#2E2818]/10 hover:-translate-y-0.5 shadow-sm;
+}
+
+.table_22 {
+  @apply text-xs font-bold text-foreground uppercase tracking-wider;
+}
+
+.div_23 {
+  @apply py-2;
+}
+
+.card_24 {
+  @apply rounded-2xl border border-border bg-card p-6 shadow-sm relative overflow-hidden;
+}
+
+.container_25 {
+  @apply flex flex-col lg:flex-row lg:items-center justify-between gap-6;
+}
+
+.div_26 {
+  @apply space-y-1;
+}
+
+.text_27 {
+  @apply text-base font-serif font-bold text-foreground;
+}
+
+.text_28 {
+  @apply text-xs text-muted-foreground max-w-xl font-medium;
+}
+
+.container_29 {
+  @apply flex flex-wrap gap-3;
+}
+
+.text_30 {
+  @apply bg-zinc-50 dark:bg-zinc-900/40 border border-border rounded-xl px-4 py-2.5 text-center flex-1 sm:flex-initial;
+}
+
+.text_31 {
+  @apply text-base font-serif font-bold text-foreground;
+}
+
+.table_32 {
+  @apply text-[9px] font-bold tracking-wider uppercase text-muted-foreground mt-0.5;
+}
+
+.div_33 {
+  @apply mt-6 bg-muted border border-border rounded-full h-3 overflow-hidden;
+}
+
+.table_34 {
+  @apply bg-linear-to-r from-[#F4C542] to-[#D89D00] h-full w-[25%] rounded-full transition-all duration-700;
+}
+
+.table_35 {
+  @apply flex justify-between text-[8px] font-bold text-muted-foreground mt-2.5 tracking-wider uppercase;
+}
+
+.div_36 {
+  @apply py-6;
+}
+
+.text_37 {
+  @apply text-center mb-10;
+}
+
+.table_38 {
+  @apply text-lg font-serif font-bold tracking-tight text-foreground;
+}
+
+.table_39 {
+  @apply text-xs text-muted-foreground uppercase tracking-wider font-semibold mt-0.5;
+}
+
+.container_40 {
+  @apply flex flex-col items-center;
+}
+
+.card_41 {
+  @apply w-full max-w-sm rounded-2xl border border-border bg-card p-6 text-center shadow-sm hover:border-[#F4C542] hover:-translate-y-0.5 transition-all relative;
+}
+
+.table_42 {
+  @apply absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#F4C542] text-black rounded-full p-1.5 shadow-sm;
+}
+
+.div_43 {
+  @apply h-4 w-4;
+}
+
+.div_44 {
+  @apply mx-auto mb-4 h-20 w-20 overflow-hidden rounded-xl border border-border shadow-sm;
+}
+
+.div_45 {
+  @apply h-full w-full object-cover;
+}
+
+.text_46 {
+  @apply text-base font-serif font-bold text-foreground;
+}
+
+.table_47 {
+  @apply text-[10px] font-bold text-[#B28200] dark:text-[#F4C542] tracking-wider uppercase mt-0.5;
+}
+
+.text_48 {
+  @apply mt-3 text-xs text-muted-foreground leading-relaxed px-2 font-medium;
+}
+
+.div_49 {
+  @apply my-6;
+}
+
+.text_50 {
+  @apply text-muted-foreground h-5 w-5 animate-bounce;
+}
+
+.container_51 {
+  @apply grid w-full max-w-3xl gap-5 sm:grid-cols-2;
+}
+
+.card_52 {
+  @apply rounded-2xl border border-border bg-card p-6 text-center shadow-sm hover:border-[#F4C542] hover:-translate-y-0.5 transition-all;
+}
+
+.div_53 {
+  @apply mx-auto mb-3 h-16 w-16 overflow-hidden rounded-xl border border-border shadow-sm;
+}
+
+.div_54 {
+  @apply h-full w-full object-cover;
+}
+
+.text_55 {
+  @apply font-serif font-bold text-sm text-foreground;
+}
+
+.table_56 {
+  @apply text-[9px] font-bold text-[#B28200] dark:text-[#F4C542] tracking-wider uppercase mt-0.5;
+}
+
+.text_57 {
+  @apply mt-3 text-xs text-muted-foreground leading-relaxed font-medium;
+}
+
+.div_58 {
+  @apply my-6;
+}
+
+.text_59 {
+  @apply text-muted-foreground h-5 w-5;
+}
+
+.container_60 {
+  @apply grid w-full gap-4 sm:grid-cols-2 lg:grid-cols-4;
+}
+
+.card_61 {
+  @apply rounded-2xl border border-border bg-card p-5 shadow-sm flex flex-col justify-between hover:border-[#F4C542] hover:bg-[#FFF7D6]/5 dark:hover:bg-[#2E2818]/10 hover:-translate-y-0.5 transition-all;
+}
+
+.container_62 {
+  @apply flex items-center justify-between mb-4;
+}
+
+.table_63 {
+  @apply p-2.5 bg-zinc-50 dark:bg-zinc-900/40 border border-border rounded-xl text-foreground group-hover:bg-[#F4C542]/10 transition-colors;
+}
+
+.text_64 {
+  @apply h-4 w-4 text-[#F4C542];
+}
+
+.table_65 {
+  @apply rounded-lg bg-muted border border-border px-2.5 py-1 text-[9px] font-bold tracking-wider text-muted-foreground uppercase;
+}
+
+.text_66 {
+  @apply font-serif font-bold text-xs text-foreground;
+}
+
+.text_67 {
+  @apply mt-2 text-[11px] text-muted-foreground leading-relaxed font-medium;
+}
+
+.div_68 {
+  @apply mt-5 pt-4 border-t border-border;
+}
+
+.table_69 {
+  @apply mb-2 text-[8px] uppercase tracking-wider font-bold text-muted-foreground;
+}
+
+.div_70 {
+  @apply space-y-1.5;
+}
+
+.text_71 {
+  @apply rounded-lg bg-zinc-50 dark:bg-zinc-900/30 px-2.5 py-1.5 text-[10px] font-semibold text-foreground border border-border;
+}
+
+.div_72 {
+  @apply py-6 border-t border-border;
+}
+
+.text_73 {
+  @apply text-center mb-8;
+}
+
+.table_74 {
+  @apply text-lg font-serif font-bold tracking-tight text-foreground flex items-center justify-center gap-2;
+}
+
+.text_75 {
+  @apply h-5 w-5 text-muted-foreground;
+}
+
+.text_76 {
+  @apply text-xs text-muted-foreground font-semibold uppercase mt-0.5;
+}
+
+.container_77 {
+  @apply grid gap-4 grid-cols-2 lg:grid-cols-4;
+}
+
+.container_78 {
+  @apply relative overflow-hidden rounded-2xl bg-muted aspect-4/3 border border-border shadow-sm;
+}
+
+.table_79 {
+  @apply h-full w-full object-cover transition-transform duration-500 group-hover:scale-105;
+}
+
+.table_80 {
+  @apply absolute inset-0 bg-linear-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-end p-4;
+}
+
+.table_81 {
+  @apply text-white font-semibold text-xs tracking-wider uppercase;
+}
+
+.div_82 {
+  @apply py-6;
+}
+
+.text_83 {
+  @apply text-center mb-8;
+}
+
+.table_84 {
+  @apply text-lg font-serif font-bold tracking-tight text-foreground;
+}
+
+.container_85 {
+  @apply grid gap-4 sm:grid-cols-2 lg:grid-cols-3;
+}
+
+.card_86 {
+  @apply rounded-2xl border border-border bg-card p-5 shadow-sm hover:border-[#F4C542] hover:bg-[#FFF7D6]/5 dark:hover:bg-[#2E2818]/10 hover:-translate-y-0.5 transition-all;
+}
+
+.table_87 {
+  @apply mb-3 text-muted-foreground group-hover:text-foreground transition-colors;
+}
+
+.text_88 {
+  @apply h-5 w-5 text-[#F4C542];
+}
+
+.table_89 {
+  @apply text-xs font-bold text-foreground uppercase tracking-wider;
+}
+
+.text_90 {
+  @apply mt-2 text-[11px] text-muted-foreground leading-relaxed font-medium;
+}
+
+.div_91 {
+  @apply pb-12 pt-6;
+}
+
+.card_92 {
+  @apply rounded-2xl border border-border bg-linear-to-br from-[#FFF9E5]/30 via-card to-card dark:from-[#1A1812]/30 dark:via-[#141414] dark:to-[#141414] p-8 text-center shadow-sm max-w-4xl mx-auto relative overflow-hidden;
+}
+
+.table_93 {
+  @apply absolute top-0 left-0 w-32 h-32 bg-[#F4C542]/5 rounded-full -translate-y-1/2 -translate-x-1/3 blur-3xl pointer-events-none;
+}
+
+.text_94 {
+  @apply mx-auto h-8 w-8 text-[#F4C542] animate-pulse;
+}
+
+.table_95 {
+  @apply mt-6 text-xl font-serif font-bold text-foreground tracking-tight uppercase;
+}
+
+.text_96 {
+  @apply mx-auto mt-3 max-w-xl text-xs text-muted-foreground font-semibold uppercase leading-relaxed;
+}
+
+.container_97 {
+  @apply mt-8 grid gap-3 grid-cols-2 sm:grid-cols-3;
+}
+
+.card_98 {
+  @apply rounded-xl border border-border bg-card p-3.5 text-xs font-bold text-foreground text-center shadow-sm hover:border-[#F4C542] hover:-translate-y-0.5 transition-all;
+}
