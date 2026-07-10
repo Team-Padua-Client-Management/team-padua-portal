@@ -11,17 +11,41 @@
  * - Handles modular presentation logic.
  */
 
-;
-
-import styles from "@/styles/admin/members/AdminMembersTable/AdminMembersTable.module.css";
-
-  // ======================================================
-// State Initialization & Hooks
-// ======================================================
 import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import styles from "@/styles/admin/members/AdminMembersTable/AdminMembersTable.module.css";
+import { X } from "lucide-react";
 
-interface User {
+export type ClientServicingModule = "cpst" | "acr" | "fst" | "cpc" | "ppu" | "mngt";
+
+export interface ModulePermissions {
+  view: boolean;
+  create: boolean;
+  edit: boolean;
+  delete: boolean;
+  export: boolean;
+}
+
+export type ClientServicingPermissions = Record<ClientServicingModule, ModulePermissions>;
+
+export const defaultModulePermissions: ModulePermissions = {
+  view: false,
+  create: false,
+  edit: false,
+  delete: false,
+  export: false,
+};
+
+export const defaultClientServicingPermissions: ClientServicingPermissions = {
+  cpst: { ...defaultModulePermissions },
+  acr: { ...defaultModulePermissions },
+  fst: { ...defaultModulePermissions },
+  cpc: { ...defaultModulePermissions },
+  ppu: { ...defaultModulePermissions },
+  mngt: { ...defaultModulePermissions },
+};
+
+export interface User {
   id: string;
   name: string;
   email: string;
@@ -38,20 +62,9 @@ interface User {
   gender?: string;
   birthday?: string;
   address?: string;
+  client_servicing_permissions?: ClientServicingPermissions;
 }
 
-/**
- * AdminMembersTable
- *
- * Renders the AdminMembersTable interface, managing local lifecycles
- * and user interactions.
- */
-/**
- * Executes operations logic for AdminMembersTable.
- *
- * @param { initialUsers = [] }: { initialUsers?: User[] }
- * @returns State operations sequence.
- */
 export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?: User[] }) {
   const [users, setUsers] = useState<User[]>(initialUsers);
   const [search, setSearch] = useState("");
@@ -60,16 +73,15 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
   const [statusFilter, setStatusFilter] = useState("All");
   const router = useRouter();
 
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [tempPermissions, setTempPermissions] = useState<ClientServicingPermissions>(defaultClientServicingPermissions);
+
   const roles = ["Administrator", "Manager", "Intern", "Member"];
   const departments = ["ASA", "BSA", "CSA", "DSA"];
 
-  /**
- * Executes operations logic for saveUser.
- *
- * @param user: User
- * @returns State operations sequence.
- */
-const saveUser = async (user: User) => {
+  const saveUser = async (user: User) => {
     const res = await fetch("/api/admin/members/update", {
       method: "POST",
       headers: {
@@ -84,25 +96,22 @@ const saveUser = async (user: User) => {
         team: user.team || "",
         phone: user.phone,
         status: user.status,
-        birthday: user.birthday || "",
-        address: user.address || ""
+        birthday: user.birthday?.trim() ? user.birthday : null,
+        address: user.address || "",
+        client_servicing_permissions: user.client_servicing_permissions
       })
     });
 
+    const data = await res.json();
     if (!res.ok) {
-      throw new Error("Unable to save");
+      console.error("API Error:", data);
+      throw new Error(data.error ?? "Unable to save");
     }
 
-    return await res.json();
+    return data;
   };
 
-  /**
- * Executes operations logic for handleUpdateUser.
- *
- * @param id: string, key: keyof User, value: string
- * @returns State operations sequence.
- */
-const handleUpdateUser = async (id: string, key: keyof User, value: string) => {
+  const handleUpdateUser = async (id: string, key: keyof User, value: any) => {
     const targetUser = users.find(u => u.id === id);
     if (!targetUser) return;
 
@@ -119,18 +128,66 @@ const handleUpdateUser = async (id: string, key: keyof User, value: string) => {
       await saveUser(updatedUser);
     } catch (error) {
       console.error(error);
-      alert("Failed to save assignment changes.");
+      alert(error instanceof Error ? error.message : "Failed to save assignment changes.");
       setUsers(prev =>
         prev.map(u => u.id === id ? targetUser : u)
       );
     }
   };
 
+  const openModal = (user: User) => {
+    setSelectedUser(user);
+    // Merge existing permissions with defaults in case of missing keys
+    const mergedPermissions = { ...defaultClientServicingPermissions };
+    if (user.client_servicing_permissions) {
+      (Object.keys(user.client_servicing_permissions) as ClientServicingModule[]).forEach((mod) => {
+        mergedPermissions[mod] = { ...defaultModulePermissions, ...user.client_servicing_permissions![mod] };
+      });
+    }
+    setTempPermissions(mergedPermissions);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedUser(null);
+  };
+
+  const savePermissions = async () => {
+    if (!selectedUser) return;
+    
+    const updatedUser = {
+      ...selectedUser,
+      client_servicing_permissions: tempPermissions
+    };
+
+    setUsers(prev => prev.map(u => u.id === selectedUser.id ? updatedUser : u));
+    closeModal();
+
+    try {
+      await saveUser(updatedUser);
+    } catch (error) {
+      console.error(error);
+      alert(error instanceof Error ? error.message : "Failed to save assignment changes.");
+      setUsers(prev => prev.map(u => u.id === selectedUser.id ? selectedUser : u));
+    }
+  };
+
+  const togglePermission = (moduleName: ClientServicingModule, action: keyof ModulePermissions) => {
+    setTempPermissions(prev => ({
+      ...prev,
+      [moduleName]: {
+        ...prev[moduleName],
+        [action]: !prev[moduleName][action]
+      }
+    }));
+  };
+
   const filteredUsers = useMemo(() => {
     return users.filter(u => {
-      const matchesSearch = u.name.toLowerCase().includes(search.toLowerCase()) || 
-                            u.email.toLowerCase().includes(search.toLowerCase()) || 
-                            u.employeeId.toLowerCase().includes(search.toLowerCase());
+      const matchesSearch = u.name.toLowerCase().includes(search.toLowerCase()) ||
+        u.email.toLowerCase().includes(search.toLowerCase()) ||
+        u.employeeId.toLowerCase().includes(search.toLowerCase());
       const matchesRole = roleFilter === "All" || u.role === roleFilter;
       const matchesDept = deptFilter === "All" || u.department === deptFilter;
       const matchesStatus = statusFilter === "All" || u.status === statusFilter;
@@ -151,25 +208,25 @@ const handleUpdateUser = async (id: string, key: keyof User, value: string) => {
           />
         </div>
         <div className={styles.container_4}>
-          <select 
-            value={roleFilter} 
-            onChange={(e) => setRoleFilter(e.target.value)} 
+          <select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
             className={styles.card_5}
           >
             <option value="All">All Roles</option>
             {roles.map(r => <option key={r} value={r}>{r}</option>)}
           </select>
-          <select 
-            value={deptFilter} 
-            onChange={(e) => setDeptFilter(e.target.value)} 
+          <select
+            value={deptFilter}
+            onChange={(e) => setDeptFilter(e.target.value)}
             className={styles.card_6}
           >
             <option value="All">All Departments</option>
             {departments.map(d => <option key={d} value={d}>{d}</option>)}
           </select>
-          <select 
-            value={statusFilter} 
-            onChange={(e) => setStatusFilter(e.target.value)} 
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
             className={styles.card_7}
           >
             <option value="All">All Status</option>
@@ -190,13 +247,14 @@ const handleUpdateUser = async (id: string, key: keyof User, value: string) => {
                 <th className={styles.div_14}>Role</th>
                 <th className={styles.div_15}>Department</th>
                 <th className={styles.div_16}>Status</th>
+                <th className={styles.div_16}>Client Servicing</th>
                 <th className={styles.text_17}>Actions</th>
               </tr>
             </thead>
             <tbody className={styles.card_18}>
               {filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className={styles.text_19}>No database profiles mapped to parameters.</td>
+                  <td colSpan={7} className={styles.text_19}>No database profiles mapped to parameters.</td>
                 </tr>
               ) : (
                 filteredUsers.map((u) => (
@@ -218,18 +276,18 @@ const handleUpdateUser = async (id: string, key: keyof User, value: string) => {
                     </td>
                     <td className={styles.table_28}>{u.employeeId || "—"}</td>
                     <td className={styles.div_29}>
-                      <select 
-                        value={u.role} 
-                        onChange={(e) => handleUpdateUser(u.id, "role", e.target.value)} 
+                      <select
+                        value={u.role}
+                        onChange={(e) => handleUpdateUser(u.id, "role", e.target.value)}
                         className={styles.card_30}
                       >
                         {roles.map(r => <option key={r} value={r}>{r}</option>)}
                       </select>
                     </td>
                     <td className={styles.div_31}>
-                      <select 
-                        value={u.department} 
-                        onChange={(e) => handleUpdateUser(u.id, "department", e.target.value)} 
+                      <select
+                        value={u.department}
+                        onChange={(e) => handleUpdateUser(u.id, "department", e.target.value)}
                         className={styles.card_32}
                       >
                         <option value="">None</option>
@@ -237,17 +295,34 @@ const handleUpdateUser = async (id: string, key: keyof User, value: string) => {
                       </select>
                     </td>
                     <td className={styles.div_33}>
-                      <span className={`${styles.text_36} ${
-                        u.status === "Active" ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-[#4ade80]" :
-                        u.status === "Pending" ? "bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-[#fef08a]" : "bg-muted text-muted-foreground"
-                      }`}>
+                      <span className={`${styles.text_36} ${u.status === "Active" ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-[#4ade80]" :
+                          u.status === "Pending" ? "bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-[#fef08a]" : "bg-muted text-muted-foreground"
+                        }`}>
                         <span className={`${styles.div_37} ${u.status === "Active" ? "bg-emerald-500" : u.status === "Pending" ? "bg-amber-500" : "bg-muted-foreground"}`} />
                         {u.status}
                       </span>
                     </td>
+                    <td className={styles.div_33}>
+                      <div className="flex flex-col gap-1 items-start">
+                        <div className="flex flex-wrap max-w-[150px] gap-1 text-[10px] text-muted-foreground font-semibold">
+                           {u.client_servicing_permissions?.cpst?.view && <span className="text-emerald-500">☑ CPST</span>}
+                           {u.client_servicing_permissions?.acr?.view && <span className="text-emerald-500">☑ ACR</span>}
+                           {u.client_servicing_permissions?.fst?.view && <span className="text-emerald-500">☑ FST</span>}
+                           {u.client_servicing_permissions?.cpc?.view && <span className="text-emerald-500">☑ CPC</span>}
+                           {u.client_servicing_permissions?.ppu?.view && <span className="text-emerald-500">☑ PPU</span>}
+                           {u.client_servicing_permissions?.mngt?.view && <span className="text-emerald-500">☑ MNGT</span>}
+                        </div>
+                        <button
+                          onClick={() => openModal(u)}
+                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 font-semibold mt-1"
+                        >
+                          Edit Permissions →
+                        </button>
+                      </div>
+                    </td>
                     <td className={styles.text_34}>
-                      <button 
-                        onClick={() => router.push(`/admin/users/${u.id}`)} 
+                      <button
+                        onClick={() => router.push(`/admin/users/${u.id}`)}
                         className={styles.card_35}
                       >
                         View Profile
@@ -260,6 +335,78 @@ const handleUpdateUser = async (id: string, key: keyof User, value: string) => {
           </table>
         </div>
       </div>
+
+      {isModalOpen && selectedUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-card border border-border w-full max-w-3xl rounded-2xl shadow-xl overflow-hidden">
+            <div className="flex justify-between items-center p-4 border-b border-border bg-muted/30">
+              <div>
+                <h3 className="font-semibold text-foreground">Client Servicing Access Manager</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">{selectedUser.name}</p>
+              </div>
+              <button onClick={closeModal} className="text-muted-foreground hover:text-foreground p-1 transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+            
+            <div className="p-0 overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-muted/30 border-b border-border">
+                    <th className="p-3 text-xs font-semibold text-muted-foreground">Module</th>
+                    <th className="p-3 text-xs font-semibold text-muted-foreground text-center">View</th>
+                    <th className="p-3 text-xs font-semibold text-muted-foreground text-center">Create</th>
+                    <th className="p-3 text-xs font-semibold text-muted-foreground text-center">Edit</th>
+                    <th className="p-3 text-xs font-semibold text-muted-foreground text-center">Delete</th>
+                    <th className="p-3 text-xs font-semibold text-muted-foreground text-center">Export</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {[
+                    { id: "cpst" as ClientServicingModule, label: "CPST" },
+                    { id: "acr" as ClientServicingModule, label: "ACR" },
+                    { id: "fst" as ClientServicingModule, label: "FST" },
+                    { id: "cpc" as ClientServicingModule, label: "CPC" },
+                    { id: "ppu" as ClientServicingModule, label: "PPU" },
+                    { id: "mngt" as ClientServicingModule, label: "MNGT" },
+                  ].map(module => (
+                    <tr key={module.id} className="hover:bg-muted/10 transition-colors">
+                      <td className="p-3 text-sm font-semibold text-foreground border-r border-border">{module.label}</td>
+                      {["view", "create", "edit", "delete", "export"].map((action) => (
+                        <td key={action} className="p-3 text-center border-r border-border last:border-0">
+                          <label className="cursor-pointer flex items-center justify-center w-full h-full">
+                            <input 
+                              type="checkbox" 
+                              className="w-4 h-4 rounded border-border text-[#F4C542] focus:ring-[#F4C542]"
+                              checked={tempPermissions[module.id][action as keyof ModulePermissions]}
+                              onChange={() => togglePermission(module.id, action as keyof ModulePermissions)}
+                            />
+                          </label>
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 p-4 border-t border-border bg-muted/30">
+              <button 
+                onClick={closeModal}
+                className="px-4 py-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={savePermissions}
+                className="px-4 py-2 text-sm font-bold bg-[#F4C542] text-black rounded-lg shadow hover:bg-[#d9af39] transition-colors"
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

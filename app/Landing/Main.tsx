@@ -1,56 +1,14 @@
-"use client";
+'use client';
 
-/**
- * Main.tsx
- *
- * Main component module in features path: app/Landing/Main.tsx
- *
- * Responsibilities:
- * - Scopes UI state management and user actions.
- * - Bridges layout rendering with server-side Supabase data connections.
- * - Handles modular presentation logic.
- */
-
-;
-
-import styles from "@/styles/landing/Main.module.css";
-
-// ======================================================
-// State Initialization & Hooks
-// ======================================================
-
-// ======================================================
-// Lifecycle Effects & Data Sync
-// ======================================================
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from 'react';
 import {
-  ChevronRight,
-  Shield,
-  Users,
-  Zap,
-  ClipboardList,
-  CalendarCheck,
-  Building2,
-  Megaphone,
-  Layers,
-  Gamepad2,
-  Paintbrush,
-  MessageSquare,
-  HelpCircle,
-  Check,
-  ArrowRight,
-  Sparkles,
-  Lock,
-  ChevronDown,
-  Play,
-  CheckCircle2,
-  Clock,
-  Crown,
-  Briefcase,
-  Headphones,
-  Palette
-} from "lucide-react";
+  ChevronRight, Shield, Users, Zap, ClipboardList, CalendarCheck,
+  Building2, Megaphone, Layers, MessageSquare, ArrowRight,
+  Sparkles, Lock, ChevronDown, CheckCircle2, Briefcase, Headphones, Palette
+} from 'lucide-react';
 import { supabase } from "@/app/lib/supabase/client";
+import styles from "@/styles/landing/Main.module.css";
+import Image from "next/image";
 
 type PortalStats = {
   members: number;
@@ -63,18 +21,6 @@ type ActivityLog = {
   desc: string;
 };
 
-/**
- * HomePage
- *
- * Renders the HomePage interface, managing local lifecycles
- * and user interactions.
- */
-/**
- * Executes operations logic for HomePage.
- *
- * 
- * @returns State operations sequence.
- */
 export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<PortalStats>({
@@ -84,23 +30,17 @@ export default function HomePage() {
   });
   const [departments, setDepartments] = useState<string[]>([]);
   const [activities, setActivities] = useState<ActivityLog[]>([]);
-  const [activeTab, setActiveTab] = useState<"dashboard" | "attendance">("dashboard");
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'servicing'>('dashboard');
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
 
   useEffect(() => {
-    /**
- * Executes operations logic for fetchPortalData.
- *
- * 
- * @returns State operations sequence.
- */
     const fetchPortalData = async () => {
       setLoading(true);
       try {
-        const { count: mCount } = await /* Query database records from active repository grid */ supabase.from("profiles").select("*", { count: "exact", head: true });
-        const { count: aCount } = await /* Query database records from active repository grid */ supabase.from("attendance").select("*", { count: "exact", head: true }).eq("attendance_date", new Date().toISOString().split("T")[0]);
+        const { count: mCount } = await supabase.from("profiles").select("*", { count: "exact", head: true });
+        const { count: aCount } = await supabase.from("attendance").select("*", { count: "exact", head: true }).eq("attendance_date", new Date().toISOString().split("T")[0]);
 
-        const { data: profiles } = await /* Query database records from active repository grid */ supabase.from("profiles").select("department");
+        const { data: profiles } = await supabase.from("profiles").select("department");
         const uniqueDepts = Array.from(new Set((profiles || []).map(p => p.department || "General")));
 
         setStats({
@@ -177,20 +117,16 @@ export default function HomePage() {
 
   const faqs = [
     {
-      q: "What is the Team Padua Client Management & Operations Portal?",
-      a: "TeamPadua is a unified hub built for Sun Life to streamline client management and intern operations. It provides automated attendance tracking, task queues, training playgrounds, and communication tools in one centralized workspace."
+      q: "What is the Team Padua Client Management & Servicing Portal?",
+      a: "TeamPadua is a unified hub built for Sun Life advisors to streamline client management and client servicing. It provides automated tracking of transactions (ACR, FST, CPC, PPU), client follow-ups, and documentation pipelines in one centralized workspace."
     },
     {
-      q: "How does the real-time attendance tracking work?",
-      a: "For the current date, the portal functions as an automated terminal. Interns log Time In, Breaks, and Time Out with a single click. The system secures logs directly into Supabase, automatically calculates total hours, and hosts an admin feedback loop."
+      q: "How does the real-time client transaction tracking work?",
+      a: "The portal lets advisors log and trace critical client lifecycle servicing events: client record updates (CPST), auto-charge registries (ACR), fund switches (FST), policy cards (CPC), policy payment updates (PPU), and dispatch logs (MNGT)."
     },
     {
-      q: "What is the Training Playground?",
-      a: "The Training Playground is a gamified node featuring interactive training games like Memory Match, Speed Type Race, Trivia, and Client Simulators. It turns routine learning into a competitive, high-engagement workspace complete with live leaderboards."
-    },
-    {
-      q: "How is my profile data and verification secured?",
-      a: "Each account features an integrated security center with two-factor authentication toggles, verified OAuth providers, and a custom visual QR Code card. This QR Code serves as a secure physical ledger verification placeholder for supervisors."
+      q: "How is client data and verification secured?",
+      a: "All records are structured securely using Supabase with Role-Based Access Control (RBAC). Only authenticated advisors and authorized operational leads have permission to view or modify sensitive policy records."
     }
   ];
 
@@ -199,9 +135,14 @@ export default function HomePage() {
       <header className={styles.div_1}>
         <div className={styles.container_2}>
           <a href="/" className={styles.container_3}>
-            <div className={styles.text_4}>
-              <span className={styles.text_5}>TP</span>
-            </div>
+            <Image
+              src="/Image/icon/TPC.png"
+              alt="Team Padua Logo"
+              width={36}
+              height={36}
+              priority
+              className="object-contain"
+            />
             <div>
               <p className={styles.table_6}>TeamPadua</p>
               <p className={styles.text_7}>Sun Life Philippines</p>
@@ -224,7 +165,6 @@ export default function HomePage() {
             >
               Sign In
             </a>
-
           </div>
         </div>
       </header>
@@ -235,15 +175,15 @@ export default function HomePage() {
             <div className={styles.container_20}>
               <span className={styles.div_21} />
               <span className={styles.table_22}>
-                TeamPadua Workspace Operations
+                Sun Life Advisor Servicing Terminal
               </span>
             </div>
             <h1 className={styles.table_23}>
-              Team Padua <span className={styles.text_24}>Client Management & Operations</span>
+              Team Padua <span className={styles.text_24}>Client Management & Servicing</span>
             </h1>
 
             <p className={styles.text_25}>
-              A comprehensive system designed for Sun Life Team Padua to orchestrate client management, automate intern operations, track real-time attendance, and streamline workflows.
+              A comprehensive console designed for Sun Life Team Padua to orchestrate client relationship management, automate servicing requests, and track critical policy transactions.
             </p>
             <div className={styles.container_26}>
               <a
@@ -270,34 +210,34 @@ export default function HomePage() {
                 <span className={styles.div_35} />
                 <span className={styles.div_36} />
               </div>
-              <span className={styles.table_37}>Operations Center</span>
+              <span className={styles.table_37}>Servicing Operations</span>
             </div>
             <div className={styles.div_38}>
               <div className={styles.container_39}>
                 <div>
-                  <h3 className={styles.table_40}>Active Dashboard</h3>
-                  <p className={styles.text_41}>ACTIVE SESSION</p>
+                  <h3 className={styles.table_40}>Client Control Console</h3>
+                  <p className={styles.text_41}>SECURE CONSOLE</p>
                 </div>
                 <span className={styles.div_42} />
               </div>
               <div className={styles.container_43}>
                 <div className={styles.text_44}>
-                  <p className={styles.text_45}>Attendance Rate</p>
-                  <p className={styles.text_46}>98%</p>
+                  <p className={styles.text_45}>SLA Fulfillment</p>
+                  <p className={styles.text_46}>99.9%</p>
                 </div>
                 <div className={styles.text_47}>
-                  <p className={styles.text_48}>Hours Logged</p>
-                  <p className={styles.text_49}>42.5h</p>
+                  <p className={styles.text_48}>Requests Tracked</p>
+                  <p className={styles.text_49}>Active</p>
                 </div>
                 <div className={styles.text_50}>
-                  <p className={styles.text_51}>System Rank</p>
-                  <p className={styles.text_52}>#2</p>
+                  <p className={styles.text_51}>Platform Status</p>
+                  <p className={styles.text_52}>Online</p>
                 </div>
               </div>
               <div className={styles.div_53}>
-                <p className={styles.text_54}>Current Directive</p>
+                <p className={styles.text_54}>Active Core Policy Layer</p>
                 <div className={styles.text_55}>
-                  <span className={styles.table_56}>Verify Session Credentials</span>
+                  <span className={styles.table_56}>Verify Access Credentials</span>
                   <span className={styles.text_57}>SECURE</span>
                 </div>
               </div>
@@ -308,9 +248,9 @@ export default function HomePage() {
         <section className={styles.div_58}>
           <div className={styles.text_59}>
             {[
-              { label: "Active Associates", val: loading ? "..." : stats.members, desc: "Registered Profiles", icon: Users },
-              { label: "Operational Sectors", val: loading ? "..." : stats.sectors, desc: "Roster Groups", icon: Building2 },
-              { label: "Attendance Today", val: loading ? "..." : stats.attendanceToday, desc: "Roster Presence", icon: CalendarCheck }
+              { label: "Serviced Profiles", val: loading ? "..." : stats.members, desc: "Active Clients", icon: Users },
+              { label: "Assigned Advisors", val: loading ? "..." : stats.sectors, desc: "Roster Advisors", icon: Building2 },
+              { label: "Operations Logged", val: loading ? "..." : stats.attendanceToday, desc: "Today's Updates", icon: CalendarCheck }
             ].map((kpi, idx) => {
               const Icon = kpi.icon;
               return (
@@ -330,42 +270,30 @@ export default function HomePage() {
         <section id="features" className={styles.div_66}>
           <div className={styles.text_67}>
             <h2 className={styles.table_68}>
-              Designed For Modern Enterprise Workspaces
+              Engineered For Premium Client Care & Servicing
             </h2>
             <p className={styles.text_69}>
-              Explore the core modules and functional capabilities engineered into the TeamPadua system.
+              Streamline client portfolios, check pending transaction states, and collaborate on policy dispatches.
             </p>
           </div>
 
           <div className={styles.container_70}>
             {[
               {
-                title: "Real-time Attendance",
-                desc: "Automated check-in, check-out, and break tracking tailored to the current date, complete with total hours calculation and admin feedback.",
+                title: "Client Servicing Logs",
+                desc: "Integrated pipelines to track Auto-Charge Registries (ACR), Fund Switch Tasks (FST), and Policy Payments Updates (PPU).",
+                icon: ClipboardList,
+                badge: "TRANSACTIONS"
+              },
+              {
+                title: "Asset & Card Dispatch",
+                desc: "Monitor CPC policy cards generation, mailing dispatches, and client correspondence records.",
                 icon: CalendarCheck,
-                badge: "AUTOMATED"
+                badge: "CPC DISPATCH"
               },
               {
-                title: "Creative Design Studio",
-                desc: "A built-in Canva-style layer manager featuring interactive canvas rendering, custom text styles, and draggable properties.",
-                icon: Paintbrush,
-                badge: "STUDIO UTILLITY"
-              },
-              {
-                title: "Training Playground",
-                desc: "Interactive learning games like Speed Type Race, Memory Match, and Trivia, complete with live leaderboards to track performance.",
-                icon: Gamepad2,
-                badge: "GAMIFIED NODE"
-              },
-              {
-                title: "Direct Communication",
-                desc: "Centralized chat feeds, targeted audience bulletins, and structured FAQs that keep members in constant sync.",
-                icon: MessageSquare,
-                badge: "REAL-TIME"
-              },
-              {
-                title: "Secure Verification Profile",
-                desc: "Equipped with custom AI avatar seeds, two-factor authentication, provider indicators, and unique placeholder QR ledger cards.",
+                title: "Secure Verification Database",
+                desc: "Equipped with Role-Based Access Control and client validation rules to keep policy records safe.",
                 icon: Shield,
                 badge: "SECURITY GATE"
               }
@@ -397,19 +325,19 @@ export default function HomePage() {
           <div className={styles.div_81}>
             <div className={styles.text_82}>
               <h2 className={styles.table_83}>
-                How It Works
+                Operations Pipeline
               </h2>
               <p className={styles.text_84}>
-                Get authenticated and start managing your operational workflow in four simple steps.
+                Securely navigate advisor tasks and service your client base in four steps.
               </p>
             </div>
 
             <div className={styles.container_85}>
               {[
-                { step: "01", title: "Sign In", desc: "Access the platform securely using Google OAuth, GitHub, or your email credentials." },
-                { step: "02", title: "Complete Profile", desc: "Set your details, toggle security settings, and generate your custom AI verification avatar." },
-                { step: "03", title: "Access Dashboard", desc: "Enter your role-scoped dashboard to view live operational stats and active widgets." },
-                { step: "04", title: "Manage Workflow", desc: "Punch daily attendance, complete queued tasks, and collaborate with team members in real-time." }
+                { step: "01", title: "Secure Login", desc: "Access the terminal using your verified Google, GitHub, or email credentials." },
+                { step: "02", title: "Select Client Module", desc: "Open the appropriate tracker registry (ACR, FST, CPC, PPU, or MNGT) from the sidebar." },
+                { step: "03", title: "Update Status", desc: "Upload client records, modify active transaction milestones, and confirm log status." },
+                { step: "04", title: "Monitor Delivery", desc: "Generate client servicing summaries and verify policy updates in real-time." }
               ].map((item, idx) => (
                 <div key={idx} className={styles.div_86}>
                   <span className={styles.text_87}>{item.step}</span>
@@ -534,7 +462,7 @@ export default function HomePage() {
             <div className={styles.container_140}>
               {[
                 { id: "dashboard", label: "Dashboard Overview", icon: Layers },
-                { id: "attendance", label: "Attendance Punch", icon: Clock }
+                { id: "servicing", label: "Client Servicing Tasks", icon: ClipboardList }
               ].map((tab) => {
                 const Icon = tab.icon;
                 const active = activeTab === tab.id;
@@ -560,7 +488,7 @@ export default function HomePage() {
                   <div className={styles.container_143}>
                     <div>
                       <h3 className={styles.table_144}>Workspace Analytics</h3>
-                      <p className={styles.text_145}>Real-time summary of intern activities</p>
+                      <p className={styles.text_145}>Real-time summary of client activities</p>
                     </div>
                     <span className={styles.text_146}>
                       Verified Secure
@@ -568,15 +496,15 @@ export default function HomePage() {
                   </div>
                   <div className={styles.container_147}>
                     <div className={styles.div_148}>
-                      <p className={styles.text_149}>Associate Presence</p>
-                      <h4 className={styles.text_150}>100% Present</h4>
+                      <p className={styles.text_149}>Service SLA Status</p>
+                      <h4 className={styles.text_150}>100% Fulfilled</h4>
                       <div className={styles.div_151}>
                         <div className={styles.div_152} />
                       </div>
                     </div>
                     <div className={styles.div_153}>
-                      <p className={styles.text_154}>Tasks In Progress</p>
-                      <h4 className={styles.text_155}>4 Active Tasks</h4>
+                      <p className={styles.text_154}>Active Requests</p>
+                      <h4 className={styles.text_155}>4 Pending Tasks</h4>
                       <div className={styles.div_156}>
                         <div className={styles.div_157} />
                       </div>
@@ -592,31 +520,21 @@ export default function HomePage() {
                 </div>
               )}
 
-
-
-              {activeTab === "attendance" && (
+              {activeTab === "servicing" && (
                 <div className={styles.div_163}>
                   <div className={styles.container_164}>
                     <div>
-                      <h3 className={styles.table_165}>Attendance Tracking</h3>
-                      <p className={styles.text_166}>Log your daily attendance</p>
+                      <h3 className={styles.table_165}>Request Tracking</h3>
+                      <p className={styles.text_166}>Trace active client servicing logs</p>
                     </div>
                     <span className={styles.text_167}>
-                      Punch Clock
+                      Active Registry
                     </span>
                   </div>
                   <div className={styles.container_168}>
                     <div className={styles.text_169}>
-                      <div className={styles.table_170}>09:00:00 AM</div>
-                      <p className={styles.text_171}>SATURDAY, JUNE 27, 2026</p>
-                    </div>
-                    <div className={styles.container_172}>
-                      <button className={styles.table_173}>
-                        Punch Time In
-                      </button>
-                      <button disabled className={styles.table_174}>
-                        Break Out
-                      </button>
+                      <div className={styles.table_170}>Secure SSL Connection</div>
+                      <p className={styles.text_171}>ACTIVE DATA SYNC</p>
                     </div>
                   </div>
                 </div>
@@ -672,7 +590,7 @@ export default function HomePage() {
               Ready to Access the Operations Portal?
             </h2>
             <p className={styles.text_189}>
-              Sign in now to punch your attendance, check bulletins, and explore the gamified training node.
+              Sign in now to manage client servicing logs, check bulletins, and process active requests.
             </p>
             <div className={styles.div_190}>
               <a

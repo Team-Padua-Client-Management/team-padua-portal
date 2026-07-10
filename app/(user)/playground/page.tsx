@@ -15,15 +15,16 @@
 
 import styles from "@/styles/user/playground/page.module.css";
 
-  // ======================================================
+// ======================================================
 // State Initialization & Hooks
 // ======================================================
 
-  // ======================================================
+// ======================================================
 // Lifecycle Effects & Data Sync
 // ======================================================
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Gamepad2, Trophy, HelpCircle, RefreshCw, Plus, Trash2, Shield, Users, Award, Star, X, Brain, Play, CheckCircle, AlertCircle, Timer, Flame, RefreshCcw, Sparkles } from "lucide-react";
+import { Gamepad2, Trophy, HelpCircle, RefreshCw, Plus, Trash2, Shield, Users, Award, Star, X, Brain, Play, CheckCircle, AlertCircle, Timer, Flame, RefreshCcw, Sparkles, Loader2 } from "lucide-react";
+import { supabase } from "@/app/lib/supabase/client";
 
 const TRIVIA_QUESTIONS = [
   { q: "Sun Life Philippines was established in what year?", opts: ["1895", "1898", "1902", "1910"], a: 0, fact: "Sun Life of Canada entered the Philippine market in 1895, making it one of the oldest insurance companies in the country." },
@@ -187,10 +188,106 @@ export default function Playground() {
   const [toastMsg, setToastMsg] = useState("");
   const [toastVisible, setToastVisible] = useState(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [dbLeaderboard, setDbLeaderboard] = useState<{ name: string; pts: number; role: string }[]>([]);
 
   // Confetti particles
   const [confetti, setConfetti] = useState<ConfettiParticle[]>([]);
   const nextParticleId = useRef(0);
+
+  // Load user and scores from Supabase on mount
+  useEffect(() => {
+    const loadUserAndScores = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          setUserId(user.id);
+          // Fetch the user's total accumulated score
+          const { data: scores } = await supabase
+            .from('playground_scores')
+            .select('total_score')
+            .eq('user_id', user.id)
+            .order('played_at', { ascending: false })
+            .limit(1);
+          if (scores && scores.length > 0) {
+            const savedScore = scores[0].total_score;
+            setTotalScore(savedScore);
+            setPlayers(ps => ps.map((p, i) => i === 0 ? { ...p, pts: savedScore } : p));
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load playground scores:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadUserAndScores();
+  }, []);
+
+  // Load leaderboard data from Supabase
+  const loadLeaderboard = useCallback(async () => {
+    try {
+      // Get the latest score per user using a subquery approach
+      const { data, error } = await supabase
+        .from('playground_scores')
+        .select('user_id, total_score, played_at')
+        .order('played_at', { ascending: false });
+
+      if (error || !data) return;
+
+      // Group by user_id, take the latest entry per user
+      const userScores = new Map<string, number>();
+      for (const row of data) {
+        if (!userScores.has(row.user_id)) {
+          userScores.set(row.user_id, row.total_score);
+        }
+      }
+
+      // Fetch profile names for these users
+      const userIds = Array.from(userScores.keys());
+      if (userIds.length === 0) return;
+
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name, role')
+        .in('id', userIds);
+
+      if (!profiles) return;
+
+      const leaderboard = profiles.map(p => ({
+        name: p.full_name || 'Unknown Player',
+        pts: userScores.get(p.id) || 0,
+        role: (p.role || 'BSA') as string,
+      })).sort((a, b) => b.pts - a.pts);
+
+      setDbLeaderboard(leaderboard);
+    } catch (err) {
+      console.error('Failed to load leaderboard:', err);
+    }
+  }, []);
+
+  // Load leaderboard when switching to board tab
+  useEffect(() => {
+    if (tab === 'board') {
+      loadLeaderboard();
+    }
+  }, [tab, loadLeaderboard]);
+
+  // Save score to Supabase
+  const saveScoreToDb = useCallback(async (gameType: string, pts: number, newTotal: number) => {
+    if (!userId) return;
+    try {
+      await supabase.from('playground_scores').insert({
+        user_id: userId,
+        game_type: gameType,
+        score: pts,
+        total_score: newTotal,
+      });
+    } catch (err) {
+      console.error('Failed to save score:', err);
+    }
+  }, [userId]);
 
   /**
  * Executes operations logic for triggerConfetti.
@@ -198,7 +295,7 @@ export default function Playground() {
  * 
  * @returns State operations sequence.
  */
-const triggerConfetti = () => {
+  const triggerConfetti = () => {
     const newParticles: ConfettiParticle[] = Array.from({ length: 40 }).map(() => ({
       id: nextParticleId.current++,
       x: 30 + Math.random() * 40, // 30% to 70% width
@@ -218,7 +315,7 @@ const triggerConfetti = () => {
  * @param msg: string
  * @returns State operations sequence.
  */
-const showToast = (msg: string) => {
+  const showToast = (msg: string) => {
     setToastMsg(msg);
     setToastVisible(true);
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -231,7 +328,7 @@ const showToast = (msg: string) => {
  * @param pts: number
  * @returns State operations sequence.
  */
-const addScore = (pts: number) => {
+  const addScore = (pts: number) => {
     setTotalScore((prev) => {
       const next = prev + pts;
       setPlayers((ps) => ps.map((p, i) => (i === 0 ? { ...p, pts: next } : p)));
@@ -245,12 +342,16 @@ const addScore = (pts: number) => {
  * @param pts: number
  * @returns State operations sequence.
  */
-const handleScore = (pts: number) => {
+  const handleScore = (pts: number) => {
     addScore(pts);
     showToast(pts >= 0 ? `+${pts} Points Earned!` : `${pts} Points Risk!`);
     if (pts > 0) {
       triggerConfetti();
     }
+    // Determine game type from current tab for database
+    const gameType = tab;
+    const newTotal = totalScore + pts;
+    saveScoreToDb(gameType, pts, newTotal);
   };
 
   /**
@@ -259,14 +360,31 @@ const handleScore = (pts: number) => {
  * @param name: string, role: Role
  * @returns State operations sequence.
  */
-const addPlayer = (name: string, role: Role) => {
+  const addPlayer = (name: string, role: Role) => {
     setPlayers((ps) => [...ps, { name, pts: 0, role }]);
     showToast(`${name} joined the board!`);
   };
 
   return (
     <div className={styles.text_2}>
-      <style dangerouslySetInnerHTML={{__html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
+        @keyframes confettiFall {
+          0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+          100% { transform: translateY(300px) rotate(720deg); opacity: 0; }
+        }
+      `}} />
+
+      {isLoading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-xs">
+          <div className="flex flex-col items-center gap-3">
+            <Loader2 size={32} className="text-[#F4C542] animate-spin" />
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Loading Playground...</span>
+          </div>
+        </div>
+      )}
+      <style dangerouslySetInnerHTML={{
+        __html: `
         @keyframes confettiFall {
           0% { transform: translateY(0) rotate(0deg); opacity: 1; }
           100% { transform: translateY(300px) rotate(720deg); opacity: 0; }
@@ -321,9 +439,8 @@ const addPlayer = (name: string, role: Role) => {
             key={t.id}
             type="button"
             onClick={() => setTab(t.id as any)}
-            className={`${styles.table_223} ${
-              tab === t.id ? "bg-[#FFF7D6] dark:bg-[#2E2818] text-black dark:text-[#F4C542] border border-[#F4C542]" : "text-muted-foreground hover:text-foreground hover:bg-muted"
-            }`}
+            className={`${styles.table_223} ${tab === t.id ? "bg-[#FFF7D6] dark:bg-[#2E2818] text-black dark:text-[#F4C542] border border-[#F4C542]" : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              }`}
           >
             {t.label}
           </button>
@@ -338,7 +455,7 @@ const addPlayer = (name: string, role: Role) => {
         {tab === "roles" && <RolesGame onScore={handleScore} />}
         {tab === "simulator" && <ClientMeetingSimulator onScore={handleScore} />}
         {tab === "xoxo" && <XoxoGame onScore={handleScore} />}
-        {tab === "board" && <Leaderboard players={players} onAddPlayer={addPlayer} />}
+        {tab === "board" && <Leaderboard players={players} dbLeaderboard={dbLeaderboard} onAddPlayer={addPlayer} />}
       </div>
     </div>
   );
@@ -363,7 +480,7 @@ function TriviaGame({ onScore }: { onScore: (n: number) => void }) {
  * @param i: number
  * @returns State operations sequence.
  */
-const answer = (i: number) => {
+  const answer = (i: number) => {
     if (selected !== null) return;
     setSelected(i);
     if (i === q.a) {
@@ -378,7 +495,7 @@ const answer = (i: number) => {
  * 
  * @returns State operations sequence.
  */
-const next = () => {
+  const next = () => {
     setIndex((i) => i + 1);
     setSelected(null);
   };
@@ -389,7 +506,7 @@ const next = () => {
  * 
  * @returns State operations sequence.
  */
-const reset = () => {
+  const reset = () => {
     setIndex(0);
     setScore(0);
     setSelected(null);
@@ -424,13 +541,13 @@ const reset = () => {
         <span className={styles.container_20}><Brain size={13} className={styles.text_21} /> Question {index + 1} of {TRIVIA_QUESTIONS.length}</span>
         <span className={styles.text_22}>Score: {score}</span>
       </div>
-      
+
       <ProgressBar value={index} max={TRIVIA_QUESTIONS.length} />
-      
+
       <div className={styles.div_23}>
         <h3 className={styles.text_24}>{q.q}</h3>
       </div>
-      
+
       <div className={styles.container_25}>
         {q.opts.map((o, i) => {
           let style = "bg-card border-border text-foreground hover:bg-muted/50 hover:border-[#F4C542] hover:-translate-y-0.5 hover:shadow-xs";
@@ -460,7 +577,7 @@ const reset = () => {
           );
         })}
       </div>
-      
+
       {selected !== null && (
         <div className={styles.card_28}>
           <div className={styles.table_29}>
@@ -477,7 +594,7 @@ const reset = () => {
           <p className={styles.text_32}>{q.fact}</p>
         </div>
       )}
-      
+
       {selected !== null && (
         <button
           type="button"
@@ -517,11 +634,11 @@ function SpinWheel({ onScore }: { onScore: (n: number) => void }) {
     const cx = 210, cy = 210, r = 190;
     const slices = items.length;
     ctx.clearRect(0, 0, 420, 420);
-    
+
     items.forEach((item, i) => {
       const start = (angle + (i / slices) * 2 * Math.PI) - Math.PI / 2;
       const end = start + (2 * Math.PI / slices);
-      
+
       // Draw Slice background
       ctx.beginPath();
       ctx.moveTo(cx, cy);
@@ -529,7 +646,7 @@ function SpinWheel({ onScore }: { onScore: (n: number) => void }) {
       ctx.closePath();
       ctx.fillStyle = item.color;
       ctx.fill();
-      
+
       // Draw slice lines
       ctx.strokeStyle = "rgba(30, 41, 59, 0.15)";
       ctx.lineWidth = 2;
@@ -546,7 +663,7 @@ function SpinWheel({ onScore }: { onScore: (n: number) => void }) {
       ctx.shadowBlur = 6;
       ctx.fill();
       ctx.restore();
-      
+
       // Draw text
       ctx.save();
       ctx.translate(cx, cy);
@@ -572,7 +689,7 @@ function SpinWheel({ onScore }: { onScore: (n: number) => void }) {
     ctx.shadowColor = "rgba(0,0,0,0.3)";
     ctx.shadowBlur = 6;
     ctx.fill();
-    
+
     ctx.beginPath();
     ctx.arc(cx, cy, 10, 0, 2 * Math.PI);
     ctx.fillStyle = "#F4C542";
@@ -587,7 +704,7 @@ function SpinWheel({ onScore }: { onScore: (n: number) => void }) {
  * 
  * @returns State operations sequence.
  */
-const spin = () => {
+  const spin = () => {
     if (spinningRef.current || wheelItems.length < 2) return;
     spinningRef.current = true;
     setSpinning(true);
@@ -597,14 +714,14 @@ const spin = () => {
     const start = Date.now();
     const startAngle = angleRef.current;
     const currentItems = wheelItems;
-    
+
     /**
  * Executes operations logic for animate.
  *
  * 
  * @returns State operations sequence.
  */
-function animate() {
+    function animate() {
       const elapsed = Date.now() - start;
       const progress = Math.min(1, elapsed / duration);
       const ease = 1 - Math.pow(1 - progress, 4); // Quartic ease out
@@ -631,7 +748,7 @@ function animate() {
  * 
  * @returns State operations sequence.
  */
-const saveChanges = () => {
+  const saveChanges = () => {
     setWheelItems(editItems);
     setShowEditor(false);
     setResult(null);
@@ -645,12 +762,12 @@ const saveChanges = () => {
         <div className={styles.table_37}>
           <div className={styles.table_38} />
         </div>
-        <canvas 
-          ref={canvasRef} 
-          width={420} 
-          height={420} 
-          onClick={spin} 
-          className={styles.card_39} 
+        <canvas
+          ref={canvasRef}
+          width={420}
+          height={420}
+          onClick={spin}
+          className={styles.card_39}
         />
       </div>
       <div className={styles.container_40}>
@@ -676,7 +793,7 @@ const saveChanges = () => {
             {/* Sparkle background elements */}
             <div className={styles.div_45} />
             <div className={styles.div_46} />
-            
+
             {/* Animated Celebration Icon */}
             <div className={styles.container_47}>
               <div className={styles.container_48}>
@@ -830,7 +947,7 @@ function MemoryGame({ onScore }: { onScore: (n: number) => void }) {
  * @param idx: number
  * @returns State operations sequence.
  */
-const flip = (idx: number) => {
+  const flip = (idx: number) => {
     if (locked || flipped.includes(idx) || matched.has(cards[idx].id)) return;
     const next = [...flipped, idx];
     setFlipped(next);
@@ -859,7 +976,8 @@ const flip = (idx: number) => {
 
   return (
     <div className={styles.text_76}>
-      <style dangerouslySetInnerHTML={{__html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         .card-3d {
           perspective: 1000px;
         }
@@ -906,18 +1024,17 @@ const flip = (idx: number) => {
             return (
               <div key={i} className={styles.input_85} onClick={() => flip(i)}>
                 <div className={`${styles.card_225} ${show ? 'card-3d-flipped' : ''} card-3d-inner`}>
-                  
+
                   {/* Back of Card (Hidden) */}
                   <div className={`${styles.card_86} card-3d-back`}>
                     <Star size={20} className={styles.text_87} />
                   </div>
 
                   {/* Front of Card (Flipped / Text) */}
-                  <div className={`${styles.card_226} card-3d-front ${
-                    isMatched
+                  <div className={`${styles.card_226} card-3d-front ${isMatched
                       ? "bg-[#E8F8F0] dark:bg-[#163420]/30 border-emerald-300 dark:border-emerald-900/30 text-emerald-800 dark:text-emerald-400"
                       : "bg-card border-[#F4C542] text-foreground"
-                  }`}>
+                    }`}>
                     {card.face}
                   </div>
 
@@ -984,7 +1101,7 @@ function TypeRace({ gamePhrase, onScore }: { gamePhrase: string; onScore: (n: nu
  * @param e: React.ChangeEvent<HTMLTextAreaElement>
  * @returns State operations sequence.
  */
-const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     if (done) return;
     const val = e.target.value;
     if (!startTime) {
@@ -1015,12 +1132,12 @@ const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
  * 
  * @returns State operations sequence.
  */
-const renderPhraseFeedback = () => {
+  const renderPhraseFeedback = () => {
     return phrase.split("").map((char, index) => {
       let colorClass = "text-black dark:text-white opacity-65"; // Untyped (highly readable black/white)
       if (index < typed.length) {
-        colorClass = typed[index] === char 
-          ? "text-emerald-600 dark:text-[#4ade80] font-semibold transition-colors opacity-100" 
+        colorClass = typed[index] === char
+          ? "text-emerald-600 dark:text-[#4ade80] font-semibold transition-colors opacity-100"
           : "bg-red-500/10 text-red-600 dark:text-red-400 font-semibold underline transition-colors opacity-100";
       } else if (index === typed.length && startTime) {
         colorClass = "bg-amber-300/80 dark:bg-amber-500/30 text-black dark:text-white underline font-semibold opacity-100 animate-pulse";
@@ -1032,7 +1149,7 @@ const renderPhraseFeedback = () => {
   // Determine dynamic message
   let statusMessage = "🚥 Waiting for your first keystroke...";
   let statusStyle = "bg-muted text-muted-foreground";
-  
+
   if (startTime) {
     if (done) {
       statusMessage = "🏆 Complete! Excellent typing speed!";
@@ -1072,11 +1189,11 @@ const renderPhraseFeedback = () => {
         <div className={styles.table_106}>
           🏁 Finish
         </div>
-        <div 
+        <div
           className={styles.table_107}
-          style={{ 
-            left: `calc(${(typed.length / phrase.length) * 82}% + 16px)`, 
-            transform: 'translateX(-50%)' 
+          style={{
+            left: `calc(${(typed.length / phrase.length) * 82}% + 16px)`,
+            transform: 'translateX(-50%)'
           }}
         >
           <span className={styles.text_108}>🏎️</span>
@@ -1147,7 +1264,7 @@ function RolesGame({ onScore }: { onScore: (n: number) => void }) {
  * @param r: string
  * @returns State operations sequence.
  */
-const answer = (r: string) => {
+  const answer = (r: string) => {
     if (selected) return;
     setSelected(r);
     if (r === q.a) {
@@ -1162,7 +1279,7 @@ const answer = (r: string) => {
  * 
  * @returns State operations sequence.
  */
-const next = () => {
+  const next = () => {
     setIndex((i) => i + 1);
     setSelected(null);
   };
@@ -1173,7 +1290,7 @@ const next = () => {
  * 
  * @returns State operations sequence.
  */
-const reset = () => {
+  const reset = () => {
     setIndex(0);
     setScore(0);
     setSelected(null);
@@ -1303,7 +1420,7 @@ function ClientMeetingSimulator({ onScore }: { onScore: (n: number) => void }) {
  * @param idx: number, optScore: number
  * @returns State operations sequence.
  */
-const handleSelect = (idx: number, optScore: number) => {
+  const handleSelect = (idx: number, optScore: number) => {
     setSelectedOpt(idx);
     setScore((s) => s + optScore);
     onScore(optScore);
@@ -1315,7 +1432,7 @@ const handleSelect = (idx: number, optScore: number) => {
  * 
  * @returns State operations sequence.
  */
-const next = () => {
+  const next = () => {
     setIndex((i) => i + 1);
     setSelectedOpt(null);
   };
@@ -1326,7 +1443,7 @@ const next = () => {
  * 
  * @returns State operations sequence.
  */
-const reset = () => {
+  const reset = () => {
     setIndex(0);
     setScore(0);
     setSelectedOpt(null);
@@ -1393,17 +1510,17 @@ const reset = () => {
 
       <div className={styles.div_161}>
         <h4 className={styles.table_162}>{current.question}</h4>
-        
+
         <div className={styles.container_163}>
           {current.options.map((opt, idx) => {
             let style = "bg-card border-border hover:bg-muted/50 hover:border-[#F4C542] text-foreground hover:-translate-y-0.5 hover:shadow-xs";
             let icon = null;
             if (selectedOpt !== null) {
               if (idx === selectedOpt) {
-                style = opt.score >= 20 
-                  ? "bg-[#F0FDF4] dark:bg-[#163420]/30 border-emerald-300 dark:border-emerald-900/30 text-emerald-800 dark:text-[#4ade80] shadow-2xs" 
+                style = opt.score >= 20
+                  ? "bg-[#F0FDF4] dark:bg-[#163420]/30 border-emerald-300 dark:border-emerald-900/30 text-emerald-800 dark:text-[#4ade80] shadow-2xs"
                   : "bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/30 text-amber-800 dark:text-amber-400 shadow-2xs";
-                icon = opt.score >= 20 
+                icon = opt.score >= 20
                   ? <CheckCircle size={14} className={styles.text_164} />
                   : <AlertCircle size={14} className={styles.text_165} />;
               } else {
@@ -1461,25 +1578,60 @@ const reset = () => {
  * @param { players, onAddPlayer }: { players: Player[]; onAddPlayer: (name: string, role: Role
  * @returns State operations sequence.
  */
-function Leaderboard({ players, onAddPlayer }: { players: Player[]; onAddPlayer: (name: string, role: Role) => void }) {
-  const sorted = [...players].sort((a, b) => b.pts - a.pts);
+interface LeaderboardProps {
+  players: Player[];
+  dbLeaderboard: {
+    name: string;
+    pts: number;
+    role: string;
+  }[];
+  onAddPlayer: (name: string, role: Role) => void;
+}
+
+function Leaderboard({
+  players,
+  dbLeaderboard,
+  onAddPlayer,
+}: LeaderboardProps) {
+  const combinedPlayers: Player[] = [
+    ...players,
+    ...dbLeaderboard.map((player) => ({
+      name: player.name,
+      pts: player.pts,
+      role: (player.role as Role) || "BSA",
+    })),
+  ];
+
+  // Remove duplicate names (keep highest score)
+  const uniquePlayers = Array.from(
+    combinedPlayers.reduce((map, player) => {
+      const existing = map.get(player.name);
+
+      if (!existing || player.pts > existing.pts) {
+        map.set(player.name, player);
+      }
+
+      return map;
+    }, new Map<string, Player>()).values()
+  );
+
+  const sorted = uniquePlayers.sort((a, b) => b.pts - a.pts);
+
   const medals = ["🥇", "🥈", "🥉"];
 
   const [isAdding, setIsAdding] = useState(false);
   const [newName, setNewName] = useState("");
   const [newRole, setNewRole] = useState<Role>("ASA");
 
-  /**
- * Executes operations logic for handleSubmit.
- *
- * @param e: React.FormEvent
- * @returns State operations sequence.
- */
-const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!newName.trim()) return;
-    onAddPlayer(newName, newRole);
+
+    onAddPlayer(newName.trim(), newRole);
+
     setNewName("");
+    setNewRole("ASA");
     setIsAdding(false);
   };
 
@@ -1487,15 +1639,20 @@ const handleSubmit = (e: React.FormEvent) => {
     <div className={styles.text_175}>
       <div className={styles.container_176}>
         <h3 className={styles.table_177}>
-          <Trophy size={13} className={styles.text_178} /> Active Players Leaderboard
+          <Trophy size={13} className={styles.text_178} />
+          {" "}
+          Active Players Leaderboard
         </h3>
+
         {!isAdding && (
           <button
             type="button"
             onClick={() => setIsAdding(true)}
             className={styles.table_179}
           >
-            <Plus size={12} /> Add Player
+            <Plus size={12} />
+            {" "}
+            Add Player
           </button>
         )}
       </div>
@@ -1503,12 +1660,25 @@ const handleSubmit = (e: React.FormEvent) => {
       {isAdding && (
         <form onSubmit={handleSubmit} className={styles.div_180}>
           <div className={styles.container_181}>
-            <span className={styles.table_182}>New Player Details</span>
-            <button type="button" onClick={() => setIsAdding(false)} className={styles.text_183}>&times;</button>
+            <span className={styles.table_182}>
+              New Player Details
+            </span>
+
+            <button
+              type="button"
+              onClick={() => setIsAdding(false)}
+              className={styles.text_183}
+            >
+              &times;
+            </button>
           </div>
+
           <div className={styles.container_184}>
             <div className={styles.div_185}>
-              <label className={styles.text_186}>Player Name</label>
+              <label className={styles.text_186}>
+                Player Name
+              </label>
+
               <input
                 type="text"
                 value={newName}
@@ -1518,8 +1688,12 @@ const handleSubmit = (e: React.FormEvent) => {
                 required
               />
             </div>
+
             <div className={styles.div_188}>
-              <label className={styles.text_189}>Select Advisor Role</label>
+              <label className={styles.text_189}>
+                Select Advisor Role
+              </label>
+
               <select
                 value={newRole}
                 onChange={(e) => setNewRole(e.target.value as Role)}
@@ -1532,6 +1706,7 @@ const handleSubmit = (e: React.FormEvent) => {
               </select>
             </div>
           </div>
+
           <div className={styles.container_191}>
             <button
               type="button"
@@ -1540,6 +1715,7 @@ const handleSubmit = (e: React.FormEvent) => {
             >
               Cancel
             </button>
+
             <button
               type="submit"
               className={styles.table_193}
@@ -1553,29 +1729,45 @@ const handleSubmit = (e: React.FormEvent) => {
       <div className={styles.div_194}>
         {sorted.map((p, i) => {
           const isTop3 = i < 3;
-          const cardHighlight = isTop3 
-            ? "border-[#F4C542]/30 dark:border-[#F4C542]/20 bg-gradient-to-r from-[#FFF9E5]/30 to-card dark:from-[#2E2818]/10" 
+
+          const cardHighlight = isTop3
+            ? "border-[#F4C542]/30 dark:border-[#F4C542]/20 bg-gradient-to-r from-[#FFF9E5]/30 to-card dark:from-[#2E2818]/10"
             : "border-border bg-card";
+
           return (
             <div
-              key={i}
+              key={`${p.name}-${i}`}
               className={`${styles.table_231} ${cardHighlight}`}
             >
               <div className={styles.text_195}>
-                {medals[i] || `${i + 1}`}
+                {medals[i] || i + 1}
               </div>
+
               <div className={styles.container_196}>
-                <p className={styles.table_197}>{p.name}</p>
-                <span className={`${styles.table_232} ${ROLE_COLORS[p.role]}`}>
+                <p className={styles.table_197}>
+                  {p.name}
+                </p>
+
+                <span
+                  className={`${styles.table_232} ${ROLE_COLORS[p.role] ?? ROLE_COLORS.BSA
+                    }`}
+                >
                   {p.role}
                 </span>
               </div>
+
               <span className={styles.table_198}>
                 {p.pts} PTS
               </span>
             </div>
           );
         })}
+
+        {sorted.length === 0 && (
+          <div className="py-10 text-center text-muted-foreground">
+            No players found.
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1618,7 +1810,7 @@ function XoxoGame({ onScore }: { onScore: (n: number) => void }) {
  * @param index: number
  * @returns State operations sequence.
  */
-const handleCellClick = (index: number) => {
+  const handleCellClick = (index: number) => {
     if (board[index] || winner) return;
 
     const newBoard = [...board];
@@ -1643,7 +1835,7 @@ const handleCellClick = (index: number) => {
  * 
  * @returns State operations sequence.
  */
-const resetGame = () => {
+  const resetGame = () => {
     setBoard(Array(9).fill(null));
     setCurrentPlayer("X");
     setWinner(null);

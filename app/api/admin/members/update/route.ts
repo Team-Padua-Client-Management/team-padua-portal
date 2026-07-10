@@ -1,23 +1,6 @@
-/**
- * route.ts
- *
- * Main component module in features path: app/api/admin/members/update/route.ts
- *
- * Responsibilities:
- * - Scopes UI state management and user actions.
- * - Bridges layout rendering with server-side Supabase data connections.
- * - Handles modular presentation logic.
- */
-
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/app/lib/supabase/admin";
 
-/**
- * Executes operations logic for POST.
- *
- * @param req: Request
- * @returns State operations sequence.
- */
 export async function POST(req: Request) {
     try {
         const body = await req.json();
@@ -33,9 +16,10 @@ export async function POST(req: Request) {
             status,
             birthday,
             address,
+            client_servicing_permissions,
         } = body;
 
-        const { error } = await supabaseAdmin
+        const { error: profileError } = await supabaseAdmin
             .from("profiles")
             .upsert(
                 {
@@ -47,8 +31,9 @@ export async function POST(req: Request) {
                     team,
                     phone,
                     status,
-                    birthday,
+                    birthday: birthday?.trim() ? birthday : null,
                     address,
+                    client_servicing_permissions,
                     updated_at: new Date().toISOString(),
                 },
                 {
@@ -56,9 +41,9 @@ export async function POST(req: Request) {
                 }
             );
 
-        if (error) {
+        if (profileError) {
             return NextResponse.json(
-                { success: false, error: error.message },
+                { success: false, error: profileError.message },
                 { status: 500 }
             );
         }
@@ -67,11 +52,11 @@ export async function POST(req: Request) {
             success: true,
         });
 
-    } catch (err) {
+    } catch (err: unknown) {
         return NextResponse.json(
             {
                 success: false,
-                error: "Server Error",
+                error: err instanceof Error ? err.message : "Server Error",
             },
             {
                 status: 500,

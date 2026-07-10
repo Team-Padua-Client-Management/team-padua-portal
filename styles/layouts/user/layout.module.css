@@ -10,7 +10,7 @@
    Font weights, leading scales, and text colors
 ====================================================== */
 .text_0 {
-  @apply min-h-screen bg-background text-foreground font-sans antialiased flex;
+  @apply min-h-screen bg-background text-foreground font-sans antialiased flex p-8 gap-8;
 }
 
 
@@ -23,5 +23,5 @@
 }
 
 .container_2 {
-  @apply flex-1 overflow-y-auto bg-background p-6;
+  @apply flex-1 overflow-y-auto;
 }

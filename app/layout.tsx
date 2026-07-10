@@ -32,9 +32,9 @@ export const metadata: Metadata = {
   description: "A website for Team Padua, a competitive programming team.",
   icons: {
     icon: [
-      { url: "/Image/Tp.png", type: "image/png" },
+      { url: "/Image/icon/TPC.png", type: "image/png" },
     ],
-    apple: "/Image/Tp.png",
+    apple: "/Image/icon/TPC.png",
   },
 };
 

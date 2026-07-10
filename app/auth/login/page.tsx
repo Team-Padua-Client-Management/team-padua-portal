@@ -49,7 +49,7 @@ export default function LoginPage() {
 
         <div className={styles.text_5}>
           <Image
-            src="/Image/Tp.png"
+            src="/Image/icon/TPC.png"
             alt="Team Padua Logo"
             width={100}
             height={100}

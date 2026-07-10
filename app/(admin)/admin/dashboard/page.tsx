@@ -4,23 +4,26 @@ import React, { useState, useEffect } from 'react';
 import {
   Users, ClipboardList, CalendarCheck, CalendarDays,
   Building2, UsersRound, Megaphone, MessageSquare,
-  CircleHelp, Paintbrush, RefreshCw, Loader2, ArrowUpRight
+  CircleHelp, Paintbrush, RefreshCw, Loader2, ArrowUpRight, Wallet
 } from 'lucide-react';
 import Link from 'next/link';
 import Header from "@/app/components/admin/AdminHeader/page";
 import Sidebar from "@/app/components/admin/AdminSidebar/page";
 import { supabase } from "@/app/lib/supabase/client";
-import AnnouncementWidget from "@/components/shared/AnnouncementWidget";
 import styles from "@/styles/admin/dashboard/page.module.css";
 
 type KpiData = {
   members: number;
   cpst: number;
+  acr: number;
+  cpc: number;
+  fst: number;
+  mngt: number;
+  ppu: number;
   attendance: number;
   announcements: number;
   designs: number;
   faqs: number;
-  teams: number;
 };
 
 export default function DashboardOverviewPage() {
@@ -33,72 +36,16 @@ export default function DashboardOverviewPage() {
   const [kpis, setKpis] = useState<KpiData>({
     members: 0,
     cpst: 0,
+    acr: 0,
+    cpc: 0,
+    fst: 0,
+    mngt: 0,
+    ppu: 0,
     attendance: 0,
     announcements: 0,
     designs: 0,
-    faqs: 0,
-    teams: 4
+    faqs: 0
   });
-
-  const [announcements, setAnnouncements] = useState<any[]>([]);
-
-  const fetchAnnouncements = async () => {
-    try {
-      const { data } = await supabase
-        .from('announcements')
-        .select('*')
-        .order('is_pinned', { ascending: false })
-        .order('created_at', { ascending: false })
-        .limit(6);
-      if (data) {
-        setAnnouncements(data.map((a: any) => ({
-          id: a.id,
-          title: a.title,
-          subtitle: a.subtitle,
-          content: a.content,
-          category: a.category,
-          priority: a.priority,
-          author: a.author,
-          publishDate: a.publish_date ? new Date(a.publish_date).toISOString().split('T')[0] : '—',
-          isPinned: a.is_pinned || false,
-          audience: a.audience || [],
-          event_date: a.event_date,
-          start_time: a.start_time,
-          end_time: a.end_time,
-          timezone: a.timezone,
-          event_type: a.event_type,
-          location_name: a.location_name,
-          location_address: a.location_address,
-          latitude: a.latitude,
-          longitude: a.longitude,
-          google_place_id: a.google_place_id,
-          visibility_type: a.visibility_type,
-          require_acknowledgement: a.require_acknowledgement
-        })));
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  useEffect(() => {
-    fetchAnnouncements();
-
-    const channel = supabase
-      .channel('admin_dashboard_realtime_announcements')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'announcements' },
-        () => {
-          fetchAnnouncements();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
 
   const getPhGreeting = () => {
     try {
@@ -124,6 +71,11 @@ export default function DashboardOverviewPage() {
 
       const { count: membersCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
       const { count: cpstCount } = await supabase.from('cpst_clients').select('*', { count: 'exact', head: true });
+      const { count: acrCount } = await supabase.from('acr_clients').select('*', { count: 'exact', head: true });
+      const { count: cpcCount } = await supabase.from('cpc_clients').select('*', { count: 'exact', head: true });
+      const { count: fstCount } = await supabase.from('fst_clients').select('*', { count: 'exact', head: true });
+      const { count: mngtCount } = await supabase.from('mngt_clients').select('*', { count: 'exact', head: true });
+      const { count: ppuCount } = await supabase.from('ppu_clients').select('*', { count: 'exact', head: true });
       const { count: attendanceCount } = await supabase.from('attendance').select('*', { count: 'exact', head: true });
       const { count: announcementsCount } = await supabase.from('announcements').select('*', { count: 'exact', head: true });
       const { count: designsCount } = await supabase.from('design_templates').select('*', { count: 'exact', head: true });
@@ -132,11 +84,15 @@ export default function DashboardOverviewPage() {
       setKpis({
         members: membersCount || 0,
         cpst: cpstCount || 0,
+        acr: acrCount || 0,
+        cpc: cpcCount || 0,
+        fst: fstCount || 0,
+        mngt: mngtCount || 0,
+        ppu: ppuCount || 0,
         attendance: attendanceCount || 0,
         announcements: announcementsCount || 0,
         designs: designsCount || 0,
-        faqs: faqsCount || 0,
-        teams: 4
+        faqs: faqsCount || 0
       });
     } catch (err) {
       console.error(err);
@@ -157,7 +113,6 @@ export default function DashboardOverviewPage() {
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await fetchDashboardData();
-    await fetchAnnouncements();
     setTimeout(() => setIsRefreshing(false), 500);
   };
 
@@ -208,38 +163,40 @@ export default function DashboardOverviewPage() {
         <Header />
 
         <main className={styles.div_11}>
-          <div className={styles.container_12}>
-            <div>
-              <div className={styles.table_13}>
-                <span>TeamPadua Control Terminal</span>
-                <span className={styles.text_14}>|</span>
-                <span className={styles.text_15}>Active Admin Layer</span>
+          <div className={styles.heroGlassCard}>
+            <div className={styles.heroGlow} />
+
+            <div className={styles.heroLeft}>
+              <div className={styles.greetingBadge}>
+                {greeting}
               </div>
-              <h1 className={styles.text_16}>
-                {greeting}, {adminName}
+              <h1 className={styles.welcomeText}>
+                Welcome, <span className={styles.usernameHighlight}>{adminName}</span>
               </h1>
-              <p className={styles.text_17}>Terminal Status: Connected & Syncing</p>
+              <div className={styles.memberBadge}>Administrator</div>
             </div>
 
-            <div className={styles.container_18}>
-              <div className={styles.card_19}>
-                <CalendarDays size={12} className={styles.text_20} />
-                <span>{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}</span>
+            <div className={styles.heroRight}>
+              <div className={styles.dateDisplay}>
+                {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
               </div>
-
+              <div className={styles.verticalDivider} />
+              <div className={styles.timeDisplay}>
+                <span className={styles.timeText}>ACTIVE</span>
+              </div>
               <button
                 onClick={handleRefresh}
-                className={styles.card_21}
+                className={styles.refreshButton}
                 title="Refresh Workspace Grid"
               >
-                {isRefreshing ? <Loader2 size={14} className={styles.text_22} /> : <RefreshCw size={14} />}
+                <RefreshCw size={16} className={isRefreshing ? styles.spinIcon : ""} />
               </button>
             </div>
           </div>
 
           <div className={styles.div_23}>
             <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-[#F4C542]/10 rounded-lg text-[#F4C542] flex items-center justify-center">
+              <div className="p-1.5 bg-primary/10 rounded-lg text-primary flex items-center justify-center">
                 <ArrowUpRight size={14} />
               </div>
               <div>
@@ -321,7 +278,7 @@ export default function DashboardOverviewPage() {
               </a>
 
               <a
-                href="https://docs.google.com/spreadsheets/"
+                href="https://bit.ly/4f2fpLK"
                 target="_blank"
                 rel="noopener noreferrer"
                 className={`${styles.card_33} group`}
@@ -354,21 +311,17 @@ export default function DashboardOverviewPage() {
                 href="https://teampaduatracker.vercel.app/tasktracker"
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`${styles.card_33} group`}
+                className={`${styles.card_33} group flex flex-col items-center justify-center`}
               >
-                <svg viewBox="0 0 100 100" className={`${styles.table_34} group`}>
-                  <defs>
-                    <filter id="tracker-shadow-adm" x="-10%" y="-10%" width="130%" height="130%">
-                      <feDropShadow dx="1" dy="2" stdDeviation="1.8" floodColor="#000000" floodOpacity="0.4" />
-                    </filter>
-                    <linearGradient id="tracker-grad-adm" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#FFF2B2" /><stop offset="100%" stopColor="#F4C542" />
-                    </linearGradient>
-                  </defs>
-                  <circle cx="50" cy="50" r="40" fill="#1E1E24" filter="url(#tracker-shadow-adm)" stroke="#F4C542" strokeWidth="2" />
-                  <path d="M35 50 L45 60 L65 40" stroke="url(#tracker-grad-adm)" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                </svg>
-                <span className={`${styles.table_35} group`}>Task Tracker</span>
+                <img
+                  src="/Image/icon/TP.png"
+                  alt="Task Tracker"
+                  className="w-14 h-14 object-contain transition-transform duration-300 group-hover:scale-110"
+                />
+
+                <span className={`${styles.table_35} mt-3`}>
+                  Task Tracker
+                </span>
               </a>
 
               <a
@@ -418,39 +371,25 @@ export default function DashboardOverviewPage() {
                 rel="noopener noreferrer"
                 className={`${styles.card_36} group`}
               >
-                <svg viewBox="0 0 100 100" className={`${styles.table_37} group`}>
-                  <defs>
-                    <filter id="jot-intern-shadow-adm" x="-10%" y="-10%" width="130%" height="130%">
-                      <feDropShadow dx="1" dy="2" stdDeviation="1.8" floodColor="#000000" floodOpacity="0.45" />
-                    </filter>
-                    <linearGradient id="jt-intern-blue" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" stopColor="#66B7FF" /><stop offset="100%" stopColor="#004C99" />
-                    </linearGradient>
-                  </defs>
-                  <circle cx="50" cy="50" r="40" fill="url(#jt-intern-blue)" filter="url(#jot-intern-shadow-adm)" />
-                  <path d="M35 50 L45 60 L65 40 M30 30 H70 M30 70 H70" stroke="white" strokeWidth="4" strokeLinecap="round" fill="none" />
-                </svg>
+                <img
+                  src="/Image/icon/Form.png"
+                  alt="JotForm Intern"
+                  className="w-14 h-14 object-contain transition-transform duration-300 group-hover:scale-110"
+                />
                 <span className={`${styles.table_38} group`}>JotForm Intern</span>
               </a>
 
               <a
-                href="https://drive.google.com/drive/folders/1ZLNJHFUFYDkVG9pQwMF2hio89j7vp04x?dmr=1&ec=wgc-drive-hero-goto"
+                href="https://drive.google.com/drive/folders/1ZLNJHFUFYDkVG9pQwMF2hio89j7vp04x?usp=sharing"
                 target="_blank"
                 rel="noopener noreferrer"
                 className={`${styles.card_30} group`}
               >
-                <svg viewBox="0 0 100 100" className={`${styles.table_31} group`}>
-                  <defs>
-                    <filter id="drive-shadow-adm" x="-10%" y="-10%" width="130%" height="130%">
-                      <feDropShadow dx="1" dy="2" stdDeviation="1.5" floodColor="#000000" floodOpacity="0.3" />
-                    </filter>
-                  </defs>
-                  <g filter="url(#drive-shadow-adm)">
-                    <path d="M50 20 L80 72 H58 L39 38 Z" fill="#0F9D58" />
-                    <path d="M50 20 L20 72 H42 L61 38 Z" fill="#4285F4" />
-                    <path d="M20 72 H80 L69 52 H31 Z" fill="#F4B400" />
-                  </g>
-                </svg>
+               <img
+                  src="/Image/icon/drive.png"
+                  alt="Google Drive"
+                  className="w-12 h-10 object-contain transition-transform duration-300 group-hover:scale-110"
+                />
                 <span className={`${styles.table_32} group`}>Google Drive</span>
               </a>
 
@@ -503,29 +442,28 @@ export default function DashboardOverviewPage() {
                 </svg>
                 <span className={`${styles.table_41} group`}>Canva</span>
               </a>
+              <a
+                href="https://bit.ly/4wrEVBg"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`${styles.card_30} group`}
+              >
+                <svg viewBox="0 0 100 100" className={`${styles.table_31} group`}>
+                  <defs>
+                    <filter id="zoom-shadow-adm" x="-10%" y="-10%" width="130%" height="130%">
+                      <feDropShadow dx="1" dy="2" stdDeviation="1.8" floodColor="#000000" floodOpacity="0.4" />
+                    </filter>
+                    <linearGradient id="zoom-grad-adm" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#2D8CFF" />
+                      <stop offset="100%" stopColor="#0B5CFF" />
+                    </linearGradient>
+                  </defs>
+                  <circle cx="50" cy="50" r="40" fill="url(#zoom-grad-adm)" filter="url(#zoom-shadow-adm)" />
+                  <path d="M 33 42 C 33 40, 35 38, 37 38 L 57 38 C 59 38, 61 40, 61 42 L 61 58 C 61 60, 59 62, 57 62 L 37 62 C 35 62, 33 60, 33 58 Z M 63 45 L 75 37 L 75 63 L 63 55 Z" fill="white" />
+                </svg>
+                <span className={`${styles.table_32} group`}>Zoom</span>
+              </a>
             </div>
-          </div>
-
-          <div className={styles.div_42}>
-            <div>
-              <h3 className={styles.table_43}>Active Announcements Feed</h3>
-              <p className={styles.text_44}>Real-time corporate broadcasts, notifications, and event schedules</p>
-            </div>
-            {announcements.length === 0 ? (
-              <div className={styles.feedEmpty}>
-                📢 No active announcements published yet.
-              </div>
-            ) : (
-              <div className={styles.feedGrid}>
-                {announcements.map((item) => (
-                  <AnnouncementWidget
-                    key={item.id}
-                    announcement={item}
-                    onRefresh={fetchAnnouncements}
-                  />
-                ))}
-              </div>
-            )}
           </div>
 
           <div className={styles.div_42}>
@@ -547,7 +485,7 @@ export default function DashboardOverviewPage() {
 
               <Link href="/admin/cpst" className={`${styles.card_53} group`}>
                 <div className={styles.text_54}>
-                  <span className={styles.table_55}>CPST Registry</span>
+                  <span className={styles.table_55}>CPST</span>
                   <ClipboardList size={14} className={`${styles.table_56} group`} />
                 </div>
                 <div className={styles.container_57}>
@@ -556,60 +494,62 @@ export default function DashboardOverviewPage() {
                 </div>
               </Link>
 
-              <Link href="/admin/attendance" className={`${styles.card_60} group`}>
-                <div className={styles.text_61}>
-                  <span className={styles.table_62}>Attendance</span>
-                  <CalendarCheck size={14} className={`${styles.table_63} group`} />
-                </div>
-                <div className={styles.container_64}>
-                  <h3 className={styles.table_65}>{kpis.attendance}</h3>
-                  <span className={styles.text_66}>Logs <ArrowUpRight size={10} /></span>
-                </div>
-              </Link>
-
-              <Link href="/admin/teams" className={`${styles.card_67} group`}>
+              <Link href="/admin/acr" className={`${styles.card_67} group`}>
                 <div className={styles.text_68}>
-                  <span className={styles.table_69}>Teams</span>
-                  <UsersRound size={14} className={`${styles.table_70} group`} />
+                  <span className={styles.table_69}>ACR</span>
+                  <Building2 size={14} className={`${styles.table_70} group`} />
                 </div>
                 <div className={styles.container_71}>
-                  <h3 className={styles.table_72}>{kpis.teams}</h3>
-                  <span className={styles.text_73}>Sectors <ArrowUpRight size={10} /></span>
+                  <h3 className={styles.table_72}>{kpis.acr}</h3>
+                  <span className={styles.text_73}>Sector <ArrowUpRight size={10} /></span>
                 </div>
               </Link>
 
-              <Link href="/admin/announcements" className={`${styles.card_74} group`}>
-                <div className={styles.text_75}>
-                  <span className={styles.table_76}>Announcements</span>
-                  <Megaphone size={14} className={`${styles.table_77} group`} />
+              <Link href="/admin/cpc" className={`${styles.card_46} group`}>
+                <div className={styles.text_47}>
+                  <span className={styles.table_48}>CPC</span>
+                  <UsersRound size={14} className={`${styles.table_49} group`} />
                 </div>
-                <div className={styles.container_78}>
-                  <h3 className={styles.table_79}>{kpis.announcements}</h3>
-                  <span className={styles.text_80}>Broadcasts <ArrowUpRight size={10} /></span>
-                </div>
-              </Link>
-
-              <Link href="/admin/faq" className={`${styles.card_81} group`}>
-                <div className={styles.text_82}>
-                  <span className={styles.table_83}>Knowledge Base</span>
-                  <CircleHelp size={14} className={`${styles.table_84} group`} />
-                </div>
-                <div className={styles.container_85}>
-                  <h3 className={styles.table_86}>{kpis.faqs}</h3>
-                  <span className={styles.text_87}>FAQs <ArrowUpRight size={10} /></span>
+                <div className={styles.container_50}>
+                  <h3 className={styles.table_51}>{kpis.cpc}</h3>
+                  <span className={styles.text_52}>Sector <ArrowUpRight size={10} /></span>
                 </div>
               </Link>
 
-              <Link href="/admin/Design" className={`${styles.card_88} group`}>
-                <div className={styles.text_89}>
-                  <span className={styles.table_90}>Design Studio</span>
-                  <Paintbrush size={14} className={`${styles.table_91} group`} />
+              <Link href="/admin/fst" className={`${styles.card_53} group`}>
+                <div className={styles.text_54}>
+                  <span className={styles.table_55}>FST</span>
+                  <CalendarDays size={14} className={`${styles.table_56} group`} />
                 </div>
-                <div className={styles.container_92}>
-                  <h3 className={styles.table_93}>{kpis.designs}</h3>
-                  <span className={styles.text_94}>Assets <ArrowUpRight size={10} /></span>
+                <div className={styles.container_57}>
+                  <h3 className={styles.table_58}>{kpis.fst}</h3>
+                  <span className={styles.text_59}>Sector <ArrowUpRight size={10} /></span>
                 </div>
               </Link>
+
+              <Link href="/admin/mngt" className={`${styles.card_67} group`}>
+                <div className={styles.text_68}>
+                  <span className={styles.table_69}>MNGT</span>
+                  <MessageSquare size={14} className={`${styles.table_70} group`} />
+                </div>
+                <div className={styles.container_71}>
+                  <h3 className={styles.table_72}>{kpis.mngt}</h3>
+                  <span className={styles.text_73}>Sector <ArrowUpRight size={10} /></span>
+                </div>
+              </Link>
+
+              <Link href="/admin/ppu" className={`${styles.card_46} group`}>
+                <div className={styles.text_47}>
+                  <span className={styles.table_48}>PPU</span>
+                  <Wallet size={14} className={`${styles.table_49} group`} />
+                </div>
+                <div className={styles.container_50}>
+                  <h3 className={styles.table_51}>{kpis.ppu}</h3>
+                  <span className={styles.text_52}>Sector <ArrowUpRight size={10} /></span>
+                </div>
+              </Link>
+
+
             </div>
           </div>
 

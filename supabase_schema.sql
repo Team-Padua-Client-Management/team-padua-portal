@@ -212,3 +212,92 @@ CREATE POLICY "Allow users to read their own or global notifications"
 CREATE POLICY "Allow authenticated write access to notifications" 
   ON public.notifications FOR ALL 
   USING (auth.role() = 'authenticated');
+
+
+-- =========================================================================
+-- 11. ACR (Advisor Change Request) TABLES
+-- =========================================================================
+
+CREATE TABLE IF NOT EXISTS public.acr_progress (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE,
+  color TEXT DEFAULT '#cbd5e1',
+  sort_order INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.acr_progress ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow service role full access to acr_progress"
+  ON public.acr_progress FOR ALL USING (true) WITH CHECK (true);
+
+CREATE TABLE IF NOT EXISTS public.acr_processors (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE,
+  color TEXT DEFAULT '#cbd5e1',
+  sort_order INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.acr_processors ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow service role full access to acr_processors"
+  ON public.acr_processors FOR ALL USING (true) WITH CHECK (true);
+
+CREATE TABLE IF NOT EXISTS public.acr_requests (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  policy_owner TEXT NOT NULL,
+  policy_number TEXT NOT NULL,
+  date_processed TEXT,
+  progress_id UUID REFERENCES public.acr_progress(id) ON DELETE SET NULL,
+  processed_by_id UUID REFERENCES public.acr_processors(id) ON DELETE SET NULL,
+  comments TEXT DEFAULT '',
+  agent_confirmation TEXT DEFAULT '',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.acr_requests ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow service role full access to acr_requests"
+  ON public.acr_requests FOR ALL USING (true) WITH CHECK (true);
+
+CREATE TABLE IF NOT EXISTS public.acr_files (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  request_id UUID REFERENCES public.acr_requests(id) ON DELETE CASCADE,
+  file_name TEXT NOT NULL,
+  file_path TEXT NOT NULL,
+  file_size INTEGER,
+  mime_type TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.acr_files ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow service role full access to acr_files"
+  ON public.acr_files FOR ALL USING (true) WITH CHECK (true);
+
+
+-- =========================================================================
+-- 12. CALENDAR EVENTS TABLE (Admin Operations Calendar)
+-- =========================================================================
+
+CREATE TABLE IF NOT EXISTS public.calendar_events (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  title TEXT NOT NULL,
+  description TEXT DEFAULT '',
+  event_date DATE NOT NULL,
+  start_time TIME DEFAULT '00:00:00',
+  location_name TEXT DEFAULT '',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.calendar_events ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public read access to calendar_events"
+  ON public.calendar_events FOR SELECT USING (true);
+
+CREATE POLICY "Allow authenticated full access to calendar_events"
+  ON public.calendar_events FOR ALL USING (auth.role() = 'authenticated');
+
+

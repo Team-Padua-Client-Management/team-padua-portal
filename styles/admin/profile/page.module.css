@@ -10,11 +10,11 @@
    Font weights, leading scales, and text colors
 ====================================================== */
 .text_0 {
-  @apply rounded-lg border border-border bg-[#FFF7D6] dark:bg-[#2E2818] flex items-center justify-center text-black dark:text-[#F4C542] font-serif font-bold shrink-0;
+  @apply rounded-full border border-border bg-[#FFF7D6] dark:bg-[#2E2818] flex items-center justify-center text-black dark:text-[#F4C542] font-sans font-bold shrink-0 shadow-2xs;
 }
 
 .text_1 {
-  @apply rounded-md flex items-center justify-center text-white font-bold shrink-0 uppercase;
+  @apply rounded-full flex items-center justify-center text-white font-extrabold shrink-0 uppercase shadow-xs transition-transform hover:scale-105;
 }
 
 
@@ -76,11 +76,11 @@
 }
 
 .div_14 {
-  @apply rounded-lg border border-border object-cover shrink-0;
+  @apply object-cover rounded-full;
 }
 
 .div_15 {
-  @apply rounded-lg border border-border overflow-hidden shrink-0;
+  @apply overflow-hidden rounded-full flex items-center justify-center bg-muted/20;
 }
 
 .text_16 {
@@ -92,7 +92,7 @@
 }
 
 .text_18 {
-  @apply flex-1 p-8 max-w-5xl mx-auto w-full text-foreground;
+  @apply flex-1 p-8 w-full text-foreground;
 }
 
 .div_19 {
@@ -108,19 +108,23 @@
 }
 
 .card_22 {
-  @apply border border-border rounded-lg overflow-hidden shadow-2xs bg-card;
+  @apply border border-white/10 dark:border-white/5 rounded-[28px] overflow-hidden shadow-lg bg-card/85 backdrop-blur-xl transition-all duration-300 hover:shadow-xl hover:border-primary/20;
 }
 
 .div_23 {
-  @apply relative h-44;
+  @apply relative h-48 sm:h-56 w-full transition-all duration-300;
+}
+.div_23::after {
+  content: '';
+  @apply absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent;
 }
 
 .div_24 {
-  @apply absolute top-4 right-4;
+  @apply absolute top-4 right-4 z-10;
 }
 
 .table_25 {
-  @apply px-3 py-1.5 bg-black/40 border border-white/30 text-white text-[10px] font-bold uppercase tracking-wider rounded hover:bg-black/60 transition-all flex items-center gap-1.5;
+  @apply px-3.5 py-2 bg-black/40 border border-white/30 text-white text-[10px] font-bold uppercase tracking-wider rounded-full hover:bg-black/60 transition-all flex items-center gap-1.5 backdrop-blur-md;
 }
 
 .div_26 {
@@ -160,15 +164,15 @@
 }
 
 .card_35 {
-  @apply px-6 pb-6 bg-card;
+  @apply px-8 pb-8 pt-4 bg-card/20 backdrop-blur-sm relative;
 }
 
 .container_36 {
-  @apply -mt-12 flex flex-col sm:flex-row sm:items-end gap-4 mb-6;
+  @apply relative z-10 flex flex-col sm:flex-row sm:items-end gap-6 mb-6;
 }
 
 .div_37 {
-  @apply relative shrink-0;
+  @apply relative shrink-0 -mt-16 sm:-mt-24 border-4 border-card rounded-full shadow-xl overflow-hidden bg-background transition-transform duration-300 hover:scale-105;
 }
 
 .table_38 {
@@ -280,7 +284,7 @@
 }
 
 .card_65 {
-  @apply bg-card rounded-lg border border-border p-5 shadow-2xs;
+  @apply bg-card/70 backdrop-blur-xl rounded-[24px] border border-white/10 dark:border-white/5 p-6 shadow-md transition-all duration-300 hover:shadow-lg hover:border-primary/25 hover:-translate-y-0.5;
 }
 
 .container_66 {
@@ -304,7 +308,7 @@
 }
 
 .container_71 {
-  @apply w-7 h-7 bg-muted border border-border rounded-lg flex items-center justify-center shrink-0 mt-0.5;
+  @apply w-9 h-9 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-center shrink-0 shadow-xs mt-0.5;
 }
 
 .text_72 {
@@ -332,7 +336,7 @@
 }
 
 .container_78 {
-  @apply w-7 h-7 bg-muted border border-border rounded-lg flex items-center justify-center shrink-0 mt-0.5;
+  @apply w-9 h-9 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-center shrink-0 shadow-xs mt-0.5;
 }
 
 .text_79 {
@@ -356,7 +360,7 @@
 }
 
 .card_84 {
-  @apply bg-card rounded-lg border border-border p-5 shadow-2xs space-y-4;
+  @apply bg-card/70 backdrop-blur-xl rounded-[24px] border border-white/10 dark:border-white/5 p-6 shadow-md transition-all duration-300 hover:shadow-lg hover:border-primary/25 hover:-translate-y-0.5 space-y-4;
 }
 
 .text_85 {
@@ -432,7 +436,7 @@
 }
 
 .card_103 {
-  @apply bg-card rounded-lg border border-border p-5 shadow-2xs;
+  @apply bg-card/70 backdrop-blur-xl rounded-[24px] border border-white/10 dark:border-white/5 p-6 shadow-md transition-all duration-300 hover:shadow-lg hover:border-primary/25 hover:-translate-y-0.5;
 }
 
 .container_104 {
@@ -520,7 +524,7 @@
 }
 
 .card_125 {
-  @apply bg-card border border-border rounded-lg p-5 shadow-2xs;
+  @apply bg-card/70 backdrop-blur-xl rounded-[24px] border border-white/10 dark:border-white/5 p-6 shadow-md transition-all duration-300 hover:shadow-lg hover:border-primary/25 hover:-translate-y-0.5;
 }
 
 .container_126 {
@@ -560,7 +564,7 @@
 }
 
 .container_135 {
-  @apply w-16 h-16 rounded-xl border-2 border-dashed border-border flex items-center justify-center;
+  @apply w-16 h-16 rounded-[20px] border-2 border-dashed border-primary/20 bg-primary/5 flex items-center justify-center;
 }
 
 .text_136 {
@@ -584,7 +588,7 @@
 }
 
 .card_141 {
-  @apply bg-card border border-border rounded-lg p-5 shadow-2xs space-y-4;
+  @apply bg-card/70 backdrop-blur-xl rounded-[24px] border border-white/10 dark:border-white/5 p-6 shadow-md transition-all duration-300 hover:shadow-lg hover:border-primary/25 hover:-translate-y-0.5 space-y-4;
 }
 
 .table_142 {
@@ -596,7 +600,7 @@
 }
 
 .div_144 {
-  @apply bg-muted border border-border rounded p-3;
+  @apply bg-primary/5 border border-primary/10 rounded-2xl p-4 shadow-xs;
 }
 
 .table_145 {
@@ -608,7 +612,7 @@
 }
 
 .div_147 {
-  @apply bg-muted border border-border rounded p-3;
+  @apply bg-primary/5 border border-primary/10 rounded-2xl p-4 shadow-xs;
 }
 
 .table_148 {
@@ -620,7 +624,7 @@
 }
 
 .card_150 {
-  @apply max-w-2xl bg-card rounded-lg border border-border p-5 shadow-2xs space-y-4;
+  @apply bg-card/70 backdrop-blur-xl rounded-[24px] border border-white/10 dark:border-white/5 p-6 shadow-md transition-all duration-300 hover:shadow-lg hover:border-primary/25 hover:-translate-y-0.5 space-y-4;
 }
 
 .text_151 {
@@ -632,7 +636,7 @@
 }
 
 .container_153 {
-  @apply flex items-center justify-between p-4 rounded-lg bg-muted border border-border;
+  @apply flex items-center justify-between p-4 rounded-[20px] bg-primary/5 border border-primary/10 shadow-xs;
 }
 
 .table_154 {
@@ -644,7 +648,7 @@
 }
 
 .card_156 {
-  @apply max-w-2xl bg-card rounded-lg border border-border p-5 shadow-2xs space-y-4;
+  @apply bg-card/70 backdrop-blur-xl rounded-[24px] border border-white/10 dark:border-white/5 p-6 shadow-md transition-all duration-300 hover:shadow-lg hover:border-primary/25 hover:-translate-y-0.5 space-y-4;
 }
 
 .text_157 {
@@ -660,7 +664,7 @@
 }
 
 .container_160 {
-  @apply flex items-center justify-between p-4 rounded-lg bg-muted border border-border;
+  @apply flex items-center justify-between p-4 rounded-[20px] bg-primary/5 border border-primary/10 shadow-xs;
 }
 
 .table_161 {
@@ -760,7 +764,7 @@
 }
 
 .container_185 {
-  @apply flex items-center gap-2 p-3 bg-muted rounded-lg border border-border;
+  @apply flex items-center gap-3 p-3.5 bg-primary/5 rounded-2xl border border-primary/10;
 }
 
 .container_186 {
@@ -808,5 +812,5 @@
 }
 
 .table_197 {
-  @apply flex flex-col items-center gap-1 p-2 rounded-lg border transition;
+  @apply flex flex-col items-center gap-1.5 p-2.5 rounded-xl border transition;
 }

@@ -116,7 +116,7 @@
 }
 
 .table_24 {
-  @apply w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-2xl transition-all text-sm;
+  @apply w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-full transition-all text-sm;
 }
 
 .container_25 {
@@ -148,7 +148,7 @@
 }
 
 .table_32 {
-  @apply mt-4 w-full bg-amber-400 hover:bg-amber-500 text-black font-bold py-3.5 rounded-2xl transition-all duration-200 text-sm disabled:opacity-60;
+  @apply mt-4 w-full bg-amber-400 hover:bg-amber-500 text-black font-bold py-3.5 rounded-full transition-all duration-200 text-sm disabled:opacity-60;
 }
 
 .container_33 {
@@ -172,7 +172,7 @@
 }
 
 .table_38 {
-  @apply w-full flex items-center gap-3 border-2 border-slate-200 hover:border-amber-300 bg-white hover:bg-amber-50 py-3 px-4 rounded-2xl transition-all duration-200;
+  @apply w-full flex items-center gap-3 border-2 border-slate-200 hover:border-amber-300 bg-white hover:bg-amber-50 py-3 px-4 rounded-full transition-all duration-200;
 }
 
 .div_39 {
@@ -272,7 +272,7 @@
 }
 
 .table_63 {
-  @apply w-full bg-amber-400 hover:bg-amber-500 active:scale-[0.98] text-black font-bold py-3.5 rounded-2xl transition-all duration-200 text-sm shadow-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100;
+  @apply w-full bg-amber-400 hover:bg-amber-500 active:scale-[0.98] text-black font-bold py-3.5 rounded-full transition-all duration-200 text-sm shadow-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100;
 }
 
 .container_64 {
@@ -288,7 +288,7 @@
 }
 
 .table_67 {
-  @apply w-full flex items-center justify-center gap-3 border-2 border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 active:scale-[0.98] py-3.5 px-4 rounded-2xl transition-all duration-200 text-sm font-semibold text-slate-700 shadow-sm disabled:opacity-60;
+  @apply w-full flex items-center justify-center gap-3 border-2 border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 active:scale-[0.98] py-3.5 px-4 rounded-full transition-all duration-200 text-sm font-semibold text-slate-700 shadow-sm disabled:opacity-60;
 }
 
 .table_68 {

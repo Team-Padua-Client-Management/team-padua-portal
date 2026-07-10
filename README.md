@@ -87,6 +87,21 @@ Install project dependencies
 npm install
 ```
 
+### System Configuration & Connection
+
+To connect the application to the database and services, create a `.env` file in the root directory and add the following keys:
+
+```env
+# Supabase Integration
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+
+# Email Service (Resend)
+RESEND_API_KEY=your-resend-api-key
+EMAIL_FROM=your-sender-email
+```
+
 Start the development server
 
 ```bash

@@ -60,15 +60,15 @@
 }
 
 .text_10 {
-  @apply w-full bg-muted/40 border border-border rounded-lg pl-9 pr-4 py-2 text-xs focus:outline-none focus:border-muted-foreground/50 text-foreground;
+  @apply w-full bg-muted/40 border border-border rounded-xl pl-9 pr-4 py-2 text-xs focus:outline-none focus:border-muted-foreground/50 text-foreground;
 }
 
 .table_11 {
-  @apply flex items-center gap-2 bg-[#F4C542] hover:bg-[#c59d28] text-black font-semibold px-4 py-2 rounded-lg text-xs transition duration-155 shadow-2xs cursor-pointer shrink-0;
+  @apply flex items-center gap-2 bg-[#F4C542] hover:bg-[#c59d28] text-black font-semibold px-4 py-2 rounded-xl text-xs transition duration-155 shadow-2xs cursor-pointer shrink-0;
 }
 
 .div_12 {
-  @apply border border-border rounded-lg overflow-hidden;
+  @apply border border-border rounded-2xl overflow-hidden;
 }
 
 .div_13 {
@@ -180,7 +180,7 @@
 }
 
 .card_40 {
-  @apply grid grid-cols-2 md:grid-cols-4 gap-4 bg-card border border-border rounded-lg p-4;
+  @apply grid grid-cols-2 md:grid-cols-4 gap-4 bg-card border border-border rounded-2xl p-4;
 }
 
 .div_41 {
@@ -200,7 +200,7 @@
 }
 
 .card_45 {
-  @apply bg-card border border-border rounded-lg p-4 break-words whitespace-normal;
+  @apply bg-card border border-border rounded-xl p-4 break-words whitespace-normal;
 }
 
 .table_46 {
@@ -208,7 +208,7 @@
 }
 
 .card_47 {
-  @apply bg-card border border-border rounded-lg p-4 break-words whitespace-normal;
+  @apply bg-card border border-border rounded-xl p-4 break-words whitespace-normal;
 }
 
 .table_48 {
@@ -224,7 +224,7 @@
 }
 
 .table_51 {
-  @apply px-6 py-2 text-xs font-bold text-foreground border border-border rounded-lg hover:bg-muted/50 transition cursor-pointer;
+  @apply px-6 py-2 text-xs font-bold text-foreground border border-border rounded-xl hover:bg-muted/50 transition cursor-pointer;
 }
 
 .text_52 {
@@ -256,11 +256,11 @@
 }
 
 .table_59 {
-  @apply flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2.5 rounded-lg text-xs transition duration-150 shadow-2xs cursor-pointer;
+  @apply flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white font-semibold px-5 py-2.5 rounded-xl text-xs transition duration-150 shadow-2xs cursor-pointer;
 }
 
 .table_60 {
-  @apply flex items-center gap-2 bg-[#F4C542] hover:bg-[#c59d28] text-black font-semibold px-4 py-2.5 rounded-lg text-xs transition duration-150 shadow-2xs cursor-pointer;
+  @apply flex items-center gap-2 bg-gradient-to-r from-[#F4C542] to-[#e6b800] hover:from-[#e6b800] hover:to-[#c59d28] text-black font-bold px-5 py-3 rounded-xl text-xs transition-all duration-200 shadow-md hover:shadow-lg hover:shadow-[#F4C542]/20 cursor-pointer border border-[#F4C542]/30;
 }
 
 .container_61 {
@@ -288,7 +288,7 @@
 }
 
 .card_67 {
-  @apply bg-card border border-border p-5 rounded-xl shadow-2xs flex flex-col justify-between hover:border-[#F4C542]/40 transition;
+  @apply bg-card border border-border p-5 rounded-2xl shadow-xs flex flex-col justify-between hover:border-[#F4C542]/50 transition duration-200 hover:shadow-md;
 }
 
 .container_68 {
@@ -308,11 +308,11 @@
 }
 
 .table_72 {
-  @apply mt-4 flex items-center justify-center gap-2 border border-border bg-muted/30 hover:bg-muted/60 text-foreground font-semibold px-4 py-2.5 rounded-lg text-xs transition duration-155 cursor-pointer w-full;
+  @apply mt-4 flex items-center justify-center gap-2 border border-border bg-muted/30 hover:bg-muted/60 text-foreground font-semibold px-4 py-2.5 rounded-xl text-xs transition duration-155 cursor-pointer w-full;
 }
 
 .card_73 {
-  @apply flex flex-col md:flex-row items-center gap-3 bg-card border border-border p-4 rounded-xl shadow-2xs w-full;
+  @apply flex flex-col md:flex-row items-center gap-3 bg-card border border-border p-4 rounded-2xl shadow-2xs w-full;
 }
 
 .container_74 {
@@ -324,7 +324,7 @@
 }
 
 .text_76 {
-  @apply w-full bg-muted/40 border border-border rounded-lg pl-9 pr-4 py-2 text-xs focus:outline-none focus:border-muted-foreground/50 text-foreground;
+  @apply w-full bg-muted/40 border border-border rounded-xl pl-9 pr-4 py-2 text-xs focus:outline-none focus:border-[#F4C542] focus:ring-2 focus:ring-[#F4C542]/10 text-foreground transition duration-150;
 }
 
 .container_77 {
@@ -340,11 +340,11 @@
 }
 
 .card_80 {
-  @apply bg-card border border-border rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:border-muted-foreground/50 text-foreground w-full md:w-36 cursor-pointer;
+  @apply bg-card border border-border rounded-xl px-2.5 py-2 text-xs focus:outline-none focus:border-muted-foreground/50 text-foreground w-full md:w-36 cursor-pointer;
 }
 
 .card_81 {
-  @apply bg-card border border-border rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:border-muted-foreground/50 text-foreground w-full md:w-36 cursor-pointer;
+  @apply bg-card border border-border rounded-xl px-2.5 py-2 text-xs focus:outline-none focus:border-muted-foreground/50 text-foreground w-full md:w-36 cursor-pointer;
 }
 
 .container_82 {
@@ -356,11 +356,11 @@
 }
 
 .card_84 {
-  @apply bg-card border border-border rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:border-muted-foreground/50 text-foreground w-full md:w-44 cursor-pointer;
+  @apply bg-card border border-border rounded-xl px-2.5 py-2 text-xs focus:outline-none focus:border-muted-foreground/50 text-foreground w-full md:w-44 cursor-pointer;
 }
 
 .card_85 {
-  @apply bg-card border border-border rounded-xl overflow-hidden shadow-2xs;
+  @apply bg-card border border-border rounded-2xl overflow-hidden shadow-2xs;
 }
 
 .div_86 {
@@ -416,7 +416,7 @@
 }
 
 .table_99 {
-  @apply h-8 hover:bg-muted/5 transition duration-150 border-b border-border;
+  @apply h-11 hover:bg-muted/5 transition duration-150 border-b border-border;
 }
 
 .text_100 {
@@ -512,7 +512,7 @@
 }
 
 .text_123 {
-  @apply w-full bg-muted/30 border border-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-muted-foreground/50 text-foreground;
+  @apply w-full bg-muted/30 border border-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-[#F4C542] focus:ring-2 focus:ring-[#F4C542]/10 text-foreground transition duration-150;
 }
 
 .table_124 {
@@ -520,7 +520,7 @@
 }
 
 .text_125 {
-  @apply w-full bg-muted/30 border border-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-muted-foreground/50 text-foreground;
+  @apply w-full bg-muted/30 border border-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-[#F4C542] focus:ring-2 focus:ring-[#F4C542]/10 text-foreground transition duration-150;
 }
 
 .container_126 {
@@ -532,7 +532,7 @@
 }
 
 .text_128 {
-  @apply w-full bg-muted/30 border border-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-muted-foreground/50 text-foreground;
+  @apply w-full bg-muted/30 border border-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-[#F4C542] focus:ring-2 focus:ring-[#F4C542]/10 text-foreground transition duration-150;
 }
 
 .table_129 {
@@ -540,7 +540,7 @@
 }
 
 .text_130 {
-  @apply w-full bg-muted/30 border border-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-muted-foreground/50 text-foreground;
+  @apply w-full bg-muted/30 border border-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-[#F4C542] focus:ring-2 focus:ring-[#F4C542]/10 text-foreground transition duration-150;
 }
 
 .table_131 {
@@ -548,7 +548,7 @@
 }
 
 .text_132 {
-  @apply w-full bg-muted/30 border border-border rounded-lg p-3 text-xs focus:outline-none focus:border-muted-foreground/50 text-foreground resize-none;
+  @apply w-full bg-muted/30 border border-border rounded-lg p-3 text-xs focus:outline-none focus:border-[#F4C542] focus:ring-2 focus:ring-[#F4C542]/10 text-foreground resize-none transition duration-150;
 }
 
 .container_133 {
@@ -724,15 +724,15 @@
 }
 
 .table_176 {
-  @apply flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground border border-border rounded-lg px-3 py-2 transition cursor-pointer font-semibold;
+  @apply flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground border border-border rounded-xl px-3 py-2 transition cursor-pointer font-semibold;
 }
 
 .table_177 {
-  @apply text-xs text-muted-foreground hover:text-foreground border border-border rounded-lg px-3 py-2 transition cursor-pointer font-semibold;
+  @apply text-xs text-muted-foreground hover:text-foreground border border-border rounded-xl px-3 py-2 transition cursor-pointer font-semibold;
 }
 
 .table_178 {
-  @apply flex-1 bg-[#F4C542] hover:bg-[#c59d28] text-black font-bold text-xs rounded-lg px-4 py-2 transition cursor-pointer shadow-2xs;
+  @apply flex-1 bg-[#F4C542] hover:bg-[#c59d28] text-black font-bold text-xs rounded-xl px-4 py-2 transition cursor-pointer shadow-2xs;
 }
 
 .div_179 {
@@ -852,15 +852,15 @@
 }
 
 .table_208 {
-  @apply flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground border border-border rounded-lg px-3 py-2 transition cursor-pointer font-semibold;
+  @apply flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground border border-border rounded-xl px-3 py-2 transition cursor-pointer font-semibold;
 }
 
 .table_209 {
-  @apply flex-1 text-xs text-muted-foreground hover:text-foreground border border-border rounded-lg px-3 py-2 transition cursor-pointer text-center font-semibold;
+  @apply flex-1 text-xs text-muted-foreground hover:text-foreground border border-border rounded-xl px-3 py-2 transition cursor-pointer text-center font-semibold;
 }
 
 .table_210 {
-  @apply flex-1 bg-[#F4C542] hover:bg-[#c59d28] text-black font-bold text-xs rounded-lg px-3 py-2 transition cursor-pointer text-center;
+  @apply flex-1 bg-[#F4C542] hover:bg-[#c59d28] text-black font-bold text-xs rounded-xl px-3 py-2 transition cursor-pointer text-center;
 }
 
 .div_211 {
@@ -884,7 +884,7 @@
 }
 
 .table_216 {
-  @apply w-full text-xs text-muted-foreground hover:text-foreground border border-border rounded-lg px-3 py-2 transition cursor-pointer text-center font-semibold;
+  @apply w-full text-xs text-muted-foreground hover:text-foreground border border-border rounded-xl px-3 py-2 transition cursor-pointer text-center font-semibold;
 }
 
 .container_217 {
@@ -908,11 +908,11 @@
 }
 
 .table_222 {
-  @apply bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-semibold px-4 py-2 rounded-lg transition cursor-pointer;
+  @apply bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-semibold px-4 py-2 rounded-xl transition cursor-pointer;
 }
 
 .table_223 {
-  @apply bg-[#F4C542] hover:bg-[#c59d28] text-black font-bold text-xs px-4 py-2 rounded-lg transition cursor-pointer;
+  @apply bg-[#F4C542] hover:bg-[#c59d28] text-black font-bold text-xs px-4 py-2 rounded-xl transition cursor-pointer;
 }
 
 .text_224 {
@@ -928,7 +928,7 @@
 }
 
 .card_227 {
-  @apply bg-card p-4 rounded-xl shadow-2xs transition hover:border-[#F4C542]/50 border;
+  @apply bg-card p-5 rounded-2xl shadow-xs transition duration-200 hover:shadow-md hover:-translate-y-0.5 hover:border-[#F4C542]/50 border border-border;
 }
 
 .table_228 {

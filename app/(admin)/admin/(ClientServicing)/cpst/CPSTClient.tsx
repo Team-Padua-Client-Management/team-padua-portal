@@ -786,7 +786,14 @@ async function parsePDF(file: File, existingClients: Client[]): Promise<Validati
  * 
  * @returns State operations sequence.
  */
-export default function CPSTOverviewPage() {
+interface CPSTClientProps {
+  canCreate: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
+  canExport: boolean;
+}
+
+export default function CPSTOverviewPage({ canCreate, canEdit, canDelete, canExport }: CPSTClientProps) {
   const [clients, setClients] = useState<Client[]>([]);
   const [search, setSearch] = useState('');
   const [selectedMonth, setSelectedMonth] = useState('ALL');
@@ -1286,22 +1293,30 @@ const handleSelectClientToggle = (id: string) => {
               </p>
             </div>
             <div className={styles.container_58}>
-              {selectedClientIds.length > 0 && (
+              {selectedClientIds.length > 0 && canDelete && (
                 <button
-                  onClick={handleBulkDelete}
+                  onClick={() =>
+                    setConfirmModal({
+                      isOpen: true,
+                      message: `Are you sure you want to delete ${selectedClientIds.length} client(s)? This action cannot be undone.`,
+                      onConfirm: handleBulkDelete,
+                    })
+                  }
                   className={styles.table_59}
                 >
                   <Trash2 size={13} />
                   Delete Selected ({selectedClientIds.length})
                 </button>
               )}
-              <button
-                onClick={handleOpenAddModal}
-                className={styles.table_60}
-              >
-                <Plus size={14} />
-                Register Client
-              </button>
+              {canCreate && (
+                <button
+                  onClick={handleOpenAddModal}
+                  className={styles.card_124}
+                >
+                  <Plus size={14} className={styles.table_125} />
+                  Add Client
+                </button>
+              )}
             </div>
           </div>
 
@@ -1484,18 +1499,22 @@ const handleSelectClientToggle = (id: string) => {
                               </td>
                               <td className={styles.text_109}>
                                 <div className={`${styles.table_110} group`}>
-                                  <button
-                                    onClick={() => handleOpenEditModal(client)}
-                                    className={styles.table_111}
-                                  >
-                                    <Edit2 size={14} />
-                                  </button>
-                                  <button
-                                    onClick={() => handleDelete(client.id)}
-                                    className={styles.table_112}
-                                  >
-                                    <Trash2 size={14} />
-                                  </button>
+                                  {canEdit && (
+                                    <button
+                                      onClick={() => handleOpenEditModal(client)}
+                                      className={styles.text_173}
+                                    >
+                                      <Edit2 size={16} />
+                                    </button>
+                                  )}
+                                  {canDelete && (
+                                    <button
+                                      onClick={() => handleDelete(client.id)}
+                                      className={styles.table_174}
+                                    >
+                                      <Trash2 size={16} />
+                                    </button>
+                                  )}
                                 </div>
                               </td>
                             </tr>

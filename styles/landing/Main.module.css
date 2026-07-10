@@ -84,7 +84,7 @@
 }
 
 .table_16 {
-  @apply rounded-lg border border-[#ECECEC] px-4 py-2 text-xs font-semibold uppercase tracking-wider bg-[#FFFFFF] hover:bg-[#FFF7D6] transition shadow-2xs text-black;
+  @apply rounded-full border border-[#ECECEC] px-4 py-2 text-xs font-semibold uppercase tracking-wider bg-[#FFFFFF] hover:bg-[#FFF7D6] transition shadow-2xs text-black;
 }
 
 .container_17 {
@@ -128,7 +128,7 @@
 }
 
 .table_27 {
-  @apply flex items-center gap-2 rounded-lg bg-[#F4C542] hover:bg-[#d8ad2d] px-6 py-3.5 text-xs font-semibold uppercase tracking-wider text-black shadow-md transition;
+  @apply flex items-center gap-2 rounded-full bg-[#F4C542] hover:bg-[#d8ad2d] px-6 py-3.5 text-xs font-semibold uppercase tracking-wider text-black shadow-md transition;
 }
 
 .table_28 {
@@ -136,7 +136,7 @@
 }
 
 .table_29 {
-  @apply flex items-center gap-2 rounded-lg border border-[#ECECEC] bg-[#FFFFFF] hover:bg-[#FFF7D6] px-6 py-3.5 text-xs font-semibold uppercase tracking-wider text-black transition shadow-2xs;
+  @apply flex items-center gap-2 rounded-full border border-[#ECECEC] bg-[#FFFFFF] hover:bg-[#FFF7D6] px-6 py-3.5 text-xs font-semibold uppercase tracking-wider text-black transition shadow-2xs;
 }
 
 .div_30 {

@@ -1,29 +1,9 @@
 'use client';
 
-/**
- * page.tsx
- *
- * Main component module in features path: app/components/admin/AdminHeader/page.tsx
- *
- * Responsibilities:
- * - Scopes UI state management and user actions.
- * - Bridges layout rendering with server-side Supabase data connections.
- * - Handles modular presentation logic.
- */
-
-;
-
 import styles from "@/styles/components/admin/AdminHeader/page.module.css";
-
-  // ======================================================
-// State Initialization & Hooks
-// ======================================================
-
-  // ======================================================
-// Lifecycle Effects & Data Sync
-// ======================================================
+import Image from 'next/image';
 import React, { useEffect, useRef, useState } from 'react';
-import { User, LogOut, ChevronDown, Bell, Sun, Moon, Menu } from 'lucide-react';
+import { User, LogOut, ChevronDown, Bell, Sun, Moon, Menu, Search } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/app/lib/supabase/client';
@@ -59,10 +39,8 @@ interface NotificationItem {
 const pageConfig: Record<string, { title: string; description: string }> = {
   dashboard: { title: 'Dashboard', description: 'Overview and analytics workspace' },
   profile: { title: 'Profile', description: 'Manage account credentials' },
-  teams: { title: 'Teams', description: 'Organizational operational nodes' },
   faq: { title: 'Knowledge Base', description: 'Verified systemic answers' },
   announcements: { title: 'Announcements', description: 'Enterprise communication feeds' },
-  messages: { title: 'Messages', description: 'Realtime chat channels' },
   attendance: { title: 'Attendance', description: 'Daily punch logs and historical record ledger' },
   members: { title: 'Members', description: 'Manage team roles and access' },
   departments: { title: 'Departments', description: 'Organizational sectors' },
@@ -70,68 +48,53 @@ const pageConfig: Record<string, { title: string; description: string }> = {
   cpst: { title: '2026 CPST', description: 'Client Prospect Servicing Tracker' },
 };
 
-/**
- * AdminHeader
- *
- * Renders the AdminHeader interface, managing local lifecycles
- * and user interactions.
- */
-/**
- * Executes operations logic for AdminHeader.
- *
- * @param { onMenuClick }: HeaderProps
- * @returns State operations sequence.
- */
 export default function AdminHeader({ onMenuClick }: HeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const notificationRef = useRef<HTMLDivElement>(null);
 
   const [profileOpen, setProfileOpen] = useState(false);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [isDark, setIsDark] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [presenceStatus, setPresenceStatus] = useState<'online' | 'offline' | 'busy'>('online');
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [userData, setUserData] = useState<UserData>({
     name: '',
     email: '',
     avatar: '',
     role: '',
   });
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+
+  useEffect(() => {
+    const savedStatus = localStorage.getItem('presence-status') as 'online' | 'offline' | 'busy';
+    if (savedStatus) {
+      setPresenceStatus(savedStatus);
+    }
+  }, []);
+
+  const handleStatusChange = (status: 'online' | 'offline' | 'busy') => {
+    setPresenceStatus(status);
+    localStorage.setItem('presence-status', status);
+    window.dispatchEvent(new CustomEvent('presence-status-change', { detail: { status } }));
+  };
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 10);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   useEffect(() => {
     const theme = localStorage.getItem('theme') || 'light';
     setTimeout(() => {
       setIsDark(theme === 'dark');
+      document.documentElement.setAttribute('data-theme', theme);
     }, 0);
   }, []);
 
-  /**
- * Executes operations logic for getDaysUntilBirthday.
- *
- * @param birthdateStr: string
- * @returns State operations sequence.
- */
-const getDaysUntilBirthday = (birthdateStr: string) => {
-    if (!birthdateStr) return -1;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const birthDate = new Date(birthdateStr);
-    const nextBday = new Date(today.getFullYear(), birthDate.getMonth(), birthDate.getDate());
-    if (nextBday.getTime() < today.getTime()) {
-      nextBday.setFullYear(today.getFullYear() + 1);
-    }
-    const diffTime = nextBday.getTime() - today.getTime();
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  };
-
-  /**
- * Executes operations logic for loadUserAndBirthdays.
- *
- * 
- * @returns State operations sequence.
- */
-const loadUserAndBirthdays = async () => {
+  const loadUserAndBirthdays = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) return;
 
@@ -153,81 +116,6 @@ const loadUserAndBirthdays = async () => {
       avatar: profileData?.avatar_url || session.user.user_metadata?.avatar_url || '',
       role: rawRole.toUpperCase(),
     });
-
-    try {
-      const res = await fetch('/api/clients');
-      if (!res.ok) return;
-      const clientsData: Client[] = await res.json();
-
-      const milestones: Record<number, string> = {
-        0: 'Birthday Today 🎂',
-        1: 'Birthday Tomorrow',
-        3: 'Birthday in 3 Days',
-        7: 'Birthday in 7 Days',
-        14: 'Birthday in 14 Days',
-        30: 'Birthday in 30 Days',
-      };
-
-      const { data: dbNotifs } = await supabase
-        .from('notifications')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      const list: NotificationItem[] = (dbNotifs || []).map((n: any) => ({
-        id: n.id,
-        title: n.title,
-        description: n.description,
-        type: n.type || 'info',
-        is_read: n.is_read || false,
-        created_at: n.created_at
-      }));
-
-      clientsData.forEach((client) => {
-        const days = getDaysUntilBirthday(client.birthdate);
-        if (days in milestones) {
-          list.push({
-            id: `birthday-${days}-${client.id}`,
-            title: milestones[days],
-            description:
-              days === 0
-                ? `${client.name} has their birthday today!`
-                : `${client.name}'s birthday is in ${days} day${days > 1 ? 's' : ''}.`,
-            type: days === 0 ? 'today' : 'upcoming',
-            is_read: false,
-            created_at: new Date().toISOString()
-          });
-        }
-      });
-
-      setNotifications(list);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  /**
- * Executes operations logic for handleMarkAsRead.
- *
- * @param id: string
- * @returns State operations sequence.
- */
-const handleMarkAsRead = async (id: string) => {
-    if (id.startsWith('birthday-')) {
-      setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ is_read: true })
-        .eq('id', id);
-      if (!error) {
-        setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
-      }
-    } catch (e) {
-      console.error(e);
-    }
   };
 
   useEffect(() => {
@@ -237,75 +125,34 @@ const handleMarkAsRead = async (id: string) => {
   }, []);
 
   useEffect(() => {
-    const channel = supabase
-      .channel('admin_realtime_notifications')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'notifications' },
-        () => {
-          loadUserAndBirthdays();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  useEffect(() => {
-    /**
- * Executes operations logic for refresh.
- *
- * 
- * @returns State operations sequence.
- */
-const refresh = () => loadUserAndBirthdays();
+    const refresh = () => loadUserAndBirthdays();
     window.addEventListener('profile-updated', refresh);
     return () => window.removeEventListener('profile-updated', refresh);
   }, []);
 
   useEffect(() => {
-    /**
- * Executes operations logic for handleClickOutside.
- *
- * @param event: MouseEvent
- * @returns State operations sequence.
- */
-const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setProfileOpen(false);
-      }
-      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
-        setNotificationsOpen(false);
+        setStatusDropdownOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  /**
- * Executes operations logic for handleLogout.
- *
- * 
- * @returns State operations sequence.
- */
-const handleLogout = async () => {
-    await /* Terminate authenticated security token session */ supabase.auth.signOut();
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     router.push('/auth/login');
   };
 
-  /**
- * Executes operations logic for toggleTheme.
- *
- * 
- * @returns State operations sequence.
- */
-const toggleTheme = () => {
+  const toggleTheme = () => {
     const nextDark = !isDark;
+    const nextTheme = nextDark ? 'dark' : 'light';
     setIsDark(nextDark);
-    localStorage.setItem('theme', nextDark ? 'dark' : 'light');
-    window.dispatchEvent(new CustomEvent('theme-change', { detail: { theme: nextDark ? 'dark' : 'light' } }));
+    localStorage.setItem('theme', nextTheme);
+    document.documentElement.setAttribute('data-theme', nextTheme);
+    window.dispatchEvent(new CustomEvent('theme-change', { detail: { theme: nextTheme } }));
   };
 
   const initials =
@@ -318,20 +165,22 @@ const toggleTheme = () => {
 
   const pathParts = pathname.split('/');
   const currentPathKey = pathParts[2] || pathParts[1] || 'dashboard';
-  const currentPage = pageConfig[currentPathKey] || { title: 'Team Padua', description: 'Workspace Node' };
+  const currentPage = pageConfig[currentPathKey] || { title: 'Workspace', description: 'Administrative Node' };
 
-  /**
- * Executes operations logic for renderAvatar.
- *
- * @param sizeClass: string, textClass: string
- * @returns State operations sequence.
- */
-const renderAvatar = (sizeClass: string, textClass: string) => (
-    <div className={`${sizeClass} overflow-hidden rounded-lg border border-border bg-[#FFF7D6] dark:bg-[#2E2818] flex items-center justify-center font-bold text-[#F4C542] shrink-0`}>
-      {userData.avatar ? (
-        <img src={userData.avatar} alt={userData.name} className={styles.div_0} />
-      ) : (
-        <span className={textClass}>{initials}</span>
+  const renderAvatar = (wrapperClass: string, showStatusDot: boolean = false) => (
+    <div className="relative shrink-0">
+      <div className={wrapperClass}>
+        {userData.avatar ? (
+          <img src={userData.avatar} alt={userData.name} />
+        ) : (
+          <span>{initials}</span>
+        )}
+      </div>
+      {showStatusDot && (
+        <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 border border-white dark:border-background rounded-full shadow-2xs ${
+          presenceStatus === 'online' ? 'bg-emerald-500' :
+          presenceStatus === 'busy' ? 'bg-rose-500' : 'bg-slate-400'
+        }`} />
       )}
     </div>
   );
@@ -344,104 +193,165 @@ const renderAvatar = (sizeClass: string, textClass: string) => (
   ];
 
   return (
-    <header className={styles.card_1}>
-      <div className={styles.container_2}>
-        <div className={styles.container_3}>
-          <button
-            onClick={() => onMenuClick?.()}
-            className={styles.card_4}
-          >
-            <Menu size={15} />
+    <>
+      <header className={`${styles.header} ${scrolled ? styles.headerScrolled : ''}`}>
+        <div className={styles.leftSection}>
+          <button onClick={() => onMenuClick?.()} className={styles.mobileMenuBtn}>
+            <Menu size={16} />
           </button>
-          <div>
-            <h1 className={styles.text_5}>{currentPage.title}</h1>
-            <p className={styles.table_6}>
-              {currentPage.description}
-            </p>
+          <div className="flex md:hidden items-center">
+            <Image
+              src="/Image/Tp.png"
+              alt="Team Padua Logo"
+              width={28}
+              height={28}
+              priority
+              className="object-contain"
+            />
+          </div>
+          <div className={styles.titleContainer}>
+            <span className={styles.breadcrumb}>Admin / {currentPage.title}</span>
+            <h1 className={styles.pageTitle}>{currentPage.title}</h1>
+            <p className={styles.pageDescription}>{currentPage.description}</p>
           </div>
         </div>
 
-        <div className={styles.container_7}>
+        <div className={styles.centerSection}>
+          <div className={styles.searchContainer}>
+            <Search size={14} className={styles.searchIcon} />
+            <input 
+              type="text" 
+              placeholder="Search clients, advisors, records..." 
+              className={styles.searchInput} 
+            />
+          </div>
+        </div>
+
+        <div className={styles.rightSection}>
           <NotificationBell />
 
-          <div ref={dropdownRef} className={styles.div_23}>
+          <div ref={dropdownRef} className={styles.profileContainer}>
             <button
               onClick={() => setProfileOpen(!profileOpen)}
-              className={styles.card_24}
+              className={styles.profileBtn}
             >
-              {renderAvatar('h-7 w-7', 'text-[10px]')}
-              <span className={styles.text_25}>{userData.name}</span>
-              <ChevronDown size={12} className={styles.table_26} />
+              {renderAvatar(styles.avatar, true)}
+              <div className={styles.profileInfo}>
+                <span className={styles.profileName}>{userData.name}</span>
+                <span className={styles.profileRole}>{userData.role}</span>
+              </div>
+              <ChevronDown 
+                size={14} 
+                className={`${styles.chevronIcon} ${profileOpen ? styles.chevronIconOpen : ''}`} 
+              />
             </button>
 
-            {profileOpen && (
-              <div className={styles.card_27}>
-                <div className={styles.card_28}>
-                  <div className={styles.container_29}>
-                    {renderAvatar('h-10 w-10', 'text-xs')}
-                    <div className={styles.div_30}>
-                      <h3 className={styles.table_31}>{userData.name}</h3>
-                      <p className={styles.text_32}>{userData.role}</p>
-                      <p className={styles.table_33}>{userData.email}</p>
-                    </div>
-                  </div>
-                </div>
-                <div className={styles.div_34}>
-                  <button
-                    onClick={() => {
-                      router.push(pathname.startsWith('/admin') ? '/admin/profile' : '/profile');
-                      setProfileOpen(false);
-                    }}
-                    className={styles.table_35}
-                  >
-                    <User size={14} className={styles.text_36} />
-                    <span>Profile</span>
-                  </button>
-                  <button
-                    onClick={toggleTheme}
-                    className={styles.table_37}
-                  >
-                    <span className={styles.container_38}>
-                      {isDark ? <Sun size={14} className={styles.text_39} /> : <Moon size={14} />}
-                      <span>{isDark ? 'Light Mode' : 'Dark Mode'}</span>
-                    </span>
-                    <span className={styles.text_40}>{isDark ? 'Dark' : 'Light'}</span>
-                  </button>
-                  <button
-                    onClick={handleLogout}
-                    className={styles.table_41}
-                  >
-                    <LogOut size={14} />
-                    <span>Sign Out</span>
-                  </button>
+            <div className={`${styles.dropdown} ${profileOpen ? styles.dropdownOpen : ''}`}>
+              <div className={styles.dropdownHeader}>
+                {renderAvatar(styles.dropdownAvatar, true)}
+                <div className={styles.dropdownUserDetails}>
+                  <h3 className={styles.dropdownName}>{userData.name}</h3>
+                  <p className={styles.dropdownRole}>{userData.role}</p>
+                  <p className={styles.dropdownEmail}>{userData.email}</p>
                 </div>
               </div>
-            )}
+              
+              <div className="border-b border-border/50 py-2 px-4 flex items-center justify-center bg-muted/10 relative">
+                <div className="relative w-full">
+                  <button
+                    onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
+                    className="w-full flex items-center justify-between pl-3 pr-2.5 py-1.5 bg-muted/30 border border-border rounded-full text-xs font-semibold text-foreground cursor-pointer hover:bg-muted/70 transition-all"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${
+                        presenceStatus === 'online' ? 'bg-emerald-500' :
+                        presenceStatus === 'busy' ? 'bg-rose-500' : 'bg-slate-400'
+                      }`} />
+                      <span className="capitalize">{presenceStatus}</span>
+                    </div>
+                    <ChevronDown size={12} className={`text-muted-foreground transition-transform duration-200 ${statusDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {statusDropdownOpen && (
+                    <div className="absolute left-0 right-0 mt-1.5 bg-card border border-border rounded-xl shadow-lg overflow-hidden z-[110] animate-in fade-in slide-in-from-top-1 duration-150">
+                      {([
+                        { id: 'online', label: 'Online', color: 'bg-emerald-500' },
+                        { id: 'busy', label: 'Busy', color: 'bg-rose-500' },
+                        { id: 'offline', label: 'Offline', color: 'bg-slate-400' },
+                      ] as const).map((status) => (
+                        <button
+                          key={status.id}
+                          onClick={() => {
+                            handleStatusChange(status.id);
+                            setStatusDropdownOpen(false);
+                          }}
+                          className={`w-full flex items-center gap-2.5 px-3 py-2 text-left text-xs font-semibold hover:bg-muted transition-colors cursor-pointer ${
+                            presenceStatus === status.id ? 'bg-primary/10 text-primary' : 'text-foreground'
+                          }`}
+                        >
+                          <span className={`w-2 h-2 rounded-full shrink-0 ${status.color}`} />
+                          <span>{status.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className={styles.dropdownBody}>
+                <button
+                  onClick={() => {
+                    router.push(pathname.startsWith('/admin') ? '/admin/profile' : '/profile');
+                    setProfileOpen(false);
+                  }}
+                  className={styles.dropdownItem}
+                >
+                  <div className={styles.dropdownItemLeft}>
+                    <User size={14} className={styles.dropdownItemIcon} />
+                    <span>Profile</span>
+                  </div>
+                </button>
+                <button
+                  onClick={toggleTheme}
+                  className={styles.dropdownItem}
+                >
+                  <div className={styles.dropdownItemLeft}>
+                    {isDark ? <Sun size={14} className={styles.dropdownItemIcon} /> : <Moon size={14} className={styles.dropdownItemIcon} />}
+                    <span>{isDark ? 'Light Mode' : 'Dark Mode'}</span>
+                  </div>
+                  <span className={styles.themeValue}>{isDark ? 'Dark' : 'Light'}</span>
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className={`${styles.dropdownItem} ${styles.dropdownItemDanger}`}
+                >
+                  <div className={styles.dropdownItemLeft}>
+                    <LogOut size={14} className={styles.dropdownItemIcon} />
+                    <span>Sign Out</span>
+                  </div>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </header>
 
       {isCpst && (
-        <div className={styles.card_42}>
-          <div className={styles.container_43}>
-            {cpstTabs.map((tab) => {
-              const active = pathname === tab.href;
-              return (
-                <Link
-                  key={tab.href}
-                  href={tab.href}
-                  className={`${styles.table_46} ${active
-                    ? 'border-[#F4C542] text-foreground'
-                    : 'border-transparent text-muted-foreground hover:text-foreground'
-                    }`}
-                >
-                  {tab.name}
-                </Link>
-              );
-            })}
-          </div>
+        <div className={styles.cpstTabsContainer}>
+          {cpstTabs.map((tab) => {
+            const active = pathname === tab.href;
+            return (
+              <Link
+                key={tab.href}
+                href={tab.href}
+                className={`${styles.cpstTab} ${active ? styles.cpstTabActive : ''}`}
+              >
+                {tab.name}
+              </Link>
+            );
+          })}
         </div>
       )}
-    </header>
+    </>
   );
 }

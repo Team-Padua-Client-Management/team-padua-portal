@@ -116,7 +116,7 @@
 }
 
 .card_24 {
-  @apply rounded-2xl border border-border bg-card p-6 shadow-sm relative overflow-hidden;
+  @apply rounded-[24px] border border-white/10 dark:border-white/5 bg-card/85 backdrop-blur-xl p-6 shadow-md transition-all duration-300 hover:shadow-lg hover:border-primary/25 relative overflow-hidden;
 }
 
 .container_25 {
@@ -184,7 +184,7 @@
 }
 
 .card_41 {
-  @apply w-full max-w-sm rounded-2xl border border-border bg-card p-6 text-center shadow-sm hover:border-[#F4C542] hover:-translate-y-0.5 transition-all relative;
+  @apply w-full max-w-sm rounded-[24px] border border-white/10 dark:border-white/5 bg-card/85 backdrop-blur-xl p-6 text-center shadow-md hover:border-primary/25 hover:-translate-y-0.5 transition-all duration-300 relative;
 }
 
 .table_42 {
@@ -196,7 +196,7 @@
 }
 
 .div_44 {
-  @apply mx-auto mb-4 h-20 w-20 overflow-hidden rounded-xl border border-border shadow-sm;
+  @apply mx-auto mb-4 h-20 w-20 overflow-hidden rounded-full border-2 border-primary/20 bg-background shadow-md transition-transform duration-300 hover:scale-105;
 }
 
 .div_45 {
@@ -228,11 +228,11 @@
 }
 
 .card_52 {
-  @apply rounded-2xl border border-border bg-card p-6 text-center shadow-sm hover:border-[#F4C542] hover:-translate-y-0.5 transition-all;
+  @apply rounded-[24px] border border-white/10 dark:border-white/5 bg-card/85 backdrop-blur-xl p-6 text-center shadow-md hover:border-primary/25 hover:-translate-y-0.5 transition-all duration-300;
 }
 
 .div_53 {
-  @apply mx-auto mb-3 h-16 w-16 overflow-hidden rounded-xl border border-border shadow-sm;
+  @apply mx-auto mb-3 h-16 w-16 overflow-hidden rounded-full border-2 border-primary/20 bg-background shadow-md transition-transform duration-300 hover:scale-105;
 }
 
 .div_54 {
@@ -264,7 +264,7 @@
 }
 
 .card_61 {
-  @apply rounded-2xl border border-border bg-card p-5 shadow-sm flex flex-col justify-between hover:border-[#F4C542] hover:bg-[#FFF7D6]/5 dark:hover:bg-[#2E2818]/10 hover:-translate-y-0.5 transition-all;
+  @apply rounded-[24px] border border-white/10 dark:border-white/5 bg-card/85 backdrop-blur-xl p-5 shadow-md flex flex-col justify-between hover:border-primary/25 hover:bg-[#FFF7D6]/5 dark:hover:bg-[#2E2818]/10 hover:-translate-y-0.5 transition-all duration-300;
 }
 
 .container_62 {
@@ -364,7 +364,7 @@
 }
 
 .card_86 {
-  @apply rounded-2xl border border-border bg-card p-5 shadow-sm hover:border-[#F4C542] hover:bg-[#FFF7D6]/5 dark:hover:bg-[#2E2818]/10 hover:-translate-y-0.5 transition-all;
+  @apply rounded-[24px] border border-white/10 dark:border-white/5 bg-card/85 backdrop-blur-xl p-5 shadow-md hover:border-primary/25 hover:bg-[#FFF7D6]/5 dark:hover:bg-[#2E2818]/10 hover:-translate-y-0.5 transition-all duration-300;
 }
 
 .table_87 {
@@ -388,7 +388,7 @@
 }
 
 .card_92 {
-  @apply rounded-2xl border border-border bg-linear-to-br from-[#FFF9E5]/30 via-card to-card dark:from-[#1A1812]/30 dark:via-[#141414] dark:to-[#141414] p-8 text-center shadow-sm max-w-4xl mx-auto relative overflow-hidden;
+  @apply rounded-[24px] border border-white/10 dark:border-white/5 bg-linear-to-br from-[#FFF9E5]/30 via-card to-card dark:from-[#1A1812]/30 dark:via-[#141414] dark:to-[#141414] p-8 text-center shadow-md max-w-4xl mx-auto relative overflow-hidden;
 }
 
 .table_93 {

@@ -1,57 +1,66 @@
+// C:\website\tp\app\components\user\UserSidebar\page.tsx
 "use client";
 
-/**
- * page.tsx
- *
- * Main component module in features path: app/components/user/UserSidebar/page.tsx
- *
- * Responsibilities:
- * - Scopes UI state management and user actions.
- * - Bridges layout rendering with server-side Supabase data connections.
- * - Handles modular presentation logic.
- */
-
-;
-
-import styles from "@/styles/components/user/UserSidebar/page.module.css";
-
-  // ======================================================
-// State Initialization & Hooks
-// ======================================================
-
-  // ======================================================
-// Lifecycle Effects & Data Sync
-// ======================================================
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, CalendarCheck, Users, MessageSquare, Gamepad2, X, Sun, Moon, ChevronDown, ChevronRight, CircleHelp } from "lucide-react";
+import { LayoutDashboard, CalendarCheck, Gamepad2, X, ChevronDown, ChevronRight, ChevronLeft, Briefcase } from "lucide-react";
+import { supabase } from "@/app/lib/supabase/client";
+import styles from "@/styles/components/user/UserSidebar/page.module.css";
+import Image from "next/image";
 
 interface UserSidebarProps {
   isOpen?: boolean;
   onClose?: () => void;
 }
 
-/**
- * UserSidebar
- *
- * Renders the UserSidebar interface, managing local lifecycles
- * and user interactions.
- */
-/**
- * Executes operations logic for UserSidebar.
- *
- * @param { isOpen, onClose }: UserSidebarProps
- * @returns State operations sequence.
- */
 export default function UserSidebar({ isOpen, onClose }: UserSidebarProps) {
   const pathname = usePathname();
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
+  const [isClientServicingOpen, setIsClientServicingOpen] = useState(false);
+  const [permissions, setPermissions] = useState<any>(null);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('user-sidebar-collapsed') === 'true';
+    setIsCollapsed(saved);
+  }, []);
+
+  const toggleCollapse = () => {
+    const next = !isCollapsed;
+    setIsCollapsed(next);
+    localStorage.setItem('user-sidebar-collapsed', String(next));
+    window.dispatchEvent(new CustomEvent('user-sidebar-collapse-change', { detail: { collapsed: next } }));
+  };
+
+  useEffect(() => {
+    async function checkAccess() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase
+          .from("profiles")
+          .select("client_servicing_permissions")
+          .eq("id", user.id)
+          .single();
+
+        if (data?.client_servicing_permissions) {
+          setPermissions(data.client_servicing_permissions);
+        }
+      }
+    }
+    checkAccess();
+  }, []);
 
   useEffect(() => {
     if (pathname === "/dashboard" || pathname.startsWith("/dashboard/")) {
       setTimeout(() => {
         setIsDashboardOpen(true);
+      }, 0);
+    }
+
+    if (pathname.startsWith("/admin/")) {
+      setTimeout(() => {
+        setIsClientServicingOpen(true);
       }, 0);
     }
   }, [pathname]);
@@ -63,31 +72,66 @@ export default function UserSidebar({ isOpen, onClose }: UserSidebarProps) {
       icon: LayoutDashboard,
       subItems: [
         { name: "Personal", href: "/dashboard/personal" },
-        { name: "Team", href: "/dashboard/team" },
-        { name: "Department", href: "/dashboard/department" }
       ]
     },
-    { name: "Attendance", href: "/attendance", icon: CalendarCheck },
-    { name: "Teams", href: "/teams", icon: Users },
-    { name: "Messages", href: "/messages", icon: MessageSquare },
+    { name: "Calendar", href: "/calendar", icon: CalendarCheck },
     { name: "Playground", href: "/playground", icon: Gamepad2 },
-    { name: "Knowledge Base", href: "/faq", icon: CircleHelp }
   ];
+
+  if (permissions) {
+    const subItems = [];
+    if (permissions.cpst?.view) subItems.push({ name: "CPST", href: "/admin/cpst" });
+    if (permissions.acr?.view) subItems.push({ name: "ACR", href: "/admin/acr" });
+    if (permissions.fst?.view) subItems.push({ name: "FST", href: "/admin/fst" });
+    if (permissions.cpc?.view) subItems.push({ name: "CPC", href: "/admin/cpc" });
+    if (permissions.ppu?.view) subItems.push({ name: "PPU", href: "/admin/ppu" });
+    if (permissions.mngt?.view) subItems.push({ name: "MNGT", href: "/admin/mngt" });
+
+    if (subItems.length > 0) {
+      menuItems.push({
+        name: "Client Servicing",
+        href: subItems[0].href,
+        icon: Briefcase,
+        subItems
+      });
+    }
+  }
 
   const sidebarContent = (
     <div className={styles.card_0}>
-      <div className={styles.card_1}>
-        <div>
-          <h1 className={styles.table_2}>Team Padua</h1>
-          <p className={styles.table_3}>Intern Workspace</p>
+      {/* Header */}
+      <div className={`${styles.card_1} ${isCollapsed ? styles.card_1_collapsed : ''}`}>
+        <button
+          type="button"
+          onClick={toggleCollapse}
+          aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          className={styles.toggleChevron}
+        >
+          {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+        </button>
+
+        <div className="flex items-center gap-3">
+          <Image
+            src="/Image/icon/TPC.png"
+            alt="Team Padua Logo"
+            width={32}
+            height={32}
+            className={`object-contain shrink-0 ${styles.logoFade} ${isCollapsed ? styles.logoFadeHidden : ''}`}
+          />
+          <div className={`${styles.textFade} ${isCollapsed ? styles.textFadeHidden : ''}`}>
+            <h1 className={styles.table_2}>Team Padua</h1>
+            <p className={styles.table_3}>Intern Workspace</p>
+          </div>
         </div>
-        {onClose && (
+        {onClose && !isCollapsed && (
           <button onClick={onClose} className={styles.table_4}>
             <X size={16} />
           </button>
         )}
       </div>
-      <nav className={styles.card_5}>
+
+      <nav className={`${styles.card_5} ${isCollapsed ? 'px-2' : 'p-4'}`}>
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isDashboard = item.href === "/dashboard";
@@ -95,35 +139,37 @@ export default function UserSidebar({ isOpen, onClose }: UserSidebarProps) {
           const isParentActive = active || (isDashboard && pathname.startsWith("/dashboard"));
 
           if (item.subItems) {
+            const isOpenSection = item.name === "Dashboard" ? isDashboardOpen : isClientServicingOpen;
             return (
               <div key={item.href} className={styles.div_6}>
                 <div
-                  className={`${styles.table_16} ${
-                    isParentActive
-                      ? "bg-[#FFF7D6] dark:bg-[#2E2818] text-black dark:text-[#F4C542] border-l-2 border-[#F4C542] font-bold"
-                      : "text-foreground/80 hover:bg-muted hover:text-foreground"
-                  }`}
+                  className={`${isCollapsed ? styles.navItemCollapsed : styles.table_16} ${isParentActive ? styles.navItemActive : styles.navItemInactive
+                    }`}
                 >
                   <Link
                     href={item.href}
                     onClick={onClose}
-                    className={styles.container_7}
+                    title={isCollapsed ? item.name : undefined}
+                    className={isCollapsed ? 'flex items-center justify-center w-full' : styles.container_7}
                   >
-                    <Icon size={16} className={isParentActive ? "text-[#F4C542]" : "text-muted-foreground"} />
-                    <span>{item.name}</span>
+                    <Icon size={16} className={`shrink-0 ${isParentActive ? styles.navIconActive : styles.navIconInactive}`} />
+                    <span className={`${styles.navLabel} ${isCollapsed ? styles.navLabelHidden : ''}`}>{item.name}</span>
                   </Link>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      setIsDashboardOpen(!isDashboardOpen);
-                    }}
-                    className={styles.table_8}
-                  >
-                    {isDashboardOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                  </button>
+                  {!isCollapsed && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        if (item.name === "Dashboard") setIsDashboardOpen(!isDashboardOpen);
+                        if (item.name === "Client Servicing") setIsClientServicingOpen(!isClientServicingOpen);
+                      }}
+                      className={styles.table_8}
+                    >
+                      {isOpenSection ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                    </button>
+                  )}
                 </div>
-                {isDashboardOpen && (
+                {!isCollapsed && isOpenSection && (
                   <div className={styles.div_9}>
                     {item.subItems.map((sub) => {
                       const subActive = pathname === sub.href;
@@ -132,11 +178,8 @@ export default function UserSidebar({ isOpen, onClose }: UserSidebarProps) {
                           key={sub.href}
                           href={sub.href}
                           onClick={onClose}
-                          className={`${styles.table_17} ${
-                            subActive
-                              ? "bg-[#FFF7D6]/50 dark:bg-[#2E2818]/50 text-black dark:text-[#F4C542] font-bold"
-                              : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                          }`}
+                          className={`${styles.table_17} ${subActive ? styles.navSubActive : styles.navSubInactive
+                            }`}
                         >
                           <span>{sub.name}</span>
                         </Link>
@@ -153,29 +196,33 @@ export default function UserSidebar({ isOpen, onClose }: UserSidebarProps) {
               key={item.href}
               href={item.href}
               onClick={onClose}
-              className={`${styles.table_18} ${
-                active
-                  ? "bg-[#FFF7D6] dark:bg-[#2E2818] text-black dark:text-[#F4C542] border-l-2 border-[#F4C542] font-bold"
-                  : "text-foreground/80 hover:bg-muted hover:text-foreground"
-              }`}
+              title={isCollapsed ? item.name : undefined}
+              className={`${isCollapsed ? styles.navItemCollapsed : styles.table_18} ${active ? styles.navItemActive : styles.navItemInactive
+                }`}
             >
-              <Icon size={16} className={active ? "text-[#F4C542]" : "text-muted-foreground"} />
-              <span>{item.name}</span>
+              <div className={isCollapsed ? 'flex items-center justify-center' : styles.container_7}>
+                <Icon size={16} className={`shrink-0 ${active ? styles.navIconActive : styles.navIconInactive}`} />
+                <span className={`${styles.navLabel} ${isCollapsed ? styles.navLabelHidden : ''}`}>{item.name}</span>
+              </div>
             </Link>
           );
         })}
       </nav>
       <div className={styles.card_10}>
-        <p className={styles.text_11}>Intern Portal Secures Online</p>
+        <p className={`${styles.text_11} ${styles.textFade} ${isCollapsed ? styles.textFadeHidden : ''}`}>
+          Intern Portal Secures Online
+        </p>
       </div>
     </div>
   );
 
   return (
     <>
-      <aside className={styles.card_12}>
+      {/* Desktop Sidebar */}
+      <aside className={`${styles.card_12} ${isCollapsed ? styles.collapsedSidebar : ''}`}>
         {sidebarContent}
       </aside>
+      {/* Mobile drawer support */}
       {isOpen && (
         <div className={styles.container_13}>
           <div className={styles.div_14} onClick={onClose} />

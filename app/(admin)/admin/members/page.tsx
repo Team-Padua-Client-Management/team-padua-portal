@@ -57,6 +57,14 @@ export default async function AdminMembers() {
                 status: profile.status || (u.email_confirmed_at ? "Active" : "Pending"),
                 joined: u.created_at ?? "",
                 lastActive: u.last_sign_in_at ?? "",
+                client_servicing_permissions: profile.client_servicing_permissions || {
+                    cpst: { view: false, create: false, edit: false, delete: false, export: false },
+                    acr: { view: false, create: false, edit: false, delete: false, export: false },
+                    fst: { view: false, create: false, edit: false, delete: false, export: false },
+                    cpc: { view: false, create: false, edit: false, delete: false, export: false },
+                    ppu: { view: false, create: false, edit: false, delete: false, export: false },
+                    mngt: { view: false, create: false, edit: false, delete: false, export: false },
+                },
             };
         });
 

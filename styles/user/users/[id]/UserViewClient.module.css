@@ -2,161 +2,128 @@
 
 /* ======================================================
    UserViewClient.module.css
-   Style definitions for: app/(user)/users/[id]/UserViewClient.module.css
-====================================================== */
+   Redesigned for premium, rounded glassmorphic user profile pages
+   ====================================================== */
 
-/* ======================================================
-   Typography & Label Aesthetics
-   Font weights, leading scales, and text colors
-====================================================== */
-.text_0 {
-  @apply rounded-md flex items-center justify-center text-white font-bold shrink-0 uppercase;
-}
-
-.text_1 {
-  @apply rounded-lg border border-border bg-[#FFF7D6] dark:bg-[#2E2818] flex items-center justify-center text-black dark:text-[#F4C542] font-serif font-bold shrink-0;
-}
-
-
-/* ======================================================
-   Structural Layout Components
-   Main grid and layout flex wraps
-====================================================== */
-.div_2 {
-  @apply rounded-lg border border-border object-cover shrink-0;
-}
-
-.div_3 {
-  @apply rounded-lg border border-border overflow-hidden shrink-0;
-}
-
-
-/* ======================================================
-   Interactive Actions & Cards
-   Visual control elements and cards
-====================================================== */
-.card_4 {
-  @apply bg-card rounded-lg border border-border p-5 shadow-2xs space-y-4;
-}
-
-.text_5 {
-  @apply font-serif font-bold text-foreground text-sm flex items-center gap-2;
-}
-
-.text_6 {
-  @apply w-4 h-4 text-[#F4C542];
-}
-
-.text_7 {
-  @apply grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs;
-}
-
-.div_8 {
-  @apply border-b border-border pb-2;
-}
-
-.table_9 {
-  @apply text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5;
-}
-
-.text_10 {
-  @apply font-medium text-foreground;
-}
-
-.table_11 {
-  @apply w-full mt-2 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-border bg-muted hover:bg-muted/80 text-xs font-bold uppercase tracking-wider text-foreground hover:border-[#F4C542] transition cursor-pointer;
-}
-
-.text_12 {
-  @apply text-[#F4C542];
-}
-
+/* Main Layout Framework */
 .text_13 {
-  @apply max-w-5xl mx-auto w-full text-foreground space-y-6;
+  @apply max-w-5xl mx-auto w-full text-foreground space-y-6 animate-in fade-in duration-300;
 }
 
 .container_14 {
   @apply flex items-center justify-between;
 }
 
+/* Back Button */
 .table_15 {
-  @apply text-xs font-semibold text-muted-foreground hover:text-foreground transition flex items-center gap-1.5 cursor-pointer;
+  @apply text-xs font-bold text-primary hover:text-black dark:hover:text-[#F4C542] transition-all duration-200 flex items-center gap-2 cursor-pointer bg-primary/10 hover:bg-[#FFF7D6] dark:hover:bg-[#2E2818] px-5 py-2.5 rounded-full border border-primary/20 hover:border-primary/50 shadow-xs;
 }
 
+/* Main Profile Header Card */
 .card_16 {
-  @apply border border-border rounded-lg overflow-hidden shadow-2xs bg-card;
+  @apply border border-white/10 dark:border-white/5 rounded-[28px] overflow-hidden shadow-lg bg-card/85 backdrop-blur-xl transition-all duration-300 hover:shadow-xl hover:border-primary/20;
 }
 
 .div_17 {
-  @apply relative h-44;
+  @apply relative h-48 sm:h-56 w-full transition-all duration-300;
+}
+.div_17::after {
+  content: '';
+  @apply absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent;
 }
 
 .card_18 {
-  @apply px-6 pb-6 bg-card;
+  @apply px-8 pb-8 pt-4 bg-card/20 backdrop-blur-sm relative;
 }
 
 .container_19 {
-  @apply relative z-10 flex flex-col sm:flex-row sm:items-end gap-4 mb-6;
+  @apply relative z-10 flex flex-col sm:flex-row sm:items-end gap-6 mb-6;
 }
 
 .div_20 {
-  @apply relative shrink-0 -mt-10 sm:-mt-14;
+  @apply relative shrink-0 -mt-16 sm:-mt-24 border-4 border-card rounded-full shadow-xl overflow-hidden bg-background transition-transform duration-300 hover:scale-105;
+}
+
+.div_2 {
+  @apply object-cover rounded-full;
+}
+
+.div_3 {
+  @apply overflow-hidden rounded-full flex items-center justify-center bg-muted/20;
+}
+
+.card_113 {
+  @apply absolute bottom-1 right-1 w-4.5 h-4.5 border-3 border-card rounded-full shadow-md animate-pulse;
 }
 
 .container_21 {
-  @apply flex-1 min-w-0;
+  @apply flex-1 min-w-0 pb-1;
 }
 
 .text_22 {
-  @apply text-xl font-bold text-foreground leading-snug;
+  @apply text-3xl font-extrabold text-foreground leading-snug tracking-tight;
 }
 
 .container_23 {
-  @apply flex gap-2 items-center flex-wrap mt-2;
+  @apply flex gap-2 items-center flex-wrap mt-2.5;
 }
 
+/* Badges */
 .table_24 {
-  @apply text-[10px] font-bold tracking-wider uppercase bg-muted text-foreground px-2 py-0.5 rounded;
+  @apply text-[10px] font-extrabold tracking-widest uppercase bg-[#FFF7D6] dark:bg-[#2E2818] text-black dark:text-[#F4C542] px-3.5 py-1.5 rounded-full border border-[#F4C542]/20 shadow-2xs;
 }
 
+.table_114 {
+  @apply text-[10px] font-extrabold tracking-widest uppercase px-3.5 py-1.5 rounded-full shadow-2xs;
+}
+
+/* Tab Navigation */
 .container_25 {
-  @apply flex gap-1.5 border-b border-border pb-3 flex-wrap mb-6;
+  @apply flex gap-2 border-b border-border/80 pb-3.5 flex-wrap mb-8 mt-6;
 }
 
+.table_115 {
+  @apply flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer border border-transparent shadow-2xs;
+}
+.table_115:hover {
+  @apply bg-primary/10 text-primary scale-[1.02];
+}
+
+/* ======================================================
+   Universal Premium Card Aesthetics
+   ====================================================== */
+.card_4, .card_28, .card_45, .card_61, .card_72, .card_82, .card_93, .card_100 {
+  @apply bg-card/70 backdrop-blur-xl rounded-[24px] border border-white/10 dark:border-white/5 p-6 shadow-md transition-all duration-300 hover:shadow-lg hover:border-primary/25 hover:-translate-y-0.5;
+}
+
+.text_5, .text_30, .text_47, .table_63, .text_73, .text_83, .text_94, .text_101 {
+  @apply text-xs font-extrabold text-foreground flex items-center gap-2 mb-5 border-b border-primary/10 pb-3.5 tracking-widest uppercase;
+}
+
+.text_6, .text_12, .text_34, .text_40, .text_48, .text_59, .text_64, .text_87, .text_91, .text_98 {
+  @apply w-4 h-4 text-primary shrink-0;
+}
+
+/* Overview Tab Components */
 .container_26 {
-  @apply grid grid-cols-1 md:grid-cols-3 gap-6;
+  @apply grid grid-cols-1 lg:grid-cols-3 gap-8;
 }
 
 .div_27 {
-  @apply md:col-span-2 space-y-6;
-}
-
-.card_28 {
-  @apply bg-card rounded-lg border border-border p-5 shadow-2xs;
-}
-
-.container_29 {
-  @apply flex items-center justify-between mb-4;
-}
-
-.text_30 {
-  @apply font-serif font-bold text-foreground text-sm;
+  @apply lg:col-span-2 space-y-8;
 }
 
 .div_31 {
-  @apply space-y-4;
+  @apply space-y-4.5;
 }
 
+/* Personal Info Grid Rows */
 .container_32 {
-  @apply flex items-start gap-3;
+  @apply flex items-center gap-4 p-2 rounded-xl hover:bg-primary/5 transition-all duration-200;
 }
 
 .container_33 {
-  @apply w-7 h-7 bg-muted border border-border rounded-lg flex items-center justify-center shrink-0 mt-0.5;
-}
-
-.text_34 {
-  @apply text-[#F4C542];
+  @apply w-9 h-9 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-center shrink-0 shadow-xs;
 }
 
 .container_35 {
@@ -164,23 +131,19 @@
 }
 
 .table_36 {
-  @apply text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1;
+  @apply text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5;
 }
 
 .table_37 {
-  @apply text-sm font-medium text-foreground truncate;
+  @apply text-sm font-semibold text-foreground truncate;
 }
 
 .container_38 {
-  @apply flex items-start gap-3;
+  @apply flex items-start gap-4 p-2 rounded-xl hover:bg-primary/5 transition-all duration-200;
 }
 
 .container_39 {
-  @apply w-7 h-7 bg-muted border border-border rounded-lg flex items-center justify-center shrink-0 mt-0.5;
-}
-
-.text_40 {
-  @apply text-[#F4C542];
+  @apply w-9 h-9 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-center shrink-0 shadow-xs mt-0.5;
 }
 
 .container_41 {
@@ -188,51 +151,37 @@
 }
 
 .table_42 {
-  @apply text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1;
+  @apply text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1;
 }
 
 .text_43 {
-  @apply text-sm font-medium text-foreground leading-relaxed;
+  @apply text-sm font-medium text-foreground leading-relaxed bg-primary/5 border border-primary/10 p-4 rounded-2xl block w-full shadow-xs;
 }
 
 .text_44 {
-  @apply text-muted-foreground/40 font-normal;
+  @apply text-muted-foreground/35 font-normal italic;
 }
 
-.card_45 {
-  @apply bg-card rounded-lg border border-border p-5 shadow-2xs;
+/* Location Card Grid */
+.text_7 {
+  @apply grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 text-xs;
 }
 
-.container_46 {
-  @apply flex items-center justify-between mb-4;
+.div_8 {
+  @apply border-b border-primary/5 pb-3 transition-colors duration-200 px-2 py-1.5 rounded-xl hover:bg-primary/5;
 }
 
-.text_47 {
-  @apply font-serif font-bold text-foreground text-sm flex items-center gap-2;
+.table_11 {
+  @apply w-full mt-5 flex items-center justify-center gap-2 px-5 py-3 rounded-full border border-primary/20 bg-primary/10 hover:bg-[#FFF7D6] dark:hover:bg-[#2E2818] text-xs font-extrabold uppercase tracking-wider text-primary hover:text-black dark:hover:text-[#F4C542] hover:border-[#F4C542] transition-all duration-300 cursor-pointer shadow-xs;
 }
 
-.text_48 {
-  @apply w-4 h-4 text-[#F4C542];
-}
-
-.container_49 {
-  @apply flex flex-col items-center justify-center py-8 gap-2;
-}
-
-.text_50 {
-  @apply w-6 h-6 text-muted-foreground/30;
-}
-
-.table_51 {
-  @apply text-xs text-muted-foreground/40 font-medium uppercase tracking-wide;
-}
-
+/* Social Links Badge System */
 .div_52 {
-  @apply space-y-2;
+  @apply grid grid-cols-1 sm:grid-cols-2 gap-3.5;
 }
 
 .container_53 {
-  @apply flex items-center gap-3 p-3 rounded-lg bg-muted border border-border;
+  @apply flex items-center gap-4 p-3.5 rounded-[20px] bg-card border border-border hover:border-primary/45 hover:bg-primary/5 transition-all duration-200;
 }
 
 .container_54 {
@@ -240,63 +189,57 @@
 }
 
 .table_55 {
-  @apply text-[9px] font-bold text-muted-foreground uppercase tracking-wider;
+  @apply text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5;
 }
 
 .table_56 {
-  @apply text-xs font-medium text-foreground truncate;
+  @apply text-xs font-semibold text-foreground truncate;
 }
 
 .table_57 {
-  @apply flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity;
+  @apply flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200;
 }
 
 .card_58 {
-  @apply w-6 h-6 flex items-center justify-center rounded bg-card border border-border hover:border-[#F4C542] transition;
+  @apply w-7 h-7 flex items-center justify-center rounded-full bg-card border border-border hover:border-[#F4C542] hover:bg-[#FFF7D6] dark:hover:bg-[#2E2818] hover:text-black dark:hover:text-[#F4C542] transition-all duration-300 shadow-2xs;
 }
 
-.text_59 {
-  @apply text-muted-foreground;
+.container_49 {
+  @apply flex flex-col items-center justify-center py-10 gap-3 border border-dashed border-primary/20 rounded-2xl bg-primary/5;
 }
 
+.text_50 {
+  @apply w-8 h-8 text-muted-foreground/30;
+}
+
+.table_51 {
+  @apply text-xs text-muted-foreground/50 font-bold uppercase tracking-wider;
+}
+
+/* Right Side Dashboard Column */
 .div_60 {
-  @apply space-y-6;
+  @apply space-y-8;
 }
 
-.card_61 {
-  @apply bg-card border border-border rounded-lg p-5 shadow-2xs;
-}
-
-.container_62 {
-  @apply flex items-center justify-between mb-3;
-}
-
-.table_63 {
-  @apply text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5;
-}
-
-.text_64 {
-  @apply text-[#F4C542];
-}
-
+/* GCash Card */
 .container_65 {
-  @apply flex flex-col items-center gap-3;
+  @apply flex flex-col items-center gap-4 py-2;
 }
 
 .table_66 {
-  @apply p-2 bg-white border border-border rounded-xl shadow-xs cursor-zoom-in hover:scale-[1.02] active:scale-[0.98] transition duration-200;
+  @apply p-3 bg-white border-2 border-dashed border-primary/25 rounded-[22px] shadow-sm cursor-zoom-in hover:scale-[1.03] active:scale-[0.97] transition-all duration-300;
 }
 
 .div_67 {
-  @apply w-32 h-32 object-contain;
+  @apply w-36 h-36 object-contain rounded-lg;
 }
 
 .container_68 {
-  @apply flex flex-col items-center justify-center gap-3 py-6;
+  @apply flex flex-col items-center justify-center gap-3 py-8 border border-dashed border-primary/20 rounded-2xl bg-primary/5;
 }
 
 .container_69 {
-  @apply w-16 h-16 rounded-xl border-2 border-dashed border-border flex items-center justify-center;
+  @apply w-14 h-14 rounded-xl border border-dashed border-primary/20 flex items-center justify-center bg-muted/20;
 }
 
 .text_70 {
@@ -304,189 +247,147 @@
 }
 
 .text_71 {
-  @apply text-[9px] text-muted-foreground font-medium text-center leading-snug;
+  @apply text-[10px] text-muted-foreground font-semibold text-center leading-snug tracking-wide max-w-[150px];
 }
 
-.card_72 {
-  @apply bg-card border border-border rounded-lg p-5 shadow-2xs space-y-3;
-}
-
-.text_73 {
-  @apply text-sm font-bold font-serif text-foreground;
-}
-
+/* Task Status Widgets */
 .container_74 {
-  @apply grid grid-cols-2 gap-3;
+  @apply grid grid-cols-2 gap-4;
 }
 
 .div_75 {
-  @apply p-3 bg-muted border border-border rounded-xl;
+  @apply p-4.5 bg-emerald-500/10 dark:bg-emerald-950/20 border border-emerald-500/20 rounded-[20px] shadow-xs text-center transition-all duration-200 hover:scale-[1.02];
 }
 
 .text_76 {
-  @apply text-[9px] font-bold text-green-600 dark:text-green-400 uppercase;
+  @apply text-[9px] font-extrabold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest;
 }
 
 .text_77 {
-  @apply text-xl font-bold text-green-600 dark:text-green-400 mt-0.5;
+  @apply text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1.5;
 }
 
 .div_78 {
-  @apply p-3 bg-muted border border-border rounded-xl;
+  @apply p-4.5 bg-amber-500/10 dark:bg-amber-950/20 border border-amber-500/20 rounded-[20px] shadow-xs text-center transition-all duration-200 hover:scale-[1.02];
 }
 
 .text_79 {
-  @apply text-[9px] font-bold text-amber-500 dark:text-[#F4C542] uppercase;
+  @apply text-[9px] font-extrabold text-amber-600 dark:text-[#F4C542] uppercase tracking-widest;
 }
 
 .text_80 {
-  @apply text-xl font-bold text-amber-500 dark:text-[#F4C542] mt-0.5;
+  @apply text-3xl font-extrabold text-amber-600 dark:text-[#F4C542] mt-1.5;
 }
 
+/* Personal tab layouts */
 .container_81 {
-  @apply grid grid-cols-1 md:grid-cols-2 gap-6 items-start;
-}
-
-.card_82 {
-  @apply bg-card border border-border rounded-2xl p-6 shadow-2xs w-full;
-}
-
-.text_83 {
-  @apply text-base font-serif font-bold text-foreground mb-4;
+  @apply grid grid-cols-1 lg:grid-cols-2 gap-8 items-start;
 }
 
 .text_84 {
-  @apply divide-y divide-border text-xs;
+  @apply divide-y divide-border/60 text-xs space-y-0.5;
 }
 
 .container_85 {
-  @apply flex justify-between items-center py-3.5;
+  @apply flex justify-between items-center py-4 px-2 hover:bg-primary/5 rounded-xl transition-colors duration-200;
 }
 
 .text_86 {
-  @apply text-muted-foreground font-medium flex items-center gap-2;
-}
-
-.text_87 {
-  @apply text-[#F4C542];
+  @apply text-muted-foreground font-semibold flex items-center gap-2.5;
 }
 
 .table_88 {
-  @apply font-bold text-foreground text-right max-w-xs truncate;
+  @apply font-bold text-foreground text-right max-w-sm truncate text-sm;
 }
 
 .container_89 {
-  @apply flex flex-col py-3.5 gap-1.5;
+  @apply flex flex-col py-4 gap-2;
 }
 
 .text_90 {
-  @apply text-muted-foreground font-medium flex items-center gap-2;
-}
-
-.text_91 {
-  @apply text-[#F4C542];
+  @apply text-muted-foreground font-semibold flex items-center gap-2.5;
 }
 
 .text_92 {
-  @apply text-foreground leading-relaxed text-sm bg-muted/40 p-3 rounded-lg border border-border;
+  @apply text-foreground leading-relaxed text-sm bg-primary/5 p-4 rounded-2xl border border-primary/10 shadow-xs w-full block;
 }
 
-.card_93 {
-  @apply bg-card border border-border rounded-2xl p-6 shadow-2xs max-w-2xl;
-}
-
-.text_94 {
-  @apply text-base font-serif font-bold text-foreground mb-4;
-}
-
+/* Employment tab layouts */
 .text_95 {
-  @apply divide-y divide-border text-xs;
+  @apply divide-y divide-border/60 text-xs space-y-0.5;
 }
 
 .container_96 {
-  @apply flex justify-between items-center py-3.5;
+  @apply flex justify-between items-center py-4 px-2 hover:bg-primary/5 rounded-xl transition-colors duration-200;
 }
 
 .text_97 {
-  @apply text-muted-foreground font-medium flex items-center gap-2;
-}
-
-.text_98 {
-  @apply text-[#F4C542];
+  @apply text-muted-foreground font-semibold flex items-center gap-2.5;
 }
 
 .text_99 {
-  @apply font-bold text-foreground;
+  @apply font-bold text-foreground text-right text-sm;
 }
 
-.card_100 {
-  @apply bg-card border border-border rounded-2xl p-6 shadow-2xs;
-}
-
-.text_101 {
-  @apply text-base font-serif font-bold text-foreground mb-4;
-}
-
+/* Tasks Tab Layouts */
 .text_102 {
-  @apply text-center py-8 text-muted-foreground text-xs font-normal;
+  @apply text-center py-12 text-muted-foreground text-sm font-semibold italic border border-dashed border-primary/20 rounded-2xl bg-primary/5;
 }
 
 .div_103 {
-  @apply space-y-3;
+  @apply space-y-4;
 }
 
 .container_104 {
-  @apply p-4 rounded-xl bg-muted/40 border border-border flex items-center justify-between gap-4;
+  @apply p-5 rounded-[22px] bg-card border border-border/80 flex items-center justify-between gap-5 transition-all duration-300 hover:bg-primary/5 hover:border-primary/20 hover:-translate-y-0.5 hover:shadow-xs;
 }
 
 .text_105 {
-  @apply text-sm font-semibold text-foreground leading-snug;
+  @apply text-base font-extrabold text-foreground leading-snug;
 }
 
 .text_106 {
-  @apply text-xs text-muted-foreground mt-0.5 line-clamp-1;
+  @apply text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed;
 }
 
 .text_107 {
-  @apply flex gap-2 mt-2 flex-wrap text-[10px] font-semibold;
+  @apply flex gap-2.5 mt-3.5 flex-wrap text-[10px] font-semibold;
 }
 
 .card_108 {
-  @apply bg-card px-2 py-0.5 rounded border border-border text-muted-foreground uppercase;
-}
-
-.container_109 {
-  @apply fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200 cursor-zoom-out;
-}
-
-.container_110 {
-  @apply relative max-w-lg w-full mx-4 flex items-center justify-center animate-in zoom-in-95 duration-200;
-}
-
-.div_111 {
-  @apply bg-white p-4 rounded-3xl shadow-2xl;
-}
-
-.div_112 {
-  @apply w-[380px] h-[380px] sm:w-[460px] sm:h-[460px] max-h-[75vh] max-w-full object-contain rounded-2xl;
-}
-
-.card_113 {
-  @apply absolute -bottom-0.5 -right-0.5 w-4.5 h-4.5 border-2 border-card rounded-full;
-}
-
-.table_114 {
-  @apply text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded;
-}
-
-.table_115 {
-  @apply flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all cursor-pointer;
+  @apply bg-card/85 px-2.5 py-1 rounded-lg border border-border text-muted-foreground uppercase tracking-wider;
 }
 
 .div_116 {
-  @apply px-2 py-0.5 rounded border;
+  @apply px-2.5 py-1 rounded-lg border uppercase tracking-wider text-[10px];
 }
 
 .table_117 {
-  @apply text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full;
+  @apply text-[10px] font-extrabold uppercase tracking-widest px-3 py-1.5 rounded-full shadow-xs shrink-0;
+}
+
+/* Fullscreen modal styling */
+.container_109 {
+  @apply fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 animate-in fade-in duration-300 cursor-zoom-out;
+}
+
+.container_110 {
+  @apply relative max-w-lg w-full mx-4 flex items-center justify-center animate-in zoom-in-95 duration-300;
+}
+
+.div_111 {
+  @apply bg-white p-4.5 rounded-3xl shadow-2xl;
+}
+
+.div_112 {
+  @apply w-[360px] h-[360px] sm:w-[440px] sm:h-[440px] max-h-[70vh] max-w-full object-contain rounded-2xl;
+}
+
+/* Platform badge text color configurations */
+.text_0 {
+  @apply rounded-full flex items-center justify-center text-white font-extrabold shrink-0 uppercase shadow-xs transition-transform hover:scale-105;
+}
+
+.text_1 {
+  @apply rounded-full border border-border bg-[#FFF7D6] dark:bg-[#2E2818] flex items-center justify-center text-black dark:text-[#F4C542] font-sans font-bold shrink-0 shadow-2xs;
 }

@@ -14,14 +14,14 @@
 ;
 
 
-  // ======================================================
+// ======================================================
 // State Initialization & Hooks
 // ======================================================
 
-  // ======================================================
+// ======================================================
 // Lifecycle Effects & Data Sync
 // ======================================================
-import styles from "@/styles/admin/Design/page.module.css";import React, { useState, useEffect, useRef } from "react";
+import styles from "@/styles/admin/Design/page.module.css"; import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "@/app/lib/supabase/client";
 import * as Lucide from "lucide-react";
 import Header from "@/app/components/admin/AdminHeader/page";
@@ -136,6 +136,8 @@ export default function DesignPage() {
     const [aiFile, setAiFile] = useState<File | null>(null);
     const [activeSidebarTab, setActiveSidebarTab] = useState<"templates" | "text" | "shapes" | "uploads" | "photos" | "icons" | "layers">("templates");
     const [iconSearchQuery, setIconSearchQuery] = useState<string>("");
+    const [deletingFolderId, setDeletingFolderId] = useState<string | null>(null);
+    const [deletingTemplateId, setDeletingTemplateId] = useState<string | null>(null);
 
     const canvasContainerRef = useRef<HTMLDivElement | null>(null);
 
@@ -160,7 +162,7 @@ export default function DesignPage() {
  * 
  * @returns State operations sequence.
  */
-const detectSchemaAndFetch = async () => {
+    const detectSchemaAndFetch = async () => {
         setLoading(true);
         try {
             const { data: testDesigns, error: testError } = await /* Query database records from active repository grid */ supabase.from("designs").select("id").limit(1);
@@ -202,7 +204,7 @@ const detectSchemaAndFetch = async () => {
  * @param folderId: string
  * @returns State operations sequence.
  */
-const fetchTemplates = async (folderId: string) => {
+    const fetchTemplates = async (folderId: string) => {
         setLoading(true);
         try {
             if (dbMode === "new_schema") {
@@ -237,7 +239,7 @@ const fetchTemplates = async (folderId: string) => {
  * @param templateId: string
  * @returns State operations sequence.
  */
-const fetchLayers = async (templateId: string) => {
+    const fetchLayers = async (templateId: string) => {
         try {
             if (dbMode === "new_schema") {
                 const { data } = await /* Query database records from active repository grid */ supabase.from("layers").select("*").eq("design_id", templateId).order("z_index", { ascending: true });
@@ -312,7 +314,7 @@ const fetchLayers = async (templateId: string) => {
  * @param templateId: string
  * @returns State operations sequence.
  */
-const initDefaultLayers = (templateId: string) => {
+    const initDefaultLayers = (templateId: string) => {
         const defaults: Layer[] = [
             {
                 id: `layer-${Date.now()}-1`,
@@ -432,7 +434,7 @@ const initDefaultLayers = (templateId: string) => {
  * @param newLayers: Layer[]
  * @returns State operations sequence.
  */
-const pushToHistory = (newLayers: Layer[]) => {
+    const pushToHistory = (newLayers: Layer[]) => {
         const nextHistory = history.slice(0, historyIndex + 1);
         setHistory([...nextHistory, newLayers]);
         setHistoryIndex(nextHistory.length);
@@ -444,7 +446,7 @@ const pushToHistory = (newLayers: Layer[]) => {
  * 
  * @returns State operations sequence.
  */
-const handleUndo = () => {
+    const handleUndo = () => {
         if (historyIndex > 0) {
             const prevIndex = historyIndex - 1;
             setHistoryIndex(prevIndex);
@@ -458,7 +460,7 @@ const handleUndo = () => {
  * 
  * @returns State operations sequence.
  */
-const handleRedo = () => {
+    const handleRedo = () => {
         if (historyIndex < history.length - 1) {
             const nextIndex = historyIndex + 1;
             setHistoryIndex(nextIndex);
@@ -472,7 +474,7 @@ const handleRedo = () => {
  * @param updater: (prev: Layer[]
  * @returns State operations sequence.
  */
-const updateLayers = (updater: (prev: Layer[]) => Layer[]) => {
+    const updateLayers = (updater: (prev: Layer[]) => Layer[]) => {
         setLayers((prev) => {
             const next = updater(prev);
             pushToHistory(next);
@@ -486,7 +488,7 @@ const updateLayers = (updater: (prev: Layer[]) => Layer[]) => {
  * 
  * @returns State operations sequence.
  */
-const handleCreateFolder = async () => {
+    const handleCreateFolder = async () => {
         if (!newFolderName.trim()) return;
         try {
             if (dbMode !== "local") {
@@ -511,12 +513,80 @@ const handleCreateFolder = async () => {
     };
 
     /**
- * Executes operations logic for handleCreateTemplate.
- *
- * 
- * @returns State operations sequence.
- */
-const handleCreateTemplate = async () => {
+     * Deletes a folder and all templates/layers nested inside it, across
+     * whichever schema mode is currently active (new_schema / old_schema / local).
+     *
+     * @param folder: DesignFolder
+     * @param e: React.MouseEvent - stopped so the card's onClick (open folder) doesn't fire
+     * @returns Promise<void>
+     */
+    const handleDeleteFolder = async (folder: DesignFolder, e: React.MouseEvent) => {
+        e.stopPropagation();
+        const confirmed = window.confirm(
+            `Delete "${folder.name}" and all templates inside it? This cannot be undone.`
+        );
+        if (!confirmed) return;
+
+        setDeletingFolderId(folder.id);
+        try {
+            if (dbMode === "new_schema") {
+                const { data: designsToDelete } = await supabase
+                    .from("designs")
+                    .select("id")
+                    .eq("folder_id", folder.id);
+                const designIds = (designsToDelete || []).map((d: any) => d.id);
+                if (designIds.length > 0) {
+                    await supabase.from("layers").delete().in("design_id", designIds);
+                    await supabase.from("designs").delete().eq("folder_id", folder.id);
+                }
+                const { error } = await supabase.from("design_folders").delete().eq("id", folder.id);
+                if (error) throw error;
+            } else if (dbMode === "old_schema") {
+                const { data: templatesToDelete } = await supabase
+                    .from("design_templates")
+                    .select("id")
+                    .eq("folder_id", folder.id);
+                const templateIds = (templatesToDelete || []).map((t: any) => t.id);
+                if (templateIds.length > 0) {
+                    await supabase.from("design_elements").delete().in("template_id", templateIds);
+                    await supabase.from("design_templates").delete().eq("folder_id", folder.id);
+                }
+                const { error } = await supabase.from("design_folders").delete().eq("id", folder.id);
+                if (error) throw error;
+            } else {
+                const localTemplatesRaw = localStorage.getItem(`local_templates_${folder.id}`);
+                if (localTemplatesRaw) {
+                    const localTemplates: DesignTemplate[] = JSON.parse(localTemplatesRaw);
+                    localTemplates.forEach((t) => localStorage.removeItem(`local_layers_${t.id}`));
+                }
+                localStorage.removeItem(`local_templates_${folder.id}`);
+            }
+
+            const nextFolders = folders.filter((f) => f.id !== folder.id);
+            setFolders(nextFolders);
+            if (dbMode === "local") {
+                localStorage.setItem("local_design_folders", JSON.stringify(nextFolders));
+            }
+
+            if (selectedFolder?.id === folder.id) {
+                setSelectedFolder(null);
+                setTemplates([]);
+                setView("folders");
+            }
+        } catch (err: any) {
+            alert(err.message || "Failed to delete folder.");
+        } finally {
+            setDeletingFolderId(null);
+        }
+    };
+
+    /**
+     * Executes operations logic for handleCreateTemplate.
+     *
+     * 
+     * @returns State operations sequence.
+     */
+    const handleCreateTemplate = async () => {
         if (!newTemplateName.trim() || !selectedFolder) return;
         setSaving(true);
         try {
@@ -566,12 +636,55 @@ const handleCreateTemplate = async () => {
     };
 
     /**
+     * Deletes a single template (and its layers/elements) across all schema modes.
+     *
+     * @param template: DesignTemplate
+     * @param e: React.MouseEvent - stopped so the card's onClick doesn't also open the editor
+     * @returns Promise<void>
+     */
+    const handleDeleteTemplate = async (template: DesignTemplate, e: React.MouseEvent) => {
+        e.stopPropagation();
+        const confirmed = window.confirm(`Delete "${template.name}"? This cannot be undone.`);
+        if (!confirmed) return;
+
+        setDeletingTemplateId(template.id);
+        try {
+            if (dbMode === "new_schema") {
+                await supabase.from("layers").delete().eq("design_id", template.id);
+                const { error } = await supabase.from("designs").delete().eq("id", template.id);
+                if (error) throw error;
+            } else if (dbMode === "old_schema") {
+                await supabase.from("design_elements").delete().eq("template_id", template.id);
+                const { error } = await supabase.from("design_templates").delete().eq("id", template.id);
+                if (error) throw error;
+            } else {
+                localStorage.removeItem(`local_layers_${template.id}`);
+            }
+
+            const nextTemplates = templates.filter((t) => t.id !== template.id);
+            setTemplates(nextTemplates);
+            if (dbMode === "local" && selectedFolder) {
+                localStorage.setItem(`local_templates_${selectedFolder.id}`, JSON.stringify(nextTemplates));
+            }
+
+            if (selectedTemplate?.id === template.id) {
+                setSelectedTemplate(null);
+                setView("templates");
+            }
+        } catch (err: any) {
+            alert(err.message || "Failed to delete template.");
+        } finally {
+            setDeletingTemplateId(null);
+        }
+    };
+
+    /**
  * Executes operations logic for handleOpenTemplate.
  *
  * @param template: DesignTemplate
  * @returns State operations sequence.
  */
-const handleOpenTemplate = async (template: DesignTemplate) => {
+    const handleOpenTemplate = async (template: DesignTemplate) => {
         setSelectedTemplate(template);
         setVariables(template.variables && Object.keys(template.variables).length > 0 ? (template.variables as FormVariables) : initialFormVariables);
         setCanvasBgImage(template.background || "");
@@ -586,7 +699,7 @@ const handleOpenTemplate = async (template: DesignTemplate) => {
  * 
  * @returns State operations sequence.
  */
-const handleAutosave = async () => {
+    const handleAutosave = async () => {
         if (!selectedTemplate) return;
         setSaveStatus("Saving...");
         try {
@@ -660,7 +773,7 @@ const handleAutosave = async () => {
     
  * @returns State operations sequence.
  */
-const handlePointerDown = (
+    const handlePointerDown = (
         e: React.PointerEvent,
         layerId: string,
         action: "dragging" | "resizing" | "rotating",
@@ -687,7 +800,7 @@ const handlePointerDown = (
  * @param moveEvent: PointerEvent
  * @returns State operations sequence.
  */
-const handlePointerMove = (moveEvent: PointerEvent) => {
+        const handlePointerMove = (moveEvent: PointerEvent) => {
             const dx = (moveEvent.clientX - startX) / (zoom / 100);
             const dy = (moveEvent.clientY - startY) / (zoom / 100);
 
@@ -774,7 +887,7 @@ const handlePointerMove = (moveEvent: PointerEvent) => {
  * 
  * @returns State operations sequence.
  */
-const handlePointerUp = () => {
+        const handlePointerUp = () => {
             window.removeEventListener("pointermove", handlePointerMove);
             window.removeEventListener("pointerup", handlePointerUp);
             setLayers((currentLayers) => {
@@ -793,7 +906,7 @@ const handlePointerUp = () => {
  * @param presetSize: "heading" | "subheading" | "body"
  * @returns State operations sequence.
  */
-const handleAddTextLayer = (presetSize: "heading" | "subheading" | "body") => {
+    const handleAddTextLayer = (presetSize: "heading" | "subheading" | "body") => {
         const sizeMap = { heading: 36, subheading: 20, body: 14 };
         const textMap = { heading: "Add a Heading", subheading: "Add a Subheading", body: "Add body text here" };
         const newLayer: Layer = {
@@ -824,7 +937,7 @@ const handleAddTextLayer = (presetSize: "heading" | "subheading" | "body") => {
  * @param shapeType: "rectangle" | "circle" | "triangle"
  * @returns State operations sequence.
  */
-const handleAddShapeLayer = (shapeType: "rectangle" | "circle" | "triangle") => {
+    const handleAddShapeLayer = (shapeType: "rectangle" | "circle" | "triangle") => {
         const newLayer: Layer = {
             id: `layer-${Date.now()}`,
             type: "shape",
@@ -851,7 +964,7 @@ const handleAddShapeLayer = (shapeType: "rectangle" | "circle" | "triangle") => 
  * @param url: string
  * @returns State operations sequence.
  */
-const handleAddImageLayer = (url: string) => {
+    const handleAddImageLayer = (url: string) => {
         const newLayer: Layer = {
             id: `layer-${Date.now()}`,
             type: "image",
@@ -877,7 +990,7 @@ const handleAddImageLayer = (url: string) => {
  * @param iconName: string
  * @returns State operations sequence.
  */
-const handleAddIconLayer = (iconName: string) => {
+    const handleAddIconLayer = (iconName: string) => {
         const newLayer: Layer = {
             id: `layer-${Date.now()}`,
             type: "icon",
@@ -904,7 +1017,7 @@ const handleAddIconLayer = (iconName: string) => {
  * @param layerId: string
  * @returns State operations sequence.
  */
-const handleDeleteLayer = (layerId: string) => {
+    const handleDeleteLayer = (layerId: string) => {
         updateLayers((prev) => prev.filter((l) => l.id !== layerId));
         if (selectedLayerId === layerId) setSelectedLayerId(null);
     };
@@ -915,7 +1028,7 @@ const handleDeleteLayer = (layerId: string) => {
  * @param property: keyof Layer, value: any
  * @returns State operations sequence.
  */
-const handleLayerPropChange = (property: keyof Layer, value: any) => {
+    const handleLayerPropChange = (property: keyof Layer, value: any) => {
         if (!selectedLayerId) return;
         updateLayers((prev) =>
             prev.map((l) => (l.id === selectedLayerId ? ({ ...l, [property]: value } as Layer) : l))
@@ -928,7 +1041,7 @@ const handleLayerPropChange = (property: keyof Layer, value: any) => {
  * @param key: string, value: any
  * @returns State operations sequence.
  */
-const handleLayerMetadataChange = (key: string, value: any) => {
+    const handleLayerMetadataChange = (key: string, value: any) => {
         if (!selectedLayerId) return;
         updateLayers((prev) =>
             prev.map((l) =>
@@ -945,7 +1058,7 @@ const handleLayerMetadataChange = (key: string, value: any) => {
  * @param direction: "up" | "down" | "top" | "bottom"
  * @returns State operations sequence.
  */
-const handleMoveLayerZIndex = (direction: "up" | "down" | "top" | "bottom") => {
+    const handleMoveLayerZIndex = (direction: "up" | "down" | "top" | "bottom") => {
         if (!selectedLayerId) return;
         const currentLayers = [...layers];
         const idx = currentLayers.findIndex((l) => l.id === selectedLayerId);
@@ -974,7 +1087,7 @@ const handleMoveLayerZIndex = (direction: "up" | "down" | "top" | "bottom") => {
  * @param layer: Layer
  * @returns State operations sequence.
  */
-const getLayerRenderedText = (layer: Layer) => {
+    const getLayerRenderedText = (layer: Layer) => {
         const varKey = layer.metadata?.variable_key;
         if (!varKey) return layer.text || "";
         if (varKey === "client_name") return variables.client_name;
@@ -990,7 +1103,7 @@ const getLayerRenderedText = (layer: Layer) => {
  * @param layer: Layer
  * @returns State operations sequence.
  */
-const renderLayerContent = (layer: Layer) => {
+    const renderLayerContent = (layer: Layer) => {
         switch (layer.type) {
             case "text":
                 return (
@@ -1079,7 +1192,7 @@ const renderLayerContent = (layer: Layer) => {
  * @param handle: string
  * @returns State operations sequence.
  */
-const getHandlePositionStyle = (handle: string) => {
+    const getHandlePositionStyle = (handle: string) => {
         switch (handle) {
             case "tl": return { left: 0, top: 0 };
             case "tr": return { left: "100%", top: 0 };
@@ -1099,7 +1212,7 @@ const getHandlePositionStyle = (handle: string) => {
  * @param format: "png" | "jpeg" | "pdf"
  * @returns State operations sequence.
  */
-const exportToImage = async (format: "png" | "jpeg" | "pdf") => {
+    const exportToImage = async (format: "png" | "jpeg" | "pdf") => {
         const canvas = document.createElement("canvas");
         canvas.width = canvasWidth;
         canvas.height = canvasHeight;
@@ -1208,7 +1321,7 @@ const exportToImage = async (format: "png" | "jpeg" | "pdf") => {
  * 
  * @returns State operations sequence.
  */
-const runAiAnalysis = async () => {
+    const runAiAnalysis = async () => {
         if (!aiFile) return;
         setAiAnalyzing(true);
         const steps = [
@@ -1400,7 +1513,7 @@ const runAiAnalysis = async () => {
  * @param { open, onClose, title, children }: { open: boolean; onClose: (
  * @returns State operations sequence.
  */
-const Modal = ({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) => {
+    const Modal = ({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) => {
         if (!open) return null;
         return (
             <div className={styles.container_5}>
@@ -1460,9 +1573,22 @@ const Modal = ({ open, onClose, title, children }: { open: boolean; onClose: () 
                                                 fetchTemplates(f.id);
                                                 setView("templates");
                                             }}
-                                            className={`${styles.table_24} group`}
+                                            className={`${styles.table_24} group relative`}
                                         >
                                             <div className={`${styles.table_25} group`} />
+                                            <button
+                                                type="button"
+                                                onClick={(e) => handleDeleteFolder(f, e)}
+                                                disabled={deletingFolderId === f.id}
+                                                className="absolute top-3 right-3 z-10 p-1.5 rounded-md bg-white/90 text-zinc-400 hover:text-red-600 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-100 disabled:cursor-not-allowed"
+                                                title="Delete folder"
+                                            >
+                                                {deletingFolderId === f.id ? (
+                                                    <Lucide.Loader2 size={14} className="animate-spin" />
+                                                ) : (
+                                                    <Lucide.Trash2 size={14} />
+                                                )}
+                                            </button>
                                             <div className={styles.div_26}>
                                                 <div className={`${styles.table_27} group`}>
                                                     <Lucide.Folder size={18} />
@@ -1528,8 +1654,21 @@ const Modal = ({ open, onClose, title, children }: { open: boolean; onClose: () 
                                         </div>
                                     )}
                                     {templates.map((t) => (
-                                        <div key={t.id} className={`${styles.table_44} group`}>
+                                        <div key={t.id} className={`${styles.table_44} group relative`}>
                                             <div className={`${styles.table_45} group`} />
+                                            <button
+                                                type="button"
+                                                onClick={(e) => handleDeleteTemplate(t, e)}
+                                                disabled={deletingTemplateId === t.id}
+                                                className="absolute top-3 right-3 z-10 p-1.5 rounded-md bg-white/90 text-zinc-400 hover:text-red-600 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-100 disabled:cursor-not-allowed"
+                                                title="Delete template"
+                                            >
+                                                {deletingTemplateId === t.id ? (
+                                                    <Lucide.Loader2 size={14} className="animate-spin" />
+                                                ) : (
+                                                    <Lucide.Trash2 size={14} />
+                                                )}
+                                            </button>
                                             <div className={styles.div_46}>
                                                 <div className={styles.text_47}>
                                                     <Lucide.FileImage size={18} />
@@ -1568,13 +1707,12 @@ const Modal = ({ open, onClose, title, children }: { open: boolean; onClose: () 
                                             onChange={(e) => setSelectedTemplate({ ...selectedTemplate, name: e.target.value })}
                                             className={styles.table_56}
                                         />
-                                        <span className={`${styles.table_248} ${
-                                            saveStatus === "Saved"
-                                                ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border-emerald-200/50 dark:border-emerald-800/30"
-                                                : saveStatus === "Saving..."
+                                        <span className={`${styles.table_248} ${saveStatus === "Saved"
+                                            ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border-emerald-200/50 dark:border-emerald-800/30"
+                                            : saveStatus === "Saving..."
                                                 ? "bg-[#FFF7D6] dark:bg-[#2E2818]/40 text-amber-700 dark:text-amber-400 border-amber-200/50 dark:border-amber-800/30 animate-pulse"
                                                 : "bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 border-red-200/50 dark:border-red-800/30"
-                                        } group`}>
+                                            } group`}>
                                             {saveStatus}
                                         </span>
                                     </div>
@@ -1636,11 +1774,10 @@ const Modal = ({ open, onClose, title, children }: { open: boolean; onClose: () 
                                                 key={tab}
                                                 type="button"
                                                 onClick={() => setActiveSidebarTab(tab)}
-                                                className={`${styles.table_249} ${
-                                                    activeSidebarTab === tab
-                                                        ? "border-[#F4C542] text-zinc-800 dark:text-zinc-100 bg-[#FFFFFF] dark:bg-[#1E1E24]"
-                                                        : "border-transparent text-zinc-400 dark:text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800/60"
-                                                } group`}
+                                                className={`${styles.table_249} ${activeSidebarTab === tab
+                                                    ? "border-[#F4C542] text-zinc-800 dark:text-zinc-100 bg-[#FFFFFF] dark:bg-[#1E1E24]"
+                                                    : "border-transparent text-zinc-400 dark:text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800/60"
+                                                    } group`}
                                             >
                                                 {tab.slice(0, 4)}
                                             </button>
@@ -1871,11 +2008,10 @@ const Modal = ({ open, onClose, title, children }: { open: boolean; onClose: () 
                                                         <div
                                                             key={l.id}
                                                             onClick={() => setSelectedLayerId(l.id)}
-                                                            className={`${styles.table_250} ${
-                                                                selectedLayerId === l.id
-                                                                    ? "bg-[#FFF9E5] border-[#F4C542] font-bold"
-                                                                    : "bg-card border-[#E5E7EB] hover:bg-[#FFF9E5]/30"
-                                                            } group`}
+                                                            className={`${styles.table_250} ${selectedLayerId === l.id
+                                                                ? "bg-[#FFF9E5] border-[#F4C542] font-bold"
+                                                                : "bg-card border-[#E5E7EB] hover:bg-[#FFF9E5]/30"
+                                                                } group`}
                                                         >
                                                             <div className={styles.container_129}>
                                                                 <span className={styles.text_130}>
@@ -1954,9 +2090,8 @@ const Modal = ({ open, onClose, title, children }: { open: boolean; onClose: () 
                                                         key={layer.id}
                                                         id={`layer-${layer.id}`}
                                                         onPointerDown={(e) => handlePointerDown(e, layer.id, "dragging")}
-                                                        className={`${styles.container_251} ${layer.locked ? "" : "cursor-move"} ${
-                                                            selectedLayerId === layer.id ? "ring-1 ring-[#F4C542]" : "hover:ring-1 hover:ring-gray-300"
-                                                        } group`}
+                                                        className={`${styles.container_251} ${layer.locked ? "" : "cursor-move"} ${selectedLayerId === layer.id ? "ring-1 ring-[#F4C542]" : "hover:ring-1 hover:ring-gray-300"
+                                                            } group`}
                                                         style={{
                                                             left: `${layer.x}px`,
                                                             top: `${layer.y}px`,
@@ -2190,27 +2325,24 @@ const Modal = ({ open, onClose, title, children }: { open: boolean; onClose: () 
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleLayerMetadataChange("bold", !selectedLayer.metadata?.bold)}
-                                                                className={`${styles.text_252} ${
-                                                                    selectedLayer.metadata?.bold ? "bg-[#FFF9E5] text-black" : "bg-card hover:bg-muted text-muted-foreground"
-                                                                }`}
+                                                                className={`${styles.text_252} ${selectedLayer.metadata?.bold ? "bg-[#FFF9E5] text-black" : "bg-card hover:bg-muted text-muted-foreground"
+                                                                    }`}
                                                             >
                                                                 B
                                                             </button>
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleLayerMetadataChange("italic", !selectedLayer.metadata?.italic)}
-                                                                className={`${styles.text_253} ${
-                                                                    selectedLayer.metadata?.italic ? "bg-[#FFF9E5] text-black" : "bg-card hover:bg-muted text-muted-foreground"
-                                                                }`}
+                                                                className={`${styles.text_253} ${selectedLayer.metadata?.italic ? "bg-[#FFF9E5] text-black" : "bg-card hover:bg-muted text-muted-foreground"
+                                                                    }`}
                                                             >
                                                                 I
                                                             </button>
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleLayerMetadataChange("underline", !selectedLayer.metadata?.underline)}
-                                                                className={`${styles.text_254} ${
-                                                                    selectedLayer.metadata?.underline ? "bg-[#FFF9E5] text-black" : "bg-card hover:bg-muted text-muted-foreground"
-                                                                }`}
+                                                                className={`${styles.text_254} ${selectedLayer.metadata?.underline ? "bg-[#FFF9E5] text-black" : "bg-card hover:bg-muted text-muted-foreground"
+                                                                    }`}
                                                             >
                                                                 U
                                                             </button>
@@ -2222,11 +2354,10 @@ const Modal = ({ open, onClose, title, children }: { open: boolean; onClose: () 
                                                                     key={align}
                                                                     type="button"
                                                                     onClick={() => handleLayerMetadataChange("align", align)}
-                                                                    className={`${styles.text_255} ${
-                                                                        (selectedLayer.metadata?.align || "left") === align
-                                                                            ? "bg-[#FFF9E5] text-black"
-                                                                            : "bg-card hover:bg-muted text-muted-foreground"
-                                                                    }`}
+                                                                    className={`${styles.text_255} ${(selectedLayer.metadata?.align || "left") === align
+                                                                        ? "bg-[#FFF9E5] text-black"
+                                                                        : "bg-card hover:bg-muted text-muted-foreground"
+                                                                        }`}
                                                                 >
                                                                     {align}
                                                                 </button>
