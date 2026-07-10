@@ -12,10 +12,10 @@
 }
 
 .headerScrolled {
-  @apply border-border;
   background: color-mix(in srgb, var(--background) 80%, transparent);
   backdrop-filter: blur(12px);
   box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+  border: none !important;
 }
 
 .leftSection {
@@ -77,15 +77,16 @@
 }
 
 .profileBtn {
-  @apply flex items-center gap-2.5 p-1 pr-3 rounded-full border border-border bg-surface transition-all duration-200 cursor-pointer;
+  @apply flex items-center gap-2.5 p-1 pr-3 rounded-full bg-surface transition-all duration-200 cursor-pointer;
+  border: 1px solid transparent !important;
 }
 .profileBtn:hover {
-  @apply border-primary bg-surface-2;
+  @apply bg-surface-2;
 }
 
 .avatar {
-  @apply flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full border bg-primary/10 text-[10px] font-bold text-primary;
-  border-color: color-mix(in srgb, var(--primary) 20%, transparent);
+  @apply flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-[10px] font-bold text-primary;
+  border: none !important;
 }
 .avatar img {
   @apply h-full w-full object-cover;
@@ -111,7 +112,8 @@
 }
 
 .dropdown {
-  @apply absolute right-0 top-[calc(100%+8px)] w-64 overflow-hidden rounded-xl border border-border bg-card shadow-xl transition-all duration-200 z-[100];
+  @apply absolute right-0 top-[calc(100%+8px)] w-64 overflow-hidden rounded-xl bg-card shadow-xl transition-all duration-200 z-[100];
+  border: none !important;
   opacity: 0;
   transform: translateY(-8px) scale(0.98);
   pointer-events: none;
@@ -123,11 +125,12 @@
 }
 
 .dropdownHeader {
-  @apply flex items-center gap-3 border-b border-border bg-surface p-4;
+  @apply flex items-center gap-3 bg-surface p-4;
+  border-bottom: 1px solid transparent !important;
 }
 
 .dropdownAvatar {
-  @apply flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border bg-primary/10 text-xs font-bold text-primary;
+  @apply flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-xs font-bold text-primary;
   border-color: color-mix(in srgb, var(--primary) 20%, transparent);
 }
 .dropdownAvatar img {
@@ -185,7 +188,8 @@
 
 /* CPST Tabs */
 .cpstTabsContainer {
-  @apply sticky z-40 flex h-12 items-center gap-6 border-b border-border px-6 transition-all duration-200;
+  @apply sticky z-40 flex h-12 items-center gap-6 px-6 transition-all duration-200;
+  border-bottom: none !important;
   top: 72px;
   background: color-mix(in srgb, var(--surface) 50%, transparent);
   backdrop-filter: blur(12px);

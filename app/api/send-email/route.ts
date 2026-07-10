@@ -37,15 +37,23 @@ async function sendEmail({ toEmails, name, subject, body }: { toEmails: string[]
         const emailSubject = (subject || "Warmest Birthday Wishes").replaceAll('{Client Name}', name);
         
         const htmlContent = `
-          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #ECECEC; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
-            <div style="background-color: #F4C542; padding: 24px; text-align: center;">
-              <h1 style="margin: 0; color: #000; font-size: 24px;">Happy Birthday! 🎂</h1>
+          <div style="font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 18px; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05); background-color: #ffffff;">
+            <!-- Celebratory Banner with Gradient -->
+            <div style="background: linear-gradient(135deg, #F4C542 0%, #E2B229 100%); padding: 40px 20px; text-align: center; color: #111827;">
+              <span style="font-size: 40px; display: inline-block; margin-bottom: 8px;">🎂</span>
+              <h1 style="margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.04em;">Happy Birthday, ${name}!</h1>
+              <p style="margin: 5px 0 0 0; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: #374151;">Warm Wishes From Team Padua</p>
             </div>
-            <div style="padding: 24px; background-color: #FFFDF2; color: #333; line-height: 1.6; font-size: 15px;">
-              <p style="white-space: pre-wrap; margin: 0;">${textContent}</p>
+            
+            <!-- Message Body -->
+            <div style="padding: 40px; background-color: #FFFDF5; color: #374151; line-height: 1.8; font-size: 16px; border-bottom: 1px solid #f3f4f6;">
+              <p style="white-space: pre-wrap; margin: 0; font-size: 16px; color: #4b5563;">${textContent}</p>
             </div>
-            <div style="background-color: #FFF; border-top: 1px solid #ECECEC; padding: 16px; text-align: center; font-size: 12px; color: #666;">
-              <p style="margin: 0;">Sent by Sun Life Team Padua Client Management Portal</p>
+            
+            <!-- Footer Details -->
+            <div style="background-color: #f9fafb; padding: 25px 20px; text-align: center; font-size: 12px; color: #9ca3af; line-height: 1.5;">
+              <p style="margin: 0; font-weight: 600; color: #6b7280; font-size: 13px;">Sun Life • Team Padua Client Management Portal</p>
+              <p style="margin: 5px 0 0 0;">This is an automated birthday greeting. Please do not reply directly to this mail.</p>
             </div>
           </div>
         `;

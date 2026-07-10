@@ -37,7 +37,29 @@
   justify-content: center;
   padding: 0 0.15rem;
   border: 1px solid var(--card);
+  animation: badge-pulse 2.2s infinite ease-in-out;
 }
+
+.bellShake {
+  animation: bell-shake 0.65s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+@keyframes bell-shake {
+  10%, 90% { transform: translate3d(-1px, 0, 0) rotate(-4deg); }
+  20%, 80% { transform: translate3d(2px, 0, 0) rotate(6deg); }
+  30%, 50%, 70% { transform: translate3d(-2px, 0, 0) rotate(-8deg); }
+  40%, 60% { transform: translate3d(2px, 0, 0) rotate(8deg); }
+}
+
+@keyframes badge-pulse {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+  70% { transform: scale(1.1); box-shadow: 0 0 0 5px rgba(239, 68, 68, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
 
 .dropdown {
   position: absolute;

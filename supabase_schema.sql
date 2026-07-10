@@ -301,3 +301,51 @@ CREATE POLICY "Allow authenticated full access to calendar_events"
   ON public.calendar_events FOR ALL USING (auth.role() = 'authenticated');
 
 
+-- =========================================================================
+-- 13. PORTAL CATEGORIES & RESOURCES TABLES (Reusable Portal Management)
+-- =========================================================================
+
+CREATE TABLE IF NOT EXISTS public.portal_categories (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  slug TEXT NOT NULL UNIQUE,
+  icon TEXT,
+  color TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.portal_resources (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  category_id UUID REFERENCES public.portal_categories(id) ON DELETE SET NULL,
+  portal_slug TEXT NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT,
+  url TEXT NOT NULL,
+  thumbnail TEXT,
+  favorite BOOLEAN DEFAULT false,
+  status TEXT DEFAULT 'Active' CHECK (status IN ('Active', 'Hidden', 'Archived')),
+  display_order INTEGER DEFAULT 0,
+  created_by TEXT DEFAULT 'Admin',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_portal_resources_portal_slug ON public.portal_resources(portal_slug);
+CREATE INDEX IF NOT EXISTS idx_portal_resources_category_id ON public.portal_resources(category_id);
+CREATE INDEX IF NOT EXISTS idx_portal_resources_favorite ON public.portal_resources(favorite);
+
+ALTER TABLE public.portal_categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.portal_resources ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow select for all on portal_categories" ON public.portal_categories FOR SELECT USING (true);
+CREATE POLICY "Allow insert for authenticated users on portal_categories" ON public.portal_categories FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Allow update for authenticated users on portal_categories" ON public.portal_categories FOR UPDATE USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Allow delete for authenticated users on portal_categories" ON public.portal_categories FOR DELETE USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Allow select for all on portal_resources" ON public.portal_resources FOR SELECT USING (true);
+CREATE POLICY "Allow insert for authenticated users on portal_resources" ON public.portal_resources FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Allow update for authenticated users on portal_resources" ON public.portal_resources FOR UPDATE USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Allow delete for authenticated users on portal_resources" ON public.portal_resources FOR DELETE USING (auth.role() = 'authenticated');
+
+
+

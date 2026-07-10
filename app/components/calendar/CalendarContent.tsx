@@ -5,13 +5,14 @@ import {
   CalendarDays, ChevronLeft, ChevronRight, Plus, Trash2, Pencil, Clock,
   MapPin, X, Search, Sparkles, Menu, AlignLeft, ChevronDown
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/app/lib/supabase/client';
 import styles from '@/styles/components/calendar/CalendarContent.module.css';
 
 type ViewMode = 'Month' | 'Week' | 'Day' | 'Agenda' | 'Gallery' | 'Timeline' | 'Year' | 'Quarter';
 
 type Category =
-  | 'Meeting' | 'Birthday' | 'Client' | 'Deadline' | 'Holiday'
+  | 'Meeting' | 'Meeting' | 'Birthday' | 'Client' | 'Deadline' | 'Holiday'
   | 'Interview' | 'Task' | 'Attendance' | 'ACR';
 
 interface CalendarEvent {
@@ -32,6 +33,8 @@ const CATEGORIES: Category[] = [
 ];
 
 const VIEW_MODES: ViewMode[] = ['Month', 'Week', 'Day', 'Agenda', 'Gallery', 'Timeline', 'Year', 'Quarter'];
+
+const CONFETTI_COLORS = ['#ff007f', '#ffaa00', '#00ffaa', '#00aaff', '#cc00ff', '#f4c542'];
 
 const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const WEEKDAY_LABELS_LONG = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -89,6 +92,9 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
   const [selectedYearMonth, setSelectedYearMonth] = useState<number | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showViewDropdown, setShowViewDropdown] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [celebratedEvent, setCelebratedEvent] = useState<CalendarEvent | null>(null);
+  const [isEditCelebration, setIsEditCelebration] = useState(false);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -180,6 +186,7 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
     };
 
     if (editingId) {
+      let updatedObj: CalendarEvent | null = null;
       try {
         const { data, error } = await supabase
           .from('calendar_events')
@@ -188,14 +195,29 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
           .select()
           .single();
         if (error) throw error;
-        setEvents(prev => prev.map(ev => (ev.id === editingId ? (data as CalendarEvent) : ev)));
+        updatedObj = data as CalendarEvent;
+        setEvents(prev => prev.map(ev => (ev.id === editingId ? updatedObj! : ev)));
         showToast('Event updated successfully.');
+
+        // Trigger notification
+        await supabase.from('notifications').insert({
+          title: "📅 Calendar Event Modified! 🔄",
+          description: `The event "${payload.title}" scheduled for ${payload.event_date} has been updated.`,
+          type: "calendar",
+        });
       } catch {
-        const updated = events.map(ev => (ev.id === editingId ? { ...ev, ...payload } as CalendarEvent : ev));
+        updatedObj = { ...payload, id: editingId } as CalendarEvent;
+        const updated = events.map(ev => (ev.id === editingId ? updatedObj! : ev));
         persistLocal(updated);
         showToast('Updated event locally.');
       }
+      if (updatedObj) {
+        setCelebratedEvent(updatedObj);
+        setIsEditCelebration(true);
+        setShowCelebration(true);
+      }
     } else {
+      let createdObj: CalendarEvent | null = null;
       try {
         const { data, error } = await supabase
           .from('calendar_events')
@@ -203,12 +225,27 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
           .select()
           .single();
         if (error) throw error;
-        if (data) setEvents(prev => [...prev, data as CalendarEvent]);
-        showToast('Event scheduled successfully.');
+        if (data) {
+          createdObj = data as CalendarEvent;
+          setEvents(prev => [...prev, createdObj!]);
+          showToast('Event scheduled successfully.');
+
+          // Trigger notification
+          await supabase.from('notifications').insert({
+            title: "📅 New Calendar Event Scheduled! 🎉",
+            description: `"${payload.title}" has been scheduled for ${payload.event_date} at ${payload.start_time || '00:00'}.`,
+            type: "calendar",
+          });
+        }
       } catch {
-        const created = { ...payload, id: String(Date.now()) } as CalendarEvent;
-        persistLocal([...events, created]);
+        createdObj = { ...payload, id: String(Date.now()) } as CalendarEvent;
+        persistLocal([...events, createdObj]);
         showToast('Scheduled event locally.');
+      }
+      if (createdObj) {
+        setCelebratedEvent(createdObj);
+        setIsEditCelebration(false);
+        setShowCelebration(true);
       }
     }
     setShowAddModal(false);
@@ -217,11 +254,21 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
 
   const handleDeleteEvent = async (id: string) => {
     if (!confirm('Discard this calendar event?')) return;
+    const targetEvent = events.find(ev => ev.id === id);
+    const eventTitle = targetEvent?.title ? `"${targetEvent.title}"` : "A calendar event";
+
     try {
       const { error } = await supabase.from('calendar_events').delete().eq('id', id);
       if (error) throw error;
       setEvents(prev => prev.filter(ev => ev.id !== id));
       showToast('Event discarded.');
+
+      // Trigger notification
+      await supabase.from('notifications').insert({
+        title: "📅 Calendar Event Discarded ❌",
+        description: `${eventTitle} has been removed from the schedule.`,
+        type: "calendar",
+      });
     } catch {
       persistLocal(events.filter(ev => ev.id !== id));
       showToast('Discarded event locally.');
@@ -668,8 +715,8 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
                 <div className={styles.miniCalHeader}>
                   <span className={styles.miniCalTitle}>{currentDate.toLocaleString('default', { month: 'short', year: 'numeric' })}</span>
                   <div className={styles.miniCalNav}>
-                    <button className={styles.iconBtn} onClick={() => setCurrentDate(new Date(year, month - 1, 1))}><ChevronLeft size={12} /></button>
-                    <button className={styles.iconBtn} onClick={() => setCurrentDate(new Date(year, month + 1, 1))}><ChevronRight size={12} /></button>
+                    <button className={styles.iconBtn} onClick={() => setCurrentDate(new Date(year, month - 1, 1))}><ChevronLeft size={14} /></button>
+                    <button className={styles.iconBtn} onClick={() => setCurrentDate(new Date(year, month + 1, 1))}><ChevronRight size={14} /></button>
                   </div>
                 </div>
                 <div className={styles.miniCalGridHead}>{WEEKDAY_LABELS.map((d, i) => <div key={i}>{d}</div>)}</div>
@@ -707,6 +754,11 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
             </div>
           </div>
           <div className={styles.topbarRight}>
+
+            <button className={styles.addBtn} onClick={() => openAddModal(new Date().toISOString().split('T')[0])}>
+              <Plus size={14} /> Log Activity
+            </button>
+
             <div className={styles.viewDropdownWrap}>
               <button
                 type="button"
@@ -735,9 +787,6 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
                 </div>
               )}
             </div>
-            <button className={styles.addBtn} onClick={() => openAddModal(new Date().toISOString().split('T')[0])}>
-              <Plus size={14} /> New Event
-            </button>
           </div>
         </div>
 
@@ -745,8 +794,8 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
           <span className={styles.periodLabel}>{periodLabel}</span>
           <div className={styles.periodNav}>
             <button className={styles.todayBtn} onClick={goToday}>Today</button>
-            <button className={styles.iconBtn} onClick={goPrev}><ChevronLeft size={15} /></button>
-            <button className={styles.iconBtn} onClick={goNext}><ChevronRight size={15} /></button>
+            <button className={styles.iconBtn} onClick={goPrev}><ChevronLeft size={18} /></button>
+            <button className={styles.iconBtn} onClick={goNext}><ChevronRight size={18} /></button>
           </div>
         </div>
 
@@ -801,18 +850,7 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
             <div className={styles.panelBody}>
               <span className={`${styles.badge} ${catClass(selectedEvent.category)}`}>{selectedEvent.category}</span>
               <div className={styles.panelTitle}>{selectedEvent.title}</div>
-              <div className={styles.metaList}>
-                <div className={styles.metaRow}>
-                  <Clock size={14} className={styles.metaIcon} />
-                  <span>{selectedEvent.event_date}{selectedEvent.start_time ? ` · ${selectedEvent.start_time}${selectedEvent.end_time ? ` – ${selectedEvent.end_time}` : ''}` : ''}</span>
-                </div>
-                {selectedEvent.location_name && (
-                  <div className={styles.metaRow}>
-                    <MapPin size={14} className={styles.metaIcon} />
-                    <span>{selectedEvent.location_name}</span>
-                  </div>
-                )}
-              </div>
+
               <div className={styles.descBox}>{selectedEvent.description || 'No description added.'}</div>
             </div>
             <div className={styles.panelFooter}>
@@ -861,11 +899,6 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
               </div>
 
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Location</label>
-                <input type="text" value={newEvent.location_name || ''} onChange={e => setNewEvent(p => ({ ...p, location_name: e.target.value }))} className={styles.formInput} placeholder="Optional" />
-              </div>
-
-              <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Description</label>
                 <textarea value={newEvent.description || ''} onChange={e => setNewEvent(p => ({ ...p, description: e.target.value }))} className={styles.formTextarea} placeholder="Optional notes" />
               </div>
@@ -875,6 +908,118 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
           </div>
         </div>
       )}
+
+      <AnimatePresence>
+        {showCelebration && celebratedEvent && (
+          <div className={styles.celebrationOverlay} onClick={() => setShowCelebration(false)}>
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              transition={{ type: "spring", damping: 15 }}
+              className={styles.celebrationModal}
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Confetti Explosion */}
+              <div className={styles.confettiContainer}>
+                {Array.from({ length: 40 }).map((_, i) => {
+                  const angle = (i / 40) * 360 + (Math.random() - 0.5) * 20;
+                  const distance = 90 + Math.random() * 150;
+                  const x = Math.cos((angle * Math.PI) / 180) * distance;
+                  const y = Math.sin((angle * Math.PI) / 180) * distance - 30;
+                  const color = CONFETTI_COLORS[i % CONFETTI_COLORS.length];
+                  const size = 6 + Math.random() * 8;
+                  const delay = Math.random() * 0.2;
+                  return (
+                    <motion.div
+                      key={i}
+                      style={{
+                        position: 'absolute',
+                        left: '50%',
+                        top: '50%',
+                        width: size,
+                        height: size,
+                        borderRadius: Math.random() > 0.5 ? '50%' : '2px',
+                        backgroundColor: color,
+                      }}
+                      initial={{ x: 0, y: 0, scale: 0, opacity: 1 }}
+                      animate={{
+                        x: x,
+                        y: y,
+                        scale: [0, 1.3, 1.1, 0.6, 0],
+                        opacity: [1, 1, 0.8, 0.4, 0],
+                        rotate: Math.random() * 360,
+                      }}
+                      transition={{
+                        duration: 1.8 + Math.random() * 0.8,
+                        ease: "easeOut",
+                        delay: delay,
+                      }}
+                    />
+                  );
+                })}
+              </div>
+
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.2, type: "spring", stiffness: 200, damping: 12 }}
+                className={styles.celebrationIcon}
+              >
+                🎉
+              </motion.div>
+
+              <motion.div
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.3 }}
+              >
+                <h2 className={styles.celebrationTitle}>
+                  {isEditCelebration ? 'Event Updated!' : 'Activity Logged!'}
+                </h2>
+              </motion.div>
+
+              <motion.div
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.4 }}
+                className={styles.celebrationBadge}
+              >
+                <Sparkles size={14} />
+                <span>{celebratedEvent.category}</span>
+              </motion.div>
+
+              <motion.div
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.5 }}
+                style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}
+              >
+                <div style={{ fontWeight: 800, fontSize: '18px', color: 'var(--ink)' }}>
+                  {celebratedEvent.title}
+                </div>
+                <p className={styles.celebrationText}>
+                  {isEditCelebration 
+                    ? 'Excellent! You successfully updated this workspace event. Everything is set and ready to go! 🚀' 
+                    : 'Awesome job! You successfully added this activity to the master workspace calendar. Keep up the high productivity! 🚀'}
+                </p>
+              </motion.div>
+
+              <motion.button
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.6 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className={styles.celebrationCloseBtn}
+                onClick={() => setShowCelebration(false)}
+              >
+                Let's Keep Going!
+              </motion.button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

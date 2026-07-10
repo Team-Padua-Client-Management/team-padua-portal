@@ -1,76 +1,107 @@
-/* C:\website\tp\styles\components\admin\AdminSidebar\page.module.css */
-
 @reference "../../../globals/globals.css";
 
-.card_0 {
-  @apply flex flex-col h-full bg-card text-foreground font-sans border-0;
+/* Sidebar Container (Desktop sticky) */
+.sidebarAside {
+  @apply hidden md:flex w-64 flex-col bg-[#FFFFFF] shrink-0 sticky top-8;
+  height: calc(100vh - 64px);
+  border-radius: 24px;
+  border-right: 1px solid #ECECEC !important;
+  border-left: 1px solid #ECECEC !important;
+  border-top: 1px solid #ECECEC !important;
+  border-bottom: 1px solid #ECECEC !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  transition: width 300ms ease, box-shadow 300ms ease;
+  background-color: #FFFFFF !important;
+}
+
+/* Sidebar Drawer (Mobile) */
+.sidebarDrawer {
+  @apply relative z-50 flex h-full w-64 flex-col bg-[#FFFFFF];
+  border-right: 1px solid #ECECEC !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
   overflow-x: hidden;
+  background-color: #FFFFFF !important;
 }
 
-.card_1 {
-  @apply flex flex-col px-6 py-8 border-b relative;
-  border-color: var(--border);
-  transition: padding 280ms ease-in-out;
+.sidebarMobileWrapper {
+  @apply fixed inset-0 z-50 flex md:hidden;
 }
 
-.card_1_collapsed {
+.sidebarOverlay {
+  @apply fixed inset-0 backdrop-blur-md;
+  background: color-mix(in srgb, var(--background) 40%, transparent);
+}
+
+/* Inner flex container */
+.sidebarInner {
+  @apply flex flex-col h-full bg-[#FFFFFF];
+  overflow: hidden;
+  background-color: #FFFFFF !important;
+}
+
+/* Header container */
+.sidebarHeader {
+  @apply flex flex-col px-6 py-7 relative bg-[#FFFFFF];
+  border-bottom: 1px solid #ECECEC;
+  transition: padding 300ms ease;
+}
+
+.sidebarHeaderCollapsed {
   @apply px-2 py-6;
 }
 
-/* Chevron toggle — single icon, no circular background */
 .toggleChevron {
   position: absolute;
-  top: 14px;
+  top: 18px;
   right: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: transparent;
   border: none;
-  padding: 2px;
-  margin: 0;
+  padding: 4px;
   cursor: pointer;
-  line-height: 0;
-  color: var(--text-secondary);
-  transition: color 250ms ease-in-out, transform 250ms ease-in-out;
+  color: #5F6368;
+  transition: color 300ms ease, transform 300ms ease;
   z-index: 10;
 }
 
 .toggleChevron:hover {
-  color: var(--primary);
-  transform: scale(1.1);
+  color: #D4A017;
+  transform: scale(1.08);
 }
 
-.container_2 {
+.sidebarHeaderContainer {
   @apply flex items-center justify-between;
 }
 
-.table_3 {
-  @apply text-lg font-serif font-bold text-text tracking-tight whitespace-nowrap;
+.sidebarTitle {
+  @apply text-base font-serif font-bold text-[#111827] tracking-tight whitespace-nowrap;
 }
 
-.table_4 {
-  @apply text-[10px] uppercase font-bold tracking-widest font-mono mt-0.5 whitespace-nowrap;
-  color: var(--text-secondary);
+.sidebarSubtitle {
+  @apply text-[9px] uppercase font-bold tracking-wider font-mono mt-0.5 whitespace-nowrap;
+  color: #5F6368;
 }
 
-.table_5 {
+.mobileCloseBtn {
   @apply md:hidden p-1 rounded-md transition-colors;
-  color: var(--text);
+  color: #374151;
 }
 
-.table_5:hover {
-  background: var(--surface-2);
+.mobileCloseBtn:hover {
+  background: #FFF9E8;
+  color: #D4A017;
 }
 
-.table_6 {
-  @apply text-[9px] font-bold mt-2 uppercase tracking-wider font-mono whitespace-nowrap;
-  color: var(--primary);
+.sidebarGreeting {
+  @apply text-[8px] font-bold mt-1.5 uppercase tracking-wider font-mono whitespace-nowrap;
+  color: #D4A017;
 }
 
-/* Fade helpers for logo / text / labels during collapse */
 .logoFade {
-  transition: opacity 250ms ease-in-out, transform 250ms ease-in-out;
+  transition: opacity 300ms ease, transform 300ms ease;
   opacity: 1;
   transform: scale(1);
 }
@@ -89,7 +120,7 @@
   white-space: nowrap;
   max-width: 220px;
   opacity: 1;
-  transition: max-width 280ms ease-in-out, opacity 200ms ease-in-out, margin 280ms ease-in-out;
+  transition: max-width 300ms ease, opacity 250ms ease, margin 300ms ease;
 }
 
 .textFadeHidden {
@@ -98,12 +129,78 @@
   margin: 0 !important;
 }
 
+/* Nav Body Scrollable section */
+.sidebarNav {
+  @apply flex-1 p-4 space-y-1 bg-[#FFFFFF];
+  overflow-y: auto;
+  overflow-x: hidden;
+  transition: padding 300ms ease;
+}
+
+.sidebarNavGroup {
+  @apply space-y-1;
+}
+
+.navItemLink {
+  @apply flex items-center gap-3 flex-1;
+}
+
+.dropdownToggleBtn {
+  @apply p-1 rounded transition-colors;
+  color: #5F6368;
+}
+
+.dropdownToggleBtn:hover {
+  background: #FFF9E8;
+  color: #D4A017;
+}
+
+/* Sub-items list indent line */
+.sidebarSubNav {
+  @apply pl-6 space-y-1 ml-5 mt-1 relative;
+}
+
+.sidebarSubNav::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background-color: #ECECEC;
+}
+
+/* Footer Section */
+.sidebarFooter {
+  @apply p-4 bg-[#FFFFFF] mt-auto;
+  border-top: 1px solid #ECECEC;
+  transition: padding 300ms ease;
+}
+
+.sidebarFooterText {
+  @apply text-[9px] text-center font-mono font-medium whitespace-nowrap;
+  color: #888888;
+  /* Smaller gray typography */
+}
+
+/* Navigation Links base styling */
+.navItem {
+  @apply flex items-center justify-between rounded-lg px-3.5 py-2.5 text-[13px] tracking-normal font-medium transition-all duration-300;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+}
+
+/* Sub-item links base styling */
+.sidebarSubNavItem {
+  @apply flex items-center gap-2 rounded-lg px-3.5 py-2 text-[11px] font-medium transition-all duration-300;
+}
+
 .navLabel {
   overflow: hidden;
   white-space: nowrap;
   max-width: 180px;
   opacity: 1;
-  transition: max-width 250ms ease-in-out, opacity 200ms ease-in-out, margin-left 250ms ease-in-out;
+  transition: max-width 300ms ease, opacity 250ms ease, margin-left 300ms ease;
 }
 
 .navLabelHidden {
@@ -112,94 +209,113 @@
   margin-left: 0;
 }
 
-.card_7 {
-  @apply flex-1 p-4 space-y-1 bg-card;
-  overflow-y: auto;
-  overflow-x: hidden;
-  transition: padding 280ms ease-in-out;
+/* --- Redesigned Active/Inactive/Hover States --- */
+
+.navItemInactive {
+  background-color: transparent;
+  color: #374151;
+  border-left: 3px solid transparent;
 }
 
-.div_8 {
-  @apply space-y-1;
+.navItemInactive:hover {
+  background-color: #FFF9E8;
+  color: #000000;
+  border-left: 3px solid transparent;
 }
 
-.container_9 {
-  @apply flex items-center gap-3 flex-1;
+.navItemInactive:hover .navIconInactive,
+.navItemInactive:hover .navIconActive {
+  color: #D4A017 !important;
 }
 
-.table_10 {
-  @apply p-1 rounded;
-  transition: all .25s ease-in-out;
+.navItemActive {
+  background-color: #FFF4CC !important;
+  color: #111827 !important;
+  border-left: 3px solid #F4C542 !important;
+  font-weight: 600 !important;
 }
 
-.table_10:hover {
-  background: var(--surface-2);
+/* Icon States */
+.navIconInactive {
+  color: #5F6368 !important;
+  transition: color 300ms ease;
 }
 
-.div_11 {
-  @apply pl-6 space-y-1 border-l ml-5 mt-1;
-  border-color: color-mix(in srgb, var(--border) 50%, transparent);
+.navIconActive {
+  color: #D4A017 !important;
+  transition: color 300ms ease;
 }
 
-.card_12 {
-  @apply p-4 border-t bg-card;
-  border-color: var(--border);
-  transition: padding 280ms ease-in-out;
+/* Sub-items dropdown links Active/Inactive/Hover */
+.navSubInactive {
+  color: #374151;
+  background-color: transparent;
 }
 
-.text_13 {
-  @apply text-[10px] text-center font-mono whitespace-nowrap;
-  color: var(--text-secondary);
+.navSubInactive:hover {
+  background-color: #FFF9E8;
+  color: #000000;
 }
 
-.card_14 {
-  @apply hidden md:flex w-64 flex-col bg-card shrink-0 sticky top-8 border shadow-theme;
-  height: calc(100vh - 64px);
-  border-radius: 28px;
-  border-color: var(--border);
-  overflow: hidden;
-  transition: width 280ms ease-in-out, box-shadow 280ms ease-in-out;
+.navSubActive {
+  background-color: #FFF4CC !important;
+  color: #111827 !important;
+  font-weight: 600 !important;
 }
 
-.container_15 {
-  @apply fixed inset-0 z-50 flex md:hidden;
-}
-
-.div_16 {
-  @apply fixed inset-0 backdrop-blur-md;
-  background: color-mix(in srgb, var(--background) 40%, transparent);
-}
-
-.card_17 {
-  @apply relative z-50 flex h-full w-64 flex-col bg-card border-r animate-in slide-in-from-left duration-200;
-  border-color: var(--border);
-  overflow-x: hidden;
-}
-
-.table_18 {
-  @apply flex items-center justify-between rounded-full px-3.5 py-2.5 text-xs font-semibold tracking-wide uppercase;
-  transition: all 280ms ease-in-out;
-}
-
-.table_19 {
-  @apply flex items-center gap-2 rounded-full px-3.5 py-2 text-[10px] font-bold tracking-wide uppercase;
-  transition: all 280ms ease-in-out;
-}
-
-.table_20 {
-  @apply flex items-center gap-3 rounded-full px-3.5 py-2.5 text-xs font-semibold tracking-wide uppercase;
-  transition: all 280ms ease-in-out;
-}
-
-/* Collapsed nav item — perfectly centered icon, active state preserved */
+/* Collapsed nav item layout */
 .navItemCollapsed {
-  @apply flex items-center justify-center rounded-full mx-auto;
+  @apply flex items-center justify-center rounded-lg mx-auto;
   width: 44px;
   height: 44px;
   padding: 0;
-  transition: all 280ms ease-in-out;
+  transition: all 300ms ease;
+  border-left: 3px solid transparent;
+}
+
+.navItemCollapsed:hover {
+  background-color: #FFF9E8;
 }
 
 .collapsedSidebar {
   width: 80px !important;
+}
+
+/* Minimal Custom Scrollbar */
+.sidebarNav::-webkit-scrollbar,
+.sidebarInner::-webkit-scrollbar,
+.sidebarSubNav::-webkit-scrollbar,
+.sidebarDrawer::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.sidebarNav::-webkit-scrollbar-track,
+.sidebarInner::-webkit-scrollbar-track,
+.sidebarSubNav::-webkit-scrollbar-track,
+.sidebarDrawer::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebarNav::-webkit-scrollbar-thumb,
+.sidebarInner::-webkit-scrollbar-thumb,
+.sidebarSubNav::-webkit-scrollbar-thumb,
+.sidebarDrawer::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15) !important;
+  border-radius: 99px;
+}
+
+.sidebarNav::-webkit-scrollbar-thumb:hover,
+.sidebarInner::-webkit-scrollbar-thumb:hover,
+.sidebarSubNav::-webkit-scrollbar-thumb:hover,
+.sidebarDrawer::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3) !important;
+}
+
+.sidebarNav,
+.sidebarInner,
+.sidebarSubNav,
+.sidebarDrawer {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
 }

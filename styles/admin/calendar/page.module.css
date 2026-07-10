@@ -502,23 +502,68 @@
 }
 
 .addBtn {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 9px 16px;
-    border-radius: 12px;
-    border: none;
-    background: var(--accent);
-    color: var(--ink);
-    font-size: 12px;
+    justify-content: center;
+    gap: 10px;
+
+    min-width: 180px;
+    height: 56px;
+    padding: 0 28px;
+
+    border-radius: 18px;
+    border: 1px solid #f3d77a;
+
+    background: #FFF6CC;
+    /* Light Yellow */
+    color: #111827;
+    /* Black Text */
+
+    font-size: 15px;
     font-weight: 800;
+    letter-spacing: .02em;
+
     cursor: pointer;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+    transition:
+        background .25s ease,
+        transform .2s ease,
+        box-shadow .25s ease,
+        border-color .25s ease;
+
+    box-shadow:
+        0 8px 22px rgba(244, 197, 66, .18),
+        inset 0 1px 0 rgba(255, 255, 255, .8);
+}
+
+
+.addBtn svg {
+    width: 18px;
+    height: 18px;
+    stroke-width: 2.5;
+    color: #111827;
+    flex-shrink: 0;
 }
 
 .addBtn:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-lift);
+    background: #FFECA0;
+    border-color: #F4C542;
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 12px 28px rgba(244, 197, 66, .30),
+        inset 0 1px 0 rgba(255, 255, 255, .9);
+}
+
+.addBtn:active {
+    transform: scale(.98);
+}
+
+.addBtn:focus-visible {
+    outline: none;
+    box-shadow:
+        0 0 0 4px rgba(244, 197, 66, .25),
+        0 12px 28px rgba(244, 197, 66, .25);
 }
 
 .periodBar {

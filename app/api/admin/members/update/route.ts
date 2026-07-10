@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/app/lib/supabase/admin";
+import { createNotification } from "@/app/lib/notifications";
 
 export async function POST(req: Request) {
     try {
@@ -47,6 +48,13 @@ export async function POST(req: Request) {
                 { status: 500 }
             );
         }
+
+        // Trigger notification
+        await createNotification({
+            title: "👤 Member Profile Synchronized! ⚙️",
+            description: `Profile credentials and system rights for "${full_name}" have been updated.`,
+            type: "member",
+        });
 
         return NextResponse.json({
             success: true,

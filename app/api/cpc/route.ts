@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/app/lib/supabase/admin";
+import { createNotification } from "@/app/lib/notifications";
 
 export async function GET(request: Request) {
   try {
@@ -76,6 +77,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    const record = Array.isArray(data) ? data[0] : data;
+    if (record) {
+      // Trigger notification
+      await createNotification({
+        title: "👥 New CPC Record Entry! 📄",
+        description: `CPC entry for owner "${record.policy_owner}" (Policy #${record.policy_number}) has been registered.`,
+        type: "servicing",
+      });
+    }
+
     return NextResponse.json(data);
   } catch (err) {
     console.error("CPC POST exception:", err);
@@ -110,6 +121,13 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    // Trigger notification
+    await createNotification({
+      title: "🔄 CPC Record Updated! ⚡",
+      description: `CPC record for owner "${data.policy_owner}" (Policy #${data.policy_number}) has been updated.`,
+      type: "servicing",
+    });
+
     return NextResponse.json(data);
   } catch (err) {
     console.error("CPC PUT exception:", err);
@@ -134,6 +152,13 @@ export async function DELETE(request: Request) {
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
 
+      // Trigger notification
+      await createNotification({
+        title: "🗑️ CPC Record Removed ❌",
+        description: `CPC record has been removed from client servicing.`,
+        type: "servicing",
+      });
+
       return NextResponse.json({ success: true });
     }
 
@@ -148,6 +173,13 @@ export async function DELETE(request: Request) {
         console.error("CPC bulk DELETE query failed:", error);
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
+
+      // Trigger notification
+      await createNotification({
+        title: "🗑️ Multiple CPC Records Removed ❌",
+        description: `Successfully discarded ${idList.length} CPC records.`,
+        type: "servicing",
+      });
 
       return NextResponse.json({ success: true });
     }

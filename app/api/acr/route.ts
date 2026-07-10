@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/app/lib/supabase/admin";
+import { createNotification } from "@/app/lib/notifications";
 
 export async function GET(request: Request) {
   try {
@@ -66,12 +67,20 @@ export async function POST(request: Request) {
         *,
         progress:progress_id(id, name, color, sort_order),
         processor:processed_by_id(id, name, color, sort_order)
-      `);
+      `)
+      .single();
 
     if (error) {
       console.error("ACR POST query failed:", error);
       return NextResponse.json({ error: error.message, details: error.details, hint: error.hint }, { status: 500 });
     }
+
+    // Trigger notification
+    await createNotification({
+      title: "✍️ New ACR Request Submitted! 📄",
+      description: `Advisor Change Request for owner "${data.policy_owner}" (Policy #${data.policy_number}) has been created.`,
+      type: "servicing",
+    });
 
     return NextResponse.json(data);
   } catch (err) {
@@ -105,6 +114,14 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: error.message, details: error.details, hint: error.hint }, { status: 500 });
     }
 
+    // Trigger notification
+    const statusText = data.progress?.name ? `[Status: ${data.progress.name}]` : "";
+    await createNotification({
+      title: "🔄 ACR Request Modified! ⚡",
+      description: `ACR for owner "${data.policy_owner}" (Policy #${data.policy_number}) has been updated. ${statusText}`,
+      type: "servicing",
+    });
+
     return NextResponse.json(data);
   } catch (err) {
     console.error("ACR PUT exception:", err);
@@ -129,6 +146,13 @@ export async function DELETE(request: Request) {
         return NextResponse.json({ error: error.message, details: error.details, hint: error.hint }, { status: 500 });
       }
 
+      // Trigger notification
+      await createNotification({
+        title: "🗑️ ACR Request Discarded ❌",
+        description: `Advisor Change Request record has been deleted from client servicing.`,
+        type: "servicing",
+      });
+
       return NextResponse.json({ success: true });
     }
 
@@ -143,6 +167,13 @@ export async function DELETE(request: Request) {
         console.error("ACR bulk DELETE query failed:", error);
         return NextResponse.json({ error: error.message, details: error.details, hint: error.hint }, { status: 500 });
       }
+
+      // Trigger notification
+      await createNotification({
+        title: "🗑️ Multiple ACR Requests Cleared ❌",
+        description: `Successfully discarded ${idList.length} Advisor Change Requests.`,
+        type: "servicing",
+      });
 
       return NextResponse.json({ success: true });
     }

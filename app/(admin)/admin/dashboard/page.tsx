@@ -4,13 +4,15 @@ import React, { useState, useEffect } from 'react';
 import {
   Users, ClipboardList, CalendarCheck, CalendarDays,
   Building2, UsersRound, Megaphone, MessageSquare,
-  CircleHelp, Paintbrush, RefreshCw, Loader2, ArrowUpRight, Wallet
+  CircleHelp, Paintbrush, RefreshCw, Loader2, ArrowUpRight, Wallet,
+  Settings
 } from 'lucide-react';
 import Link from 'next/link';
 import Header from "@/app/components/admin/AdminHeader/page";
 import Sidebar from "@/app/components/admin/AdminSidebar/page";
 import { supabase } from "@/app/lib/supabase/client";
 import styles from "@/styles/admin/dashboard/page.module.css";
+import WelcomeModal from "@/components/shared/WelcomeModal";
 
 type KpiData = {
   members: number;
@@ -118,6 +120,7 @@ export default function DashboardOverviewPage() {
 
   return (
     <div className={styles.text_0}>
+      <WelcomeModal userName={adminName} role="Admin" />
       {showSplash && (
         <div className={styles.table_1}>
           <div className={styles.container_2}>
@@ -205,12 +208,19 @@ export default function DashboardOverviewPage() {
               </div>
             </div>
             <div className={styles.container_26}>
-              <a
-                href="https://www.sunlife.com.ph/en/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`${styles.card_27} group`}
+              {/* Sun Life Portal */}
+              <div
+                onClick={() => window.open("https://www.sunlife.com.ph/en/", "_blank", "noopener,noreferrer")}
+                className={`${styles.card_27} group relative`}
               >
+                <Link
+                  href="/admin/portals/sun-life"
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute top-2.5 right-2.5 p-1.5 rounded-full bg-card/85 backdrop-blur border border-border opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-[#F4C542]/20 hover:text-[#F4C542] hover:scale-110 z-10 flex items-center justify-center text-text-secondary cursor-pointer"
+                  title="Manage Sun Life Resources"
+                >
+                  <Settings size={13} />
+                </Link>
                 <svg viewBox="0 0 100 100" className={`${styles.table_28} group`}>
                   <defs>
                     <filter id="sl-shadow-1" x="-10%" y="-10%" width="130%" height="130%">
@@ -242,14 +252,21 @@ export default function DashboardOverviewPage() {
                   <path d="M 20 38 A 31 31 0 0 1 70 38 A 28 28 0 0 0 20 38 Z" fill="rgba(255,255,255,0.22)" mask="url(#sl-mask-1)" pointerEvents="none" />
                 </svg>
                 <span className={`${styles.table_29} group`}>Sun Life Portal</span>
-              </a>
+              </div>
 
-              <a
-                href="https://advisorhomeoffice.sunlife.com.ph/aho/index.html#/:"
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`${styles.card_30} group`}
+              {/* Advisor Office */}
+              <div
+                onClick={() => window.open("https://advisorhomeoffice.sunlife.com.ph/aho/index.html#/:", "_blank", "noopener,noreferrer")}
+                className={`${styles.card_30} group relative`}
               >
+                <Link
+                  href="/admin/portals/advisor-office"
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute top-2.5 right-2.5 p-1.5 rounded-full bg-card/85 backdrop-blur border border-border opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-[#F4C542]/20 hover:text-[#F4C542] hover:scale-110 z-10 flex items-center justify-center text-text-secondary cursor-pointer"
+                  title="Manage Advisor Office Resources"
+                >
+                  <Settings size={13} />
+                </Link>
                 <svg viewBox="0 0 100 100" className={`${styles.table_31} group`}>
                   <defs>
                     <filter id="sl-shadow-2" x="-10%" y="-10%" width="130%" height="130%">
@@ -275,14 +292,21 @@ export default function DashboardOverviewPage() {
                   <path d="M 20 38 A 31 31 0 0 1 70 38 A 28 28 0 0 0 20 38 Z" fill="rgba(255,255,255,0.22)" mask="url(#sl-mask-2)" pointerEvents="none" />
                 </svg>
                 <span className={`${styles.table_32} group`}>Advisor Office</span>
-              </a>
+              </div>
 
-              <a
-                href="https://bit.ly/4f2fpLK"
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`${styles.card_33} group`}
+              {/* Google Sheets */}
+              <div
+                onClick={() => window.open("https://bit.ly/4f2fpLK", "_blank", "noopener,noreferrer")}
+                className={`${styles.card_33} group relative`}
               >
+                <Link
+                  href="/admin/portals/google-sheets"
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute top-2.5 right-2.5 p-1.5 rounded-full bg-card/85 backdrop-blur border border-border opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-[#F4C542]/20 hover:text-[#F4C542] hover:scale-110 z-10 flex items-center justify-center text-text-secondary cursor-pointer"
+                  title="Manage Google Sheets Resources"
+                >
+                  <Settings size={13} />
+                </Link>
                 <svg viewBox="0 0 100 100" className={`${styles.table_34} group`}>
                   <defs>
                     <filter id="excel-shadow-adm" x="-10%" y="-10%" width="130%" height="130%">
@@ -305,31 +329,44 @@ export default function DashboardOverviewPage() {
                   <path d="M24 41 L30 41 L33 50 L36 41 L42 41 L36 53 L42 65 L36 65 L33 56 L30 65 L24 65 L30 53 Z" fill="url(#ex-x-adm)" />
                 </svg>
                 <span className={`${styles.table_35} group`}>Google Sheets</span>
-              </a>
+              </div>
 
-              <a
-                href="https://teampaduatracker.vercel.app/tasktracker"
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`${styles.card_33} group flex flex-col items-center justify-center`}
+              {/* Task Tracker */}
+              <div
+                onClick={() => window.open("https://teampaduatracker.vercel.app/tasktracker", "_blank", "noopener,noreferrer")}
+                className={`${styles.card_33} group flex flex-col items-center justify-center relative`}
               >
+                <Link
+                  href="/admin/portals/task-tracker"
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute top-2.5 right-2.5 p-1.5 rounded-full bg-card/85 backdrop-blur border border-border opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-[#F4C542]/20 hover:text-[#F4C542] hover:scale-110 z-10 flex items-center justify-center text-text-secondary cursor-pointer"
+                  title="Manage Task Tracker Resources"
+                >
+                  <Settings size={13} />
+                </Link>
                 <img
                   src="/Image/icon/TP.png"
                   alt="Task Tracker"
                   className="w-14 h-14 object-contain transition-transform duration-300 group-hover:scale-110"
                 />
-
                 <span className={`${styles.table_35} mt-3`}>
                   Task Tracker
                 </span>
-              </a>
+              </div>
 
-              <a
-                href="https://www.jotform.com/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`${styles.card_36} group`}
+              {/* JotForm */}
+              <div
+                onClick={() => window.open("https://www.jotform.com/", "_blank", "noopener,noreferrer")}
+                className={`${styles.card_36} group relative`}
               >
+                <Link
+                  href="/admin/portals/jotform"
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute top-2.5 right-2.5 p-1.5 rounded-full bg-card/85 backdrop-blur border border-border opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-[#F4C542]/20 hover:text-[#F4C542] hover:scale-110 z-10 flex items-center justify-center text-text-secondary cursor-pointer"
+                  title="Manage JotForm Resources"
+                >
+                  <Settings size={13} />
+                </Link>
                 <svg viewBox="0 0 100 100" className={`${styles.table_37} group`}>
                   <defs>
                     <filter id="jot-shadow-adm" x="-10%" y="-10%" width="130%" height="130%">
@@ -363,42 +400,63 @@ export default function DashboardOverviewPage() {
                   </g>
                 </svg>
                 <span className={`${styles.table_38} group`}>JotForm</span>
-              </a>
+              </div>
 
-              <a
-                href="https://form.jotform.com/261829362405055"
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`${styles.card_36} group`}
+              {/* JotForm Intern */}
+              <div
+                onClick={() => window.open("https://form.jotform.com/261829362405055", "_blank", "noopener,noreferrer")}
+                className={`${styles.card_36} group relative`}
               >
+                <Link
+                  href="/admin/portals/jotform"
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute top-2.5 right-2.5 p-1.5 rounded-full bg-card/85 backdrop-blur border border-border opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-[#F4C542]/20 hover:text-[#F4C542] hover:scale-110 z-10 flex items-center justify-center text-text-secondary cursor-pointer"
+                  title="Manage JotForm Resources"
+                >
+                  <Settings size={13} />
+                </Link>
                 <img
                   src="/Image/icon/Form.png"
                   alt="JotForm Intern"
                   className="w-14 h-14 object-contain transition-transform duration-300 group-hover:scale-110"
                 />
                 <span className={`${styles.table_38} group`}>JotForm Intern</span>
-              </a>
+              </div>
 
-              <a
-                href="https://drive.google.com/drive/folders/1ZLNJHFUFYDkVG9pQwMF2hio89j7vp04x?usp=sharing"
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`${styles.card_30} group`}
+              {/* Google Drive */}
+              <div
+                onClick={() => window.open("https://drive.google.com/drive/folders/1ZLNJHFUFYDkVG9pQwMF2hio89j7vp04x?usp=sharing", "_blank", "noopener,noreferrer")}
+                className={`${styles.card_30} group relative`}
               >
-               <img
+                <Link
+                  href="/admin/portals/google-drive"
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute top-2.5 right-2.5 p-1.5 rounded-full bg-card/85 backdrop-blur border border-border opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-[#F4C542]/20 hover:text-[#F4C542] hover:scale-110 z-10 flex items-center justify-center text-text-secondary cursor-pointer"
+                  title="Manage Google Drive Resources"
+                >
+                  <Settings size={13} />
+                </Link>
+                <img
                   src="/Image/icon/drive.png"
                   alt="Google Drive"
                   className="w-12 h-10 object-contain transition-transform duration-300 group-hover:scale-110"
                 />
                 <span className={`${styles.table_32} group`}>Google Drive</span>
-              </a>
+              </div>
 
-              <a
-                href="https://teams.microsoft.com/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`${styles.card_30} group`}
+              {/* Microsoft Teams */}
+              <div
+                onClick={() => window.open("https://teams.microsoft.com/", "_blank", "noopener,noreferrer")}
+                className={`${styles.card_30} group relative`}
               >
+                <Link
+                  href="/admin/portals/microsoft-teams"
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute top-2.5 right-2.5 p-1.5 rounded-full bg-card/85 backdrop-blur border border-border opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-[#F4C542]/20 hover:text-[#F4C542] hover:scale-110 z-10 flex items-center justify-center text-text-secondary cursor-pointer"
+                  title="Manage Microsoft Teams Resources"
+                >
+                  <Settings size={13} />
+                </Link>
                 <svg viewBox="0 0 100 100" className={`${styles.table_31} group`}>
                   <defs>
                     <filter id="teams-shadow-adm" x="-10%" y="-10%" width="130%" height="130%">
@@ -418,14 +476,21 @@ export default function DashboardOverviewPage() {
                   <path d="M48 58 C48 51, 54 48, 60 48 C66 48, 72 51, 72 58 Z" fill="white" />
                 </svg>
                 <span className={`${styles.table_32} group`}>Microsoft Teams</span>
-              </a>
+              </div>
 
-              <a
-                href="https://www.canva.com/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`${styles.card_39} group`}
+              {/* Canva */}
+              <div
+                onClick={() => window.open("https://www.canva.com/", "_blank", "noopener,noreferrer")}
+                className={`${styles.card_39} group relative`}
               >
+                <Link
+                  href="/admin/portals/canva"
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute top-2.5 right-2.5 p-1.5 rounded-full bg-card/85 backdrop-blur border border-border opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-[#F4C542]/20 hover:text-[#F4C542] hover:scale-110 z-10 flex items-center justify-center text-text-secondary cursor-pointer"
+                  title="Manage Canva Resources"
+                >
+                  <Settings size={13} />
+                </Link>
                 <svg viewBox="0 0 100 100" className={`${styles.table_40} group`}>
                   <defs>
                     <filter id="canva-shadow-adm" x="-10%" y="-10%" width="130%" height="130%">
@@ -441,13 +506,21 @@ export default function DashboardOverviewPage() {
                   <text x="50" y="56" fill="white" fontSize="16" fontWeight="bold" fontFamily="'Fredoka One', 'Comfortaa', 'Nunito', sans-serif" textAnchor="middle" letterSpacing="-0.5">Canva</text>
                 </svg>
                 <span className={`${styles.table_41} group`}>Canva</span>
-              </a>
-              <a
-                href="https://bit.ly/4wrEVBg"
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`${styles.card_30} group`}
+              </div>
+
+              {/* Zoom */}
+              <div
+                onClick={() => window.open("https://bit.ly/4wrEVBg", "_blank", "noopener,noreferrer")}
+                className={`${styles.card_30} group relative`}
               >
+                <Link
+                  href="/admin/portals/zoom"
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute top-2.5 right-2.5 p-1.5 rounded-full bg-card/85 backdrop-blur border border-border opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-[#F4C542]/20 hover:text-[#F4C542] hover:scale-110 z-10 flex items-center justify-center text-text-secondary cursor-pointer"
+                  title="Manage Zoom Resources"
+                >
+                  <Settings size={13} />
+                </Link>
                 <svg viewBox="0 0 100 100" className={`${styles.table_31} group`}>
                   <defs>
                     <filter id="zoom-shadow-adm" x="-10%" y="-10%" width="130%" height="130%">
@@ -462,7 +535,7 @@ export default function DashboardOverviewPage() {
                   <path d="M 33 42 C 33 40, 35 38, 37 38 L 57 38 C 59 38, 61 40, 61 42 L 61 58 C 61 60, 59 62, 57 62 L 37 62 C 35 62, 33 60, 33 58 Z M 63 45 L 75 37 L 75 63 L 63 55 Z" fill="white" />
                 </svg>
                 <span className={`${styles.table_32} group`}>Zoom</span>
-              </a>
+              </div>
             </div>
           </div>
 

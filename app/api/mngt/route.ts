@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/app/lib/supabase/admin";
+import { createNotification } from "@/app/lib/notifications";
 
 export async function GET(request: Request) {
   try {
@@ -63,6 +64,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    const record = Array.isArray(data) ? data[0] : data;
+    if (record) {
+      // Trigger notification
+      await createNotification({
+        title: "✍️ New MNGT Request Submitted! 📄",
+        description: `MNGT request for client "${record.client_name}" has been created.`,
+        type: "servicing",
+      });
+    }
+
     return NextResponse.json(data);
   } catch (err) {
     console.error("MNGT POST exception:", err);
@@ -95,6 +106,14 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    // Trigger notification
+    const statusText = data.status?.name ? `[Status: ${data.status.name}]` : "";
+    await createNotification({
+      title: "🔄 MNGT Request Updated! ⚡",
+      description: `MNGT record for client "${data.client_name}" has been updated. ${statusText}`,
+      type: "servicing",
+    });
+
     return NextResponse.json(data);
   } catch (err) {
     console.error("MNGT PUT exception:", err);
@@ -119,6 +138,13 @@ export async function DELETE(request: Request) {
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
 
+      // Trigger notification
+      await createNotification({
+        title: "🗑️ MNGT Request Discarded ❌",
+        description: `MNGT request has been deleted from client servicing.`,
+        type: "servicing",
+      });
+
       return NextResponse.json({ success: true });
     }
 
@@ -133,6 +159,13 @@ export async function DELETE(request: Request) {
         console.error("MNGT bulk DELETE query failed:", error);
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
+
+      // Trigger notification
+      await createNotification({
+        title: "🗑️ Multiple MNGT Requests Discarded ❌",
+        description: `Successfully cleared ${idList.length} MNGT requests.`,
+        type: "servicing",
+      });
 
       return NextResponse.json({ success: true });
     }

@@ -270,18 +270,37 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 22px;
-    height: 22px;
-    border-radius: 7px;
-    border: 1px solid transparent;
-    background: transparent;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: var(--surface);
     color: var(--ink-soft);
     cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .iconBtn:hover {
-    background: var(--surface);
-    border-color: var(--line);
+    background: var(--canvas);
+    border-color: var(--accent, #f4c542);
+    color: var(--ink);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.iconBtn:active {
+    transform: translateY(0);
+    box-shadow: none;
+}
+
+/* Specific sizing overrides for main calendar and mini-calendar navs */
+.periodNav .iconBtn {
+    width: 34px;
+    height: 34px;
+}
+
+.miniCalNav .iconBtn {
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
 }
 
 .miniCalGridHead {
@@ -493,21 +512,119 @@
 .addBtn {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 9px 16px;
-    border-radius: 12px;
-    border: none;
-    background: var(--accent);
-    color: var(--ink);
-    font-size: 12px;
+    gap: 8px;
+    padding: 12px 24px;
+    border-radius: 16px;
+    border: 1.5px solid rgba(244, 197, 66, 0.4);
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+    color: #b45309;
+    font-size: 14px;
     font-weight: 800;
+    letter-spacing: 0.01em;
     cursor: pointer;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 12px rgba(244, 197, 66, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
 .addBtn:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-lift);
+    transform: translateY(-2px);
+    background: linear-gradient(135deg, #fffbeb 0%, #fde68a 100%);
+    border-color: #f59e0b;
+    color: #78350f;
+    box-shadow: 0 8px 20px rgba(244, 197, 66, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.addBtn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(244, 197, 66, 0.1);
+}
+
+/* Celebration Modal & Confetti Styles */
+.celebrationOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(8px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.celebrationModal {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    padding: 36px;
+    width: 90%;
+    max-width: 460px;
+    text-align: center;
+    position: relative;
+    overflow: visible;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.celebrationIcon {
+    font-size: 48px;
+    display: inline-block;
+}
+
+.celebrationTitle {
+    font-size: 24px;
+    font-weight: 900;
+    color: var(--ink);
+    margin: 0;
+}
+
+.celebrationText {
+    font-size: 15px;
+    color: var(--ink-soft);
+    line-height: 1.5;
+    margin: 0;
+}
+
+.celebrationBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(244, 197, 66, 0.15);
+    color: #b45309;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 800;
+    border: 1px solid rgba(244, 197, 66, 0.3);
+}
+
+.celebrationCloseBtn {
+    width: 100%;
+    padding: 14px;
+    border-radius: 14px;
+    border: none;
+    background: var(--accent);
+    color: var(--ink);
+    font-size: 14px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(244, 197, 66, 0.2);
+}
+
+.celebrationCloseBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(244, 197, 66, 0.3);
+}
+
+/* Floating Confetti Particle system styles */
+.confettiContainer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: visible;
 }
 
 .periodBar {

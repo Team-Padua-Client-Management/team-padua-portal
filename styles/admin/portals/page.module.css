@@ -1,0 +1,361 @@
+@reference "../../globals/globals.css";
+
+.page {
+  @apply flex min-h-screen bg-[#F6F7FB] dark:bg-[#0F1117] text-text font-sans antialiased;
+}
+
+.content {
+  @apply flex-1 flex flex-col min-w-0 p-8 space-y-8 overflow-y-auto;
+}
+
+.container_10 {
+  @apply flex-1 flex flex-col min-w-0 w-full;
+}
+
+/* Header & Typography */
+.headerCard {
+  @apply relative flex flex-col md:flex-row justify-between items-start md:items-center p-8 gap-6 border overflow-hidden;
+  border-radius: 28px;
+  background: linear-gradient(135deg, var(--card) 0%, var(--background) 100%);
+  border-color: var(--border);
+  box-shadow: var(--shadow-theme);
+  backdrop-filter: blur(16px);
+}
+
+.headerGlow {
+  @apply absolute top-[-50%] left-[-10%] w-[60%] h-[150%] rounded-full opacity-10 pointer-events-none;
+  background: radial-gradient(circle, var(--primary) 0%, transparent 70%);
+  filter: blur(50px);
+}
+
+.title {
+  @apply text-2xl font-serif font-semibold tracking-tight text-text;
+}
+
+.subtitle {
+  @apply text-xs text-text-secondary mt-1 font-medium;
+}
+
+/* Overview Portal Cards */
+.portalGrid {
+  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6;
+}
+
+.portalCard {
+  @apply relative flex flex-col p-6 gap-4 border bg-card transition-all duration-300 ease-out cursor-pointer hover:shadow-md hover:-translate-y-1;
+  border-radius: 24px;
+  border-color: var(--border);
+  box-shadow: var(--shadow-theme);
+}
+
+.portalCardHeader {
+  @apply flex items-center justify-between;
+}
+
+.portalIconWrapper {
+  @apply w-12 h-12 rounded-2xl flex items-center justify-center p-2 border border-border bg-surface-2;
+}
+
+.portalMeta {
+  @apply flex flex-col gap-1;
+}
+
+.portalTitle {
+  @apply font-bold text-sm text-text;
+}
+
+.portalCount {
+  @apply text-[11px] text-text-secondary font-mono;
+}
+
+.portalActionLink {
+  @apply flex items-center gap-1 text-[11px] font-bold text-[#A97800] dark:text-[#F4C542] mt-2 group-hover:underline;
+}
+
+/* Control Controls Block (Filters & Search) */
+.controlsBlock {
+  @apply flex flex-col gap-4 p-5 border bg-card/60 backdrop-blur-md rounded-2xl border-border shadow-sm;
+}
+
+.controlsTop {
+  @apply flex flex-col md:flex-row md:items-center justify-between gap-4;
+}
+
+.searchWrapper {
+  @apply relative flex-1 max-w-md;
+}
+
+.searchInput {
+  @apply w-full pl-10 pr-4 py-2 border rounded-full text-xs font-medium bg-surface/80 border-border focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all;
+}
+
+.searchIcon {
+  @apply absolute left-3.5 top-1/2 -translate-y-1/2 text-text-secondary w-4 h-4;
+}
+
+.filtersRight {
+  @apply flex items-center gap-3;
+}
+
+.selectInput {
+  @apply px-4 py-2 border rounded-full text-xs font-medium bg-surface/80 border-border text-text focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all;
+}
+
+.viewToggleBtn {
+  @apply w-8 h-8 rounded-full flex items-center justify-center border border-border bg-surface text-text-secondary transition-all hover:bg-surface-2 hover:text-text cursor-pointer;
+}
+
+.viewToggleBtnActive {
+  @apply bg-[#FFF7D6] border-[#F4C542]/50 text-black font-bold;
+}
+
+/* Category Badges Grid */
+.categoryScroller {
+  @apply flex items-center gap-2 overflow-x-auto py-1 pr-4;
+  scrollbar-width: none;
+}
+
+.categoryScroller::-webkit-scrollbar {
+  display: none;
+}
+
+.categoryPill {
+  @apply px-4 py-1.5 rounded-full text-[11px] font-bold tracking-wide border cursor-pointer transition-all shrink-0 select-none;
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text-secondary);
+}
+
+.categoryPill:hover {
+  @apply scale-105 text-text;
+  border-color: var(--hover-border-color, var(--primary));
+}
+
+.categoryPillActive {
+  background: #FFF7D6 !important;
+  border-color: #F4C542 !important;
+  color: #A97800 !important;
+  @apply shadow-[0_0_10px_rgba(244,197,66,0.15)];
+}
+
+/* Grid & Table Workspace */
+.resourcesGrid {
+  @apply grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6;
+}
+
+.resourceCard {
+  @apply relative flex flex-col border bg-card transition-all duration-300 ease-out overflow-hidden hover:shadow-md hover:-translate-y-1 flex-1;
+  border-radius: 20px;
+  border-color: var(--border);
+  box-shadow: var(--shadow-theme);
+  height: 280px;
+}
+
+.cardThumbnailSection {
+  @apply relative h-32 w-full bg-surface-2 border-b border-border flex items-center justify-center overflow-hidden;
+}
+
+.cardThumbnail {
+  @apply w-full h-full object-cover transition-transform duration-300;
+}
+
+.cardThumbnailPlaceHolder {
+  @apply flex flex-col items-center justify-center gap-2 text-text-secondary select-none text-[10px] font-bold uppercase tracking-wider font-mono;
+}
+
+.cardFavoriteBtn {
+  @apply absolute top-3 right-3 p-1.5 rounded-full bg-card/85 backdrop-blur border border-border shadow transition-all hover:scale-110 cursor-pointer z-10 flex items-center justify-center;
+}
+
+.cardMetaContent {
+  @apply flex-1 p-4 flex flex-col gap-2 min-h-0 justify-between;
+}
+
+.cardTextContent {
+  @apply flex flex-col gap-1 min-h-0;
+}
+
+.cardHeader {
+  @apply flex items-start justify-between gap-2;
+}
+
+.cardTitle {
+  @apply font-bold text-xs text-text truncate;
+}
+
+.cardDescription {
+  @apply text-[10px] text-text-secondary leading-relaxed overflow-hidden text-ellipsis line-clamp-2;
+}
+
+.cardFooter {
+  @apply flex items-center justify-between pt-2 border-t border-border mt-auto;
+}
+
+.badgeCategory {
+  @apply px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border w-fit select-none;
+}
+
+.badgeStatus {
+  @apply px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider w-fit select-none;
+}
+
+.badgeStatusActive {
+  @apply bg-emerald-500/10 text-emerald-600 border border-emerald-500/20;
+}
+
+.badgeStatusHidden {
+  @apply bg-amber-500/10 text-amber-600 border border-amber-500/20;
+}
+
+.cardActions {
+  @apply flex items-center gap-1.5;
+}
+
+.cardActionBtn {
+  @apply p-1.5 rounded-full bg-surface-2 border border-border hover:bg-primary/20 hover:text-primary transition-all duration-200 cursor-pointer flex items-center justify-center;
+}
+
+/* Premium Table View styling */
+.tableWrapper {
+  @apply w-full overflow-x-auto border bg-card rounded-2xl border-border shadow-sm;
+}
+
+.table {
+  @apply w-full border-collapse text-left text-xs font-medium;
+}
+
+.th {
+  @apply p-4 font-bold text-[10px] uppercase tracking-wider text-text-secondary border-b border-border bg-surface-2 select-none;
+}
+
+.td {
+  @apply p-4 border-b border-border text-text font-medium align-middle;
+}
+
+.tr {
+  @apply transition-colors hover:bg-surface-2/40;
+}
+
+.tableThumbnail {
+  @apply w-10 h-7 rounded border object-cover bg-surface-2;
+}
+
+.tableActions {
+  @apply flex items-center gap-2;
+}
+
+/* Modal dialog custom styles */
+.modalOverlay {
+  @apply fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm transition-opacity duration-300;
+}
+
+.modalContent {
+  @apply bg-card border border-border w-full max-w-lg p-6 rounded-3xl shadow-xl flex flex-col gap-5 relative animate-in fade-in zoom-in-95 duration-200;
+  box-shadow: var(--shadow-theme);
+}
+
+.modalHeader {
+  @apply flex items-center justify-between border-b border-border pb-3;
+}
+
+.modalTitle {
+  @apply text-base font-serif font-bold text-text;
+}
+
+.modalCloseBtn {
+  @apply w-8 h-8 rounded-full border border-border flex items-center justify-center text-text-secondary hover:bg-surface-2 hover:text-text transition-all cursor-pointer;
+}
+
+.formGrid {
+  @apply grid grid-cols-1 sm:grid-cols-2 gap-4;
+}
+
+.formField {
+  @apply flex flex-col gap-1.5;
+}
+
+.formLabel {
+  @apply text-[10px] font-bold uppercase tracking-wider text-text-secondary;
+}
+
+.formInput {
+  @apply w-full px-4 py-2 border rounded-full text-xs bg-surface border-border focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all;
+}
+
+.formTextarea {
+  @apply w-full px-4 py-2 border rounded-2xl text-xs bg-surface border-border focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all resize-none h-16;
+}
+
+.checkboxLabel {
+  @apply flex items-center gap-2 text-xs font-medium text-text cursor-pointer select-none mt-2;
+}
+
+.checkboxInput {
+  @apply w-4 h-4 rounded border-border text-primary focus:ring-primary/40 transition-all cursor-pointer accent-[#F4C542];
+}
+
+.formActions {
+  @apply flex items-center justify-end gap-3 border-t border-border pt-4 mt-2;
+}
+
+.btnCancel {
+  @apply px-5 py-2 border border-border text-xs font-bold text-text-secondary transition-all hover:bg-surface-2 cursor-pointer;
+}
+
+.btnSave {
+  @apply px-6 py-2 bg-[#F4C542] text-black hover:bg-[#F4C542]/85 text-xs font-bold shadow-md transition-all cursor-pointer border border-[#F4C542];
+}
+
+/* Empty placeholder state */
+.emptyState {
+  @apply flex flex-col items-center justify-center p-12 text-center border-2 border-dashed border-border rounded-3xl bg-card/40;
+}
+
+.emptyStateTitle {
+  @apply text-sm font-bold text-text mt-4;
+}
+
+.emptyStateDesc {
+  @apply text-xs text-text-secondary mt-1 max-w-sm;
+}
+
+/* Drag and Drop Modern Uploader */
+.uploadZone {
+  @apply flex flex-col items-center justify-center p-6 border-2 border-dashed border-border rounded-2xl bg-surface/50 hover:bg-surface hover:border-primary/50 transition-all cursor-pointer relative h-36 gap-2 select-none;
+}
+
+.uploadZoneActive {
+  @apply border-[#F4C542] bg-[#F4C542]/5;
+}
+
+.uploadIcon {
+  @apply text-text-secondary w-7 h-7 stroke-[1.5];
+}
+
+.uploadText {
+  @apply text-xs font-bold text-text-secondary;
+}
+
+.uploadSubtext {
+  @apply text-[10px] text-text-secondary/70 font-medium;
+}
+
+.uploadPreviewContainer {
+  @apply relative w-full h-36 rounded-2xl border border-border overflow-hidden bg-surface flex items-center justify-center;
+}
+
+.uploadPreview {
+  @apply w-full h-full object-cover;
+}
+
+.uploadDeleteBtn {
+  @apply absolute top-3 right-3 p-1.5 rounded-full bg-black/75 text-white hover:bg-black transition-all cursor-pointer z-10 flex items-center justify-center;
+}
+
+.uploadLoader {
+  @apply flex flex-col items-center justify-center gap-2;
+}
+
+.urlInputToggle {
+  @apply text-[10px] font-bold text-[#A97800] dark:text-[#F4C542] hover:underline cursor-pointer w-fit mt-1 select-none self-end;
+}

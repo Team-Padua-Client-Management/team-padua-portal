@@ -9,7 +9,7 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Users, CalendarCheck,
   ChevronDown, ChevronRight, ChevronLeft, X,
-  Briefcase,
+  Briefcase, Globe
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -21,6 +21,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
   const pathname = usePathname();
   const [dashboardOpen, setDashboardOpen] = useState(false);
   const [clientServicingOpen, setClientServicingOpen] = useState(false);
+  const [portalManagementOpen, setPortalManagementOpen] = useState(false);
   const [greeting, setGreeting] = useState('');
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -74,6 +75,11 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
         setClientServicingOpen(true);
       }, 0);
     }
+    if (pathname.startsWith('/admin/portals')) {
+      setTimeout(() => {
+        setPortalManagementOpen(true);
+      }, 0);
+    }
   }, [pathname]);
 
   const dashboardItems = [
@@ -89,15 +95,28 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
     { name: 'PPU', href: '/admin/ppu' },
   ];
 
+  const portalItems = [
+    { name: 'Overview', href: '/admin/portals' },
+    { name: 'Canva', href: '/admin/portals/canva' },
+    { name: 'Google Drive', href: '/admin/portals/google-drive' },
+    { name: 'Google Sheets', href: '/admin/portals/google-sheets' },
+    { name: 'JotForm', href: '/admin/portals/jotform' },
+    { name: 'Microsoft Teams', href: '/admin/portals/microsoft-teams' },
+    { name: 'Zoom', href: '/admin/portals/zoom' },
+    { name: 'Task Tracker', href: '/admin/portals/task-tracker' },
+    { name: 'Sun Life', href: '/admin/portals/sun-life' },
+    { name: 'Advisor Office', href: '/admin/portals/advisor-office' },
+  ];
+
   const menuItems = [
     { name: 'Members', href: '/admin/members', icon: Users },
     { name: 'Calendar', href: '/admin/calendar', icon: CalendarCheck },
   ];
 
   const sidebarContent = (
-    <div className={styles.card_0}>
+    <div className={styles.sidebarInner}>
       {/* Header */}
-      <div className={`${styles.card_1} ${isCollapsed ? styles.card_1_collapsed : ''}`}>
+      <div className={`${styles.sidebarHeader} ${isCollapsed ? styles.sidebarHeaderCollapsed : ''}`}>
         <button
           type="button"
           onClick={toggleCollapse}
@@ -108,7 +127,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
           {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
         </button>
 
-        <div className={styles.container_2}>
+        <div className={styles.sidebarHeaderContainer}>
           <div className="flex items-center gap-3">
             <Image
               src="/Image/icon/TPC.png"
@@ -118,40 +137,40 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
               className={`object-contain shrink-0 ${styles.logoFade} ${isCollapsed ? styles.logoFadeHidden : ''}`}
             />
             <div className={`${styles.textFade} ${isCollapsed ? styles.textFadeHidden : ''}`}>
-              <h1 className={styles.table_3}>Team Padua</h1>
-              <p className={styles.table_4}>Control Terminal</p>
+              <h1 className={styles.sidebarTitle}>Team Padua</h1>
+              <p className={styles.sidebarSubtitle}>Control Terminal</p>
             </div>
           </div>
           {onClose && !isCollapsed && (
-            <button onClick={onClose} className={styles.table_5}>
+            <button onClick={onClose} className={styles.mobileCloseBtn}>
               <X size={16} />
             </button>
           )}
         </div>
 
         {greeting && (
-          <p className={`${styles.table_6} ${styles.textFade} ${isCollapsed ? styles.textFadeHidden : ''}`}>
+          <p className={`${styles.sidebarGreeting} ${styles.textFade} ${isCollapsed ? styles.textFadeHidden : ''}`}>
             ● {greeting}
           </p>
         )}
       </div>
 
-      <nav className={`${styles.card_7} ${isCollapsed ? 'px-2' : 'p-4'}`}>
+      <nav className={`${styles.sidebarNav} ${isCollapsed ? 'px-2' : 'p-4'}`}>
         {/* Dashboard Node with sub-menu */}
-        <div className={styles.div_8}>
+        <div className={styles.sidebarNavGroup}>
           <div
-            className={`${isCollapsed ? styles.navItemCollapsed : styles.table_18} ${pathname.startsWith('/admin/dashboard')
-              ? 'bg-[#FFF7D6] dark:bg-[#2E2818] text-black dark:text-[#F4C542] border-l-2 border-[#F4C542] font-bold'
-              : 'text-foreground/80 hover:bg-muted hover:text-foreground'
+            className={`${isCollapsed ? styles.navItemCollapsed : styles.navItem} ${pathname.startsWith('/admin/dashboard')
+              ? styles.navItemActive
+              : styles.navItemInactive
               }`}
           >
             <Link
               href="/admin/dashboard"
               onClick={onClose}
               title={isCollapsed ? "Dashboard" : undefined}
-              className={isCollapsed ? 'flex items-center justify-center w-full' : styles.container_9}
+              className={isCollapsed ? 'flex items-center justify-center w-full' : styles.navItemLink}
             >
-              <LayoutDashboard size={16} className={`shrink-0 ${pathname.startsWith('/admin/dashboard') ? 'text-[#F4C542]' : 'text-muted-foreground'}`} />
+              <LayoutDashboard size={16} className={`shrink-0 ${pathname.startsWith('/admin/dashboard') ? styles.navIconActive : styles.navIconInactive}`} />
               <span className={`${styles.navLabel} ${isCollapsed ? styles.navLabelHidden : ''}`}>Dashboard</span>
             </Link>
             {!isCollapsed && (
@@ -161,7 +180,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                   e.preventDefault();
                   setDashboardOpen(!dashboardOpen);
                 }}
-                className={styles.table_10}
+                className={styles.dropdownToggleBtn}
               >
                 {dashboardOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
               </button>
@@ -169,7 +188,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
           </div>
 
           {!isCollapsed && dashboardOpen && (
-            <div className={styles.div_11}>
+            <div className={styles.sidebarSubNav}>
               {dashboardItems.map((sub) => {
                 const subActive = pathname === sub.href;
                 return (
@@ -177,10 +196,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                     key={sub.href}
                     href={sub.href}
                     onClick={onClose}
-                    className={`${styles.table_19} transition-all duration-300 ease-in-out ${subActive
-                      ? 'bg-primary/10 text-primary font-bold shadow-[0_0_15px_rgba(244,197,66,0.15)] rounded-full px-4'
-                      : 'text-muted-foreground hover:bg-surface-2 hover:text-foreground rounded-full px-4'
-                      }`}
+                    className={`${styles.sidebarSubNavItem} ${subActive ? styles.navSubActive : styles.navSubInactive}`}
                   >
                     <span>{sub.name}</span>
                   </Link>
@@ -191,11 +207,11 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
         </div>
 
         {/* Client Servicing Node with sub-menu */}
-        <div className={styles.div_8}>
+        <div className={styles.sidebarNavGroup}>
           <div
-            className={`${isCollapsed ? styles.navItemCollapsed : styles.table_18} ${clientServicingItems.some(item => pathname.startsWith(item.href))
-              ? 'bg-[#FFF7D6] dark:bg-[#2E2818] text-black dark:text-[#F4C542] border-l-2 border-[#F4C542] font-bold'
-              : 'text-foreground/80 hover:bg-muted hover:text-foreground'
+            className={`${isCollapsed ? styles.navItemCollapsed : styles.navItem} ${clientServicingItems.some(item => pathname.startsWith(item.href))
+              ? styles.navItemActive
+              : styles.navItemInactive
               }`}
           >
             <button
@@ -207,9 +223,9 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                 }
               }}
               title={isCollapsed ? "Client Servicing" : undefined}
-              className={isCollapsed ? 'flex items-center justify-center w-full' : styles.container_9}
+              className={isCollapsed ? 'flex items-center justify-center w-full' : styles.navItemLink}
             >
-              <Briefcase size={16} className={`shrink-0 ${clientServicingItems.some(item => pathname.startsWith(item.href)) ? 'text-[#F4C542]' : 'text-muted-foreground'}`} />
+              <Briefcase size={16} className={`shrink-0 ${clientServicingItems.some(item => pathname.startsWith(item.href)) ? styles.navIconActive : styles.navIconInactive}`} />
               <span className={`${styles.navLabel} ${isCollapsed ? styles.navLabelHidden : ''}`}>Client Servicing</span>
             </button>
             {!isCollapsed && (
@@ -219,7 +235,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                   e.preventDefault();
                   setClientServicingOpen(!clientServicingOpen);
                 }}
-                className={styles.table_10}
+                className={styles.dropdownToggleBtn}
               >
                 {clientServicingOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
               </button>
@@ -227,7 +243,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
           </div>
 
           {!isCollapsed && clientServicingOpen && (
-            <div className={styles.div_11}>
+            <div className={styles.sidebarSubNav}>
               {clientServicingItems.map((sub) => {
                 const subActive = pathname === sub.href || pathname.startsWith(sub.href);
                 return (
@@ -235,10 +251,62 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                     key={sub.href}
                     href={sub.href}
                     onClick={onClose}
-                    className={`${styles.table_19} transition-all duration-300 ease-in-out ${subActive
-                      ? 'bg-primary/10 text-primary font-bold shadow-[0_0_15px_rgba(244,197,66,0.15)] rounded-full px-4'
-                      : 'text-muted-foreground hover:bg-surface-2 hover:text-foreground rounded-full px-4'
-                      }`}
+                    className={`${styles.sidebarSubNavItem} ${subActive ? styles.navSubActive : styles.navSubInactive}`}
+                  >
+                    <span>{sub.name}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Portal Management Node with sub-menu */}
+        <div className={styles.sidebarNavGroup}>
+          <div
+            className={`${isCollapsed ? styles.navItemCollapsed : styles.navItem} ${pathname.startsWith('/admin/portals')
+              ? styles.navItemActive
+              : styles.navItemInactive
+              }`}
+          >
+            <button
+              onClick={() => {
+                if (isCollapsed) {
+                  window.location.href = '/admin/portals';
+                } else {
+                  setPortalManagementOpen(!portalManagementOpen);
+                }
+              }}
+              title={isCollapsed ? "Portal Management" : undefined}
+              className={isCollapsed ? 'flex items-center justify-center w-full' : styles.navItemLink}
+            >
+              <Globe size={16} className={`shrink-0 ${pathname.startsWith('/admin/portals') ? styles.navIconActive : styles.navIconInactive}`} />
+              <span className={`${styles.navLabel} ${isCollapsed ? styles.navLabelHidden : ''}`}>Portal Management</span>
+            </button>
+            {!isCollapsed && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  setPortalManagementOpen(!portalManagementOpen);
+                }}
+                className={styles.dropdownToggleBtn}
+              >
+                {portalManagementOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+              </button>
+            )}
+          </div>
+
+          {!isCollapsed && portalManagementOpen && (
+            <div className={`${styles.sidebarSubNav} max-h-[300px] overflow-y-auto pr-1`}>
+              {portalItems.map((sub) => {
+                const subActive = pathname === sub.href;
+                return (
+                  <Link
+                    key={sub.href}
+                    href={sub.href}
+                    onClick={onClose}
+                    className={`${styles.sidebarSubNavItem} ${subActive ? styles.navSubActive : styles.navSubInactive}`}
                   >
                     <span>{sub.name}</span>
                   </Link>
@@ -258,20 +326,22 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
               href={item.href}
               onClick={onClose}
               title={isCollapsed ? item.name : undefined}
-              className={`${isCollapsed ? styles.navItemCollapsed : styles.table_20} ${active
-                ? 'bg-primary/10 text-primary font-bold shadow-[0_0_15px_rgba(244,197,66,0.15)]'
-                : 'text-foreground/80 hover:bg-surface-2 hover:text-foreground'
+              className={`${isCollapsed ? styles.navItemCollapsed : styles.navItem} ${active
+                ? styles.navItemActive
+                : styles.navItemInactive
                 }`}
             >
-              <Icon size={16} className={`shrink-0 transition-colors duration-200 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
-              <span className={`${styles.navLabel} ${isCollapsed ? styles.navLabelHidden : ''}`}>{item.name}</span>
+              <div className={isCollapsed ? 'flex items-center justify-center' : styles.navItemLink}>
+                <Icon size={16} className={`shrink-0 transition-colors duration-200 ${active ? styles.navIconActive : styles.navIconInactive}`} />
+                <span className={`${styles.navLabel} ${isCollapsed ? styles.navLabelHidden : ''}`}>{item.name}</span>
+              </div>
             </Link>
           );
         })}
       </nav>
 
-      <div className={styles.card_12}>
-        <p className={`${styles.text_13} ${styles.textFade} ${isCollapsed ? styles.textFadeHidden : ''}`}>
+      <div className={styles.sidebarFooter}>
+        <p className={`${styles.sidebarFooterText} ${styles.textFade} ${isCollapsed ? styles.textFadeHidden : ''}`}>
           Admin Portal Secures Online
         </p>
       </div>
@@ -281,14 +351,14 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside className={`${styles.card_14} ${isCollapsed ? styles.collapsedSidebar : ''}`}>
+      <aside className={`${styles.sidebarAside} ${isCollapsed ? styles.collapsedSidebar : ''}`}>
         {sidebarContent}
       </aside>
       {/* Mobile drawer support */}
       {isOpen && (
-        <div className={styles.container_15}>
-          <div className={styles.div_16} onClick={onClose} />
-          <aside className={styles.card_17}>
+        <div className={styles.sidebarMobileWrapper}>
+          <div className={styles.sidebarOverlay} onClick={onClose} />
+          <aside className={styles.sidebarDrawer}>
             {sidebarContent}
           </aside>
         </div>

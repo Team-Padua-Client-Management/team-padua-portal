@@ -58,7 +58,9 @@ export default function NotificationBell() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
+  const [isShaking, setIsShaking] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const prevUnreadCountRef = useRef(0);
 
   const loadNotifications = async () => {
     try {
@@ -81,6 +83,17 @@ export default function NotificationBell() {
       console.error('Failed to load notifications:', err);
     }
   };
+
+  const unreadCount = notifications.filter(n => !n.is_read).length;
+
+  useEffect(() => {
+    if (unreadCount > prevUnreadCountRef.current) {
+      setIsShaking(true);
+      const timer = setTimeout(() => setIsShaking(false), 650);
+      return () => clearTimeout(timer);
+    }
+    prevUnreadCountRef.current = unreadCount;
+  }, [unreadCount]);
 
   useEffect(() => {
     loadNotifications();
@@ -182,13 +195,11 @@ export default function NotificationBell() {
     }
   };
 
-  const unreadCount = notifications.filter(n => !n.is_read).length;
-
   return (
     <div ref={dropdownRef} className={styles.bellContainer}>
       <button 
         onClick={() => setIsOpen(!isOpen)} 
-        className={styles.bellBtn}
+        className={`${styles.bellBtn} ${isShaking ? styles.bellShake : ''}`}
         aria-label="Toggle notifications dropdown"
       >
         <Bell size={16} />

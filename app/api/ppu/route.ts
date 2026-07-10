@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/app/lib/supabase/admin";
+import { createNotification } from "@/app/lib/notifications";
 
 export async function GET(request: Request) {
   try {
@@ -74,6 +75,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    const record = Array.isArray(data) ? data[0] : data;
+    if (record) {
+      // Trigger notification
+      await createNotification({
+        title: "👥 New PPU Entry Added! 📄",
+        description: `PPU record for owner "${record.policy_owner}" (Policy #${record.policy_number}) has been registered.`,
+        type: "servicing",
+      });
+    }
+
     return NextResponse.json(data);
   } catch (err) {
     console.error("PPU POST exception:", err);
@@ -107,6 +118,14 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    // Trigger notification
+    const statusText = data.status_item?.name ? `[Status: ${data.status_item.name}]` : "";
+    await createNotification({
+      title: "🔄 PPU Entry Modified! ⚡",
+      description: `PPU record for owner "${data.policy_owner}" (Policy #${data.policy_number}) has been updated. ${statusText}`,
+      type: "servicing",
+    });
+
     return NextResponse.json(data);
   } catch (err) {
     console.error("PPU PUT exception:", err);
@@ -131,6 +150,13 @@ export async function DELETE(request: Request) {
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
 
+      // Trigger notification
+      await createNotification({
+        title: "🗑️ PPU Entry Discarded ❌",
+        description: `PPU record has been deleted from client servicing.`,
+        type: "servicing",
+      });
+
       return NextResponse.json({ success: true });
     }
 
@@ -145,6 +171,13 @@ export async function DELETE(request: Request) {
         console.error("PPU bulk DELETE query failed:", error);
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
+
+      // Trigger notification
+      await createNotification({
+        title: "🗑️ Multiple PPU Entries Cleared ❌",
+        description: `Successfully cleared ${idList.length} PPU records from system.`,
+        type: "servicing",
+      });
 
       return NextResponse.json({ success: true });
     }

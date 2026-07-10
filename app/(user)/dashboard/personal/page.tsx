@@ -9,6 +9,7 @@ import {
   Sun, Sunrise, Moon, ChevronRight, Calendar, ArrowUpRight
 } from "lucide-react";
 import styles from "@/styles/user/dashboard/personal/page.module.css";
+import WelcomeModal from "@/components/shared/WelcomeModal";
 
 function getGreeting(): { text: string; icon: React.ReactNode } {
   const h = new Date().getHours();
@@ -101,6 +102,7 @@ export default function DashboardPage() {
 
   return (
     <div className={styles.container}>
+      <WelcomeModal userName={userName} role={userRole} />
       {showSplash && (
         <div className={styles.splashOverlay}>
           <div className={styles.splashInner}>

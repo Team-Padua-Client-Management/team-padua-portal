@@ -44,52 +44,61 @@ export default function WelcomeEmail({ name }: Props) {
     return (
         <Html>
             <Head />
-            <Preview>Welcome to BIZDEVTEAM Membership Management System</Preview>
+            <Preview>Welcome to the Team Padua Management System!</Preview>
             <Body
                 style={{
-                    backgroundColor: "#f5f5f5",
-                    padding: "40px 0",
-                    fontFamily: "Arial, Helvetica, sans-serif",
+                    backgroundColor: "#f3f4f6",
+                    padding: "45px 0",
+                    fontFamily: "'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
                 }}
             >
                 <Container
                     style={{
                         backgroundColor: "#ffffff",
-                        borderRadius: "16px",
+                        borderRadius: "20px",
                         overflow: "hidden",
-                        border: "1px solid #eeeeee",
-                        maxWidth: "650px",
+                        border: "1px solid #e5e7eb",
+                        maxWidth: "600px",
                         margin: "0 auto",
+                        boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05)",
                     }}
                 >
+                    {/* Header Banner with Premium Gradient */}
                     <Section
                         style={{
-                            backgroundColor: "#FFD84D",
-                            padding: "40px",
+                            background: "linear-gradient(135deg, #F4C542 0%, #E2B229 100%)",
+                            padding: "45px 40px",
+                            textAlign: "center",
                         }}
                     >
                         <Heading
                             as="h1"
                             style={{
                                 margin: 0,
-                                color: "#2E2E2E",
-                                fontSize: "34px",
-                                fontWeight: "bold",
+                                color: "#111827",
+                                fontSize: "36px",
+                                fontWeight: "800",
+                                letterSpacing: "-0.05em",
+                                lineHeight: "1.1",
                             }}
                         >
-                            BIZDEVTEAM
+                            Team Padua
                         </Heading>
                         <Text
                             style={{
-                                margin: "10px 0 0 0",
-                                color: "#444444",
-                                fontSize: "17px",
+                                margin: "8px 0 0 0",
+                                color: "#374151",
+                                fontSize: "16px",
+                                fontWeight: "600",
+                                letterSpacing: "0.05em",
+                                textTransform: "uppercase",
                             }}
                         >
-                            Membership Management System
+                            Client Management Portal
                         </Text>
                     </Section>
 
+                    {/* Main Content Area */}
                     <Section
                         style={{
                             padding: "40px",
@@ -98,74 +107,79 @@ export default function WelcomeEmail({ name }: Props) {
                         <Heading
                             as="h2"
                             style={{
-                                color: "#333333",
+                                color: "#111827",
                                 margin: "0 0 20px 0",
                                 fontSize: "24px",
+                                fontWeight: "700",
+                                letterSpacing: "-0.02em",
                             }}
                         >
-                            Welcome, {name}
+                            Welcome, {name}! 🎉
                         </Heading>
                         <Text
                             style={{
-                                color: "#666666",
-                                lineHeight: "28px",
+                                color: "#4b5563",
+                                lineHeight: "1.75",
                                 fontSize: "16px",
                                 margin: "0 0 16px 0",
                             }}
                         >
-                            Thank you for registering to our Membership Management System.
+                            Thank you for registering to our Client Management System. We are thrilled to welcome you to the platform.
                         </Text>
                         <Text
                             style={{
-                                color: "#666666",
-                                lineHeight: "28px",
+                                color: "#4b5563",
+                                lineHeight: "1.75",
                                 fontSize: "16px",
                                 margin: "0 0 30px 0",
                             }}
                         >
-                            Your registration has been received successfully. Our administrators will review your application.
+                            Your registration has been successfully received. Our system administrators will review your application credentials and activate your dashboard shortly.
                         </Text>
 
+                        {/* Onboarding Checklist Box */}
                         <Section
                             style={{
-                                backgroundColor: "#FFF9E8",
-                                border: "1px solid #FFE28A",
-                                borderRadius: "10px",
-                                padding: "24px",
+                                backgroundColor: "#FFFBEB",
+                                border: "1px solid #FDE68A",
+                                borderRadius: "14px",
+                                padding: "28px",
                                 margin: "30px 0",
                             }}
                         >
                             <Heading
                                 as="h3"
                                 style={{
-                                    margin: "0 0 12px 0",
-                                    color: "#A97800",
+                                    margin: "0 0 16px 0",
+                                    color: "#92400E",
                                     fontSize: "18px",
+                                    fontWeight: "700",
                                 }}
                             >
-                                What's Next?
+                                What to expect next?
                             </Heading>
                             <ul
                                 style={{
-                                    color: "#666666",
+                                    color: "#4b5563",
                                     paddingLeft: "20px",
-                                    lineHeight: "28px",
-                                    fontSize: "16px",
+                                    lineHeight: "1.8",
+                                    fontSize: "15px",
                                     margin: 0,
                                 }}
                             >
-                                <li style={{ marginBottom: "8px" }}>
-                                    Wait for account approval.
+                                <li style={{ marginBottom: "10px" }}>
+                                    <strong style={{ color: "#111827" }}>Account Approval</strong>: Administrators will verify your role alignment and approve permissions.
                                 </li>
-                                <li style={{ marginBottom: "8px" }}>
-                                    Check your email regularly.
+                                <li style={{ marginBottom: "10px" }}>
+                                    <strong style={{ color: "#111827" }}>Check Your Inbox</strong>: You will receive an automated confirmation email once active.
                                 </li>
                                 <li>
-                                    Login after your account has been approved.
+                                    <strong style={{ color: "#111827" }}>Sign In & Explore</strong>: Log in to sync your calendar, manage clients, and track portals!
                                 </li>
                             </ul>
                         </Section>
 
+                        {/* Premium Button */}
                         <Section
                             style={{
                                 textAlign: "center",
@@ -175,68 +189,70 @@ export default function WelcomeEmail({ name }: Props) {
                             <Button
                                 href="https://example.com"
                                 style={{
-                                    backgroundColor: "#FFD84D",
-                                    color: "#333333",
-                                    padding: "15px 35px",
-                                    borderRadius: "50px",
-                                    fontWeight: "bold",
-                                    fontSize: "16px",
+                                    backgroundColor: "#111827",
+                                    color: "#ffffff",
+                                    padding: "16px 36px",
+                                    borderRadius: "12px",
+                                    fontWeight: "700",
+                                    fontSize: "15px",
                                     textDecoration: "none",
                                     display: "inline-block",
+                                    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
                                 }}
                             >
-                                Visit Website
+                                Go to Workspace
                             </Button>
                         </Section>
                     </Section>
 
+                    {/* Footer */}
                     <Section
                         style={{
-                            backgroundColor: "#FFF7D8",
-                            padding: "30px",
+                            backgroundColor: "#f9fafb",
+                            padding: "30px 40px",
                             textAlign: "center",
+                            borderTop: "1px solid #f3f4f6",
                         }}
                     >
                         <Heading
-                            as="h3"
+                            as="h4"
                             style={{
                                 margin: 0,
-                                color: "#A97800",
-                                fontSize: "16px",
+                                color: "#374151",
+                                fontSize: "15px",
+                                fontWeight: "700",
                             }}
                         >
-                            BIZDEVTEAM
+                            Team Padua System Node
                         </Heading>
                         <Text
                             style={{
-                                color: "#777777",
-                                fontSize: "14px",
-                                lineHeight: "24px",
-                                margin: "10px 0 0 0",
+                                color: "#9ca3af",
+                                fontSize: "13px",
+                                lineHeight: "1.6",
+                                margin: "8px 0 0 0",
                             }}
                         >
-                            Membership Management System
-                            <br />
                             Powered by Next.js, Supabase & Resend
                         </Text>
                         <Hr
                             style={{
                                 border: "0",
-                                borderTop: "1px solid #E8E8E8",
-                                margin: "25px 0",
+                                borderTop: "1px solid #e5e7eb",
+                                margin: "20px 0",
                             }}
                         />
                         <Text
                             style={{
-                                color: "#999999",
+                                color: "#9ca3af",
                                 fontSize: "12px",
                                 margin: 0,
-                                lineHeight: "18px",
+                                lineHeight: "1.6",
                             }}
                         >
-                            © 2026 BIZDEVTEAM
+                            © 2026 Team Padua Operations
                             <br />
-                            This is an automated email. Please do not reply.
+                            This is an automated transmission. Please do not reply directly to this mail.
                         </Text>
                     </Section>
                 </Container>

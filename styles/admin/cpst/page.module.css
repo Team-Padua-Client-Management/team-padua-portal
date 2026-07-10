@@ -320,11 +320,11 @@
 }
 
 .text_75 {
-  @apply absolute left-3 top-2.5 h-4 w-4 text-muted-foreground;
+  @apply absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground;
 }
 
 .text_76 {
-  @apply w-full bg-muted/40 border border-border rounded-xl pl-9 pr-4 py-2 text-xs focus:outline-none focus:border-[#F4C542] focus:ring-2 focus:ring-[#F4C542]/10 text-foreground transition duration-150;
+  @apply w-full bg-white border border-gray-200 rounded-full h-11 pl-10 pr-4 text-sm text-foreground transition duration-150 focus:outline-none focus:border-[#F4C542] focus:ring-2 focus:ring-[#F4C542]/10;
 }
 
 .container_77 {
@@ -444,7 +444,7 @@
 }
 
 .text_106 {
-  @apply px-2 py-0.5 rounded bg-muted text-[11px] text-muted-foreground font-medium;
+  @apply px-3 py-1 rounded-full bg-transparent border border-gray-300 text-[11px] text-gray-600 font-medium;
 }
 
 .text_107 {
@@ -949,4 +949,124 @@
 
 .table_232 {
   @apply bg-red-500/10 border rounded-xl p-3 text-center transition;
+}
+
+/* ======================================================
+   Client Servicing Premium UI Theme Overrides
+   ====================================================== */
+
+/* LIGHT MODE ONLY OVERRIDES */
+:global(html:not(.dark)) .card_1,
+:global(html:not(.dark)) .card_40,
+:global(html:not(.dark)) .card_45,
+:global(html:not(.dark)) .card_47,
+:global(html:not(.dark)) .card_67,
+:global(html:not(.dark)) .card_73,
+:global(html:not(.dark)) .card_80,
+:global(html:not(.dark)) .card_81,
+:global(html:not(.dark)) .card_84,
+:global(html:not(.dark)) .card_85,
+:global(html:not(.dark)) .card_115,
+:global(html:not(.dark)) .card_227,
+:global(html:not(.dark)) :global([class*="card_"]) {
+    background-color: #ffffff !important;
+    border: 1px solid rgba(0, 0, 0, 0.06) !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.01) !important;
+}
+
+:global(html:not(.dark)) :global([class*="card_"]):hover,
+:global(html:not(.dark)) .card_67:hover,
+:global(html:not(.dark)) .card_227:hover {
+    border-color: rgba(244, 197, 66, 0.4) !important;
+    box-shadow: 0 12px 35px rgba(244, 197, 66, 0.08) !important;
+}
+
+:global(html:not(.dark)) .table_15,
+:global(html:not(.dark)) .table_88,
+:global(html:not(.dark)) :global(thead),
+:global(html:not(.dark)) :global(th) {
+    background-color: #fafafa !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
+    color: var(--ink-soft) !important;
+}
+
+:global(html:not(.dark)) .text_10,
+:global(html:not(.dark)) .text_76,
+:global(html:not(.dark)) :global(input),
+:global(html:not(.dark)) :global(select),
+:global(html:not(.dark)) :global(textarea) {
+    background-color: #ffffff !important;
+    border: 1.5px solid rgba(0, 0, 0, 0.08) !important;
+    color: var(--ink) !important;
+}
+
+:global(html:not(.dark)) .text_10:focus,
+:global(html:not(.dark)) .text_76:focus,
+:global(html:not(.dark)) :global(input):focus,
+:global(html:not(.dark)) :global(select):focus,
+:global(html:not(.dark)) :global(textarea):focus {
+    border-color: #F4C542 !important;
+    box-shadow: 0 0 0 3px rgba(244, 197, 66, 0.1) !important;
+    background-color: #ffffff !important;
+}
+
+:global(html:not(.dark)) :global(tr):hover {
+    background-color: #fafafa !important;
+}
+
+/* Button override colors only for light mode */
+:global(html:not(.dark)) .table_11,
+:global(html:not(.dark)) .table_60,
+:global(html:not(.dark)) .table_223,
+:global(html:not(.dark)) :global(button[type="submit"]) {
+    background: linear-gradient(135deg, #FFFbeb 0%, #fcd34d 100%) !important;
+    color: #b45309 !important;
+    border: 1.5px solid rgba(244, 197, 66, 0.3) !important;
+    box-shadow: 0 4px 12px rgba(244, 197, 66, 0.1) !important;
+}
+
+:global(html:not(.dark)) .table_11:hover,
+:global(html:not(.dark)) .table_60:hover,
+:global(html:not(.dark)) .table_223:hover,
+:global(html:not(.dark)) :global(button[type="submit"]):hover {
+    background: linear-gradient(135deg, #fde68a 0%, #f59e0b 100%) !important;
+    color: #78350f !important;
+    box-shadow: 0 6px 18px rgba(244, 197, 66, 0.18) !important;
+}
+
+:global(html:not(.dark)) .table_51,
+:global(html:not(.dark)) :global(button:not([type="submit"]):not(.todayBtn)) {
+    background-color: #ffffff !important;
+    border: 1.5px solid rgba(0, 0, 0, 0.08) !important;
+    color: var(--ink-soft) !important;
+}
+
+:global(html:not(.dark)) .table_51:hover,
+:global(html:not(.dark)) :global(button:not([type="submit"]):not(.todayBtn)):hover {
+    background-color: #fafafa !important;
+    border-color: rgba(0, 0, 0, 0.15) !important;
+    color: var(--ink) !important;
+}
+
+/* GLOBAL FUNCTIONAL / SHAPE OVERRIDES (Applied in both themes) */
+:global([class*="table_"]), :global(button), 
+.table_11, .table_51, .table_59, .table_60, .table_72, .table_111, .table_112, .table_222, .table_223 {
+    border-radius: 9999px !important;
+    transition: all 0.2s ease-in-out !important;
+}
+
+:global(html:not(.dark)) :global(input),
+:global(html:not(.dark)) :global(select),
+:global(html:not(.dark)) :global(textarea) {
+    border-radius: 9999px !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+}
+
+:global(html) .card_1, :global(html) .card_115 {
+    border-radius: 28px !important;
+}
+
+:global(html) .container_0, :global(html) .container_114 {
+    backdrop-filter: blur(8px) !important;
 }

@@ -11,6 +11,7 @@
 
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/app/lib/supabase/admin";
+import { createNotification } from "@/app/lib/notifications";
 
 /**
  * Executes operations logic for GET.
@@ -58,6 +59,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    // Trigger notification
+    await createNotification({
+      title: "👥 Client Profile Registered! 🎉",
+      description: `Client "${data.name}" has been successfully added to CPST.`,
+      type: "client",
+    });
+
     return NextResponse.json(data);
   } catch (err) {
     return NextResponse.json(
@@ -90,6 +98,13 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    // Trigger notification
+    await createNotification({
+      title: "✏️ Client Profile Updated! 🔄",
+      description: `Client "${data.name}" profile information has been modified.`,
+      type: "client",
+    });
+
     return NextResponse.json(data);
   } catch (err) {
     return NextResponse.json(
@@ -120,6 +135,13 @@ export async function DELETE(request: Request) {
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
 
+      // Trigger notification
+      await createNotification({
+        title: "🗑️ Client Profile Discarded ❌",
+        description: `A client record has been removed from CPST.`,
+        type: "client",
+      });
+
       return NextResponse.json({ success: true });
     }
 
@@ -138,6 +160,13 @@ export async function DELETE(request: Request) {
       if (error) {
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
+
+      // Trigger notification
+      await createNotification({
+        title: "🗑️ Multiple Client Profiles Discarded ❌",
+        description: `Successfully cleared ${body.ids.length} client records from CPST.`,
+        type: "client",
+      });
 
       return NextResponse.json({ success: true });
     }

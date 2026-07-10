@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/app/lib/supabase/admin";
+import { createNotification } from "@/app/lib/notifications";
 
 export async function GET(request: Request) {
   try {
@@ -72,6 +73,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    const record = Array.isArray(data) ? data[0] : data;
+    if (record) {
+      // Trigger notification
+      await createNotification({
+        title: "✍️ New FST Request Entry! 📄",
+        description: `FST request for owner "${record.policy_owner}" (Policy #${record.policy_number}) has been created.`,
+        type: "servicing",
+      });
+    }
+
     return NextResponse.json(data);
   } catch (err) {
     console.error("FST POST exception:", err);
@@ -104,6 +115,14 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    // Trigger notification
+    const statusText = data.progress?.name ? `[Status: ${data.progress.name}]` : "";
+    await createNotification({
+      title: "🔄 FST Request Updated! ⚡",
+      description: `FST request for owner "${data.policy_owner}" (Policy #${data.policy_number}) has been updated. ${statusText}`,
+      type: "servicing",
+    });
+
     return NextResponse.json(data);
   } catch (err) {
     console.error("FST PUT exception:", err);
@@ -128,6 +147,13 @@ export async function DELETE(request: Request) {
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
 
+      // Trigger notification
+      await createNotification({
+        title: "🗑️ FST Request Discarded ❌",
+        description: `FST request has been discarded from client servicing.`,
+        type: "servicing",
+      });
+
       return NextResponse.json({ success: true });
     }
 
@@ -142,6 +168,13 @@ export async function DELETE(request: Request) {
         console.error("FST bulk DELETE query failed:", error);
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
+
+      // Trigger notification
+      await createNotification({
+        title: "🗑️ Multiple FST Requests Discarded ❌",
+        description: `Successfully cleared ${idList.length} FST requests from system.`,
+        type: "servicing",
+      });
 
       return NextResponse.json({ success: true });
     }

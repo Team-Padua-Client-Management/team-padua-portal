@@ -78,7 +78,7 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [tempPermissions, setTempPermissions] = useState<ClientServicingPermissions>(defaultClientServicingPermissions);
 
-  const roles = ["Administrator", "Manager", "Intern", "Member"];
+  const roles = ["Admin", "Manager", "Intern", "Member"];
   const departments = ["ASA", "BSA", "CSA", "DSA"];
 
   const saveUser = async (user: User) => {
