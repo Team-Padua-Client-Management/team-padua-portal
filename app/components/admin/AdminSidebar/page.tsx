@@ -23,11 +23,18 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
   const [clientServicingOpen, setClientServicingOpen] = useState(false);
   const [portalManagementOpen, setPortalManagementOpen] = useState(false);
   const [greeting, setGreeting] = useState('');
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
+  const [isHovered, setIsHovered] = useState(false);
+
+  const isEffectivelyCollapsed = isCollapsed && !isHovered;
 
   useEffect(() => {
-    const saved = localStorage.getItem('admin-sidebar-collapsed') === 'true';
-    setIsCollapsed(saved);
+    const saved = localStorage.getItem('admin-sidebar-collapsed');
+    if (saved !== null) {
+      setIsCollapsed(saved === 'true');
+    } else {
+      setIsCollapsed(true);
+    }
   }, []);
 
   const toggleCollapse = () => {
@@ -116,17 +123,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
   const sidebarContent = (
     <div className={styles.sidebarInner}>
       {/* Header */}
-      <div className={`${styles.sidebarHeader} ${isCollapsed ? styles.sidebarHeaderCollapsed : ''}`}>
-        <button
-          type="button"
-          onClick={toggleCollapse}
-          aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          className={styles.toggleChevron}
-        >
-          {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-        </button>
-
+      <div className={`${styles.sidebarHeader} ${isEffectivelyCollapsed ? styles.sidebarHeaderCollapsed : ''}`}>
         <div className={styles.sidebarHeaderContainer}>
           <div className="flex items-center gap-3">
             <Image
@@ -134,14 +131,14 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
               alt="Team Padua Logo"
               width={32}
               height={32}
-              className={`object-contain shrink-0 ${styles.logoFade} ${isCollapsed ? styles.logoFadeHidden : ''}`}
+              className={`object-contain shrink-0 ${styles.logoFade} ${isEffectivelyCollapsed ? styles.logoFadeHidden : ''}`}
             />
-            <div className={`${styles.textFade} ${isCollapsed ? styles.textFadeHidden : ''}`}>
+            <div className={`${styles.textFade} ${isEffectivelyCollapsed ? styles.textFadeHidden : ''}`}>
               <h1 className={styles.sidebarTitle}>Team Padua</h1>
               <p className={styles.sidebarSubtitle}>Control Terminal</p>
             </div>
           </div>
-          {onClose && !isCollapsed && (
+          {onClose && !isEffectivelyCollapsed && (
             <button onClick={onClose} className={styles.mobileCloseBtn}>
               <X size={16} />
             </button>
@@ -149,17 +146,17 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
         </div>
 
         {greeting && (
-          <p className={`${styles.sidebarGreeting} ${styles.textFade} ${isCollapsed ? styles.textFadeHidden : ''}`}>
+          <p className={`${styles.sidebarGreeting} ${styles.textFade} ${isEffectivelyCollapsed ? styles.textFadeHidden : ''}`}>
             ● {greeting}
           </p>
         )}
       </div>
 
-      <nav className={`${styles.sidebarNav} ${isCollapsed ? 'px-2' : 'p-4'}`}>
+      <nav className={`${styles.sidebarNav} ${isEffectivelyCollapsed ? 'px-2' : 'p-4'}`}>
         {/* Dashboard Node with sub-menu */}
         <div className={styles.sidebarNavGroup}>
           <div
-            className={`${isCollapsed ? styles.navItemCollapsed : styles.navItem} ${pathname.startsWith('/admin/dashboard')
+            className={`${isEffectivelyCollapsed ? styles.navItemCollapsed : styles.navItem} ${pathname.startsWith('/admin/dashboard')
               ? styles.navItemActive
               : styles.navItemInactive
               }`}
@@ -167,13 +164,13 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
             <Link
               href="/admin/dashboard"
               onClick={onClose}
-              title={isCollapsed ? "Dashboard" : undefined}
-              className={isCollapsed ? 'flex items-center justify-center w-full' : styles.navItemLink}
+              title={isEffectivelyCollapsed ? "Dashboard" : undefined}
+              className={isEffectivelyCollapsed ? 'flex items-center justify-center w-full' : styles.navItemLink}
             >
               <LayoutDashboard size={16} className={`shrink-0 ${pathname.startsWith('/admin/dashboard') ? styles.navIconActive : styles.navIconInactive}`} />
-              <span className={`${styles.navLabel} ${isCollapsed ? styles.navLabelHidden : ''}`}>Dashboard</span>
+              <span className={`${styles.navLabel} ${isEffectivelyCollapsed ? styles.navLabelHidden : ''}`}>Dashboard</span>
             </Link>
-            {!isCollapsed && (
+            {!isEffectivelyCollapsed && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -187,7 +184,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
             )}
           </div>
 
-          {!isCollapsed && dashboardOpen && (
+          {!isEffectivelyCollapsed && dashboardOpen && (
             <div className={styles.sidebarSubNav}>
               {dashboardItems.map((sub) => {
                 const subActive = pathname === sub.href;
@@ -209,26 +206,26 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
         {/* Client Servicing Node with sub-menu */}
         <div className={styles.sidebarNavGroup}>
           <div
-            className={`${isCollapsed ? styles.navItemCollapsed : styles.navItem} ${clientServicingItems.some(item => pathname.startsWith(item.href))
+            className={`${isEffectivelyCollapsed ? styles.navItemCollapsed : styles.navItem} ${clientServicingItems.some(item => pathname.startsWith(item.href))
               ? styles.navItemActive
               : styles.navItemInactive
               }`}
           >
             <button
               onClick={() => {
-                if (isCollapsed) {
+                if (isEffectivelyCollapsed) {
                   window.location.href = clientServicingItems[0].href;
                 } else {
                   setClientServicingOpen(!clientServicingOpen);
                 }
               }}
-              title={isCollapsed ? "Client Servicing" : undefined}
-              className={isCollapsed ? 'flex items-center justify-center w-full' : styles.navItemLink}
+              title={isEffectivelyCollapsed ? "Client Servicing" : undefined}
+              className={isEffectivelyCollapsed ? 'flex items-center justify-center w-full' : styles.navItemLink}
             >
               <Briefcase size={16} className={`shrink-0 ${clientServicingItems.some(item => pathname.startsWith(item.href)) ? styles.navIconActive : styles.navIconInactive}`} />
-              <span className={`${styles.navLabel} ${isCollapsed ? styles.navLabelHidden : ''}`}>Client Servicing</span>
+              <span className={`${styles.navLabel} ${isEffectivelyCollapsed ? styles.navLabelHidden : ''}`}>Client Servicing</span>
             </button>
-            {!isCollapsed && (
+            {!isEffectivelyCollapsed && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -242,7 +239,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
             )}
           </div>
 
-          {!isCollapsed && clientServicingOpen && (
+          {!isEffectivelyCollapsed && clientServicingOpen && (
             <div className={styles.sidebarSubNav}>
               {clientServicingItems.map((sub) => {
                 const subActive = pathname === sub.href || pathname.startsWith(sub.href);
@@ -264,26 +261,26 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
         {/* Portal Management Node with sub-menu */}
         <div className={styles.sidebarNavGroup}>
           <div
-            className={`${isCollapsed ? styles.navItemCollapsed : styles.navItem} ${pathname.startsWith('/admin/portals')
+            className={`${isEffectivelyCollapsed ? styles.navItemCollapsed : styles.navItem} ${pathname.startsWith('/admin/portals')
               ? styles.navItemActive
               : styles.navItemInactive
               }`}
           >
             <button
               onClick={() => {
-                if (isCollapsed) {
+                if (isEffectivelyCollapsed) {
                   window.location.href = '/admin/portals';
                 } else {
                   setPortalManagementOpen(!portalManagementOpen);
                 }
               }}
-              title={isCollapsed ? "Portal Management" : undefined}
-              className={isCollapsed ? 'flex items-center justify-center w-full' : styles.navItemLink}
+              title={isEffectivelyCollapsed ? "Portal Management" : undefined}
+              className={isEffectivelyCollapsed ? 'flex items-center justify-center w-full' : styles.navItemLink}
             >
               <Globe size={16} className={`shrink-0 ${pathname.startsWith('/admin/portals') ? styles.navIconActive : styles.navIconInactive}`} />
-              <span className={`${styles.navLabel} ${isCollapsed ? styles.navLabelHidden : ''}`}>Portal Management</span>
+              <span className={`${styles.navLabel} ${isEffectivelyCollapsed ? styles.navLabelHidden : ''}`}>Portal Management</span>
             </button>
-            {!isCollapsed && (
+            {!isEffectivelyCollapsed && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -297,7 +294,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
             )}
           </div>
 
-          {!isCollapsed && portalManagementOpen && (
+          {!isEffectivelyCollapsed && portalManagementOpen && (
             <div className={`${styles.sidebarSubNav} max-h-[300px] overflow-y-auto pr-1`}>
               {portalItems.map((sub) => {
                 const subActive = pathname === sub.href;
@@ -325,15 +322,15 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
               key={item.href}
               href={item.href}
               onClick={onClose}
-              title={isCollapsed ? item.name : undefined}
-              className={`${isCollapsed ? styles.navItemCollapsed : styles.navItem} ${active
+              title={isEffectivelyCollapsed ? item.name : undefined}
+              className={`${isEffectivelyCollapsed ? styles.navItemCollapsed : styles.navItem} ${active
                 ? styles.navItemActive
                 : styles.navItemInactive
                 }`}
             >
-              <div className={isCollapsed ? 'flex items-center justify-center' : styles.navItemLink}>
+              <div className={isEffectivelyCollapsed ? 'flex items-center justify-center' : styles.navItemLink}>
                 <Icon size={16} className={`shrink-0 transition-colors duration-200 ${active ? styles.navIconActive : styles.navIconInactive}`} />
-                <span className={`${styles.navLabel} ${isCollapsed ? styles.navLabelHidden : ''}`}>{item.name}</span>
+                <span className={`${styles.navLabel} ${isEffectivelyCollapsed ? styles.navLabelHidden : ''}`}>{item.name}</span>
               </div>
             </Link>
           );
@@ -341,7 +338,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
       </nav>
 
       <div className={styles.sidebarFooter}>
-        <p className={`${styles.sidebarFooterText} ${styles.textFade} ${isCollapsed ? styles.textFadeHidden : ''}`}>
+        <p className={`${styles.sidebarFooterText} ${styles.textFade} ${isEffectivelyCollapsed ? styles.textFadeHidden : ''}`}>
           Admin Portal Secures Online
         </p>
       </div>
@@ -351,7 +348,11 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside className={`${styles.sidebarAside} ${isCollapsed ? styles.collapsedSidebar : ''}`}>
+      <aside 
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        className={`${styles.sidebarAside} ${isEffectivelyCollapsed ? styles.collapsedSidebar : ''}`}
+      >
         {sidebarContent}
       </aside>
       {/* Mobile drawer support */}

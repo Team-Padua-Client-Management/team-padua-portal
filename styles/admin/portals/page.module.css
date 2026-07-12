@@ -144,75 +144,115 @@
 }
 
 .resourceCard {
-  @apply relative flex flex-col border bg-card transition-all duration-300 ease-out overflow-hidden hover:shadow-md hover:-translate-y-1 flex-1;
+  @apply relative flex flex-col bg-[#11131C] dark:bg-[#0A0C10] border overflow-hidden cursor-pointer select-none;
   border-radius: 20px;
-  border-color: var(--border);
-  box-shadow: var(--shadow-theme);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   height: 280px;
+  text-decoration: none;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.4s ease;
 }
 
-.cardThumbnailSection {
-  @apply relative h-32 w-full bg-surface-2 border-b border-border flex items-center justify-center overflow-hidden;
+.resourceCard:hover {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
-.cardThumbnail {
-  @apply w-full h-full object-cover transition-transform duration-300;
+.cardImageWrapper {
+  @apply absolute inset-0 w-full h-full overflow-hidden;
+  border-radius: 20px;
+  z-index: 1;
 }
 
-.cardThumbnailPlaceHolder {
-  @apply flex flex-col items-center justify-center gap-2 text-text-secondary select-none text-[10px] font-bold uppercase tracking-wider font-mono;
+.cardImageWrapper img,
+.cardImageWrapper div {
+  @apply w-full h-full object-cover transition-transform duration-700 ease-out;
 }
 
-.cardFavoriteBtn {
-  @apply absolute top-3 right-3 p-1.5 rounded-full bg-card/85 backdrop-blur border border-border shadow transition-all hover:scale-110 cursor-pointer z-10 flex items-center justify-center;
+.resourceCard:hover .cardImageWrapper img,
+.resourceCard:hover .cardImageWrapper div {
+  transform: scale(1.08);
 }
 
-.cardMetaContent {
-  @apply flex-1 p-4 flex flex-col gap-2 min-h-0 justify-between;
+.cardGradientOverlay {
+  @apply absolute inset-0 transition-opacity duration-500 pointer-events-none;
+  background: linear-gradient(to top, rgba(10, 12, 16, 0.98) 0%, rgba(10, 12, 16, 0.65) 45%, rgba(10, 12, 16, 0.2) 75%, transparent 100%);
+  z-index: 2;
 }
 
-.cardTextContent {
-  @apply flex flex-col gap-1 min-h-0;
+.resourceCard:hover .cardGradientOverlay {
+  background: linear-gradient(to top, rgba(10, 12, 16, 1) 0%, rgba(10, 12, 16, 0.75) 45%, rgba(10, 12, 16, 0.35) 75%, rgba(10, 12, 16, 0.1) 100%);
 }
 
-.cardHeader {
-  @apply flex items-start justify-between gap-2;
+.floatingControls {
+  @apply absolute top-4 right-4 flex items-center gap-2 z-10;
+}
+
+.cardFavoriteBtnFloating,
+.cardMenuBtnFloating {
+  @apply relative w-8 h-8 rounded-full bg-black/50 backdrop-blur-md border border-white/10 shadow flex items-center justify-center transition-all duration-300;
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+.resourceCard:hover .cardFavoriteBtnFloating,
+.resourceCard:hover .cardMenuBtnFloating {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.cardFavoriteBtnFloating:hover,
+.cardMenuBtnFloating:hover {
+  @apply bg-black/80 scale-110 border-white/20;
+}
+
+/* Dropdown Menu Style */
+.menuDropdown {
+  @apply absolute top-10 right-0 w-40 bg-[#161821] border border-white/10 rounded-xl shadow-2xl py-1.5 z-20 flex flex-col gap-0.5;
+  animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: blur(12px);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-8px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.dropdownItem {
+  @apply flex items-center gap-2.5 px-3 py-1.5 text-[11px] font-semibold text-white/70 hover:text-white hover:bg-white/5 transition-colors cursor-pointer border-none bg-transparent w-full text-left;
+}
+
+.dropdownItemDelete {
+  @apply text-rose-400 hover:bg-rose-500/10 hover:text-rose-300;
+}
+
+.cardOverlayContent {
+  @apply absolute bottom-0 left-0 right-0 p-5 flex flex-col gap-1 z-10 text-left pointer-events-none;
 }
 
 .cardTitle {
-  @apply font-bold text-xs text-text truncate;
+  @apply font-bold text-sm text-white drop-shadow-sm font-sans tracking-tight;
 }
 
 .cardDescription {
-  @apply text-[10px] text-text-secondary leading-relaxed overflow-hidden text-ellipsis line-clamp-2;
-}
-
-.cardFooter {
-  @apply flex items-center justify-between pt-2 border-t border-border mt-auto;
+  @apply text-[11px] text-white/60 leading-relaxed overflow-hidden text-ellipsis line-clamp-2 drop-shadow-sm font-normal;
 }
 
 .badgeCategory {
-  @apply px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border w-fit select-none;
+  @apply px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border w-fit select-none font-sans pointer-events-auto;
 }
 
 .badgeStatus {
-  @apply px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider w-fit select-none;
+  @apply px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider w-fit select-none font-sans pointer-events-auto;
 }
 
 .badgeStatusActive {
-  @apply bg-emerald-500/10 text-emerald-600 border border-emerald-500/20;
+  @apply bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 backdrop-blur-[2px];
 }
 
 .badgeStatusHidden {
-  @apply bg-amber-500/10 text-amber-600 border border-amber-500/20;
-}
-
-.cardActions {
-  @apply flex items-center gap-1.5;
-}
-
-.cardActionBtn {
-  @apply p-1.5 rounded-full bg-surface-2 border border-border hover:bg-primary/20 hover:text-primary transition-all duration-200 cursor-pointer flex items-center justify-center;
+  @apply bg-amber-500/10 text-amber-400 border border-amber-500/20 backdrop-blur-[2px];
 }
 
 /* Premium Table View styling */

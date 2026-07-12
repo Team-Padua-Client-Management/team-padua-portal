@@ -27,7 +27,7 @@ import {
   Plus, Search, Filter, Edit2, Trash2, X,
   Upload, FileSpreadsheet, AlertCircle, CheckCircle2, Loader2,
   Eye, Download, ChevronDown, ChevronRight, Clock, Calendar,
-  ArrowUpDown, Check, AlertTriangle, Users, Star, Target
+  ArrowUpDown, Check, AlertTriangle, Users, Star, Target, Archive
 } from 'lucide-react';
 import Header from '@/app/components/admin/AdminHeader/page';
 import Sidebar from '@/app/components/admin/AdminSidebar/page';
@@ -803,15 +803,12 @@ export default function CPSTOverviewPage({ canCreate, canEdit, canDelete, canExp
 
   const [selectedClientIds, setSelectedClientIds] = useState<string[]>([]);
 
-  const [confirmModal, setConfirmModal] = useState<{
-    isOpen: boolean;
+  // Loading, Error, Confirmation feedback state
+  const [feedback, setFeedback] = useState<{
+    type: 'idle' | 'loading' | 'error' | 'confirm';
     message: string;
-    onConfirm: () => void;
-  }>({
-    isOpen: false,
-    message: '',
-    onConfirm: () => {}
-  });
+    onConfirm?: () => void;
+  }>({ type: 'idle', message: '' });
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -940,86 +937,106 @@ const handleOpenImportModal = () => {
   /**
  * Executes operations logic for showConfirm.
  *
- * @param message: string, onConfirm: (
- * @returns State operations sequence.
- */
-const showConfirm = (message: string, onConfirm: () => void) => {
-    setConfirmModal({
-      isOpen: true,
-      message,
-      onConfirm
-    });
-  };
-
   /**
- * Executes operations logic for handleDelete.
- *
- * @param id: string
- * @returns State operations sequence.
- */
-const handleDelete = (id: string) => {
-    showConfirm('Remove this client from the registry?', async () => {
-      try {
-        await fetch(`/api/clients?id=${id}`, { method: 'DELETE' });
-        setSelectedClientIds(prev => prev.filter(item => item !== id));
-      } catch (err) {
-        console.error(err);
+  * Executes operations logic for handleDelete.
+  *
+  * @param id: string
+  * @returns State operations sequence.
+  */
+  const handleDelete = (id: string) => {
+    setFeedback({
+      type: 'confirm',
+      message: 'Remove this client from the registry?',
+      onConfirm: async () => {
+        setFeedback({ type: 'loading', message: 'Deleting client...' });
+        try {
+          const res = await fetch(`/api/clients?id=${id}`, { method: 'DELETE' });
+          if (!res.ok) throw new Error('Delete request failed.');
+          setSelectedClientIds(prev => prev.filter(item => item !== id));
+          setFeedback({ type: 'idle', message: '' });
+          await refreshClients();
+        } catch (err: any) {
+          console.error(err);
+          setFeedback({ type: 'error', message: err.message || 'Failed to delete client.' });
+        }
       }
-      await refreshClients();
     });
   };
 
   /**
- * Executes operations logic for handleBulkDelete.
- *
- * 
- * @returns State operations sequence.
- */
-const handleBulkDelete = () => {
+  * Executes operations logic for handleBulkDelete.
+  *
+  * 
+  * @returns State operations sequence.
+  */
+  const handleBulkDelete = () => {
     if (selectedClientIds.length === 0) return;
-    showConfirm(`Are you sure you want to delete ${selectedClientIds.length} selected client(s)?`, async () => {
-      try {
-        await fetch('/api/clients', {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ids: selectedClientIds })
-        });
-        setSelectedClientIds([]);
-        await refreshClients();
-      } catch (err) {
-        console.error(err);
+    setFeedback({
+      type: 'confirm',
+      message: `Are you sure you want to delete ${selectedClientIds.length} selected client(s)?`,
+      onConfirm: async () => {
+        setFeedback({ type: 'loading', message: 'Deleting clients...' });
+        try {
+          const res = await fetch('/api/clients', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids: selectedClientIds })
+          });
+          if (!res.ok) throw new Error('Bulk delete request failed.');
+          setSelectedClientIds([]);
+          setFeedback({ type: 'idle', message: '' });
+          await refreshClients();
+        } catch (err: any) {
+          console.error(err);
+          setFeedback({ type: 'error', message: err.message || 'Failed to bulk delete clients.' });
+        }
       }
     });
   };
 
   /**
- * Executes operations logic for handleSubmit.
- *
- * @param e: React.FormEvent
- * @returns State operations sequence.
- */
-const handleSubmit = async (e: React.FormEvent) => {
+  * Executes operations logic for handleSubmit.
+  *
+  * @param e: React.FormEvent
+  * @returns State operations sequence.
+  */
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.birthdate) return;
+    setFeedback({ type: 'loading', message: 'Saving client details...' });
     try {
+      let res;
       if (editingClient) {
-        await fetch('/api/clients', {
+        res = await fetch('/api/clients', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: editingClient.id, ...formData }),
         });
       } else {
-        await fetch('/api/clients', {
+        res = await fetch('/api/clients', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData),
         });
       }
-    } catch (err) {
+      if (!res.ok) throw new Error('API save operation failed.');
+      setFeedback({ type: 'idle', message: '' });
+      setIsModalOpen(false);
+      await refreshClients();
+    } catch (err: any) {
       console.error(err);
+      setFeedback({ type: 'error', message: err.message || 'Failed to save client details.' });
     }
-    await refreshClients();
-    setIsModalOpen(false);
+  };
+
+  const handleArchiveRecord = (id: string) => {
+    const archived = JSON.parse(localStorage.getItem('archived_cpst') || '[]');
+    if (!archived.includes(id)) {
+      archived.push(id);
+      localStorage.setItem('archived_cpst', JSON.stringify(archived));
+      setSelectedClientIds(prev => prev.filter(item => item !== id));
+      refreshClients();
+    }
   };
 
   /**
@@ -1149,6 +1166,11 @@ const handleResetImport = () => {
 
   const getFilteredClients = useCallback(() => {
     let filtered = clients.filter(client => {
+      if (typeof window !== 'undefined') {
+        const archived = JSON.parse(localStorage.getItem('archived_cpst') || '[]');
+        const showArchivedCS = localStorage.getItem('show_archived_cs') === 'true';
+        if (archived.includes(client.id) && !showArchivedCS) return false;
+      }
       const nameMatch =
         client.name.toLowerCase().includes(search.toLowerCase()) ||
         client.relationship.toLowerCase().includes(search.toLowerCase()) ||
@@ -1295,13 +1317,7 @@ const handleSelectClientToggle = (id: string) => {
             <div className={styles.container_58}>
               {selectedClientIds.length > 0 && canDelete && (
                 <button
-                  onClick={() =>
-                    setConfirmModal({
-                      isOpen: true,
-                      message: `Are you sure you want to delete ${selectedClientIds.length} client(s)? This action cannot be undone.`,
-                      onConfirm: handleBulkDelete,
-                    })
-                  }
+                  onClick={handleBulkDelete}
                   className={styles.table_59}
                 >
                   <Trash2 size={13} />
@@ -1503,14 +1519,24 @@ const handleSelectClientToggle = (id: string) => {
                                     <button
                                       onClick={() => handleOpenEditModal(client)}
                                       className={styles.text_173}
+                                      title="Edit"
                                     >
                                       <Edit2 size={16} />
                                     </button>
                                   )}
+                                  <button
+                                    onClick={() => handleArchiveRecord(client.id)}
+                                    className="p-1 text-muted-foreground hover:text-amber-500 transition cursor-pointer"
+                                    title="Archive"
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
+                                  >
+                                    <Archive size={16} />
+                                  </button>
                                   {canDelete && (
                                     <button
                                       onClick={() => handleDelete(client.id)}
                                       className={styles.table_174}
+                                      title="Delete"
                                     >
                                       <Trash2 size={16} />
                                     </button>
@@ -1898,34 +1924,110 @@ const handleSelectClientToggle = (id: string) => {
         />
       )}
 
-      {confirmModal.isOpen && (
-        <div className={styles.container_217}>
-          <div className={styles.text_218}>
-            <h2 className={styles.table_219}>
-              Confirm Action
-            </h2>
-            <p className={styles.text_220}>
-              {confirmModal.message}
-            </p>
-            <div className={styles.container_221}>
-              <button
-                type="button"
-                onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
-                className={styles.table_222}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  confirmModal.onConfirm();
-                  setConfirmModal(prev => ({ ...prev, isOpen: false }));
-                }}
-                className={styles.table_223}
-              >
-                Confirm
-              </button>
-            </div>
+      {feedback.type !== 'idle' && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.4)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999
+        }}>
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '20px',
+            border: '1px solid #E2E8F0',
+            padding: '2rem',
+            width: '100%',
+            maxWidth: '400px',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '1.25rem'
+          }}>
+            {feedback.type === 'loading' && (
+              <>
+                <Loader2 size={36} className="animate-spin text-[#F4C542]" />
+                <p style={{ fontSize: '0.875rem', fontWeight: 600, color: '#0F1117', margin: 0 }}>
+                  {feedback.message}
+                </p>
+              </>
+            )}
+
+            {feedback.type === 'error' && (
+              <>
+                <AlertTriangle size={36} className="text-red-500" />
+                <div>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#EF4444', margin: '0 0 0.5rem 0' }}>Operation Failed</h3>
+                  <p style={{ fontSize: '0.8rem', color: '#64748B', margin: 0 }}>{feedback.message}</p>
+                </div>
+                <button
+                  onClick={() => setFeedback({ type: 'idle', message: '' })}
+                  style={{
+                    padding: '0.5rem 2rem',
+                    borderRadius: '9999px',
+                    backgroundColor: '#EF4444',
+                    color: '#ffffff',
+                    border: 'none',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Dismiss
+                </button>
+              </>
+            )}
+
+            {feedback.type === 'confirm' && (
+              <>
+                <AlertCircle size={36} className="text-[#F4C542]" />
+                <div>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0F1117', margin: '0 0 0.5rem 0' }}>Confirm Action</h3>
+                  <p style={{ fontSize: '0.8rem', color: '#64748B', margin: 0 }}>{feedback.message}</p>
+                </div>
+                <div style={{ display: 'flex', gap: '0.75rem', width: '100%' }}>
+                  <button
+                    onClick={() => setFeedback({ type: 'idle', message: '' })}
+                    style={{
+                      flex: 1,
+                      padding: '0.625rem',
+                      borderRadius: '9999px',
+                      border: '1px solid #E2E8F0',
+                      backgroundColor: 'transparent',
+                      color: '#64748B',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (feedback.onConfirm) feedback.onConfirm();
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '0.625rem',
+                      borderRadius: '9999px',
+                      border: 'none',
+                      backgroundColor: '#EF4444',
+                      color: '#ffffff',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Confirm
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

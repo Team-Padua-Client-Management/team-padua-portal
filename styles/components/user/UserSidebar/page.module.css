@@ -2,26 +2,30 @@
 
 /* Sidebar Container (Desktop sticky) */
 .sidebarAside {
-  @apply hidden md:flex w-64 flex-col bg-[#FFFFFF] shrink-0 sticky top-8;
+  @apply hidden md:flex w-[280px] flex-col bg-surface shrink-0 sticky top-8;
   height: calc(100vh - 64px);
   border-radius: 24px;
-  border-right: 1px solid #ECECEC !important;
-  border-left: 1px solid #ECECEC !important;
-  border-top: 1px solid #ECECEC !important;
-  border-bottom: 1px solid #ECECEC !important;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
+  border-right: 1px solid var(--border) !important;
+  border-left: 1px solid var(--border) !important;
+  border-top: 1px solid var(--border) !important;
+  border-bottom: 1px solid var(--border) !important;
+  box-shadow: var(--shadow-theme);
   overflow: hidden;
-  transition: width 300ms ease, box-shadow 300ms ease;
-  background-color: #FFFFFF !important;
+  transition: width 250ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  background-color: var(--surface) !important;
+}
+
+.sidebarAside:hover {
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.08);
 }
 
 /* Sidebar Drawer (Mobile) */
 .sidebarDrawer {
-  @apply relative z-50 flex h-full w-64 flex-col bg-[#FFFFFF];
-  border-right: 1px solid #ECECEC !important;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
+  @apply relative z-50 flex h-full w-64 flex-col bg-surface;
+  border-right: 1px solid var(--border) !important;
+  box-shadow: var(--shadow-theme);
   overflow-x: hidden;
-  background-color: #FFFFFF !important;
+  background-color: var(--surface) !important;
 }
 
 .sidebarMobileWrapper {
@@ -35,15 +39,15 @@
 
 /* Inner flex container */
 .sidebarInner {
-  @apply flex flex-col h-full bg-[#FFFFFF];
+  @apply flex flex-col h-full bg-surface;
   overflow: hidden;
-  background-color: #FFFFFF !important;
+  background-color: var(--surface) !important;
 }
 
 /* Header container */
 .sidebarHeader {
-  @apply flex flex-col px-6 py-7 relative bg-[#FFFFFF];
-  border-bottom: 1px solid #ECECEC;
+  @apply flex flex-col px-6 py-7 relative bg-surface;
+  border-bottom: 1px solid var(--border);
   transition: padding 300ms ease;
 }
 
@@ -118,20 +122,21 @@
 .textFade {
   overflow: hidden;
   white-space: nowrap;
-  max-width: 220px;
   opacity: 1;
-  transition: max-width 300ms ease, opacity 250ms ease, margin 300ms ease;
+  transform: translateX(0);
+  transition: max-width 250ms cubic-bezier(0.4, 0, 0.2, 1), opacity 180ms ease 50ms, transform 180ms cubic-bezier(0.4, 0, 0.2, 1) 50ms;
 }
 
 .textFadeHidden {
   max-width: 0;
   opacity: 0;
+  transform: translateX(-8px);
   margin: 0 !important;
 }
 
 /* Nav Body Scrollable section */
 .sidebarNav {
-  @apply flex-1 p-4 space-y-1 bg-[#FFFFFF];
+  @apply flex-1 p-4 space-y-1 bg-surface;
   overflow-y: auto;
   overflow-x: hidden;
   transition: padding 300ms ease;
@@ -151,8 +156,8 @@
 }
 
 .dropdownToggleBtn:hover {
-  background: #FFF9E8;
-  color: #D4A017;
+  background: var(--surface-2);
+  color: var(--primary);
 }
 
 /* Sub-items list indent line */
@@ -167,13 +172,13 @@
   top: 0;
   bottom: 0;
   width: 1px;
-  background-color: #ECECEC;
+  background-color: var(--border);
 }
 
 /* Footer Section */
 .sidebarFooter {
-  @apply p-4 bg-[#FFFFFF] mt-auto;
-  border-top: 1px solid #ECECEC;
+  @apply p-4 bg-surface mt-auto;
+  border-top: 1px solid var(--border);
   transition: padding 300ms ease;
 }
 
@@ -197,14 +202,15 @@
 .navLabel {
   overflow: hidden;
   white-space: nowrap;
-  max-width: 180px;
   opacity: 1;
-  transition: max-width 300ms ease, opacity 250ms ease, margin-left 300ms ease;
+  transform: translateX(0);
+  transition: max-width 250ms cubic-bezier(0.4, 0, 0.2, 1), opacity 180ms ease 50ms, transform 180ms cubic-bezier(0.4, 0, 0.2, 1) 50ms;
 }
 
 .navLabelHidden {
   max-width: 0;
   opacity: 0;
+  transform: translateX(-8px);
   margin-left: 0;
 }
 

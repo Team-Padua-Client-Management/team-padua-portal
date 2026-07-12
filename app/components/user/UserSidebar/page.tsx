@@ -19,11 +19,18 @@ export default function UserSidebar({ isOpen, onClose }: UserSidebarProps) {
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
   const [isClientServicingOpen, setIsClientServicingOpen] = useState(false);
   const [permissions, setPermissions] = useState<any>(null);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
+  const [isHovered, setIsHovered] = useState(false);
+
+  const isEffectivelyCollapsed = isCollapsed && !isHovered;
 
   useEffect(() => {
-    const saved = localStorage.getItem('user-sidebar-collapsed') === 'true';
-    setIsCollapsed(saved);
+    const saved = localStorage.getItem('user-sidebar-collapsed');
+    if (saved !== null) {
+      setIsCollapsed(saved === 'true');
+    } else {
+      setIsCollapsed(true);
+    }
   }, []);
 
   const toggleCollapse = () => {
@@ -101,17 +108,7 @@ export default function UserSidebar({ isOpen, onClose }: UserSidebarProps) {
   const sidebarContent = (
     <div className={styles.sidebarInner}>
       {/* Header */}
-      <div className={`${styles.sidebarHeader} ${isCollapsed ? styles.sidebarHeaderCollapsed : ''}`}>
-        <button
-          type="button"
-          onClick={toggleCollapse}
-          aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          className={styles.toggleChevron}
-        >
-          {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-        </button>
-
+      <div className={`${styles.sidebarHeader} ${isEffectivelyCollapsed ? styles.sidebarHeaderCollapsed : ''}`}>
         <div className={styles.sidebarHeaderContainer}>
           <div className="flex items-center gap-3">
             <Image
@@ -119,14 +116,14 @@ export default function UserSidebar({ isOpen, onClose }: UserSidebarProps) {
               alt="Team Padua Logo"
               width={32}
               height={32}
-              className={`object-contain shrink-0 ${styles.logoFade} ${isCollapsed ? styles.logoFadeHidden : ''}`}
+              className={`object-contain shrink-0 ${styles.logoFade} ${isEffectivelyCollapsed ? styles.logoFadeHidden : ''}`}
             />
-            <div className={`${styles.textFade} ${isCollapsed ? styles.textFadeHidden : ''}`}>
+            <div className={`${styles.textFade} ${isEffectivelyCollapsed ? styles.textFadeHidden : ''}`}>
               <h1 className={styles.sidebarTitle}>Team Padua</h1>
               <p className={styles.sidebarSubtitle}>Intern Workspace</p>
             </div>
           </div>
-          {onClose && !isCollapsed && (
+          {onClose && !isEffectivelyCollapsed && (
             <button onClick={onClose} className={styles.mobileCloseBtn}>
               <X size={16} />
             </button>
@@ -134,7 +131,7 @@ export default function UserSidebar({ isOpen, onClose }: UserSidebarProps) {
         </div>
       </div>
 
-      <nav className={`${styles.sidebarNav} ${isCollapsed ? 'px-2' : 'p-4'}`}>
+      <nav className={`${styles.sidebarNav} ${isEffectivelyCollapsed ? 'px-2' : 'p-4'}`}>
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isDashboard = item.href === "/dashboard";
@@ -146,18 +143,18 @@ export default function UserSidebar({ isOpen, onClose }: UserSidebarProps) {
             return (
               <div key={item.href} className={styles.sidebarNavGroup}>
                 <div
-                  className={`${isCollapsed ? styles.navItemCollapsed : styles.navItem} ${isParentActive ? styles.navItemActive : styles.navItemInactive}`}
+                  className={`${isEffectivelyCollapsed ? styles.navItemCollapsed : styles.navItem} ${isParentActive ? styles.navItemActive : styles.navItemInactive}`}
                 >
                   <Link
                     href={item.href}
                     onClick={onClose}
-                    title={isCollapsed ? item.name : undefined}
-                    className={isCollapsed ? 'flex items-center justify-center w-full' : styles.navItemLink}
+                    title={isEffectivelyCollapsed ? item.name : undefined}
+                    className={isEffectivelyCollapsed ? 'flex items-center justify-center w-full' : styles.navItemLink}
                   >
                     <Icon size={16} className={`shrink-0 ${isParentActive ? styles.navIconActive : styles.navIconInactive}`} />
-                    <span className={`${styles.navLabel} ${isCollapsed ? styles.navLabelHidden : ''}`}>{item.name}</span>
+                    <span className={`${styles.navLabel} ${isEffectivelyCollapsed ? styles.navLabelHidden : ''}`}>{item.name}</span>
                   </Link>
-                  {!isCollapsed && (
+                  {!isEffectivelyCollapsed && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -171,7 +168,7 @@ export default function UserSidebar({ isOpen, onClose }: UserSidebarProps) {
                     </button>
                   )}
                 </div>
-                {!isCollapsed && isOpenSection && (
+                {!isEffectivelyCollapsed && isOpenSection && (
                   <div className={styles.sidebarSubNav}>
                     {item.subItems.map((sub) => {
                       const subActive = pathname === sub.href;
@@ -197,19 +194,19 @@ export default function UserSidebar({ isOpen, onClose }: UserSidebarProps) {
               key={item.href}
               href={item.href}
               onClick={onClose}
-              title={isCollapsed ? item.name : undefined}
-              className={`${isCollapsed ? styles.navItemCollapsed : styles.navItem} ${active ? styles.navItemActive : styles.navItemInactive}`}
+              title={isEffectivelyCollapsed ? item.name : undefined}
+              className={`${isEffectivelyCollapsed ? styles.navItemCollapsed : styles.navItem} ${active ? styles.navItemActive : styles.navItemInactive}`}
             >
-              <div className={isCollapsed ? 'flex items-center justify-center' : styles.navItemLink}>
+              <div className={isEffectivelyCollapsed ? 'flex items-center justify-center' : styles.navItemLink}>
                 <Icon size={16} className={`shrink-0 ${active ? styles.navIconActive : styles.navIconInactive}`} />
-                <span className={`${styles.navLabel} ${isCollapsed ? styles.navLabelHidden : ''}`}>{item.name}</span>
+                <span className={`${styles.navLabel} ${isEffectivelyCollapsed ? styles.navLabelHidden : ''}`}>{item.name}</span>
               </div>
             </Link>
           );
         })}
       </nav>
       <div className={styles.sidebarFooter}>
-        <p className={`${styles.sidebarFooterText} ${styles.textFade} ${isCollapsed ? styles.textFadeHidden : ''}`}>
+        <p className={`${styles.sidebarFooterText} ${styles.textFade} ${isEffectivelyCollapsed ? styles.textFadeHidden : ''}`}>
           Intern Portal Secures Online
         </p>
       </div>
@@ -219,7 +216,11 @@ export default function UserSidebar({ isOpen, onClose }: UserSidebarProps) {
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside className={`${styles.sidebarAside} ${isCollapsed ? styles.collapsedSidebar : ''}`}>
+      <aside 
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        className={`${styles.sidebarAside} ${isEffectivelyCollapsed ? styles.collapsedSidebar : ''}`}
+      >
         {sidebarContent}
       </aside>
       {/* Mobile drawer support */}

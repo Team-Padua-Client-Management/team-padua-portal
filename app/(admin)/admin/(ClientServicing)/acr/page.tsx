@@ -5,7 +5,7 @@ import {
   Plus, Search, Filter, Edit2, Trash2, X,
   Upload, FileSpreadsheet, AlertCircle, CheckCircle2, Loader2,
   Eye, Download, ChevronDown, ChevronRight, Clock, Calendar,
-  ArrowUpDown, Check, AlertTriangle, Users, Star, Target
+  ArrowUpDown, Check, AlertTriangle, Users, Star, Target, Archive
 } from 'lucide-react';
 import Header from '@/app/components/admin/AdminHeader/page';
 import Sidebar from '@/app/components/admin/AdminSidebar/page';
@@ -188,6 +188,13 @@ export default function AcrDashboard() {
   const [showPreview, setShowPreview] = useState(true);
   const [showInvalidModal, setShowInvalidModal] = useState(false);
 
+  // Loading, Error, Confirmation feedback state
+  const [feedback, setFeedback] = useState<{
+    type: 'idle' | 'loading' | 'error' | 'confirm';
+    message: string;
+    onConfirm?: () => void;
+  }>({ type: 'idle', message: '' });
+
   const [importState, setImportState] = useState<ImportState>({
     phase: 'idle',
     fileName: '',
@@ -201,10 +208,11 @@ export default function AcrDashboard() {
     current: 0,
     currentName: '',
     percent: 0,
+    bgPercent: 0,
     elapsed: 0,
     estimatedRemaining: 0,
     logs: []
-  });
+  } as any);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -214,7 +222,7 @@ export default function AcrDashboard() {
       const { data: procData } = await supabase.from('acr_processors').select('*').order('sort_order', { ascending: true });
       setProgressOptions(pData || []);
       setProcessors(procData || []);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
     }
   };
@@ -228,7 +236,7 @@ export default function AcrDashboard() {
         processor:acr_processors(*)
       `);
       setRequests(data || []);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
     } finally {
       setLoading(false);
@@ -242,6 +250,7 @@ export default function AcrDashboard() {
 
   const handleCreateRequest = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFeedback({ type: 'loading', message: 'Saving request...' });
     try {
       const payload = {
         policy_owner: currentRequest.policy_owner,
@@ -253,45 +262,80 @@ export default function AcrDashboard() {
         agent_confirmation: currentRequest.agent_confirmation || ''
       };
 
+      let error;
       if (currentRequest.id) {
-        await supabase.from('acr_requests').update(payload).eq('id', currentRequest.id);
+        const res = await supabase.from('acr_requests').update(payload).eq('id', currentRequest.id);
+        error = res.error;
       } else {
-        await supabase.from('acr_requests').insert([payload]);
+        const res = await supabase.from('acr_requests').insert([payload]);
+        error = res.error;
       }
+      if (error) throw error;
+      
+      setFeedback({ type: 'idle', message: '' });
       setActiveModal(null);
       fetchRequests();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      setFeedback({ type: 'error', message: err.message || 'Failed to save registry details.' });
     }
   };
 
   const handleInlineUpdate = async (id: string, field: keyof AcrRequest, val: any) => {
     try {
-      await supabase.from('acr_requests').update({ [field]: val }).eq('id', id);
+      const { error } = await supabase.from('acr_requests').update({ [field]: val }).eq('id', id);
+      if (error) throw error;
       setRequests(prev => prev.map(r => r.id === id ? { ...r, [field]: val } : r));
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      setFeedback({ type: 'error', message: err.message || 'Inline update failed.' });
     }
   };
 
   const handleDeleteRequest = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this change request?')) return;
-    try {
-      await supabase.from('acr_requests').delete().eq('id', id);
-      fetchRequests();
-    } catch (err) {
-      console.error(err);
-    }
+    setFeedback({
+      type: 'confirm',
+      message: 'Are you sure you want to delete this change request?',
+      onConfirm: async () => {
+        setFeedback({ type: 'loading', message: 'Deleting request...' });
+        try {
+          const { error } = await supabase.from('acr_requests').delete().eq('id', id);
+          if (error) throw error;
+          setFeedback({ type: 'idle', message: '' });
+          fetchRequests();
+        } catch (err: any) {
+          setFeedback({ type: 'error', message: err.message || 'Failed to delete.' });
+        }
+      }
+    });
   };
 
   const handleBulkDelete = async () => {
-    if (!confirm(`Are you sure you want to delete ${selectedIds.length} requests?`)) return;
-    try {
-      await supabase.from('acr_requests').delete().in('id', selectedIds);
-      setSelectedIds([]);
+    setFeedback({
+      type: 'confirm',
+      message: `Are you sure you want to delete ${selectedIds.length} requests?`,
+      onConfirm: async () => {
+        setFeedback({ type: 'loading', message: 'Deleting requests...' });
+        try {
+          const { error } = await supabase.from('acr_requests').delete().in('id', selectedIds);
+          if (error) throw error;
+          setSelectedIds([]);
+          setFeedback({ type: 'idle', message: '' });
+          fetchRequests();
+        } catch (err: any) {
+          setFeedback({ type: 'error', message: err.message || 'Failed to delete.' });
+        }
+      }
+    });
+  };
+
+  const handleArchiveRecord = (id: string) => {
+    const archived = JSON.parse(localStorage.getItem('archived_acr') || '[]');
+    if (!archived.includes(id)) {
+      archived.push(id);
+      localStorage.setItem('archived_acr', JSON.stringify(archived));
+      setSelectedIds(prev => prev.filter(item => item !== id));
       fetchRequests();
-    } catch (err) {
-      console.error(err);
     }
   };
 
@@ -403,6 +447,13 @@ export default function AcrDashboard() {
   };
 
   const filteredRequests = requests.filter(r => {
+    // Check archive state
+    if (typeof window !== 'undefined') {
+      const archived = JSON.parse(localStorage.getItem('archived_acr') || '[]');
+      const showArchivedCS = localStorage.getItem('show_archived_cs') === 'true';
+      if (archived.includes(r.id) && !showArchivedCS) return false;
+    }
+
     const term = search.toLowerCase();
     const matchSearch =
       r.policy_owner.toLowerCase().includes(term) ||
@@ -665,12 +716,21 @@ export default function AcrDashboard() {
                           <button
                             onClick={() => { setCurrentRequest(req); setActiveModal('add'); }}
                             className="p-1 text-muted-foreground hover:text-[#F4C542] transition cursor-pointer"
+                            title="Edit"
                           >
                             <Edit2 size={13} />
                           </button>
                           <button
+                            onClick={() => handleArchiveRecord(req.id)}
+                            className="p-1 text-muted-foreground hover:text-amber-500 transition cursor-pointer"
+                            title="Archive"
+                          >
+                            <Archive size={13} />
+                          </button>
+                          <button
                             onClick={() => handleDeleteRequest(req.id)}
                             className="p-1 text-muted-foreground hover:text-red-500 transition cursor-pointer"
+                            title="Delete"
                           >
                             <Trash2 size={13} />
                           </button>
@@ -944,6 +1004,113 @@ export default function AcrDashboard() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+      {feedback.type !== 'idle' && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.4)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999
+        }}>
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '20px',
+            border: '1px solid #E2E8F0',
+            padding: '2rem',
+            width: '100%',
+            maxWidth: '400px',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '1.25rem'
+          }}>
+            {feedback.type === 'loading' && (
+              <>
+                <Loader2 size={36} className="animate-spin text-[#F4C542]" />
+                <p style={{ fontSize: '0.875rem', fontWeight: 600, color: '#0F1117', margin: 0 }}>
+                  {feedback.message}
+                </p>
+              </>
+            )}
+
+            {feedback.type === 'error' && (
+              <>
+                <AlertTriangle size={36} className="text-red-500" />
+                <div>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#EF4444', margin: '0 0 0.5rem 0' }}>Operation Failed</h3>
+                  <p style={{ fontSize: '0.8rem', color: '#64748B', margin: 0 }}>{feedback.message}</p>
+                </div>
+                <button
+                  onClick={() => setFeedback({ type: 'idle', message: '' })}
+                  style={{
+                    padding: '0.5rem 2rem',
+                    borderRadius: '9999px',
+                    backgroundColor: '#EF4444',
+                    color: '#ffffff',
+                    border: 'none',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Dismiss
+                </button>
+              </>
+            )}
+
+            {feedback.type === 'confirm' && (
+              <>
+                <AlertCircle size={36} className="text-[#F4C542]" />
+                <div>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0F1117', margin: '0 0 0.5rem 0' }}>Confirm Action</h3>
+                  <p style={{ fontSize: '0.8rem', color: '#64748B', margin: 0 }}>{feedback.message}</p>
+                </div>
+                <div style={{ display: 'flex', gap: '0.75rem', width: '100%' }}>
+                  <button
+                    onClick={() => setFeedback({ type: 'idle', message: '' })}
+                    style={{
+                      flex: 1,
+                      padding: '0.625rem',
+                      borderRadius: '9999px',
+                      border: '1px solid #E2E8F0',
+                      backgroundColor: 'transparent',
+                      color: '#64748B',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (feedback.onConfirm) feedback.onConfirm();
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '0.625rem',
+                      borderRadius: '9999px',
+                      border: 'none',
+                      backgroundColor: '#EF4444',
+                      color: '#ffffff',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Confirm
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

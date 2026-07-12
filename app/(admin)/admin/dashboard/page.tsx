@@ -34,6 +34,18 @@ export default function DashboardOverviewPage() {
   const [adminId, setAdminId] = useState('');
   const [adminName, setAdminName] = useState('Administrator');
   const [greeting, setGreeting] = useState('Good Morning');
+  const [customPortals, setCustomPortals] = useState<any[]>([]);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('custom_external_portals');
+      if (stored) {
+        setCustomPortals(JSON.parse(stored));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
 
   const [kpis, setKpis] = useState<KpiData>({
     members: 0,
@@ -536,6 +548,42 @@ export default function DashboardOverviewPage() {
                 </svg>
                 <span className={`${styles.table_32} group`}>Zoom</span>
               </div>
+
+              {customPortals.map((portal, idx) => (
+                <div
+                  key={`custom-portal-${idx}`}
+                  onClick={() => window.open(portal.url, "_blank", "noopener,noreferrer")}
+                  className={`${styles.card_30} group flex flex-col items-center justify-center cursor-pointer`}
+                  style={{
+                    backgroundColor: 'var(--surface)',
+                    border: '1px solid var(--border)',
+                    boxShadow: 'var(--shadow-theme)',
+                    minHeight: '120px',
+                    borderRadius: '16px',
+                    padding: '1rem'
+                  }}
+                >
+                  {portal.iconUrl ? (
+                    <img
+                      src={portal.iconUrl}
+                      alt={portal.name}
+                      className="w-14 h-14 object-contain transition-transform duration-300 group-hover:scale-110"
+                    />
+                  ) : (
+                    <div
+                      className="w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold transition-transform duration-300 group-hover:scale-110"
+                      style={{
+                        backgroundColor: 'var(--surface-2)',
+                        border: '1px solid var(--border)',
+                        color: 'var(--text)'
+                      }}
+                    >
+                      {portal.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <span className={`${styles.table_32} mt-3 text-center`}>{portal.name}</span>
+                </div>
+              ))}
             </div>
           </div>
 

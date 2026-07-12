@@ -4,7 +4,8 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   Plus, Search, Grid, List, Edit2, Trash2, ExternalLink, 
   Copy, Star, StarOff, Archive, Eye, EyeOff, Loader2, 
-  ArrowLeft, Check, AlertCircle, Sparkles, Upload, Image, X
+  ArrowLeft, Check, AlertCircle, Sparkles, Upload, Image, X,
+  MoreVertical
 } from 'lucide-react';
 import Link from 'next/link';
 import Sidebar from '@/app/components/admin/AdminSidebar/page';
@@ -81,6 +82,16 @@ export default function PortalManagementClient({
   // UI Toast State
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+
+  // Close context menu on click outside
+  useEffect(() => {
+    const handleOutsideClick = () => {
+      setActiveMenuId(null);
+    };
+    window.addEventListener('click', handleOutsideClick);
+    return () => window.removeEventListener('click', handleOutsideClick);
+  }, []);
 
   // File Upload State
   const [isUploading, setIsUploading] = useState(false);
@@ -345,6 +356,34 @@ export default function PortalManagementClient({
     }
   };
 
+  // Handle Duplicate Resource
+  const handleDuplicate = async (resource: Resource) => {
+    try {
+      const payload = {
+        title: `${resource.title} (Copy)`,
+        description: resource.description || '',
+        url: resource.url,
+        thumbnail: resource.thumbnail || '',
+        category_id: resource.category_id || '',
+        display_order: resource.display_order + 1,
+        favorite: false,
+        status: resource.status,
+        portal_slug: portalSlug
+      };
+      const res = await fetch('/api/portals/resources', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error("Duplicate failed");
+      triggerToast('success', 'Resource duplicated successfully.');
+      fetchData();
+    } catch (err) {
+      console.error(err);
+      triggerToast('error', 'Could not duplicate resource.');
+    }
+  };
+
   // Copy URL to Clipboard
   const handleCopyLink = (url: string, id: string) => {
     navigator.clipboard.writeText(url);
@@ -552,108 +591,166 @@ export default function PortalManagementClient({
               {resources.map((resource) => {
                 const catColor = resource.category?.color || '#cbd5e1';
                 return (
-                  <div key={resource.id} className={styles.resourceCard}>
-                    {/* Thumbnail Section */}
-                    <div className={styles.cardThumbnailSection}>
+                  <a
+                    key={resource.id}
+                    href={resource.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.resourceCard}
+                  >
+                    {/* Full Edge-to-Edge Thumbnail */}
+                    <div className={styles.cardImageWrapper}>
                       {renderThumbnail(resource)}
-                      
-                      {/* Favorite Pinned star */}
+                    </div>
+
+                    {/* Ambient Dark Gradient Overlay */}
+                    <div className={styles.cardGradientOverlay} />
+
+                    {/* Floating Controls Star / Options Context Menu */}
+                    <div className={styles.floatingControls}>
                       <button
-                        onClick={() => handleToggleFavorite(resource)}
-                        className={styles.cardFavoriteBtn}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleToggleFavorite(resource);
+                        }}
+                        className={styles.cardFavoriteBtnFloating}
                         title={resource.favorite ? "Unpin Favorite" : "Pin Favorite"}
                       >
                         <Star 
-                          size={14} 
-                          className={resource.favorite ? "fill-[#F4C542] text-[#F4C542]" : "text-muted hover:text-[#F4C542]"} 
+                          size={13} 
+                          className={resource.favorite ? "fill-[#F4C542] text-[#F4C542]" : "text-white/80 hover:text-[#F4C542] transition-colors"} 
                         />
                       </button>
-                    </div>
 
-                    {/* Text Metadata */}
-                    <div className={styles.cardMetaContent}>
-                      <div className={styles.cardTextContent}>
-                        <div className={styles.cardHeader}>
-                          <h3 className={styles.cardTitle} title={resource.title}>
-                            {resource.title}
-                          </h3>
-                        </div>
-                        <p className={styles.cardDescription} title={resource.description}>
-                          {resource.description || 'No description provided.'}
-                        </p>
-                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setActiveMenuId(activeMenuId === resource.id ? null : resource.id);
+                        }}
+                        className={styles.cardMenuBtnFloating}
+                        title="Options"
+                      >
+                        <MoreVertical size={13} className="text-white/80 hover:text-white transition-colors" />
+                      </button>
 
-                      {/* Badges and Footer */}
-                      <div className="flex flex-col gap-2 mt-auto">
-                        <div className="flex items-center justify-between">
-                          <span 
-                            className={styles.badgeCategory}
-                            style={{
-                              borderColor: `${catColor}30`,
-                              backgroundColor: `${catColor}10`,
-                              color: catColor
+                      {/* Dropdown Menu */}
+                      {activeMenuId === resource.id && (
+                        <div className={styles.menuDropdown} onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              window.open(resource.url, '_blank');
+                              setActiveMenuId(null);
                             }}
+                            className={styles.dropdownItem}
                           >
-                            {resource.category?.name || 'Uncategorized'}
-                          </span>
-                          <span 
-                            className={`${styles.badgeStatus} ${
-                              resource.status === 'Active' ? styles.badgeStatusActive : styles.badgeStatusHidden
-                            }`}
+                            <ExternalLink size={12} /> Open
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleCopyLink(resource.url, resource.id);
+                              setActiveMenuId(null);
+                            }}
+                            className={styles.dropdownItem}
                           >
-                            {resource.status}
-                          </span>
+                            <Copy size={12} /> Copy Link
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleOpenEdit(resource);
+                              setActiveMenuId(null);
+                            }}
+                            className={styles.dropdownItem}
+                          >
+                            <Edit2 size={12} /> Edit
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleDuplicate(resource);
+                              setActiveMenuId(null);
+                            }}
+                            className={styles.dropdownItem}
+                          >
+                            <Copy size={12} /> Duplicate
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleToggleStatus(resource);
+                              setActiveMenuId(null);
+                            }}
+                            className={styles.dropdownItem}
+                          >
+                            {resource.status === 'Active' ? <EyeOff size={12} /> : <Eye size={12} />}
+                            {resource.status === 'Active' ? 'Hide' : 'Show'}
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleArchive(resource);
+                              setActiveMenuId(null);
+                            }}
+                            className={styles.dropdownItem}
+                          >
+                            <Archive size={12} /> Archive
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setConfirmDeleteId(resource.id);
+                              setActiveMenuId(null);
+                            }}
+                            className={`${styles.dropdownItem} ${styles.dropdownItemDelete}`}
+                          >
+                            <Trash2 size={12} /> Delete
+                          </button>
                         </div>
+                      )}
+                    </div>
 
-                        {/* Footer Buttons */}
-                        <div className={styles.cardFooter}>
-                          <span className="text-[9px] text-text-secondary font-mono">
-                            Order: {resource.display_order}
-                          </span>
+                    {/* Text & Badges content overlaid directly on the card bottom */}
+                    <div className={styles.cardOverlayContent}>
+                      <h3 className={styles.cardTitle} title={resource.title}>
+                        {resource.title}
+                      </h3>
+                      <p className={styles.cardDescription} title={resource.description}>
+                        {resource.description || 'No description provided.'}
+                      </p>
 
-                          <div className={styles.cardActions}>
-                            <a
-                              href={resource.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className={styles.cardActionBtn}
-                              title="Open Resource"
-                            >
-                              <ExternalLink size={12} />
-                            </a>
-                            <button
-                              onClick={() => handleCopyLink(resource.url, resource.id)}
-                              className={styles.cardActionBtn}
-                              title="Copy URL"
-                            >
-                              <Copy size={12} className={copiedId === resource.id ? "text-emerald-500" : ""} />
-                            </button>
-                            <button
-                              onClick={() => handleToggleStatus(resource)}
-                              className={styles.cardActionBtn}
-                              title={resource.status === 'Active' ? "Hide Resource" : "Show Resource"}
-                            >
-                              {resource.status === 'Active' ? <EyeOff size={12} /> : <Eye size={12} />}
-                            </button>
-                            <button
-                              onClick={() => handleOpenEdit(resource)}
-                              className={styles.cardActionBtn}
-                              title="Edit Details"
-                            >
-                              <Edit2 size={12} />
-                            </button>
-                            <button
-                              onClick={() => setConfirmDeleteId(resource.id)}
-                              className={styles.cardActionBtn}
-                              title="Delete Link"
-                            >
-                              <Trash2 size={12} className="hover:text-rose-500" />
-                            </button>
-                          </div>
-                        </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span 
+                          className={styles.badgeCategory}
+                          style={{
+                            borderColor: `${catColor}30`,
+                            backgroundColor: `${catColor}20`,
+                            color: catColor,
+                            backdropFilter: 'blur(4px)'
+                          }}
+                        >
+                          {resource.category?.name || 'Uncategorized'}
+                        </span>
+                        <span 
+                          className={`${styles.badgeStatus} ${
+                            resource.status === 'Active' ? styles.badgeStatusActive : styles.badgeStatusHidden
+                          }`}
+                        >
+                          {resource.status}
+                        </span>
                       </div>
                     </div>
-                  </div>
+                  </a>
                 );
               })}
             </div>

@@ -3,7 +3,7 @@
 import styles from "@/styles/components/admin/AdminHeader/page.module.css";
 import Image from 'next/image';
 import React, { useEffect, useRef, useState } from 'react';
-import { User, LogOut, ChevronDown, Bell, Sun, Moon, Menu, Search } from 'lucide-react';
+import { User, LogOut, ChevronDown, Bell, Sun, Moon, Menu, Search, Settings } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/app/lib/supabase/client';
@@ -91,6 +91,11 @@ export default function AdminHeader({ onMenuClick }: HeaderProps) {
     setTimeout(() => {
       setIsDark(theme === 'dark');
       document.documentElement.setAttribute('data-theme', theme);
+      if (theme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
     }, 0);
   }, []);
 
@@ -152,6 +157,11 @@ export default function AdminHeader({ onMenuClick }: HeaderProps) {
     setIsDark(nextDark);
     localStorage.setItem('theme', nextTheme);
     document.documentElement.setAttribute('data-theme', nextTheme);
+    if (nextDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
     window.dispatchEvent(new CustomEvent('theme-change', { detail: { theme: nextTheme } }));
   };
 
@@ -309,6 +319,18 @@ export default function AdminHeader({ onMenuClick }: HeaderProps) {
                   <div className={styles.dropdownItemLeft}>
                     <User size={14} className={styles.dropdownItemIcon} />
                     <span>Profile</span>
+                  </div>
+                </button>
+                <button
+                  onClick={() => {
+                    router.push('/admin/settings');
+                    setProfileOpen(false);
+                  }}
+                  className={styles.dropdownItem}
+                >
+                  <div className={styles.dropdownItemLeft}>
+                    <Settings size={14} className={styles.dropdownItemIcon} />
+                    <span>Settings</span>
                   </div>
                 </button>
                 <button

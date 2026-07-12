@@ -27,6 +27,18 @@ export default function DashboardPage() {
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [customPortals, setCustomPortals] = useState<any[]>([]);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('custom_external_portals');
+      if (stored) {
+        setCustomPortals(JSON.parse(stored));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
 
   const [phTime, setPhTime] = useState("");
   const [phDate, setPhDate] = useState("");
@@ -418,6 +430,43 @@ export default function DashboardPage() {
                 </svg>
                 <span className={styles.portalLabel}>Zoom</span>
               </a>
+
+              {customPortals.map((portal, idx) => (
+                <a
+                  key={`custom-portal-${idx}`}
+                  href={portal.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`${styles.portalCard} group flex flex-col items-center justify-center`}
+                  style={{
+                    backgroundColor: 'var(--surface)',
+                    border: '1px solid var(--border)',
+                    boxShadow: 'var(--shadow-theme)',
+                    minHeight: '120px',
+                    borderRadius: '16px'
+                  }}
+                >
+                  {portal.iconUrl ? (
+                    <img
+                      src={portal.iconUrl}
+                      alt={portal.name}
+                      className="w-14 h-14 object-contain transition-transform duration-300 group-hover:scale-110"
+                    />
+                  ) : (
+                    <div
+                      className="w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold transition-transform duration-300 group-hover:scale-110"
+                      style={{
+                        backgroundColor: 'var(--surface-2)',
+                        border: '1px solid var(--border)',
+                        color: 'var(--text)'
+                      }}
+                    >
+                      {portal.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <span className={`${styles.portalLabel} mt-3`}>{portal.name}</span>
+                </a>
+              ))}
             </div>
           </div>
 
