@@ -123,11 +123,13 @@ export default function UserSidebar({ isOpen, onClose }: UserSidebarProps) {
               <p className={styles.sidebarSubtitle}>Intern Workspace</p>
             </div>
           </div>
-          {onClose && !isEffectivelyCollapsed && (
-            <button onClick={onClose} className={styles.mobileCloseBtn}>
-              <X size={16} />
-            </button>
-          )}
+          <div className={styles.headerActions}>
+            {onClose && !isEffectivelyCollapsed && (
+              <button type="button" onClick={onClose} className={styles.mobileCloseBtn}>
+                <X size={16} />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

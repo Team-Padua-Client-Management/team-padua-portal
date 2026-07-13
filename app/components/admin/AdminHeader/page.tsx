@@ -3,15 +3,12 @@
 import styles from "@/styles/components/admin/AdminHeader/page.module.css";
 import Image from 'next/image';
 import React, { useEffect, useRef, useState } from 'react';
-import { User, LogOut, ChevronDown, Bell, Sun, Moon, Menu, Search, Settings } from 'lucide-react';
+import { User, LogOut, ChevronDown, Bell, Sun, Moon, Search, Settings } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/app/lib/supabase/client';
 import NotificationBell from "@/components/shared/NotificationBell";
-
-interface HeaderProps {
-  onMenuClick?: () => void;
-}
+import { useAdminLayoutContext } from '@/app/components/admin/AdminLayoutContext';
 
 interface UserData {
   name: string;
@@ -48,10 +45,12 @@ const pageConfig: Record<string, { title: string; description: string }> = {
   cpst: { title: '2026 CPST', description: 'Client Prospect Servicing Tracker' },
 };
 
-export default function AdminHeader({ onMenuClick }: HeaderProps) {
+export default function AdminHeader() {
   const router = useRouter();
   const pathname = usePathname();
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const layoutContext = useAdminLayoutContext();
+  const [isMobile, setIsMobile] = useState(false);
 
   const [profileOpen, setProfileOpen] = useState(false);
   const [isDark, setIsDark] = useState(false);
@@ -98,6 +97,15 @@ export default function AdminHeader({ onMenuClick }: HeaderProps) {
       }
     }, 0);
   }, []);
+
+  useEffect(() => {
+    const updateMobile = () => setIsMobile(window.innerWidth < 768);
+    updateMobile();
+    window.addEventListener('resize', updateMobile);
+    return () => window.removeEventListener('resize', updateMobile);
+  }, []);
+
+  const hideHeader = isMobile && layoutContext?.isSidebarOpen;
 
   const loadUserAndBirthdays = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -204,21 +212,8 @@ export default function AdminHeader({ onMenuClick }: HeaderProps) {
 
   return (
     <>
-      <header className={`${styles.header} ${scrolled ? styles.headerScrolled : ''}`}>
+      <header className={`${styles.header} ${scrolled ? styles.headerScrolled : ''} ${hideHeader ? styles.headerHidden : ''}`}>
         <div className={styles.leftSection}>
-          <button onClick={() => onMenuClick?.()} className={styles.mobileMenuBtn}>
-            <Menu size={16} />
-          </button>
-          <div className="flex md:hidden items-center">
-            <Image
-              src="/Image/Tp.png"
-              alt="Team Padua Logo"
-              width={28}
-              height={28}
-              priority
-              className="object-contain"
-            />
-          </div>
           <div className={styles.titleContainer}>
             <span className={styles.breadcrumb}>Admin / {currentPage.title}</span>
             <h1 className={styles.pageTitle}>{currentPage.title}</h1>
@@ -228,11 +223,11 @@ export default function AdminHeader({ onMenuClick }: HeaderProps) {
 
         <div className={styles.centerSection}>
           <div className={styles.searchContainer}>
-            <Search size={14} className={styles.searchIcon} />
-            <input 
-              type="text" 
-              placeholder="Search clients, advisors, records..." 
-              className={styles.searchInput} 
+            <Search size={18} className={styles.searchIcon} />
+            <input
+              type="text"
+              placeholder="Search clients, advisors, records..."
+              className={styles.searchInput}
             />
           </div>
         </div>
@@ -250,9 +245,9 @@ export default function AdminHeader({ onMenuClick }: HeaderProps) {
                 <span className={styles.profileName}>{userData.name}</span>
                 <span className={styles.profileRole}>{userData.role}</span>
               </div>
-              <ChevronDown 
-                size={14} 
-                className={`${styles.chevronIcon} ${profileOpen ? styles.chevronIconOpen : ''}`} 
+              <ChevronDown
+                size={14}
+                className={`${styles.chevronIcon} ${profileOpen ? styles.chevronIconOpen : ''}`}
               />
             </button>
 
@@ -265,7 +260,9 @@ export default function AdminHeader({ onMenuClick }: HeaderProps) {
                   <p className={styles.dropdownEmail}>{userData.email}</p>
                 </div>
               </div>
+
               
+
               <div className="border-b border-border/50 py-2 px-4 flex items-center justify-center bg-muted/10 relative">
                 <div className="relative w-full">
                   <button
@@ -283,7 +280,7 @@ export default function AdminHeader({ onMenuClick }: HeaderProps) {
                   </button>
 
                   {statusDropdownOpen && (
-                    <div className="absolute left-0 right-0 mt-1.5 bg-card border border-border rounded-xl shadow-lg overflow-hidden z-[110] animate-in fade-in slide-in-from-top-1 duration-150">
+                    <div className="absolute left-0 right-0 mt-1.5 bg-card border border-border rounded-xl shadow-lg overflow-hidden z-110 animate-in fade-in slide-in-from-top-1 duration-150">
                       {([
                         { id: 'online', label: 'Online', color: 'bg-emerald-500' },
                         { id: 'busy', label: 'Busy', color: 'bg-rose-500' },

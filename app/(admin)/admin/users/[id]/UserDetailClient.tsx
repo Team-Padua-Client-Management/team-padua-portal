@@ -205,9 +205,6 @@ export default function UserDetailClient({ initialUser, socialLinks, attendance,
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const router = useRouter();
 
-  const completedTasks = tasks.filter(t => t.status === 'Completed').length;
-  const pendingTasks = tasks.filter(t => t.status !== 'Completed').length;
-
   /**
  * Executes operations logic for AvatarDisplay.
  *
@@ -215,10 +212,14 @@ export default function UserDetailClient({ initialUser, socialLinks, attendance,
  * @returns State operations sequence.
  */
   const AvatarDisplay = ({ size = 96 }: { size?: number }) => {
-    if (user.avatarMode === "upload" && user.avatar) {
+    if (user.avatar) {
       return (
-        <img src={user.avatar} alt={user.name} style={{ width: size, height: size }}
-          className={styles.div_2} />
+        <img
+          src={user.avatar}
+          alt={user.name}
+          style={{ width: size, height: size }}
+          className={styles.div_2}
+        />
       );
     }
     if (user.avatarMode === "ai" && user.aiSeed) {
@@ -446,20 +447,6 @@ export default function UserDetailClient({ initialUser, socialLinks, attendance,
                         </div>
                       )}
                     </div>
-
-                    <div className={styles.card_72}>
-                      <h3 className={styles.text_73}>Tasks Status</h3>
-                      <div className={styles.container_74}>
-                        <div className={styles.div_75}>
-                          <p className={styles.text_76}>Completed</p>
-                          <p className={styles.text_77}>{completedTasks}</p>
-                        </div>
-                        <div className={styles.div_78}>
-                          <p className={styles.text_79}>Pending</p>
-                          <p className={styles.text_80}>{pendingTasks}</p>
-                        </div>
-                      </div>
-                    </div>
                   </div>
                 </div>
               )}
@@ -505,7 +492,6 @@ export default function UserDetailClient({ initialUser, socialLinks, attendance,
                   <h3 className={styles.text_94}>Organization & Role Details</h3>
                   <div className={styles.text_95}>
                     {[
-                      { label: "Employee ID", value: user.employeeId || "—", icon: Award },
                       { label: "Role Architecture", value: user.role || "—", icon: Shield },
                       { label: "Assigned Department", value: user.department || "—", icon: Briefcase },
                       { label: "Assigned Team Node", value: user.team || "—", icon: Users },

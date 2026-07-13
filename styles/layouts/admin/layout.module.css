@@ -10,5 +10,5 @@
    Font weights, leading scales, and text colors
 ====================================================== */
 .text_0 {
-  @apply bg-background text-foreground min-h-screen;
+  @apply bg-background text-foreground min-h-screen overflow-x-hidden;
 }

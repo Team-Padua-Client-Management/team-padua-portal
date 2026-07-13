@@ -9,14 +9,12 @@
    Structural Layout Components
    Main grid and layout flex wraps
 ====================================================== */
-.div_0 {
-  @apply space-y-6;
+.div_23 {
+  @apply w-10 h-10 rounded-full object-cover shrink-0 border border-border;
 }
-
-.container_1 {
-  @apply flex flex-col md:flex-row gap-3 items-center justify-between;
+.text_24 {
+  @apply w-10 h-10 rounded-full bg-[#FFF7D6] dark:bg-[#2E2818] text-black dark:text-[#F4C542] font-semibold flex items-center justify-center text-sm shrink-0;
 }
-
 .div_2 {
   @apply w-full md:max-w-md;
 }
@@ -111,20 +109,13 @@
   @apply flex items-center gap-3 cursor-pointer;
 }
 
-.div_23 {
-  @apply w-8 h-8 rounded-full object-cover shrink-0 border border-border;
-}
-
-.text_24 {
-  @apply w-8 h-8 rounded-full bg-[#FFF7D6] dark:bg-[#2E2818] text-black dark:text-[#F4C542] font-semibold flex items-center justify-center text-xs shrink-0;
-}
 
 .div_25 {
   @apply min-w-0;
 }
 
 .table_26 {
-  @apply font-medium text-foreground hover:underline block truncate;
+  @apply font-medium text-foreground hover:underline block truncate text-sm;
 }
 
 .table_27 {
@@ -140,7 +131,7 @@
 }
 
 .card_30 {
-  @apply bg-transparent border-none text-xs text-foreground p-0 pr-6 focus:ring-0 focus:outline-none cursor-pointer font-medium bg-card;
+  @apply bg-transparent border-none text-xs text-foreground p-0 pr-6 focus:ring-0 focus:outline-none cursor-pointer font-medium ;
 }
 
 .div_31 {
@@ -148,7 +139,7 @@
 }
 
 .card_32 {
-  @apply bg-transparent border-none text-xs text-foreground p-0 pr-6 focus:ring-0 focus:outline-none cursor-pointer font-medium bg-card;
+  @apply bg-transparent border-none text-xs text-foreground p-0 pr-6 focus:ring-0 focus:outline-none cursor-pointer font-medium;
 }
 
 .div_33 {

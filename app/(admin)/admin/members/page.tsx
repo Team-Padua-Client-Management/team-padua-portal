@@ -40,6 +40,7 @@ export default async function AdminMembers() {
         .filter((u) => u.id !== user.id)
         .map((u) => {
             const profile = profilesData?.find((p) => p.id === u.id) || {};
+            const googleAvatar = u.user_metadata?.avatar_url || u.user_metadata?.picture || "";
             return {
                 id: u.id,
                 name: profile.full_name || u.user_metadata?.full_name || u.user_metadata?.name || u.email?.split('@')[0] || 'User',
@@ -52,7 +53,7 @@ export default async function AdminMembers() {
                 gender: profile.gender ?? "",
                 birthday: profile.birthday ?? "",
                 address: profile.address ?? "",
-                avatar: profile.avatar_url ?? "",
+                avatar: profile.avatar_url || googleAvatar || "",
                 provider: u.app_metadata?.provider || "email",
                 status: profile.status || (u.email_confirmed_at ? "Active" : "Pending"),
                 joined: u.created_at ?? "",
@@ -84,7 +85,7 @@ export default async function AdminMembers() {
                     <div className={styles.container_3}>
                         <div>
                             <h1 className={styles.table_4}>Members Management</h1>
-                            <p className={styles.text_5}>Manage team roles, departments, employee IDs, and platform access.</p>
+                            <p className={styles.text_5}>Manage team roles, departments, and platform access.</p>
                         </div>
                         <button className={styles.table_6}>
                             + Invite Member

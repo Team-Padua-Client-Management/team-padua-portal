@@ -77,14 +77,23 @@ export default async function UserProfilePage({ params }: Props) {
     userTasks = tasksData || [];
   }
 
+  const googleName =
+    targetUser.user_metadata?.full_name ||
+    targetUser.user_metadata?.name ||
+    (targetUser.user_metadata?.given_name
+      ? `${targetUser.user_metadata?.given_name} ${targetUser.user_metadata?.family_name || ""}`.trim()
+      : "") ||
+    targetUser.email?.split("@")[0] ||
+    "User";
+
+  const googleAvatar =
+    targetUser.user_metadata?.avatar_url ||
+    targetUser.user_metadata?.picture ||
+    "";
+
   const userProps = {
     id: targetUser.id,
-    name:
-      profile?.full_name ||
-      targetUser.user_metadata?.full_name ||
-      targetUser.user_metadata?.name ||
-      targetUser.email?.split("@")[0] ||
-      "User",
+    name: profile?.full_name || googleName,
 
     email: targetUser.email || "",
     employeeId: profile?.employee_id || "",
@@ -96,6 +105,7 @@ export default async function UserProfilePage({ params }: Props) {
     birthday: profile?.birthday || "",
 
     address: profile?.address || "",
+    avatar: profile?.avatar_url || googleAvatar || "",
 
     region: profile?.region || "",
     province: profile?.province || "",
@@ -109,7 +119,7 @@ export default async function UserProfilePage({ params }: Props) {
     longitude: profile?.longitude || "",
     mapUrl: profile?.map_url || "",
 
-    avatar: profile?.avatar_url || targetUser.user_metadata?.avatar_url || "",
+    avatar: profile?.avatar_url || googleAvatar,
     provider: targetUser.app_metadata?.provider || "email",
     status:
       profile?.status ||
@@ -122,7 +132,8 @@ export default async function UserProfilePage({ params }: Props) {
     bannerTheme:
       profile?.banner_theme ||
       "linear-gradient(135deg, #FFFFFF 0%, #FFF7D6 100%)",
-    avatarMode: profile?.avatar_mode || "initials",
+    avatarMode:
+      profile?.avatar_mode || (googleAvatar ? "upload" : "initials"),
     aiSeed:
       profile?.ai_seed ||
       targetUser.id ||

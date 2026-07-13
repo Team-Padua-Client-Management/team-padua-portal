@@ -9,8 +9,9 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Users, CalendarCheck,
   ChevronDown, ChevronRight, ChevronLeft, X,
-  Briefcase, Globe
+  Briefcase, Globe, Menu
 } from 'lucide-react';
+import { useAdminLayoutContext } from '@/app/components/admin/AdminLayoutContext';
 
 interface AdminSidebarProps {
   isOpen?: boolean;
@@ -19,14 +20,26 @@ interface AdminSidebarProps {
 
 export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
   const pathname = usePathname();
+  const layoutContext = useAdminLayoutContext();
+  const effectiveIsOpen = isOpen ?? layoutContext?.isSidebarOpen;
+  const effectiveOnClose = onClose ?? layoutContext?.closeSidebar;
+  const effectiveOpen = layoutContext?.openSidebar;
   const [dashboardOpen, setDashboardOpen] = useState(false);
   const [clientServicingOpen, setClientServicingOpen] = useState(false);
   const [portalManagementOpen, setPortalManagementOpen] = useState(false);
   const [greeting, setGreeting] = useState('');
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
-  const isEffectivelyCollapsed = isCollapsed && !isHovered;
+  useEffect(() => {
+    const updateMobile = () => setIsMobile(window.innerWidth < 700);
+    updateMobile();
+    window.addEventListener('resize', updateMobile);
+    return () => window.removeEventListener('resize', updateMobile);
+  }, []);
+
+  const isEffectivelyCollapsed = isCollapsed && !isHovered && !(isMobile && effectiveIsOpen);
 
   useEffect(() => {
     const saved = localStorage.getItem('admin-sidebar-collapsed');
@@ -44,7 +57,18 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
     window.dispatchEvent(new CustomEvent('admin-sidebar-collapse-change', { detail: { collapsed: next } }));
   };
 
-  // Setup Philippines time greeting
+  const handleBurgerClick = () => {
+    if (typeof window !== 'undefined' && window.innerWidth < 700) {
+      if (effectiveIsOpen) {
+        effectiveOnClose?.();
+      } else {
+        effectiveOpen?.();
+      }
+      return;
+    }
+    toggleCollapse();
+  };
+
   useEffect(() => {
     const getPhGreeting = () => {
       try {
@@ -122,10 +146,9 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
 
   const sidebarContent = (
     <div className={styles.sidebarInner}>
-      {/* Header */}
       <div className={`${styles.sidebarHeader} ${isEffectivelyCollapsed ? styles.sidebarHeaderCollapsed : ''}`}>
-        <div className={styles.sidebarHeaderContainer}>
-          <div className="flex items-center gap-3">
+        <div className={`${styles.sidebarHeaderContainer} ${isEffectivelyCollapsed ? styles.sidebarHeaderContainerCollapsed : ''}`}>
+          <div className={`flex items-center gap-3 ${isEffectivelyCollapsed ? styles.headerBrandCollapsed : ''}`}>
             <Image
               src="/Image/icon/TPC.png"
               alt="Team Padua Logo"
@@ -138,11 +161,6 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
               <p className={styles.sidebarSubtitle}>Control Terminal</p>
             </div>
           </div>
-          {onClose && !isEffectivelyCollapsed && (
-            <button onClick={onClose} className={styles.mobileCloseBtn}>
-              <X size={16} />
-            </button>
-          )}
         </div>
 
         {greeting && (
@@ -153,7 +171,6 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
       </div>
 
       <nav className={`${styles.sidebarNav} ${isEffectivelyCollapsed ? 'px-2' : 'p-4'}`}>
-        {/* Dashboard Node with sub-menu */}
         <div className={styles.sidebarNavGroup}>
           <div
             className={`${isEffectivelyCollapsed ? styles.navItemCollapsed : styles.navItem} ${pathname.startsWith('/admin/dashboard')
@@ -203,7 +220,6 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
           )}
         </div>
 
-        {/* Client Servicing Node with sub-menu */}
         <div className={styles.sidebarNavGroup}>
           <div
             className={`${isEffectivelyCollapsed ? styles.navItemCollapsed : styles.navItem} ${clientServicingItems.some(item => pathname.startsWith(item.href))
@@ -258,7 +274,6 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
           )}
         </div>
 
-        {/* Portal Management Node with sub-menu */}
         <div className={styles.sidebarNavGroup}>
           <div
             className={`${isEffectivelyCollapsed ? styles.navItemCollapsed : styles.navItem} ${pathname.startsWith('/admin/portals')
@@ -313,7 +328,6 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
           )}
         </div>
 
-        {/* Regular Menu Nodes */}
         {menuItems.map((item) => {
           const Icon = item.icon;
           const active = pathname === item.href || (item.href !== '/admin/dashboard' && pathname.startsWith(item.href));
@@ -321,7 +335,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
             <Link
               key={item.href}
               href={item.href}
-              onClick={onClose}
+              onClick={effectiveOnClose}
               title={isEffectivelyCollapsed ? item.name : undefined}
               className={`${isEffectivelyCollapsed ? styles.navItemCollapsed : styles.navItem} ${active
                 ? styles.navItemActive
@@ -347,18 +361,26 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
 
   return (
     <>
-      {/* Desktop Sidebar */}
-      <aside 
+      <aside
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         className={`${styles.sidebarAside} ${isEffectivelyCollapsed ? styles.collapsedSidebar : ''}`}
       >
         {sidebarContent}
       </aside>
-      {/* Mobile drawer support */}
-      {isOpen && (
+      {!effectiveIsOpen && effectiveOpen && (
+        <button
+          type="button"
+          aria-label="Open sidebar menu"
+          className={styles.mobileSidebarOpenBtn}
+          onClick={effectiveOpen}
+        >
+          <Menu size={16} />
+        </button>
+      )}
+      {effectiveIsOpen && (
         <div className={styles.sidebarMobileWrapper}>
-          <div className={styles.sidebarOverlay} onClick={onClose} />
+          <div className={styles.sidebarOverlay} onClick={effectiveOnClose} />
           <aside className={styles.sidebarDrawer}>
             {sidebarContent}
           </aside>

@@ -74,6 +74,7 @@ export default function PortalManagementClient({
     url: '',
     thumbnail: '',
     category_id: '',
+    category_name: '',
     display_order: 0,
     favorite: false,
     status: 'Active' as Resource['status']
@@ -208,6 +209,7 @@ export default function PortalManagementClient({
       url: '',
       thumbnail: '',
       category_id: categories[0]?.id || '',
+      category_name: categories[0]?.name || '',
       display_order: resources.length + 1,
       favorite: false,
       status: 'Active'
@@ -226,6 +228,7 @@ export default function PortalManagementClient({
       url: resource.url,
       thumbnail: resource.thumbnail || '',
       category_id: resource.category_id || '',
+      category_name: resource.category?.name || '',
       display_order: resource.display_order,
       favorite: resource.favorite,
       status: resource.status
@@ -244,8 +247,14 @@ export default function PortalManagementClient({
     }
 
     try {
+      // Resolve category name to category_id if possible
+      const categoryName = (formData.category_name || '').trim();
+      const matchedCat = categories.find(c => c.name.toLowerCase() === categoryName.toLowerCase());
+      const category_id = matchedCat ? matchedCat.id : (formData.category_id || '');
+
       const payload = {
         ...formData,
+        category_id,
         portal_slug: portalSlug
       };
 
@@ -936,17 +945,21 @@ export default function PortalManagementClient({
 
               <div className={styles.formGrid}>
                 <div className={styles.formField}>
-                  <label className={styles.formLabel}>Resource Category *</label>
-                  <select
-                    value={formData.category_id}
-                    onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
-                    className={styles.formInput}
-                    required
-                  >
-                    {categories.map((cat) => (
-                      <option key={cat.id} value={cat.id}>{cat.name}</option>
-                    ))}
-                  </select>
+                <label className={styles.formLabel}>Resource Category *</label>
+                <input
+                  type="text"
+                  list="category-list"
+                  placeholder="Type or select a category"
+                  value={formData.category_name}
+                  onChange={(e) => setFormData({ ...formData, category_name: e.target.value })}
+                  className={styles.formInput}
+                  required
+                />
+                <datalist id="category-list">
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.name} />
+                  ))}
+                </datalist>
                 </div>
 
                 <div className={styles.formField}>

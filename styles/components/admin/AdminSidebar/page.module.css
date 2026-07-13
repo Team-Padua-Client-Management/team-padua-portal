@@ -2,17 +2,27 @@
 
 /* Sidebar Container (Desktop sticky) */
 .sidebarAside {
-  @apply hidden md:flex w-[280px] flex-col bg-surface shrink-0 sticky top-8;
+  display: none;
+  width: 280px;
+  flex-direction: column;
+  background: var(--surface);
+  flex-shrink: 0;
+  position: sticky;
+  top: 2rem;
   height: calc(100vh - 64px);
   border-radius: 24px;
-  border-right: 1px solid var(--border) !important;
-  border-left: 1px solid var(--border) !important;
-  border-top: 1px solid var(--border) !important;
-  border-bottom: 1px solid var(--border) !important;
+  border: 1px solid var(--border) !important;
   box-shadow: var(--shadow-theme);
   overflow: hidden;
   transition: width 250ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1);
   background-color: var(--surface) !important;
+  min-width: 0;
+}
+
+@media (min-width: 700px) {
+  .sidebarAside {
+    display: flex;
+  }
 }
 
 .sidebarAside:hover {
@@ -21,20 +31,127 @@
 
 /* Sidebar Drawer (Mobile) */
 .sidebarDrawer {
-  @apply relative z-50 flex h-full w-64 flex-col bg-surface;
+  @apply relative flex h-full w-[min(90vw,320px)] flex-col bg-surface;
   border-right: 1px solid var(--border) !important;
   box-shadow: var(--shadow-theme);
   overflow-x: hidden;
   background-color: var(--surface) !important;
+  min-width: 0;
+  z-index: 9999;
 }
 
 .sidebarMobileWrapper {
-  @apply fixed inset-0 z-50 flex md:hidden;
+  @apply fixed inset-0 flex;
+  z-index: 9998;
+  display: none;
+}
+
+@media (max-width: 700px) {
+  .sidebarMobileWrapper {
+    display: flex;
+  }
+}
+
+@media (max-width: 700px) {
+  .sidebarDrawer {
+    width: min(100vw, 100%);
+    max-width: 100%;
+    border-radius: 0;
+  }
+
+  .sidebarAside {
+    display: none !important;
+  }
+
+  .sidebarMobileWrapper {
+    align-items: stretch;
+  }
+
+  .sidebarHeaderContainer,
+  .sidebarNav,
+  .sidebarFooter {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .sidebarHeaderContainer {
+    gap: 0.75rem;
+  }
+
+  .navLabelHidden {
+    max-width: none !important;
+    opacity: 1 !important;
+    transform: translateX(0) !important;
+    margin-left: 0 !important;
+  }
+
+  .textFadeHidden {
+    max-width: none !important;
+    opacity: 1 !important;
+    transform: translateX(0) !important;
+    margin: 0 !important;
+  }
+}
+
+@media (min-width: 700px) {
+  .mobileSidebarOpenBtn,
+  .sidebarMobileWrapper {
+    display: none !important;
+  }
+}
+
+.mobileSidebarOpenBtn {
+  position: fixed;
+  left: 1rem;
+  top: 1rem;
+  z-index: 110;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--foreground);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  cursor: pointer;
+  transition: all 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  pointer-events: auto;
+}
+
+.mobileSidebarOpenBtn:hover {
+  background: var(--surface-2);
+  color: var(--primary);
+  border-color: color-mix(in srgb, var(--primary) 20%, transparent);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
+  transform: translateY(-1px);
+}
+
+.mobileSidebarOpenBtn:active {
+  transform: scale(0.96);
+}
+
+.mobileSidebarOpenBtn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 20%, transparent), 0 12px 32px rgba(15, 23, 42, 0.12);
+}
+
+@media (max-width: 1024px) {
+  .sidebarAside {
+    width: 240px;
+  }
+
+  .collapsedSidebar {
+    width: 72px !important;
+  }
 }
 
 .sidebarOverlay {
   @apply fixed inset-0 backdrop-blur-md;
-  background: color-mix(in srgb, var(--background) 40%, transparent);
+  background: rgba(15, 23, 42, 0.45);
+  z-index: 90;
+  pointer-events: auto;
 }
 
 /* Inner flex container */
@@ -45,14 +162,22 @@
 }
 
 /* Header container */
-.sidebarHeader {
-  @apply flex flex-col px-6 py-7 relative bg-surface;
-  border-bottom: 1px solid var(--border);
-  transition: padding 300ms ease;
+.sidebarHeaderContainer {
+  @apply flex items-center gap-2;
 }
 
-.sidebarHeaderCollapsed {
-  @apply px-2 py-6;
+.sidebarHeaderContainerCollapsed {
+  @apply justify-center;
+}
+
+.headerBrandCollapsed {
+  width: 0;
+  overflow: hidden;
+}
+
+
+.burgerIcon {
+  transition: transform 250ms cubic-bezier(0.4, 0, 0.2, 1), opacity 200ms ease;
 }
 
 .toggleChevron {
@@ -77,7 +202,8 @@
 }
 
 .sidebarHeaderContainer {
-  @apply flex items-center justify-between;
+  @apply flex items-center justify-center;
+  position: relative;
 }
 
 .sidebarTitle {
@@ -102,6 +228,10 @@
 .sidebarGreeting {
   @apply text-[8px] font-bold mt-1.5 uppercase tracking-wider font-mono whitespace-nowrap;
   color: #D4A017;
+}
+
+.sidebarGreeting {
+  text-align: center;
 }
 
 .logoFade {

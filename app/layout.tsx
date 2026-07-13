@@ -14,6 +14,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Figtree } from "next/font/google";
 import "@/styles/globals/globals.css";
 import { cn } from "@/lib/utils";
+import MaintenanceOverlay from "@/app/components/MaintenanceOverlay";
 
 const figtree = Figtree({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -67,6 +68,7 @@ export default function RootLayout({
     >
       <head />
       <body className={styles.text_0}>
+        <MaintenanceOverlay />
         {children}
       </body>
     </html>

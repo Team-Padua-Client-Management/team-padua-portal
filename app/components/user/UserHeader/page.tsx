@@ -26,6 +26,7 @@ interface NotificationItem {
 
 interface UserHeaderProps {
   onMenuClick?: () => void;
+  isSidebarOpen?: boolean;
 }
 
 const pageConfig: Record<string, { title: string; description: string }> = {
@@ -39,7 +40,7 @@ const pageConfig: Record<string, { title: string; description: string }> = {
   playground: { title: 'Playground', description: 'Interactive development playground' }
 };
 
-export default function UserHeader({ onMenuClick }: UserHeaderProps) {
+export default function UserHeader({ onMenuClick, isSidebarOpen }: UserHeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -47,6 +48,7 @@ export default function UserHeader({ onMenuClick }: UserHeaderProps) {
   const [profileOpen, setProfileOpen] = useState(false);
   const [isDark, setIsDark] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const [presenceStatus, setPresenceStatus] = useState<'online' | 'offline' | 'busy'>('online');
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [userData, setUserData] = useState<UserData>({
@@ -88,6 +90,13 @@ export default function UserHeader({ onMenuClick }: UserHeaderProps) {
         document.documentElement.classList.remove('dark');
       }
     }, 0);
+  }, []);
+
+  useEffect(() => {
+    const updateMobile = () => setIsMobile(window.innerWidth < 768);
+    updateMobile();
+    window.addEventListener('resize', updateMobile);
+    return () => window.removeEventListener('resize', updateMobile);
   }, []);
 
   const loadUser = async () => {
@@ -156,6 +165,8 @@ export default function UserHeader({ onMenuClick }: UserHeaderProps) {
     );
   };
 
+  const hideHeader = isMobile && isSidebarOpen;
+
   const initials = userData.name
     ?.split(' ')
     .map((word) => word.charAt(0))
@@ -189,16 +200,16 @@ export default function UserHeader({ onMenuClick }: UserHeaderProps) {
   );
 
   return (
-    <header className={`${styles.header} ${scrolled ? styles.headerScrolled : ''}`}>
+    <header className={`${styles.header} ${scrolled ? styles.headerScrolled : ''} ${hideHeader ? styles.headerHidden : ''}`}>
       <div className={styles.leftSection}>
         {onMenuClick && (
-          <button onClick={onMenuClick} className={styles.mobileMenuBtn}>
+          <button type="button" onClick={onMenuClick} aria-label="Open navigation menu" className={styles.mobileMenuBtn}>
             <Menu size={16} />
           </button>
         )}
         <div className="flex md:hidden items-center">
           <Image
-            src="/Image/Tp.png"
+            src="/Image/icon/TP.png"
             alt="Team Padua Logo"
             width={28}
             height={28}
@@ -270,7 +281,7 @@ export default function UserHeader({ onMenuClick }: UserHeaderProps) {
                 </button>
 
                 {statusDropdownOpen && (
-                  <div className="absolute left-0 right-0 mt-1.5 bg-card border border-border rounded-xl shadow-lg overflow-hidden z-[110] animate-in fade-in slide-in-from-top-1 duration-150">
+                  <div className="absolute left-0 right-0 mt-1.5 bg-card border border-border rounded-xl shadow-lg overflow-hidden z-110 animate-in fade-in slide-in-from-top-1 duration-150">
                     {([
                       { id: 'online', label: 'Online', color: 'bg-emerald-500' },
                       { id: 'busy', label: 'Busy', color: 'bg-rose-500' },

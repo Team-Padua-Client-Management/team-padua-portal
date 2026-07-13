@@ -1,61 +1,21 @@
 "use client";
 
-/**
- * layout.tsx
- *
- * Main component module in features path: app/(user)/layout.tsx
- *
- * Responsibilities:
- * - Scopes UI state management and user actions.
- * - Bridges layout rendering with server-side Supabase data connections.
- * - Handles modular presentation logic.
- */
-
-;
-
-
-  // ======================================================
-// State Initialization & Hooks
-// ======================================================
-
-  // ======================================================
-// Lifecycle Effects & Data Sync
-// ======================================================
-import styles from "@/styles/layouts/user/layout.module.css";import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import UserSidebar from "@/app/components/user/UserSidebar/page";
 import UserHeader from "@/app/components/user/UserHeader/page";
+import styles from "@/styles/layouts/user/layout.module.css";
 
-/**
- * UserLayout
- *
- * Renders the UserLayout interface, managing local lifecycles
- * and user interactions.
- */
-/**
- * Executes operations logic for UserLayout.
- *
- * @param { children }: { children: React.ReactNode }
- * @returns State operations sequence.
- */
 export default function UserLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [theme, setTheme] = useState("light");
 
   useEffect(() => {
-    const saved = localStorage.getItem("theme") || "light";
-    setTimeout(() => {
-      setTheme(saved);
-    }, 0);
+    const savedTheme = localStorage.getItem("theme") || "light";
+    setTheme(savedTheme);
 
-    /**
- * Executes operations logic for handleThemeChange.
- *
- * @param e: Event
- * @returns State operations sequence.
- */
-const handleThemeChange = (e: Event) => {
-      const customEvent = e as CustomEvent;
-      if (customEvent.detail && typeof customEvent.detail.theme === "string") {
+    const handleThemeChange = (event: Event) => {
+      const customEvent = event as CustomEvent<{ theme?: string }>;
+      if (customEvent.detail?.theme) {
         setTheme(customEvent.detail.theme);
       }
     };
@@ -68,13 +28,11 @@ const handleThemeChange = (e: Event) => {
 
   return (
     <div className={theme === "dark" ? "dark" : ""}>
-      <div className={styles.text_0}>
+      <div className={styles.pageShell}>
         <UserSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        <div className={styles.container_1}>
-          <UserHeader onMenuClick={() => setSidebarOpen(true)} />
-          <main className={styles.container_2}>
-            {children}
-          </main>
+        <div className={styles.contentShell}>
+          <UserHeader onMenuClick={() => setSidebarOpen(true)} isSidebarOpen={sidebarOpen} />
+          <main className={styles.contentMain}>{children}</main>
         </div>
       </div>
     </div>

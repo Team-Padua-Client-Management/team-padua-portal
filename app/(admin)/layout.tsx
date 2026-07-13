@@ -14,15 +14,8 @@
 ;
 
 import styles from "@/styles/layouts/admin/layout.module.css";
-
-  // ======================================================
-// State Initialization & Hooks
-// ======================================================
-
-  // ======================================================
-// Lifecycle Effects & Data Sync
-// ======================================================
 import React, { useState, useEffect } from "react";
+import { AdminLayoutProvider } from "@/app/components/admin/AdminLayoutContext";
 
 /**
  * AdminLayout
@@ -62,7 +55,9 @@ const handleThemeChange = (e: any) => {
   return (
     <div className={theme === "dark" ? "dark" : ""}>
       <div className={styles.text_0}>
-        {children}
+        <AdminLayoutProvider>
+          {children}
+        </AdminLayoutProvider>
       </div>
     </div>
   );

@@ -81,6 +81,17 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
   const roles = ["Admin", "Manager", "Intern", "Member"];
   const departments = ["ASA", "BSA", "CSA", "DSA"];
 
+  // Helper function to extract First Name & Surname Initials
+  const getInitials = (fullName: string) => {
+    const parts = fullName.trim().split(/\s+/);
+    if (parts.length === 0) return "?";
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    
+    const firstInitial = parts[0].charAt(0).toUpperCase();
+    const surnameInitial = parts[parts.length - 1].charAt(0).toUpperCase();
+    return `${firstInitial}${surnameInitial}`;
+  };
+
   const saveUser = async (user: User) => {
     const res = await fetch("/api/admin/members/update", {
       method: "POST",
@@ -137,7 +148,6 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
 
   const openModal = (user: User) => {
     setSelectedUser(user);
-    // Merge existing permissions with defaults in case of missing keys
     const mergedPermissions = { ...defaultClientServicingPermissions };
     if (user.client_servicing_permissions) {
       (Object.keys(user.client_servicing_permissions) as ClientServicingModule[]).forEach((mod) => {
@@ -243,7 +253,6 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
             <thead>
               <tr className={styles.table_11}>
                 <th className={styles.div_12}>Member</th>
-                <th className={styles.div_13}>Employee ID</th>
                 <th className={styles.div_14}>Role</th>
                 <th className={styles.div_15}>Department</th>
                 <th className={styles.div_16}>Status</th>
@@ -254,27 +263,44 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
             <tbody className={styles.card_18}>
               {filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className={styles.text_19}>No database profiles mapped to parameters.</td>
+                  <td colSpan={6} className={styles.text_19}>No database profiles mapped to parameters.</td>
                 </tr>
               ) : (
                 filteredUsers.map((u) => (
                   <tr key={u.id} className={styles.table_20}>
                     <td className={styles.div_21}>
                       <div className={styles.container_22} onClick={() => router.push(`/admin/users/${u.id}`)}>
-                        {u.avatar ? (
-                          <img src={u.avatar} alt={u.name} className={styles.div_23} />
-                        ) : (
-                          <div className={styles.text_24}>
-                            {u.name.charAt(0).toUpperCase()}
+                        
+                        {/* Avatar Wrap logic that manages automatic fallbacks */}
+                        <div className="relative flex items-center justify-center shrink-0">
+                          {u.avatar ? (
+                            <img 
+                              src={u.avatar} 
+                              alt={u.name} 
+                              className={styles.div_23} 
+                              onError={(e) => {
+                                // If image link breaks, hide it and force fallback to show
+                                e.currentTarget.style.display = 'none';
+                                const fallbackEl = e.currentTarget.nextElementSibling as HTMLElement;
+                                if (fallbackEl) fallbackEl.style.display = 'flex';
+                              }}
+                            />
+                          ) : null}
+                          
+                          <div 
+                            className={styles.text_24}
+                            style={{ display: u.avatar ? 'none' : 'flex' }}
+                          >
+                            {getInitials(u.name)}
                           </div>
-                        )}
+                        </div>
+
                         <div className={styles.div_25}>
                           <span className={styles.table_26}>{u.name}</span>
                           <span className={styles.table_27}>{u.email}</span>
                         </div>
                       </div>
                     </td>
-                    <td className={styles.table_28}>{u.employeeId || "—"}</td>
                     <td className={styles.div_29}>
                       <select
                         value={u.role}
@@ -336,6 +362,7 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
         </div>
       </div>
 
+      {/* Modal Section */}
       {isModalOpen && selectedUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-card border border-border w-full max-w-3xl rounded-2xl shadow-xl overflow-hidden">

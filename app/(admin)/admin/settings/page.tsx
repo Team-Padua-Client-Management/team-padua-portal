@@ -68,6 +68,8 @@ export default function AdminSettings() {
   }[]>([]);
 
   const [loading, setLoading] = useState(false);
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
+  const [showMaintenanceConfirm, setShowMaintenanceConfirm] = useState(false);
 
   useEffect(() => {
     // Load feature settings
@@ -95,6 +97,14 @@ export default function AdminSettings() {
 
     // Load archived items from localStorage
     loadArchivedItems();
+
+    // Load maintenance mode
+    try {
+      const m = localStorage.getItem('site_maintenance');
+      setMaintenanceMode(!!m && m !== '0');
+    } catch (e) {
+      console.error(e);
+    }
   }, []);
 
   const loadArchivedItems = async () => {
@@ -627,6 +637,76 @@ export default function AdminSettings() {
                   </span>
                 )}
               </div>
+
+              <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '1.5rem 0' }} />
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: 'var(--text)' }}>Maintenance Mode</h3>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0 }}>
+                  Toggle maintenance mode to temporarily block user access across the application.
+                </p>
+
+                <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem', alignItems: 'center' }}>
+                  {!maintenanceMode ? (
+                    <>
+                      <button
+                        onClick={() => setShowMaintenanceConfirm(true)}
+                        style={{ padding: '0.6rem 1rem', borderRadius: '10px', backgroundColor: '#F97316', color: 'white', fontWeight: 700, border: 'none', cursor: 'pointer' }}
+                      >
+                        Enable Maintenance
+                      </button>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Currently inactive</span>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => {
+                          try {
+                            localStorage.removeItem('site_maintenance');
+                          } catch (e) {
+                            console.error(e);
+                          }
+                          window.dispatchEvent(new CustomEvent('maintenance-mode-change'));
+                          setMaintenanceMode(false);
+                          alert('Maintenance mode disabled');
+                        }}
+                        style={{ padding: '0.6rem 1rem', borderRadius: '10px', backgroundColor: '#10B981', color: 'white', fontWeight: 700, border: 'none', cursor: 'pointer' }}
+                      >
+                        Disable Maintenance
+                      </button>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Currently active</span>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {showMaintenanceConfirm && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                  <div style={{ background: 'var(--surface)', padding: '1.25rem', borderRadius: '12px', width: '100%', maxWidth: '520px' }}>
+                    <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--text)' }}>Confirm Enable Maintenance</h4>
+                    <p style={{ marginTop: '0.5rem', color: 'var(--text-secondary)' }}>This will make the system unavailable to users. Confirm to proceed.</p>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem' }}>
+                      <button onClick={() => setShowMaintenanceConfirm(false)} style={{ padding: '0.5rem 0.75rem', borderRadius: '8px', background: 'none', border: '1px solid var(--border)', cursor: 'pointer' }}>Cancel</button>
+                      <button
+                        onClick={() => {
+                          try {
+                            localStorage.setItem('site_maintenance', '1');
+                          } catch (e) {
+                            console.error(e);
+                          }
+                          window.dispatchEvent(new CustomEvent('maintenance-mode-change'));
+                          setMaintenanceMode(true);
+                          setShowMaintenanceConfirm(false);
+                          alert('Maintenance mode enabled');
+                        }}
+                        style={{ padding: '0.5rem 0.9rem', borderRadius: '8px', background: '#F97316', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 700 }}
+                      >
+                        Confirm
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </main>

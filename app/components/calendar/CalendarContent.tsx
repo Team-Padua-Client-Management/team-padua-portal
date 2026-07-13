@@ -403,6 +403,7 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
                 className={`${styles.dayCell} ${isToday ? styles.dayCellToday : ''}`}
               >
                 <span className={styles.dayNumber}>{day}</span>
+
                 <div className={styles.dayEvents}>
                   {dayEvents.slice(0, 3).map(ev => (
                     <div
@@ -445,7 +446,10 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
               <div className={styles.weekColumnHeader}>
                 <div className={styles.weekColumnDay}>{WEEKDAY_LABELS_LONG[i]}</div>
                 <div className={styles.weekColumnDate}>{d.getDate()}</div>
+                <time dateTime={dateStr}>{dateStr}</time>
               </div>
+
+
               <div className={styles.weekEventList}>
                 {dayEvents.length === 0 && <span className={styles.emptyStateSub}>No events</span>}
                 {dayEvents.map(ev => (
@@ -841,21 +845,144 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
 
       {selectedEvent && (
         <>
-          <div className={styles.panelOverlay} onClick={() => setSelectedEvent(null)} />
-          <div className={styles.panel}>
-            <div className={styles.panelHeader}>
-              <span className={styles.panelHeaderTitle}>Event Details</span>
-              <button className={styles.iconBtn} onClick={() => setSelectedEvent(null)}><X size={16} /></button>
-            </div>
-            <div className={styles.panelBody}>
-              <span className={`${styles.badge} ${catClass(selectedEvent.category)}`}>{selectedEvent.category}</span>
-              <div className={styles.panelTitle}>{selectedEvent.title}</div>
+          <div
+            className={styles.panelOverlay}
+            onClick={() => setSelectedEvent(null)}
+          />
 
-              <div className={styles.descBox}>{selectedEvent.description || 'No description added.'}</div>
+          <div className={styles.panel}>
+            {/* Header */}
+            <div className={styles.panelHeader}>
+              <div>
+                <span className={styles.panelHeaderTitle}>
+                  Event Details
+                </span>
+                <p className={styles.panelHeaderSub}>
+                  Calendar activity information
+                </p>
+              </div>
+
+              <button
+                className={styles.iconBtn}
+                onClick={() => setSelectedEvent(null)}
+              >
+                <X size={18} />
+              </button>
             </div>
+
+            {/* Body */}
+            <div className={styles.panelBody}>
+
+              <span
+                className={`${styles.badge} ${catClass(selectedEvent.category)}`}
+              >
+                {selectedEvent.category}
+              </span>
+
+              <h2 className={styles.panelTitle}>
+                {selectedEvent.title}
+              </h2>
+
+              {/* Information Cards */}
+              <div className={styles.infoGrid}>
+
+                {/* Date */}
+                <div className={styles.infoCard}>
+                  <div className={styles.infoIcon}>
+                    <CalendarDays size={18} />
+                  </div>
+
+                  <div>
+                    <span className={styles.infoLabel}>
+                      Event Date
+                    </span>
+
+                    <div className={styles.infoValue}>
+                      {new Date(selectedEvent.event_date).toLocaleDateString(
+                        "en-GB",
+                        {
+                          weekday: "long",
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        }
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Time */}
+                <div className={styles.infoCard}>
+                  <div className={styles.infoIcon}>
+                    <Clock size={18} />
+                  </div>
+
+                  <div>
+                    <span className={styles.infoLabel}>
+                      Time
+                    </span>
+
+                    <div className={styles.infoValue}>
+                      {selectedEvent.start_time
+                        ? `${selectedEvent.start_time}${selectedEvent.end_time
+                          ? ` - ${selectedEvent.end_time}`
+                          : ""
+                        }`
+                        : "Whole Day Event"}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Location */}
+                {selectedEvent.location_name && (
+                  <div className={styles.infoCard}>
+                    <div className={styles.infoIcon}>
+                      <MapPin size={18} />
+                    </div>
+
+                    <div>
+                      <span className={styles.infoLabel}>
+                        Location
+                      </span>
+
+                      <div className={styles.infoValue}>
+                        {selectedEvent.location_name}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Description */}
+              <div className={styles.descriptionSection}>
+                <div className={styles.descriptionTitle}>
+                  Description
+                </div>
+
+                <div className={styles.descBox}>
+                  {selectedEvent.description?.trim() ||
+                    "No description provided for this event."}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
             <div className={styles.panelFooter}>
-              <button className={styles.ghostBtn} onClick={() => openEditModal(selectedEvent)}><Pencil size={14} /> Edit</button>
-              <button className={styles.dangerBtn} onClick={() => handleDeleteEvent(selectedEvent.id)}><Trash2 size={14} /> Delete</button>
+              <button
+                className={styles.ghostBtn}
+                onClick={() => openEditModal(selectedEvent)}
+              >
+                <Pencil size={15} />
+                Edit Event
+              </button>
+
+              <button
+                className={styles.dangerBtn}
+                onClick={() => handleDeleteEvent(selectedEvent.id)}
+              >
+                <Trash2 size={15} />
+                Delete Event
+              </button>
             </div>
           </div>
         </>
@@ -881,9 +1008,17 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
                 </div>
                 <div className={styles.formGroup}>
                   <label className={styles.formLabel}>Category</label>
-                  <select value={newEvent.category} onChange={e => setNewEvent(p => ({ ...p, category: e.target.value as Category }))} className={styles.formSelect}>
-                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
+                  <input
+                    type="text"
+                    list="calendar-categories"
+                    value={newEvent.category || ''}
+                    onChange={e => setNewEvent(p => ({ ...p, category: e.target.value as Category }))}
+                    className={styles.formSelect}
+                    placeholder="Type or select a category"
+                  />
+                  <datalist id="calendar-categories">
+                    {CATEGORIES.map(c => <option key={c} value={c} />)}
+                  </datalist>
                 </div>
               </div>
 
@@ -999,8 +1134,8 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
                   {celebratedEvent.title}
                 </div>
                 <p className={styles.celebrationText}>
-                  {isEditCelebration 
-                    ? 'Excellent! You successfully updated this workspace event. Everything is set and ready to go! 🚀' 
+                  {isEditCelebration
+                    ? 'Excellent! You successfully updated this workspace event. Everything is set and ready to go! 🚀'
                     : 'Awesome job! You successfully added this activity to the master workspace calendar. Keep up the high productivity! 🚀'}
                 </p>
               </motion.div>

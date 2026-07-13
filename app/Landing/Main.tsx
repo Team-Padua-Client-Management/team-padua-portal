@@ -1,581 +1,435 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Image from 'next/image';
 import {
-  ChevronRight, Shield, Users, Zap, ClipboardList, CalendarCheck,
-  Building2, Megaphone, Layers, MessageSquare, ArrowRight,
-  Sparkles, Lock, ChevronDown, CheckCircle2, Briefcase, Headphones, Palette
+  ArrowRight,
+  BellRing,
+  CalendarDays,
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  ClipboardList,
+  FileText,
+  MessageSquareText,
+  ShieldCheck,
+  Sparkles,
+  Users,
+  Wallet,
 } from 'lucide-react';
-import { supabase } from "@/app/lib/supabase/client";
-import styles from "@/styles/landing/Main.module.css";
-import Image from "next/image";
+import { supabase } from '@/app/lib/supabase/client';
 
-type PortalStats = {
-  members: number;
-  sectors: number;
-  attendanceToday: number;
+type Stats = {
+  activeClients: number;
+  activePolicies: number;
+  pendingRequests: number;
+  todaysFollowUps: number;
+  upcomingBirthdays: number;
 };
 
-type ActivityLog = {
-  time: string;
-  desc: string;
-};
+const stats = [
+  { label: 'Active Clients', key: 'activeClients', detail: 'Client profiles currently managed' },
+  { label: 'Active Policies', key: 'activePolicies', detail: 'Policies under advisor servicing' },
+  { label: 'Pending Service Requests', key: 'pendingRequests', detail: 'Client requests waiting for processing' },
+  { label: 'Today\'s Follow-ups', key: 'todaysFollowUps', detail: 'Scheduled client follow-up activities' },
+  { label: 'Upcoming Birthdays', key: 'upcomingBirthdays', detail: 'Clients with birthdays in the next 30 days' },
+];
+
+const features = [
+  {
+    title: 'Advisor Change Requests (ACR)',
+    description: 'Manage client information updates, policy amendments, beneficiary changes, and servicing requests.',
+    icon: FileText,
+  },
+  {
+    title: 'Fund Switching Tasks (FST)',
+    description: 'Track and process investment fund switching requests for VUL policyholders.',
+    icon: Wallet,
+  },
+  {
+    title: 'Client Policy Cards (CPC)',
+    description: 'Instant access to policy summaries, premium information, coverage details, and servicing history.',
+    icon: ShieldCheck,
+  },
+  {
+    title: 'Premium Payment Updates (PPU)',
+    description: 'Monitor premium due dates, payment status, grace periods, and payment reminders.',
+    icon: CheckCircle2,
+  },
+  {
+    title: 'Client Communications',
+    description: 'Manage email and messenger follow-ups, announcements, reminders, and scheduled greetings.',
+    icon: MessageSquareText,
+  },
+  {
+    title: 'Birthday Management',
+    description: 'Track client birthdays, send automated greetings, and strengthen long-term relationships.',
+    icon: CalendarDays,
+  },
+];
+
+const workflow = ['Advisor Login', 'Select Client', 'Process Service Request', 'Update Client Record', 'Notify Client', 'Complete Transaction'];
+
+const previewCards = [
+  { title: 'Dashboard', description: 'Client portfolio overview and servicing alerts' },
+  { title: 'Client Servicing', description: 'Track requests, updates, and follow-ups' },
+  { title: 'Calendar', description: 'Appointments, birthdays, and scheduled tasks' },
+  { title: 'Tasks', description: 'Daily advisor actions and pending items' },
+  { title: 'Notifications', description: 'Important reminders and task updates' },
+  { title: 'Client Profiles', description: 'Centralized client information and history' },
+];
+
+const faqs = [
+  {
+    question: 'What is Team Padua Client Management Portal?',
+    answer: 'It is a centralized CRM workspace for Sun Life Financial Advisors to manage client servicing, track policy requests, organize daily tasks, and support long-term client relationships.',
+  },
+  {
+    question: 'Who can access the system?',
+    answer: 'The platform is designed for authorized Sun Life Financial Advisors and Advisor Support Associates managing client servicing workflows.',
+  },
+  {
+    question: 'How are client records secured?',
+    answer: 'Client and policy information is protected through secure authentication and role-based access controls within the portal.',
+  },
+  {
+    question: 'What advisor servicing modules are available?',
+    answer: 'The system supports ACR, FST, CPC, PPU, client communications, birthday management, and task coordination.',
+  },
+  {
+    question: 'Can advisors monitor premium payments?',
+    answer: 'Yes. Premium payment status, due dates, grace periods, and follow-up reminders are all visible in the platform.',
+  },
+  {
+    question: 'Does the system support automated client greetings?',
+    answer: 'Yes. Advisors can manage birthdays and send automated client greetings to strengthen relationship management.',
+  },
+];
 
 export default function HomePage() {
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState<PortalStats>({
-    members: 0,
-    sectors: 0,
-    attendanceToday: 0
-  });
-  const [departments, setDepartments] = useState<string[]>([]);
-  const [activities, setActivities] = useState<ActivityLog[]>([]);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'servicing'>('dashboard');
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
+  const [liveStats, setLiveStats] = useState<Stats>({
+    activeClients: 0,
+    activePolicies: 0,
+    pendingRequests: 0,
+    todaysFollowUps: 0,
+    upcomingBirthdays: 0,
+  });
 
   useEffect(() => {
-    const fetchPortalData = async () => {
-      setLoading(true);
+    const fetchLandingStats = async () => {
       try {
-        const { count: mCount } = await supabase.from("profiles").select("*", { count: "exact", head: true });
-        const { count: aCount } = await supabase.from("attendance").select("*", { count: "exact", head: true }).eq("attendance_date", new Date().toISOString().split("T")[0]);
-
-        const { data: profiles } = await supabase.from("profiles").select("department");
-        const uniqueDepts = Array.from(new Set((profiles || []).map(p => p.department || "General")));
-
-        setStats({
-          members: mCount || 0,
-          sectors: uniqueDepts.length || 0,
-          attendanceToday: aCount || 0
-        });
-
-        setDepartments(uniqueDepts);
-
-        setActivities([
-          { time: "System", desc: "Secure database core grid is online" }
+        const [{ count: activeClients }, { count: activePolicies }, { count: pendingRequests }, { count: todayFollowUps }, { data: birthdayData }] = await Promise.all([
+          supabase.from('profiles').select('*', { count: 'exact', head: true }),
+          supabase.from('clients').select('*', { count: 'exact', head: true }),
+          supabase.from('acr_requests').select('*', { count: 'exact', head: true }),
+          supabase.from('calendar_events').select('*', { count: 'exact', head: true }).gte('event_date', new Date().toISOString().split('T')[0]),
+          supabase.from('clients').select('birthdate'),
         ]);
 
-      } catch (e) { }
-      setLoading(false);
+        const today = new Date();
+        const next30 = new Date(today);
+        next30.setDate(next30.getDate() + 30);
+        const birthdayCount = Array.isArray(birthdayData)
+          ? birthdayData.filter((item: any) => {
+              if (!item?.birthdate) return false;
+              const birth = new Date(item.birthdate);
+              if (Number.isNaN(birth.getTime())) return false;
+              birth.setFullYear(today.getFullYear());
+              if (birth < today) {
+                birth.setFullYear(today.getFullYear() + 1);
+              }
+              return birth <= next30;
+            }).length
+          : 0;
+
+        setLiveStats({
+          activeClients: activeClients || 0,
+          activePolicies: activePolicies || 0,
+          pendingRequests: pendingRequests || 0,
+          todaysFollowUps: todayFollowUps || 0,
+          upcomingBirthdays: birthdayCount,
+        });
+      } catch (error) {
+        console.error('Failed to load landing stats', error);
+      }
     };
 
-    fetchPortalData();
+    fetchLandingStats();
   }, []);
 
-  const founder = {
-    name: "Daniel Padua",
-    role: "Founder & Operations Lead",
-    description: "Visionary leader responsible for business growth, mentorship, team development, and operational excellence.",
-    image: "/Image/padua.jpg"
-  };
-
-  const leaders = [
-    {
-      name: "Triwynn Branzuela",
-      role: "Senior Team Mentor",
-      description: "Provides leadership guidance, operational support, and intern mentorship.",
-      image: "/Image/triwynn.jpg"
-    },
-    {
-      name: "Isabel Francisco",
-      role: "Senior Team Coordinator",
-      description: "Supports recruitment, coordination, onboarding, and team development.",
-      image: "/Image/isabel.png"
-    }
-  ];
-
-  const departmentsList = [
-    {
-      code: "ASA",
-      title: "Advisor Support Associate",
-      icon: Briefcase,
-      description: "Administrative support, documentation, tracking systems, and operations.",
-      members: ["John Renz Bandianon", "Marilyn Cantada"]
-    },
-    {
-      code: "BSA",
-      title: "Business Support Associate",
-      icon: Users,
-      description: "Client onboarding, proposals, requirements gathering, and business support.",
-      members: ["Trisha Mae De la Cruz", "Divine Valerie Reyes"]
-    },
-    {
-      code: "CRA",
-      title: "Client Relations Associate",
-      icon: Headphones,
-      description: "Client servicing, communication, relationship management, and support.",
-      members: ["Lorena Isabel Dela Cruz", "Krystel Joy Kapangyarihan"]
-    },
-    {
-      code: "DCA",
-      title: "Design Content Associate",
-      icon: Palette,
-      description: "Branding, graphics, multimedia production, and marketing content.",
-      members: ["Dan Andrew Asis", "Jazz Princess Noveno"]
-    }
-  ];
-
-  const faqs = [
-    {
-      q: "What is the Team Padua Client Management & Servicing Portal?",
-      a: "TeamPadua is a unified hub built for Sun Life advisors to streamline client management and client servicing. It provides automated tracking of transactions (ACR, FST, CPC, PPU), client follow-ups, and documentation pipelines in one centralized workspace."
-    },
-    {
-      q: "How does the real-time client transaction tracking work?",
-      a: "The portal lets advisors log and trace critical client lifecycle servicing events: client record updates (CPST), auto-charge registries (ACR), fund switches (FST), policy cards (CPC), policy payment updates (PPU), and dispatch logs (MNGT)."
-    },
-    {
-      q: "How is client data and verification secured?",
-      a: "All records are structured securely using Supabase with Role-Based Access Control (RBAC). Only authenticated advisors and authorized operational leads have permission to view or modify sensitive policy records."
-    }
-  ];
-
   return (
-    <div className={styles.text_0}>
-      <header className={styles.div_1}>
-        <div className={styles.container_2}>
-          <a href="/" className={styles.container_3}>
-            <Image
-              src="/Image/icon/TPC.png"
-              alt="Team Padua Logo"
-              width={36}
-              height={36}
-              priority
-              className="object-contain"
-            />
+    <div className="min-h-screen bg-[linear-gradient(135deg,#fffdf7_0%,#ffffff_45%,#fff8dc_100%)] text-slate-900">
+      <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/80 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-8">
+          <a href="/" className="flex items-center gap-3">
+            <Image src="/Image/icon/TPC.png" alt="Team Padua Logo" width={38} height={38} className="object-contain" priority />
             <div>
-              <p className={styles.table_6}>TeamPadua</p>
-              <p className={styles.text_7}>Sun Life Philippines</p>
+              <p className="text-sm font-semibold tracking-[0.2em] text-slate-900">TEAMPADUA</p>
+              <p className="text-xs text-slate-500">Sun Life Philippines</p>
             </div>
           </a>
 
-          <nav className={styles.table_8}>
-            <a href="#features" className={styles.table_9}>Features</a>
-            <a href="#how-it-works" className={styles.table_10}>How It Works</a>
-            <a href="#leadership" className={styles.table_11}>Leadership</a>
-            <a href="#sectors" className={styles.table_12}>Sectors</a>
-            <a href="#preview" className={styles.table_13}>Preview</a>
-            <a href="#faq" className={styles.table_14}>FAQ</a>
+          <nav className="hidden items-center gap-7 text-sm font-medium text-slate-600 md:flex">
+            <a href="#features" className="transition hover:text-slate-900">Features</a>
+            <a href="#workflow" className="transition hover:text-slate-900">Workflow</a>
+            <a href="#about" className="transition hover:text-slate-900">About</a>
+            <a href="#preview" className="transition hover:text-slate-900">Preview</a>
+            <a href="#faq" className="transition hover:text-slate-900">FAQ</a>
           </nav>
 
-          <div className={styles.container_15}>
-            <a
-              href="/auth/login"
-              className={styles.table_16}
-            >
-              Sign In
-            </a>
-          </div>
+          <a href="/auth/login" className="rounded-full border border-[#F4C542]/40 bg-white px-4 py-2 text-sm font-semibold text-[#A3843B] shadow-sm transition hover:-translate-y-0.5 hover:bg-[#fff9e5]">
+            Access Portal
+          </a>
         </div>
       </header>
 
-      <main className={styles.container_17}>
-        <section className={styles.container_18}>
-          <div className={styles.div_19}>
-            <div className={styles.container_20}>
-              <span className={styles.div_21} />
-              <span className={styles.table_22}>
-                Sun Life Advisor Servicing Terminal
-              </span>
+      <main>
+        <section className="mx-auto grid max-w-7xl gap-10 px-6 py-20 lg:grid-cols-[1.05fr_0.95fr] lg:px-8 lg:py-28">
+          <div className="flex flex-col justify-center">
+            <div className="mb-5 inline-flex w-fit items-center gap-2 rounded-full border border-[#F4C542]/30 bg-[#FFFBEB] px-3 py-1.5 text-sm font-medium text-[#A3843B]">
+              <Sparkles size={15} />
+              Premium Advisor Client Servicing Platform
             </div>
-            <h1 className={styles.table_23}>
-              Team Padua <span className={styles.text_24}>Client Management & Servicing</span>
+            <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
+              Team Padua Client Management Portal
             </h1>
-
-            <p className={styles.text_25}>
-              A comprehensive console designed for Sun Life Team Padua to orchestrate client relationship management, automate servicing requests, and track critical policy transactions.
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-600">
+              An intelligent workspace built for Sun Life Financial Advisors to efficiently manage clients, monitor policy servicing, organize daily advisor tasks, and deliver exceptional client support from one centralized platform.
             </p>
-            <div className={styles.container_26}>
-              <a
-                href="/dashboard"
-                className={`${styles.table_27} group`}
-              >
-                Get Started
-                <ChevronRight className={`${styles.table_28} group`} />
+            <div className="mt-8 flex flex-wrap gap-3">
+              <a href="/auth/login" className="inline-flex items-center gap-2 rounded-full border border-[#F4C542]/30 bg-white px-5 py-3 text-sm font-semibold text-[#A3843B] shadow-sm transition hover:-translate-y-0.5 hover:bg-[#fff9e5]">
+                Access Portal
+                <ArrowRight size={16} />
               </a>
-              <a
-                href="/auth/login"
-                className={styles.table_29}
-              >
-                Access Credentials
+              <a href="#features" className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-[#F4C542]/40 hover:text-slate-900">
+                Learn More
               </a>
             </div>
           </div>
 
-          <div className={styles.div_30}>
-            <div className={styles.div_31} />
-            <div className={styles.container_32}>
-              <div className={styles.container_33}>
-                <span className={styles.div_34} />
-                <span className={styles.div_35} />
-                <span className={styles.div_36} />
-              </div>
-              <span className={styles.table_37}>Servicing Operations</span>
-            </div>
-            <div className={styles.div_38}>
-              <div className={styles.container_39}>
-                <div>
-                  <h3 className={styles.table_40}>Client Control Console</h3>
-                  <p className={styles.text_41}>SECURE CONSOLE</p>
-                </div>
-                <span className={styles.div_42} />
-              </div>
-              <div className={styles.container_43}>
-                <div className={styles.text_44}>
-                  <p className={styles.text_45}>SLA Fulfillment</p>
-                  <p className={styles.text_46}>99.9%</p>
-                </div>
-                <div className={styles.text_47}>
-                  <p className={styles.text_48}>Requests Tracked</p>
-                  <p className={styles.text_49}>Active</p>
-                </div>
-                <div className={styles.text_50}>
-                  <p className={styles.text_51}>Platform Status</p>
-                  <p className={styles.text_52}>Online</p>
-                </div>
-              </div>
-              <div className={styles.div_53}>
-                <p className={styles.text_54}>Active Core Policy Layer</p>
-                <div className={styles.text_55}>
-                  <span className={styles.table_56}>Verify Access Credentials</span>
-                  <span className={styles.text_57}>SECURE</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className={styles.div_58}>
-          <div className={styles.text_59}>
-            {[
-              { label: "Serviced Profiles", val: loading ? "..." : stats.members, desc: "Active Clients", icon: Users },
-              { label: "Assigned Advisors", val: loading ? "..." : stats.sectors, desc: "Roster Advisors", icon: Building2 },
-              { label: "Operations Logged", val: loading ? "..." : stats.attendanceToday, desc: "Today's Updates", icon: CalendarCheck }
-            ].map((kpi, idx) => {
-              const Icon = kpi.icon;
-              return (
-                <div key={idx} className={styles.div_60}>
-                  <div className={styles.text_61}>
-                    <Icon size={14} className={styles.text_62} />
-                    <span className={styles.table_63}>{kpi.label}</span>
+          <div className="relative">
+            <div className="absolute inset-0 rounded-[32px] bg-[radial-gradient(circle_at_top_right,rgba(244,197,66,0.12),transparent_50%)]" />
+            <div className="relative overflow-hidden rounded-[32px] border border-slate-200/80 bg-white/90 p-6 shadow-[0_25px_80px_rgba(15,23,42,0.08)] backdrop-blur">
+              <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-5">
+                <div className="mb-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">Advisor Command Center</p>
+                    <p className="text-xs text-slate-500">Client servicing overview</p>
                   </div>
-                  <h3 className={styles.table_64}>{kpi.val}</h3>
-                  <p className={styles.table_65}>{kpi.desc}</p>
+                  <div className="rounded-full bg-[#FFF7D6] px-3 py-1 text-xs font-semibold text-[#A3843B]">Live</div>
                 </div>
-              );
-            })}
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-[18px] border border-slate-200 bg-white p-4">
+                    <div className="mb-3 flex items-center gap-2 text-[#A3843B]">
+                      <Users size={16} />
+                      <span className="text-sm font-semibold">Clients</span>
+                    </div>
+                    <p className="text-2xl font-semibold text-slate-900">248</p>
+                    <p className="mt-1 text-sm text-slate-500">Active client portfolio</p>
+                  </div>
+                  <div className="rounded-[18px] border border-slate-200 bg-white p-4">
+                    <div className="mb-3 flex items-center gap-2 text-[#A3843B]">
+                      <ClipboardList size={16} />
+                      <span className="text-sm font-semibold">Requests</span>
+                    </div>
+                    <p className="text-2xl font-semibold text-slate-900">14</p>
+                    <p className="mt-1 text-sm text-slate-500">Pending servicing actions</p>
+                  </div>
+                </div>
+
+                <div className="mt-4 rounded-[20px] border border-slate-200 bg-linear-to-br from-white to-[#FFFBEB] p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">Today's Actions</p>
+                      <p className="text-xs text-slate-500">Priority follow-ups and policy updates</p>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm font-semibold text-[#A3843B]">
+                      <BellRing size={15} />
+                      9 tasks
+                    </div>
+                  </div>
+                  <div className="mt-4 space-y-2">
+                    {['Policy review', 'Birthday greeting', 'Premium reminder', 'Fund switch follow-up'].map((item) => (
+                      <div key={item} className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600">
+                        <span>{item}</span>
+                        <CheckCircle2 size={15} className="text-emerald-500" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
-        <section id="features" className={styles.div_66}>
-          <div className={styles.text_67}>
-            <h2 className={styles.table_68}>
-              Engineered For Premium Client Care & Servicing
-            </h2>
-            <p className={styles.text_69}>
-              Streamline client portfolios, check pending transaction states, and collaborate on policy dispatches.
-            </p>
+        <section className="mx-auto max-w-7xl px-6 pb-8 lg:px-8">
+          <div className="grid gap-4 rounded-[24px] border border-slate-200 bg-white/90 p-4 shadow-[0_15px_45px_rgba(15,23,42,0.05)] md:grid-cols-2 xl:grid-cols-5">
+            {stats.map((item) => (
+              <div key={item.label} className="rounded-[18px] bg-slate-50 p-4">
+                <p className="text-sm font-medium text-slate-500">{item.label}</p>
+                <p className="mt-2 text-2xl font-semibold text-slate-900">{liveStats[item.key as keyof Stats]}</p>
+                <p className="mt-1 text-sm text-slate-500">{item.detail}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section id="features" className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
+          <div className="mb-10 max-w-2xl">
+            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[#A3843B]">Advisor Servicing Modules</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">Everything an advisor needs to manage client servicing in one place</h2>
           </div>
 
-          <div className={styles.container_70}>
-            {[
-              {
-                title: "Client Servicing Logs",
-                desc: "Integrated pipelines to track Auto-Charge Registries (ACR), Fund Switch Tasks (FST), and Policy Payments Updates (PPU).",
-                icon: ClipboardList,
-                badge: "TRANSACTIONS"
-              },
-              {
-                title: "Asset & Card Dispatch",
-                desc: "Monitor CPC policy cards generation, mailing dispatches, and client correspondence records.",
-                icon: CalendarCheck,
-                badge: "CPC DISPATCH"
-              },
-              {
-                title: "Secure Verification Database",
-                desc: "Equipped with Role-Based Access Control and client validation rules to keep policy records safe.",
-                icon: Shield,
-                badge: "SECURITY GATE"
-              }
-            ].map((feature, idx) => {
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {features.map((feature) => {
               const Icon = feature.icon;
               return (
-                <div key={idx} className={`${styles.table_71} group`}>
-                  <div className={styles.div_72}>
-                    <div className={styles.container_73}>
-                      <div className={`${styles.table_74} group`}>
-                        <Icon size={16} className={styles.text_75} />
-                      </div>
-                      <span className={styles.text_76}>
-                        {feature.badge}
-                      </span>
-                    </div>
-                    <div className={styles.div_77}>
-                      <h3 className={styles.table_78}>{feature.title}</h3>
-                      <p className={styles.text_79}>{feature.desc}</p>
-                    </div>
+                <div key={feature.title} className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-[0_15px_45px_rgba(15,23,42,0.04)] transition hover:-translate-y-1 hover:shadow-[0_20px_55px_rgba(15,23,42,0.08)]">
+                  <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-[#FFFBEB] text-[#A3843B]">
+                    <Icon size={18} />
                   </div>
+                  <h3 className="text-lg font-semibold text-slate-900">{feature.title}</h3>
+                  <p className="mt-2 text-sm leading-7 text-slate-600">{feature.description}</p>
                 </div>
               );
             })}
           </div>
         </section>
 
-        <section id="how-it-works" className={styles.div_80}>
-          <div className={styles.div_81}>
-            <div className={styles.text_82}>
-              <h2 className={styles.table_83}>
-                Operations Pipeline
-              </h2>
-              <p className={styles.text_84}>
-                Securely navigate advisor tasks and service your client base in four steps.
-              </p>
+        <section id="workflow" className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
+          <div className="rounded-[28px] border border-slate-200 bg-white/90 p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)] lg:p-10">
+            <div className="mb-10 max-w-2xl">
+              <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[#A3843B]">Advisor Workflow</p>
+              <h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">A simple path from client intake to complete servicing</h2>
             </div>
 
-            <div className={styles.container_85}>
-              {[
-                { step: "01", title: "Secure Login", desc: "Access the terminal using your verified Google, GitHub, or email credentials." },
-                { step: "02", title: "Select Client Module", desc: "Open the appropriate tracker registry (ACR, FST, CPC, PPU, or MNGT) from the sidebar." },
-                { step: "03", title: "Update Status", desc: "Upload client records, modify active transaction milestones, and confirm log status." },
-                { step: "04", title: "Monitor Delivery", desc: "Generate client servicing summaries and verify policy updates in real-time." }
-              ].map((item, idx) => (
-                <div key={idx} className={styles.div_86}>
-                  <span className={styles.text_87}>{item.step}</span>
-                  <div className={styles.div_88}>
-                    <h3 className={styles.table_89}>{item.title}</h3>
-                    <p className={styles.text_90}>{item.desc}</p>
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              {workflow.map((step, index) => (
+                <React.Fragment key={step}>
+                  <div className="rounded-[20px] border border-slate-200 bg-slate-50 px-4 py-4 text-center shadow-sm">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#A3843B]">Step {index + 1}</p>
+                    <p className="mt-2 text-sm font-semibold text-slate-900">{step}</p>
                   </div>
-                </div>
+                  {index < workflow.length - 1 && (
+                    <ChevronRight className="hidden text-[#A3843B] lg:block" size={20} />
+                  )}
+                </React.Fragment>
               ))}
             </div>
           </div>
         </section>
 
-        <section id="leadership" className={styles.div_91}>
-          <div className={styles.text_92}>
-            <h2 className={styles.table_93}>
-              Meet Our Leadership
-            </h2>
-            <p className={styles.text_94}>
-              The operational minds behind business growth, guidance, and cohort coordination.
-            </p>
+        <section id="about" className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
+          <div className="grid gap-8 rounded-[28px] border border-slate-200 bg-white/90 p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)] lg:grid-cols-[0.95fr_1.05fr] lg:p-10">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[#A3843B]">About the System</p>
+              <h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">About Team Padua Client Management Portal</h2>
+            </div>
+            <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-6 text-sm leading-8 text-slate-600">
+              The Team Padua Client Management Portal is a centralized CRM platform developed to help Sun Life Financial Advisors manage client servicing more efficiently. It streamlines policy servicing requests, tracks advisor activities, automates reminders, organizes client records, and supports long-term relationship management.
+            </div>
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
+          <div className="mb-10">
+            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[#A3843B]">System Leadership</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">Meet the leadership guiding advisor servicing</h2>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600">Senior leaders who define the portal’s strategic direction, operational excellence, and advisor support.</p>
           </div>
 
-          <div className={styles.table_95}>
-            <div className={styles.table_96}>
-              <div className={styles.div_97} />
-              <div className={styles.div_98}>
-                <div className={styles.div_99}>
-                  <img src={founder.image} alt={founder.name} className={styles.div_100} />
-                </div>
-                <div className={styles.div_101}>
-                  <span className={styles.text_102}>
-                    Operations Lead
-                  </span>
-                  <h3 className={styles.text_103}>{founder.name}</h3>
-                  <p className={styles.text_104}>{founder.role}</p>
-                </div>
-                <p className={styles.text_105}>{founder.description}</p>
+          <div className="grid gap-6 lg:grid-cols-3">
+            <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white p-0 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
+              <div className="relative overflow-hidden bg-slate-100">
+                <img src="/Image/padua.jpg" alt="Daniel Padua" className="h-56 w-full object-cover" />
+              </div>
+              <div className="space-y-3 p-6">
+                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#A3843B]">Founder & Operations Lead</p>
+                <h3 className="text-2xl font-semibold text-slate-900">Daniel Padua</h3>
+                <p className="text-sm leading-7 text-slate-600">Visionary leader responsible for business growth, mentorship, team development, and operational excellence.</p>
               </div>
             </div>
 
-            <div className={styles.table_106}>
-              {leaders.map((leader, idx) => (
-                <div key={idx} className={styles.table_107}>
-                  <div className={styles.div_108}>
-                    <div className={styles.div_109}>
-                      <img src={leader.image} alt={leader.name} className={styles.div_110} />
-                    </div>
-                    <div className={styles.div_111}>
-                      <span className={styles.text_112}>
-                        Senior Leader
-                      </span>
-                      <h3 className={styles.text_113}>{leader.name}</h3>
-                      <p className={styles.text_114}>{leader.role}</p>
-                    </div>
-                    <p className={styles.text_115}>{leader.description}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section id="sectors" className={styles.div_116}>
-          <div className={styles.div_117}>
-            <div className={styles.text_118}>
-              <h2 className={styles.table_119}>
-                Operational Sectors & Roster
-              </h2>
-              <p className={styles.text_120}>
-                A professional map of our structured cohort departments and active associate members.
-              </p>
+            <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white p-0 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
+              <div className="relative overflow-hidden bg-slate-100">
+                <img src="https://tpclientportal.vercel.app/Image/triwynn.jpg" alt="Triwynn Branzuela" className="h-56 w-full object-cover" />
+              </div>
+              <div className="space-y-3 p-6">
+                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#A3843B]">Senior Leader</p>
+                <h3 className="text-2xl font-semibold text-slate-900">Triwynn Branzuela</h3>
+                <p className="text-sm font-semibold text-slate-700">Senior Team Mentor</p>
+                <p className="text-sm leading-7 text-slate-600">Provides leadership guidance, operational support, and intern mentorship.</p>
+              </div>
             </div>
 
-            <div className={styles.container_121}>
-              {departmentsList.map((dept, idx) => {
-                const Icon = dept.icon;
-                return (
-                  <div key={idx} className={styles.table_122}>
-                    <div className={styles.div_123}>
-                      <div className={styles.container_124}>
-                        <div className={styles.container_125}>
-                          <Icon size={15} className={styles.text_126} />
-                        </div>
-                        <span className={styles.text_127}>
-                          {dept.code}
-                        </span>
-                      </div>
-                      <div className={styles.div_128}>
-                        <h3 className={styles.table_129}>{dept.title}</h3>
-                        <p className={styles.text_130}>{dept.description}</p>
-                      </div>
-                    </div>
-                    <div className={styles.div_131}>
-                      <p className={styles.text_132}>Assigned Personnel</p>
-                      <div className={styles.container_133}>
-                        {dept.members.map((member, mIdx) => (
-                          <span key={mIdx} className={styles.text_134}>
-                            {member}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
-        <section id="preview" className={styles.div_135}>
-          <div className={styles.text_136}>
-            <h2 className={styles.table_137}>
-              Experience The Workspace Interface
-            </h2>
-            <p className={styles.text_138}>
-              Toggle between actual system modules to preview the premium, gold-highlighted dashboards.
-            </p>
-          </div>
-
-          <div className={styles.div_139}>
-            <div className={styles.container_140}>
-              {[
-                { id: "dashboard", label: "Dashboard Overview", icon: Layers },
-                { id: "servicing", label: "Client Servicing Tasks", icon: ClipboardList }
-              ].map((tab) => {
-                const Icon = tab.icon;
-                const active = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id as any)}
-                    className={`${styles.table_205} ${active
-                      ? "bg-[#FFF7D6] border border-[#F4C542]/40 text-[#A3843B]"
-                      : "text-zinc-500 hover:text-black hover:bg-zinc-50"
-                      }`}
-                  >
-                    <Icon size={14} />
-                    <span>{tab.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className={styles.container_141}>
-              {activeTab === "dashboard" && (
-                <div className={styles.div_142}>
-                  <div className={styles.container_143}>
-                    <div>
-                      <h3 className={styles.table_144}>Workspace Analytics</h3>
-                      <p className={styles.text_145}>Real-time summary of client activities</p>
-                    </div>
-                    <span className={styles.text_146}>
-                      Verified Secure
-                    </span>
-                  </div>
-                  <div className={styles.container_147}>
-                    <div className={styles.div_148}>
-                      <p className={styles.text_149}>Service SLA Status</p>
-                      <h4 className={styles.text_150}>100% Fulfilled</h4>
-                      <div className={styles.div_151}>
-                        <div className={styles.div_152} />
-                      </div>
-                    </div>
-                    <div className={styles.div_153}>
-                      <p className={styles.text_154}>Active Requests</p>
-                      <h4 className={styles.text_155}>4 Pending Tasks</h4>
-                      <div className={styles.div_156}>
-                        <div className={styles.div_157} />
-                      </div>
-                    </div>
-                    <div className={styles.div_158}>
-                      <p className={styles.text_159}>Server Response Time</p>
-                      <h4 className={styles.text_160}>12ms Response</h4>
-                      <div className={styles.div_161}>
-                        <div className={styles.div_162} />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === "servicing" && (
-                <div className={styles.div_163}>
-                  <div className={styles.container_164}>
-                    <div>
-                      <h3 className={styles.table_165}>Request Tracking</h3>
-                      <p className={styles.text_166}>Trace active client servicing logs</p>
-                    </div>
-                    <span className={styles.text_167}>
-                      Active Registry
-                    </span>
-                  </div>
-                  <div className={styles.container_168}>
-                    <div className={styles.text_169}>
-                      <div className={styles.table_170}>Secure SSL Connection</div>
-                      <p className={styles.text_171}>ACTIVE DATA SYNC</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className={styles.text_175}>
-                <span>Database Connection Status</span>
-                <span>Connected Successfully</span>
+            <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white p-0 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
+              <div className="relative overflow-hidden bg-slate-100">
+                <img src="https://tpclientportal.vercel.app/Image/isabel.png" alt="Isabel Francisco" className="h-56 w-full object-cover" />
+              </div>
+              <div className="space-y-3 p-6">
+                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#A3843B]">Senior Leader</p>
+                <h3 className="text-2xl font-semibold text-slate-900">Isabel Francisco</h3>
+                <p className="text-sm font-semibold text-slate-700">Senior Team Coordinator</p>
+                <p className="text-sm leading-7 text-slate-600">Supports recruitment, coordination, onboarding, and team development.</p>
               </div>
             </div>
           </div>
         </section>
 
-        <section id="faq" className={styles.div_176}>
-          <div className={styles.div_177}>
-            <div className={styles.text_178}>
-              <h2 className={styles.table_179}>
-                Frequently Asked Questions
-              </h2>
-              <p className={styles.text_180}>
-                Got questions about Padua? Explore our quick answers.
-              </p>
+        <section className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
+          <div className="rounded-[28px] border border-slate-200 bg-white/90 p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
+            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[#A3843B]">Development Team</p>
+            <div className="mt-6 flex flex-col gap-6 sm:flex-row sm:items-center">
+              <div className="h-24 w-24 overflow-hidden rounded-[24px] bg-slate-100">
+                <img src="/Image/icon/TPC.png" alt="John Renz Bandianon" className="h-full w-full object-cover" />
+              </div>
+              <div>
+                <h2 className="text-3xl font-semibold tracking-tight text-slate-900">John Renz Bandianon</h2>
+                <p className="mt-2 text-base font-semibold text-slate-700">Lead System Developer & Full Stack Programmer</p>
+                <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600">Designed, developed, and maintains the Team Padua Client Management Portal including frontend, backend, database architecture, UI/UX, automation workflows, and advisor servicing modules.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="preview" className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
+          <div className="mb-10 max-w-2xl">
+            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[#A3843B]">Dashboard Preview</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">A refined workspace for advisors, clients, and servicing tasks</h2>
+          </div>
+
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {previewCards.map((card) => (
+              <div key={card.title} className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-[0_15px_45px_rgba(15,23,42,0.04)]">
+                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-2xl bg-[#FFFBEB] text-[#A3843B]">
+                  <ShieldCheck size={17} />
+                </div>
+                <h3 className="text-lg font-semibold text-slate-900">{card.title}</h3>
+                <p className="mt-2 text-sm leading-7 text-slate-600">{card.description}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section id="faq" className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
+          <div className="rounded-[28px] border border-slate-200 bg-white/90 p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)] lg:p-10">
+            <div className="mb-10 max-w-2xl">
+              <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[#A3843B]">FAQ</p>
+              <h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">Answers for advisors exploring the platform</h2>
             </div>
 
-            <div className={styles.div_181}>
-              {faqs.map((faq, idx) => {
-                const isOpen = activeFaq === idx;
+            <div className="space-y-3">
+              {faqs.map((faq, index) => {
+                const isOpen = activeFaq === index;
                 return (
-                  <div key={idx} className={styles.table_182}>
-                    <button
-                      onClick={() => setActiveFaq(isOpen ? null : idx)}
-                      className={styles.table_183}
-                    >
-                      <span>{faq.q}</span>
-                      <ChevronDown size={16} className={`${styles.table_206} ${isOpen ? "rotate-180" : ""}`} />
+                  <div key={faq.question} className="rounded-[20px] border border-slate-200 bg-slate-50">
+                    <button className="flex w-full items-center justify-between px-5 py-4 text-left" onClick={() => setActiveFaq(isOpen ? null : index)}>
+                      <span className="text-sm font-semibold text-slate-900">{faq.question}</span>
+                      <ChevronDown size={16} className={`text-slate-500 transition ${isOpen ? 'rotate-180' : ''}`} />
                     </button>
-                    <div className={`${styles.table_207} ${isOpen ? "max-h-40 border-t border-[#ECECEC]" : "max-h-0"}`}>
-                      <p className={styles.text_184}>
-                        {faq.a}
-                      </p>
-                    </div>
+                    {isOpen && <p className="px-5 pb-5 text-sm leading-7 text-slate-600">{faq.answer}</p>}
                   </div>
                 );
               })}
@@ -583,47 +437,30 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className={styles.div_185}>
-          <div className={styles.text_186}>
-            <div className={styles.div_187} />
-            <h2 className={styles.text_188}>
-              Ready to Access the Operations Portal?
-            </h2>
-            <p className={styles.text_189}>
-              Sign in now to manage client servicing logs, check bulletins, and process active requests.
-            </p>
-            <div className={styles.div_190}>
-              <a
-                href="/auth/login"
-                className={styles.table_191}
-              >
-                Sign In to System
-                <ArrowRight className={styles.div_192} />
+        <section className="mx-auto max-w-7xl px-6 pb-20 pt-8 lg:px-8">
+          <div className="rounded-[28px] border border-slate-200 bg-[linear-gradient(135deg,#fffdf7_0%,#ffffff_100%)] p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)] lg:p-10">
+            <div className="max-w-3xl">
+              <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[#A3843B]">Ready to serve clients better?</p>
+              <h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">Ready to Manage Your Client Portfolio?</h2>
+              <p className="mt-4 text-lg leading-8 text-slate-600">Access the Team Padua Client Management Portal to organize client servicing, monitor policy updates, manage daily advisor activities, and strengthen long-term client relationships.</p>
+            </div>
+            <div className="mt-8">
+              <a href="/auth/login" className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-200 transition hover:-translate-y-0.5 hover:bg-slate-800">
+                Sign In to Portal
+                <ArrowRight size={16} />
               </a>
             </div>
           </div>
         </section>
       </main>
 
-      <footer className={styles.div_193}>
-        <div className={styles.container_194}>
-          <a href="/" className={styles.container_195}>
-            <div className={styles.text_196}>
-              <span className={styles.text_197}>TP</span>
-            </div>
-            <span className={styles.text_198}>TeamPadua</span>
-          </a>
-
-          <div className={styles.table_199}>
-            <a href="/privacy" className={styles.table_200}>Privacy Policy</a>
-            <a href="/terms" className={styles.table_201}>Terms of Service</a>
-            <a href="/docs" className={styles.table_202}>Documentation</a>
-            <a href="/contact" className={styles.table_203}>Contact</a>
+      <footer className="border-t border-slate-200/80 bg-white/70">
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-6 py-8 text-sm text-slate-500 lg:flex-row lg:items-center lg:justify-between lg:px-8">
+          <p>© {new Date().getFullYear()} TeamPadua. Built for Sun Life Team Padua.</p>
+          <div className="flex gap-5">
+            <a href="/privacy" className="transition hover:text-slate-900">Privacy Policy</a>
+            <a href="/terms" className="transition hover:text-slate-900">Terms of Service</a>
           </div>
-
-          <p className={styles.text_204}>
-            &copy; {new Date().getFullYear()} TeamPadua. Built for Sun Life Team Padua.
-          </p>
         </div>
       </footer>
     </div>

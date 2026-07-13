@@ -36,6 +36,36 @@ type AuthFormProps = {
 
 type SavedGoogle = { name: string; email: string; avatar: string } | null;
 
+const getPasswordChecks = (value: string) => [
+  { label: "At least 8 characters", valid: value.length >= 8 },
+  { label: "One uppercase letter", valid: /[A-Z]/.test(value) },
+  { label: "One lowercase letter", valid: /[a-z]/.test(value) },
+  { label: "One number", valid: /\d/.test(value) },
+  { label: "One special character", valid: /[^A-Za-z0-9]/.test(value) },
+];
+
+const getPasswordStrength = (value: string) => {
+  const checks = getPasswordChecks(value);
+  const score = checks.filter((check) => check.valid).length;
+
+  if (!value) {
+    return { score, label: "Start typing", percent: 0, barClass: "bg-slate-300", textClass: "text-slate-500" };
+  }
+
+  if (score <= 2) {
+    return { score, label: "Weak", percent: 25, barClass: "bg-rose-500", textClass: "text-rose-600" };
+  }
+
+  if (score === 3) {
+    return { score, label: "Fair", percent: 50, barClass: "bg-orange-500", textClass: "text-orange-600" };
+  }
+
+  if (score === 4) {
+    return { score, label: "Good", percent: 75, barClass: "bg-amber-500", textClass: "text-amber-600" };
+  }
+
+  return { score, label: "Strong", percent: 100, barClass: "bg-emerald-500", textClass: "text-emerald-600" };
+};
 
 // ─── Google SVG Icon ──────────────────────────────────────────────────────────
 
@@ -377,15 +407,19 @@ export const AuthForm = ({ action }: AuthFormProps) => {
 
   const [isLogin, setIsLogin] = useState(true);
   const [name, setName] = useState("");
-  const [role, setRole] = useState("ASA");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [passwordFeedback, setPasswordFeedback] = useState<string | null>(null);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [showForgot, setShowForgot] = useState(false);
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+  const [confirmationEmail, setConfirmationEmail] = useState("");
   const [savedGoogle, setSavedGoogle] = useState<SavedGoogle>(null);
 
   useEffect(() => {
@@ -395,23 +429,64 @@ export const AuthForm = ({ action }: AuthFormProps) => {
     if (savedG) { try { setSavedGoogle(JSON.parse(savedG)); } catch {} }
   }, []);
 
-  const canSubmit = email.length > 0 && password.length > 0 && (isLogin ? true : name.trim().length > 0);
+  const passwordChecks = getPasswordChecks(password);
+  const passwordIsValid = passwordChecks.every((check) => check.valid);
+  const passwordStrength = getPasswordStrength(password);
+  const shouldShowPasswordHints = password.length > 0;
+  const confirmPasswordState = confirmPassword.length > 0
+    ? password === confirmPassword
+      ? { valid: true, message: "Passwords match" }
+      : { valid: false, message: "Passwords do not match" }
+    : null;
+  const canSubmit = email.length > 0 && password.length > 0 && (isLogin
+    ? true
+    : name.trim().length > 0 && passwordIsValid && confirmPassword.length > 0 && confirmPasswordState?.valid);
 
   /**
  * Executes operations logic for handleSubmit.
  *
- * @param formData: FormData
+ * @param e: React.FormEvent<HTMLFormElement>
  * @returns State operations sequence.
  */
-const handleSubmit = async (formData: FormData) => {
+const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     setError(null);
+    setPasswordFeedback(null);
+
+    if (!isLogin) {
+      if (!passwordIsValid) {
+        setPasswordFeedback("Password must meet all requirements.");
+        return;
+      }
+
+      if (!confirmPassword || password !== confirmPassword) {
+        setPasswordFeedback("Please confirm your password correctly.");
+        return;
+      }
+    }
+
     rememberMe
       ? localStorage.setItem(SAVED_EMAIL_KEY, email)
       : localStorage.removeItem(SAVED_EMAIL_KEY);
+
+    const formData = new FormData(e.currentTarget);
     startTransition(async () => {
       const activeAction = isLogin ? SignIn : SignUp;
       const result = await activeAction(formData);
-      if (result?.error) setError(result.error);
+      if (result?.error) {
+        setError(result.error);
+        return;
+      }
+
+      if (!isLogin) {
+        setConfirmationEmail((result as { email?: string } | undefined)?.email || email);
+        setShowConfirmationModal(true);
+        setPassword("");
+        setConfirmPassword("");
+        setShowPassword(false);
+        setShowConfirmPassword(false);
+        setPasswordFeedback(null);
+      }
     });
   };
 
@@ -461,7 +536,33 @@ const clearSavedGoogle = (e: React.MouseEvent) => {
     <>
       {showForgot && <ForgotPasswordModal onClose={() => setShowForgot(false)} />}
 
-      <form action={handleSubmit} className={styles.div_49}>
+      {showConfirmationModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-2xl">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-100">
+              <Mail className="h-7 w-7 text-amber-600" />
+            </div>
+            <h2 className="text-center text-xl font-bold text-slate-900">Check your email</h2>
+            <p className="mt-2 text-center text-sm text-slate-600">
+              We sent a confirmation email to <span className="font-semibold text-slate-800">{confirmationEmail || email}</span>.
+              Please open your inbox and confirm your account to finish signing up.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setShowConfirmationModal(false);
+                setIsLogin(true);
+                setError(null);
+              }}
+              className="mt-6 w-full rounded-full bg-amber-400 px-4 py-3 text-sm font-bold text-black transition-all hover:bg-amber-500"
+            >
+              Continue
+            </button>
+          </div>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className={styles.div_49}>
         {error && <ErrorToast message={error} onClose={() => setError(null)} />}
 
         {!isLogin && (
@@ -470,30 +571,6 @@ const clearSavedGoogle = (e: React.MouseEvent) => {
             type="text" value={name} onChange={setName}
             icon={User} autoComplete="name"
           />
-        )}
-
-        {!isLogin && (
-          <div className={styles.div_50}>
-            <div className={styles.container_51}>
-              <div className={styles.container_52}>
-                <Users className={styles.text_53} />
-              </div>
-              <select
-                name="role"
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                className={styles.table_54}
-              >
-                <option value="ASA">Advisor Support Associate (ASA)</option>
-                <option value="BSA">Business Support Associate (BSA)</option>
-                <option value="CRA">Client Relations Associate (CRA)</option>
-                <option value="DCA">Design Content Associate (DCA)</option>
-              </select>
-              <div className={styles.text_55}>
-                ▼
-              </div>
-            </div>
-          </div>
         )}
 
         <FloatingLabelInput
@@ -505,13 +582,67 @@ const clearSavedGoogle = (e: React.MouseEvent) => {
         <FloatingLabelInput
           id="password" label="Password" name="password"
           type={showPassword ? "text" : "password"} value={password}
-          onChange={setPassword} icon={Lock} autoComplete="current-password"
+          onChange={(value) => {
+            setPassword(value);
+            if (passwordFeedback) setPasswordFeedback(null);
+          }} icon={Lock} autoComplete={isLogin ? "current-password" : "new-password"}
           rightSlot={
             <button type="button" onClick={() => setShowPassword(!showPassword)} className={styles.table_56}>
               {showPassword ? <EyeOff className={styles.div_57} /> : <Eye className={styles.div_58} />}
             </button>
           }
         />
+
+        {!isLogin && (
+          <div className={`mt-2 space-y-3 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50/80 p-3 transition-all duration-300 ${shouldShowPasswordHints ? "max-h-80 opacity-100" : "max-h-0 border-transparent bg-transparent p-0 opacity-0"}`}>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Password strength</p>
+              <span className={`text-[11px] font-semibold ${passwordStrength.textClass}`}>{passwordStrength.label}</span>
+            </div>
+            <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
+              <div className={`h-full rounded-full transition-all duration-200 ${passwordStrength.barClass}`} style={{ width: `${passwordStrength.percent}%` }} />
+            </div>
+            <p className="text-[11px] text-slate-500">Use 8–20 characters with uppercase, lowercase, number, and special character.</p>
+            <div className="space-y-1.5">
+              {passwordChecks.map((check) => (
+                <div key={check.label} className="flex items-center gap-2 text-[11px]">
+                  {check.valid ? (
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                  ) : (
+                    <X className="h-3.5 w-3.5 text-rose-500" />
+                  )}
+                  <span className={check.valid ? "text-emerald-600" : "text-slate-600"}>{check.label}</span>
+                </div>
+              ))}
+            </div>
+            {passwordFeedback && (
+              <p className="text-[11px] font-medium text-rose-600">{passwordFeedback}</p>
+            )}
+          </div>
+        )}
+
+        {!isLogin && (
+          <FloatingLabelInput
+            id="confirmPassword" label="Confirm password" name="confirmPassword"
+            type={showConfirmPassword ? "text" : "password"} value={confirmPassword}
+            onChange={(value) => {
+              setConfirmPassword(value);
+              if (passwordFeedback) setPasswordFeedback(null);
+            }} icon={Lock} autoComplete="new-password"
+            rightSlot={
+              <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className={styles.table_56}>
+                {showConfirmPassword ? <EyeOff className={styles.div_57} /> : <Eye className={styles.div_58} />}
+              </button>
+            }
+          />
+        )}
+
+        {!isLogin && confirmPasswordState && (
+          <div className={`flex items-center gap-2 text-[11px] ${confirmPasswordState.valid ? "text-emerald-600" : "text-rose-600"}`}>
+            {confirmPasswordState.valid ? <CheckCircle2 className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}
+            <span>{confirmPasswordState.message}</span>
+          </div>
+        )}
 
         {isLogin && (
           <div className={styles.container_59}>
@@ -548,6 +679,11 @@ const clearSavedGoogle = (e: React.MouseEvent) => {
             onClick={() => {
               setIsLogin(!isLogin);
               setError(null);
+              setPassword("");
+              setConfirmPassword("");
+              setShowPassword(false);
+              setShowConfirmPassword(false);
+              setPasswordFeedback(null);
             }}
             className={styles.table_66}
           >
