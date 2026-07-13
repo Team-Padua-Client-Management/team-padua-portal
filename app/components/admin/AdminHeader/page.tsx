@@ -3,12 +3,16 @@
 import styles from "@/styles/components/admin/AdminHeader/page.module.css";
 import Image from 'next/image';
 import React, { useEffect, useRef, useState } from 'react';
-import { User, LogOut, ChevronDown, Bell, Sun, Moon, Search, Settings } from 'lucide-react';
+import { User, LogOut, ChevronDown, Bell, Sun, Moon, Search, Settings, Menu } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/app/lib/supabase/client';
 import NotificationBell from "@/components/shared/NotificationBell";
 import { useAdminLayoutContext } from '@/app/components/admin/AdminLayoutContext';
+
+interface HeaderProps {
+  onMenuClick?: () => void;
+}
 
 interface UserData {
   name: string;
@@ -45,7 +49,7 @@ const pageConfig: Record<string, { title: string; description: string }> = {
   cpst: { title: '2026 CPST', description: 'Client Prospect Servicing Tracker' },
 };
 
-export default function AdminHeader() {
+export default function AdminHeader({ onMenuClick }: HeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -195,10 +199,9 @@ export default function AdminHeader() {
         )}
       </div>
       {showStatusDot && (
-        <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 border border-white dark:border-background rounded-full shadow-2xs ${
-          presenceStatus === 'online' ? 'bg-emerald-500' :
-          presenceStatus === 'busy' ? 'bg-rose-500' : 'bg-slate-400'
-        }`} />
+        <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 border border-white dark:border-background rounded-full shadow-2xs ${presenceStatus === 'online' ? 'bg-emerald-500' :
+            presenceStatus === 'busy' ? 'bg-rose-500' : 'bg-slate-400'
+          }`} />
       )}
     </div>
   );
@@ -214,6 +217,13 @@ export default function AdminHeader() {
     <>
       <header className={`${styles.header} ${scrolled ? styles.headerScrolled : ''} ${hideHeader ? styles.headerHidden : ''}`}>
         <div className={styles.leftSection}>
+          <button
+            type="button"
+            onClick={onMenuClick}
+            className="md:hidden p-2 -ml-2 mr-2 text-foreground/70 hover:text-foreground cursor-pointer rounded-lg hover:bg-muted/50 transition-colors"
+          >
+            <Menu size={20} />
+          </button>
           <div className={styles.titleContainer}>
             <span className={styles.breadcrumb}>Admin / {currentPage.title}</span>
             <h1 className={styles.pageTitle}>{currentPage.title}</h1>
@@ -261,8 +271,6 @@ export default function AdminHeader() {
                 </div>
               </div>
 
-              
-
               <div className="border-b border-border/50 py-2 px-4 flex items-center justify-center bg-muted/10 relative">
                 <div className="relative w-full">
                   <button
@@ -270,10 +278,9 @@ export default function AdminHeader() {
                     className="w-full flex items-center justify-between pl-3 pr-2.5 py-1.5 bg-muted/30 border border-border rounded-full text-xs font-semibold text-foreground cursor-pointer hover:bg-muted/70 transition-all"
                   >
                     <div className="flex items-center gap-2">
-                      <span className={`w-2 h-2 rounded-full shrink-0 ${
-                        presenceStatus === 'online' ? 'bg-emerald-500' :
-                        presenceStatus === 'busy' ? 'bg-rose-500' : 'bg-slate-400'
-                      }`} />
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${presenceStatus === 'online' ? 'bg-emerald-500' :
+                          presenceStatus === 'busy' ? 'bg-rose-500' : 'bg-slate-400'
+                        }`} />
                       <span className="capitalize">{presenceStatus}</span>
                     </div>
                     <ChevronDown size={12} className={`text-muted-foreground transition-transform duration-200 ${statusDropdownOpen ? 'rotate-180' : ''}`} />
@@ -292,9 +299,8 @@ export default function AdminHeader() {
                             handleStatusChange(status.id);
                             setStatusDropdownOpen(false);
                           }}
-                          className={`w-full flex items-center gap-2.5 px-3 py-2 text-left text-xs font-semibold hover:bg-muted transition-colors cursor-pointer ${
-                            presenceStatus === status.id ? 'bg-primary/10 text-primary' : 'text-foreground'
-                          }`}
+                          className={`w-full flex items-center gap-2.5 px-3 py-2 text-left text-xs font-semibold hover:bg-muted transition-colors cursor-pointer ${presenceStatus === status.id ? 'bg-primary/10 text-primary' : 'text-foreground'
+                            }`}
                         >
                           <span className={`w-2 h-2 rounded-full shrink-0 ${status.color}`} />
                           <span>{status.label}</span>
