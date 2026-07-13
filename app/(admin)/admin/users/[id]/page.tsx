@@ -91,55 +91,54 @@ export default async function UserProfilePage({ params }: Props) {
     targetUser.user_metadata?.picture ||
     "";
 
-  const userProps = {
-    id: targetUser.id,
-    name: profile?.full_name || googleName,
+const userProps = {
+  id: targetUser.id,
+  name: profile?.full_name || googleName,
 
-    email: targetUser.email || "",
-    employeeId: profile?.employee_id || "",
-    role: profile?.role || "Member",
-    department: profile?.department || "",
-    team: profile?.team || "",
-    phone: profile?.phone || "",
-    gender: profile?.gender || "",
-    birthday: profile?.birthday || "",
+  email: targetUser.email || "",
+  employeeId: profile?.employee_id || "",
+  role: profile?.role || "Member",
+  department: profile?.department || "",
+  team: profile?.team || "",
+  phone: profile?.phone || "",
+  gender: profile?.gender || "",
+  birthday: profile?.birthday || "",
 
-    address: profile?.address || "",
-    avatar: profile?.avatar_url || googleAvatar || "",
+  address: profile?.address || "",
+  avatar: profile?.avatar_url || googleAvatar || "",
 
-    region: profile?.region || "",
-    province: profile?.province || "",
-    city: profile?.city || "",
-    barangay: profile?.barangay || "",
-    subdivision: profile?.subdivision || "",
-    street: profile?.street || "",
-    houseNo: profile?.house_no || "",
-    postalCode: profile?.postal_code || "",
-    latitude: profile?.latitude || "",
-    longitude: profile?.longitude || "",
-    mapUrl: profile?.map_url || "",
+  region: profile?.region || "",
+  province: profile?.province || "",
+  city: profile?.city || "",
+  barangay: profile?.barangay || "",
+  subdivision: profile?.subdivision || "",
+  street: profile?.street || "",
+  houseNo: profile?.house_no || "",
+  postalCode: profile?.postal_code || "",
+  latitude: profile?.latitude || "",
+  longitude: profile?.longitude || "",
+  mapUrl: profile?.map_url || "",
 
-    avatar: profile?.avatar_url || googleAvatar,
-    provider: targetUser.app_metadata?.provider || "email",
-    status:
-      profile?.status ||
-      (targetUser.email_confirmed_at ? "Active" : "Pending"),
-    joined: targetUser.created_at || "",
-    lastActive: targetUser.last_sign_in_at || "",
-    bio: profile?.bio || "",
-    website: profile?.website || "",
-    gcashQr: profile?.gcash_qr || null,
-    bannerTheme:
-      profile?.banner_theme ||
-      "linear-gradient(135deg, #FFFFFF 0%, #FFF7D6 100%)",
-    avatarMode:
-      profile?.avatar_mode || (googleAvatar ? "upload" : "initials"),
-    aiSeed:
-      profile?.ai_seed ||
-      targetUser.id ||
-      targetUser.email ||
-      "default",
-  };
+  provider: targetUser.app_metadata?.provider || "email",
+  status:
+    profile?.status ||
+    (targetUser.email_confirmed_at ? "Active" : "Pending"),
+  joined: targetUser.created_at || "",
+  lastActive: targetUser.last_sign_in_at || "",
+  bio: profile?.bio || "",
+  website: profile?.website || "",
+  gcashQr: profile?.gcash_qr || null,
+  bannerTheme:
+    profile?.banner_theme ||
+    "linear-gradient(135deg, #FFFFFF 0%, #FFF7D6 100%)",
+  avatarMode:
+    profile?.avatar_mode || (googleAvatar ? "upload" : "initials"),
+  aiSeed:
+    profile?.ai_seed ||
+    targetUser.id ||
+    targetUser.email ||
+    "default",
+};
 
   return (
     <UserDetailClient
