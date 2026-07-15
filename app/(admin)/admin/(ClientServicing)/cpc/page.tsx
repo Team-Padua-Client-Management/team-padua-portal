@@ -7,10 +7,11 @@ import {
   Eye, Download, ChevronDown, ChevronRight, Clock, Calendar,
   ArrowUpDown, Check, AlertTriangle, Users, Star, Target, Archive
 } from 'lucide-react';
-import Header from '@/app/components/admin/AdminHeader/page';
-import Sidebar from '@/app/components/admin/AdminSidebar/page';
+import Header from '@/app/components/admin/AdminHeader';
+import Sidebar from '@/app/components/admin/AdminSidebar';
 import { supabase } from "@/app/lib/supabase/client";
 import styles from "@/styles/admin/cpst/page.module.css";
+import SignaturePad from '@/app/components/ui/SignaturePad';
 
 interface StatusOption { id: string; name: string; color: string; sort_order: number; }
 interface ProcessorOption { id: string; name: string; color: string; sort_order: number; }
@@ -25,6 +26,7 @@ interface CpcRecord {
   hard_copy_id: string | null;
   processed_by_id: string | null;
   comments: string;
+  signatureData?: string;
   digital_basic?: StatusOption;
   digital_premium?: StatusOption;
   hard_copy?: StatusOption;
@@ -541,7 +543,7 @@ export default function CpcDashboard() {
                   <div
                     key={i}
                     className={`${styles.card_227} ${
-                      stat.isYellowBorder ? 'border-[#F4C542]/40 ring-1 ring-[#F4C542]/10' : 'border-border'
+                      stat.isYellowBorder ? 'border-primary/40 ring-1 ring-[#F4C542]/10' : 'border-border'
                     } flex flex-col justify-between`}
                   >
                     <div className={styles.table_63}>
@@ -668,7 +670,7 @@ export default function CpcDashboard() {
                       <td className={styles.div_103}>
                         <input
                           type="text"
-                          className="bg-transparent border-none text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-[#F4C542] rounded px-1 py-0.5 w-full"
+                          className="bg-transparent border-none text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary rounded px-1 py-0.5 w-full"
                           value={req.policy_owner}
                           onChange={e => setRecords(prev => prev.map(r => r.id === req.id ? { ...r, policy_owner: e.target.value } : r))}
                           onBlur={e => handleInlineUpdate(req.id, 'policy_owner', e.target.value)}
@@ -677,7 +679,7 @@ export default function CpcDashboard() {
                       <td className={styles.text_107}>
                         <input
                           type="text"
-                          className="bg-transparent border-none text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-[#F4C542] rounded px-1 py-0.5 w-full"
+                          className="bg-transparent border-none text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary rounded px-1 py-0.5 w-full"
                           value={req.policy_number}
                           onChange={e => setRecords(prev => prev.map(r => r.id === req.id ? { ...r, policy_number: e.target.value } : r))}
                           onBlur={e => handleInlineUpdate(req.id, 'policy_number', e.target.value)}
@@ -686,14 +688,14 @@ export default function CpcDashboard() {
                       <td className={styles.text_107}>
                         <input
                           type="date"
-                          className="bg-transparent border-none text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-[#F4C542] rounded px-1 py-0.5"
+                          className="bg-transparent border-none text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary rounded px-1 py-0.5"
                           value={req.date_processed || ''}
                           onChange={e => handleInlineUpdate(req.id, 'date_processed', e.target.value || null)}
                         />
                       </td>
                       <td className={styles.text_107}>
                         <select
-                          className="bg-transparent border-none text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-[#F4C542] rounded px-1 py-0.5"
+                          className="bg-transparent border-none text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary rounded px-1 py-0.5"
                           value={req.digital_basic_id || ''}
                           onChange={e => handleInlineUpdate(req.id, 'digital_basic_id', e.target.value || null)}
                         >
@@ -703,7 +705,7 @@ export default function CpcDashboard() {
                       </td>
                       <td className={styles.text_107}>
                         <select
-                          className="bg-transparent border-none text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-[#F4C542] rounded px-1 py-0.5"
+                          className="bg-transparent border-none text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary rounded px-1 py-0.5"
                           value={req.digital_premium_id || ''}
                           onChange={e => handleInlineUpdate(req.id, 'digital_premium_id', e.target.value || null)}
                         >
@@ -713,7 +715,7 @@ export default function CpcDashboard() {
                       </td>
                       <td className={styles.text_107}>
                         <select
-                          className="bg-transparent border-none text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-[#F4C542] rounded px-1 py-0.5"
+                          className="bg-transparent border-none text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary rounded px-1 py-0.5"
                           value={req.hard_copy_id || ''}
                           onChange={e => handleInlineUpdate(req.id, 'hard_copy_id', e.target.value || null)}
                         >
@@ -723,7 +725,7 @@ export default function CpcDashboard() {
                       </td>
                       <td className={styles.text_107}>
                         <select
-                          className="bg-transparent border-none text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-[#F4C542] rounded px-1 py-0.5"
+                          className="bg-transparent border-none text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary rounded px-1 py-0.5"
                           value={req.processed_by_id || ''}
                           onChange={e => handleInlineUpdate(req.id, 'processed_by_id', e.target.value || null)}
                         >
@@ -880,6 +882,12 @@ export default function CpcDashboard() {
                     className={styles.text_132}
                   />
                 </div>
+                <div style={{ marginTop: '16px' }}>
+                  <SignaturePad 
+                    initialSignature={currentRecord.signatureData} 
+                    onSignatureChange={(sig) => setCurrentRecord({ ...currentRecord, signatureData: sig || undefined })}
+                  />
+                </div>
               </form>
             </div>
             <div className={styles.container_133}>
@@ -937,7 +945,7 @@ export default function CpcDashboard() {
                     onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
                     onDragLeave={() => setIsDragging(false)}
                     onClick={() => fileInputRef.current?.click()}
-                    className={`${styles.table_231} ${isDragging ? 'border-[#F4C542] bg-[#F4C542]/5' : 'border-[#F4C542]/30 bg-[#FAF9F5]/30 dark:bg-muted/5 hover:border-[#F4C542] hover:bg-[#FAF9F5]/70 dark:hover:bg-muted/10'}`}
+                    className={`${styles.table_231} ${isDragging ? 'border-primary bg-primary/5' : 'border-primary/30 bg-[#FAF9F5]/30 dark:bg-muted/5 hover:border-primary hover:bg-[#FAF9F5]/70 dark:hover:bg-muted/10'}`}
                   >
                     <Upload size={28} className={styles.text_145} />
                     <p className={styles.text_146}>Choose file or drag & drop</p>

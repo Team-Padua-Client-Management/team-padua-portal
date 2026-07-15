@@ -25,8 +25,8 @@ import styles from "@/styles/admin/profile/page.module.css";
 import React, { useEffect, useRef, useState } from "react";
 import { supabase } from "@/app/lib/supabase/client";
 import ProfileAvatar from "@/components/shared/ProfileAvatar";
-import Sidebar from "@/app/components/admin/AdminSidebar/page";
-import Header from "@/app/components/admin/AdminHeader/page";
+import Sidebar from "@/app/components/admin/AdminSidebar";
+import Header from "@/app/components/admin/AdminHeader";
 import {
   Shield, Bell, Lock, Camera, Sparkles, Upload, X, ImageIcon,
   Pencil, User, Phone, Globe, Cake, MapPin, FileText, Plus, Trash2,

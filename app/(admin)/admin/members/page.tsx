@@ -13,8 +13,8 @@ import styles from "@/styles/admin/members/page.module.css";
 import { redirect } from "next/navigation";
 import { createClient } from "@/app/lib/supabase/server";
 import { supabaseAdmin } from "@/app/lib/supabase/admin";
-import Header from "@/app/components/admin/AdminHeader/page";
-import Sidebar from "@/app/components/admin/AdminSidebar/page";
+import Header from "@/app/components/admin/AdminHeader";
+import Sidebar from "@/app/components/admin/AdminSidebar";
 import AdminMembersTable from "./AdminMembersTable/AdminMembersTable";
 
 /**

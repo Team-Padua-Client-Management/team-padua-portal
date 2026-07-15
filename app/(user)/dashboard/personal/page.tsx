@@ -66,11 +66,11 @@ export default function DashboardPage() {
 
       const { data: profileData } = await supabase
         .from("profiles")
-        .select("full_name, role")
+        .select("first_name, last_name, role")
         .eq("id", uid)
         .single();
       if (profileData) {
-        setUserName(profileData.full_name || session.user.user_metadata?.full_name || "User");
+        setUserName(`${profileData.first_name} ${profileData.last_name}`);
         setUserRole(profileData.role || "Associate");
       } else {
         setUserName(session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "User");

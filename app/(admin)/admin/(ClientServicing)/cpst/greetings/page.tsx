@@ -29,8 +29,8 @@ import {
   Check, Play, Save, ChevronRight, BookOpen, AlertCircle,
   MessageCircle, Smartphone, X, Search
 } from 'lucide-react';
-import Header from "@/app/components/admin/AdminHeader/page";
-import Sidebar from "@/app/components/admin/AdminSidebar/page";
+import Header from "@/app/components/admin/AdminHeader";
+import Sidebar from "@/app/components/admin/AdminSidebar";
 import { supabase } from "@/app/lib/supabase/client";
 
 interface Client {
@@ -506,7 +506,7 @@ const handleDeleteHistoryItem = (id: string) => {
                         key={ch.id}
                         onClick={() => setDeliveryChannel(ch.id as DeliveryChannel)}
                         className={`${styles.table_128} ${deliveryChannel === ch.id
-                          ? 'border-[#F4C542] bg-[#F4C542]/5 text-foreground font-extrabold ring-1 ring-[#F4C542]/30'
+                          ? 'border-primary bg-primary/5 text-foreground font-extrabold ring-1 ring-[#F4C542]/30'
                           : 'border-border text-muted-foreground hover:text-foreground bg-muted/5'
                           }`}
                       >
@@ -556,7 +556,7 @@ const handleDeleteHistoryItem = (id: string) => {
                         key={tName}
                         onClick={() => handleTemplateChange(tName)}
                         className={`${styles.table_129} ${selectedTemplateName === tName
-                          ? 'border-[#F4C542] bg-[#F4C542]/10 text-foreground'
+                          ? 'border-primary bg-primary/10 text-foreground'
                           : 'border-border text-muted-foreground hover:text-foreground bg-muted/20'
                           }`}
                       >
@@ -712,7 +712,7 @@ const handleDeleteHistoryItem = (id: string) => {
                         setSelectedPoster(item.name);
                       }}
                       className={`${styles.input_132} ${selectedPoster === item.name
-                        ? 'border-[#F4C542] ring-2 ring-[#F4C542]/20'
+                        ? 'border-primary ring-2 ring-[#F4C542]/20'
                         : 'border-border hover:border-muted-foreground/45'
                         }`}
                     >

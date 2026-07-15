@@ -100,7 +100,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
         setDashboardOpen(true);
       }, 0);
     }
-    const clientServicingPaths = ['/admin/cpst', '/admin/acr', '/admin/cpc', '/admin/fst', '/admin/mngt', '/admin/ppu'];
+    const clientServicingPaths = ['/admin/cpst', '/admin/acr', '/admin/bcr', '/admin/fund-switching', '/admin/fund-withdrawal', '/admin/aca', '/admin/reinstatement-sro', '/admin/reinstatement-pdi', '/admin/csmv'];
     if (clientServicingPaths.some(p => pathname.startsWith(p))) {
       setTimeout(() => {
         setClientServicingOpen(true);
@@ -118,12 +118,15 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
   ];
 
   const clientServicingItems = [
-    { name: 'CPST', href: '/admin/cpst' },
+    { name: 'Client Management', href: '/admin/cpst' },
     { name: 'ACR', href: '/admin/acr' },
-    { name: 'CPC', href: '/admin/cpc' },
-    { name: 'FST', href: '/admin/fst' },
-    { name: 'MNGT', href: '/admin/mngt' },
-    { name: 'PPU', href: '/admin/ppu' },
+    { name: 'BCR', href: '/admin/bcr' },
+    { name: 'Fund Switching', href: '/admin/fund-switching' },
+    { name: 'Fund Withdrawal', href: '/admin/fund-withdrawal' },
+    { name: 'ACA', href: '/admin/aca' },
+    { name: 'Reinstatement - SRO', href: '/admin/reinstatement-sro' },
+    { name: 'Reinstatement - PDI', href: '/admin/reinstatement-pdi' },
+    { name: 'CSMV', href: '/admin/csmv' },
   ];
 
   const portalItems = [
@@ -235,11 +238,11 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                   setClientServicingOpen(!clientServicingOpen);
                 }
               }}
-              title={isEffectivelyCollapsed ? "Client Servicing" : undefined}
+              title={isEffectivelyCollapsed ? "CAMS" : undefined}
               className={isEffectivelyCollapsed ? 'flex items-center justify-center w-full' : styles.navItemLink}
             >
               <Briefcase size={16} className={`shrink-0 ${clientServicingItems.some(item => pathname.startsWith(item.href)) ? styles.navIconActive : styles.navIconInactive}`} />
-              <span className={`${styles.navLabel} ${isEffectivelyCollapsed ? styles.navLabelHidden : ''}`}>Client Servicing</span>
+              <span className={`${styles.navLabel} ${isEffectivelyCollapsed ? styles.navLabelHidden : ''}`}>CAMS</span>
             </button>
             {!isEffectivelyCollapsed && (
               <button

@@ -24,8 +24,8 @@
 import styles from "@/styles/admin/Design/page.module.css"; import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "@/app/lib/supabase/client";
 import * as Lucide from "lucide-react";
-import Header from "@/app/components/admin/AdminHeader/page";
-import Sidebar from "@/app/components/admin/AdminSidebar/page";
+import Header from "@/app/components/admin/AdminHeader";
+import Sidebar from "@/app/components/admin/AdminSidebar";
 
 interface DesignFolder {
     id: string;

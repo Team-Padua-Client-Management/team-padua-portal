@@ -24,8 +24,8 @@ import styles from "@/styles/user/faq/page.module.css";
 // ======================================================
 import React, { useState, useEffect, useMemo } from "react";
 import { Search, ChevronDown, ChevronUp, CircleHelp, Tag } from "lucide-react";
-import Header from "@/app/components/user/UserHeader/page";
-import Sidebar from "@/app/components/user/UserSidebar/page";
+import Header from "@/app/components/user/UserHeader";
+import Sidebar from "@/app/components/user/UserSidebar";
 import { supabase } from "@/app/lib/supabase/client";
 
 interface FAQ {

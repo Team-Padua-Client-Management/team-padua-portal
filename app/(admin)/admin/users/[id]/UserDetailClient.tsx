@@ -14,8 +14,8 @@
 ;
 
 import styles from "@/styles/admin/users/[id]/UserDetailClient.module.css";
-import Header from "@/app/components/admin/AdminHeader/page";
-import Sidebar from "@/app/components/admin/AdminSidebar/page";
+import Header from "@/app/components/admin/AdminHeader";
+import Sidebar from "@/app/components/admin/AdminSidebar";
 
 // ======================================================
 // State Initialization & Hooks

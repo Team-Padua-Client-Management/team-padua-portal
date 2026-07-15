@@ -26,8 +26,8 @@ import {
   Users, CheckCircle, Clock, Megaphone, HelpCircle, 
   RefreshCw, Loader2, CalendarCheck, ShieldAlert
 } from 'lucide-react';
-import Header from "@/app/components/admin/AdminHeader/page";
-import Sidebar from "@/app/components/admin/AdminSidebar/page";
+import Header from "@/app/components/admin/AdminHeader";
+import Sidebar from "@/app/components/admin/AdminSidebar";
 import { supabase } from "@/app/lib/supabase/client";
 
 type ReportTab = 'overview' | 'users' | 'tasks' | 'attendance' | 'announcements' | 'faq';

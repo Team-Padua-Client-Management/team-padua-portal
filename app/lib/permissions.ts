@@ -1,6 +1,6 @@
 import { createClient } from "./supabase/server";
 
-export type ClientServicingModule = "cpst" | "acr" | "fst" | "cpc" | "ppu" | "mngt";
+export type ClientServicingModule = "cpst" | "acr" | "fst" | "cpc" | "ppu" | "mngt" | "csmv" | "bcr" | "aca" | "sro" | "pdi";
 export type PermissionAction = "view" | "create" | "edit" | "delete" | "export";
 
 export interface ModulePermissions {
@@ -28,6 +28,11 @@ export const defaultClientServicingPermissions: ClientServicingPermissions = {
   cpc: { ...defaultModulePermissions },
   ppu: { ...defaultModulePermissions },
   mngt: { ...defaultModulePermissions },
+  csmv: { ...defaultModulePermissions },
+  bcr: { ...defaultModulePermissions },
+  aca: { ...defaultModulePermissions },
+  sro: { ...defaultModulePermissions },
+  pdi: { ...defaultModulePermissions },
 };
 
 /**

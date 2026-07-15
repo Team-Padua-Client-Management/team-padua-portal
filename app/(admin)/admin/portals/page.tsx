@@ -4,8 +4,8 @@ import Link from 'next/link';
 import { ArrowRight, LayoutGrid } from 'lucide-react';
 import { createClient } from '@/app/lib/supabase/server';
 import { supabaseAdmin } from '@/app/lib/supabase/admin';
-import Sidebar from '@/app/components/admin/AdminSidebar/page';
-import Header from '@/app/components/admin/AdminHeader/page';
+import Sidebar from '@/app/components/admin/AdminSidebar';
+import Header from '@/app/components/admin/AdminHeader';
 import { portalsConfig } from '@/app/lib/portals/config';
 import styles from '@/styles/admin/portals/page.module.css';
 

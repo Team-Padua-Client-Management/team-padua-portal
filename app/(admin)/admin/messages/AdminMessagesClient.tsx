@@ -24,8 +24,8 @@ import styles from "@/styles/admin/messages/AdminMessagesClient.module.css";
 // ======================================================
 import { useState, useEffect } from "react";
 import ProfileAvatar from "@/components/shared/ProfileAvatar";
-import Header from "@/app/components/admin/AdminHeader/page";
-import Sidebar from "@/app/components/admin/AdminSidebar/page";
+import Header from "@/app/components/admin/AdminHeader";
+import Sidebar from "@/app/components/admin/AdminSidebar";
 import Messenger from "@/components/Messenger";
 import { Input } from "@/components/ui/input";
 import { Search, Loader2 } from "lucide-react";

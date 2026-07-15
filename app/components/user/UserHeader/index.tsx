@@ -48,6 +48,7 @@ export default function UserHeader({ onMenuClick, isSidebarOpen }: UserHeaderPro
 
   const [profileOpen, setProfileOpen] = useState(false);
   const [isDark, setIsDark] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [presenceStatus, setPresenceStatus] = useState<'online' | 'offline' | 'busy'>('online');
@@ -73,6 +74,10 @@ export default function UserHeader({ onMenuClick, isSidebarOpen }: UserHeaderPro
   };
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 10);
     };
@@ -83,9 +88,10 @@ export default function UserHeader({ onMenuClick, isSidebarOpen }: UserHeaderPro
   useEffect(() => {
     const theme = localStorage.getItem("theme") || "light";
     setTimeout(() => {
-      setIsDark(theme === "dark");
+      const isThemeDark = ["dark", "midnight", "forest", "sunset", "slate"].includes(theme);
+      setIsDark(isThemeDark);
       document.documentElement.setAttribute('data-theme', theme);
-      if (theme === 'dark') {
+      if (isThemeDark) {
         document.documentElement.classList.add('dark');
       } else {
         document.documentElement.classList.remove('dark');
@@ -154,17 +160,22 @@ export default function UserHeader({ onMenuClick, isSidebarOpen }: UserHeaderPro
   };
 
   const toggleTheme = () => {
-    const nextDark = !isDark;
-    setIsDark(nextDark);
-    localStorage.setItem("theme", nextDark ? "dark" : "light");
-    document.documentElement.setAttribute('data-theme', nextDark ? 'dark' : 'light');
-    if (nextDark) {
+    const themes = ['light', 'dark', 'midnight', 'forest', 'sunset', 'slate'];
+    const current = localStorage.getItem('theme') || 'light';
+    const nextIndex = (themes.indexOf(current) + 1) % themes.length;
+    const nextTheme = themes[nextIndex];
+
+    const isNextDark = ["dark", "midnight", "forest", "sunset", "slate"].includes(nextTheme);
+    setIsDark(isNextDark);
+    localStorage.setItem("theme", nextTheme);
+    document.documentElement.setAttribute('data-theme', nextTheme);
+    if (isNextDark) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
     window.dispatchEvent(
-      new CustomEvent("theme-change", { detail: { theme: nextDark ? "dark" : "light" } })
+      new CustomEvent("theme-change", { detail: { theme: nextTheme } })
     );
   };
 
@@ -333,9 +344,11 @@ export default function UserHeader({ onMenuClick, isSidebarOpen }: UserHeaderPro
               >
                 <div className={styles.dropdownItemLeft}>
                   {isDark ? <Sun size={14} className={styles.dropdownItemIcon} /> : <Moon size={14} className={styles.dropdownItemIcon} />}
-                  <span>{isDark ? "Light Mode" : "Dark Mode"}</span>
+                  <span>Cycle Theme</span>
                 </div>
-                <span className={styles.themeValue}>{isDark ? "Dark" : "Light"}</span>
+                <span className={styles.themeValue} style={{ textTransform: 'capitalize' }}>
+                  {mounted ? localStorage.getItem('theme') || 'light' : 'light'}
+                </span>
               </button>
               <button
                 onClick={handleLogout}

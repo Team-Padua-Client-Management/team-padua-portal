@@ -69,6 +69,15 @@ const catClass = (cat: Category) => {
   return styles.catMeeting; // fallback
 };
 
+const formatAMPM = (timeStr: string) => {
+  if (!timeStr) return '';
+  const [h, m] = timeStr.split(':');
+  const hInt = parseInt(h, 10);
+  const ampm = hInt >= 12 ? 'PM' : 'AM';
+  const h12 = hInt % 12 || 12;
+  return `${String(h12).padStart(2, '0')}:${m} ${ampm}`;
+};
+
 const pad = (n: number) => String(n).padStart(2, '0');
 const toDateStr = (y: number, m: number, d: number) => `${y}-${pad(m + 1)}-${pad(d)}`;
 const isSameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
@@ -117,10 +126,53 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteEventId, setDeleteEventId] = useState<string | null>(null);
   const [generatingDesc, setGeneratingDesc] = useState(false);
+  const [smartScheduleQuery, setSmartScheduleQuery] = useState('');
+  const [smartScheduling, setSmartScheduling] = useState(false);
 
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 3000);
+  };
+
+  const handleAISmartSchedule = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!smartScheduleQuery.trim()) return;
+    setSmartScheduling(true);
+    try {
+      const prompt = `Parse this calendar event into JSON: "${smartScheduleQuery}". The JSON must have exactly these keys: title (string), event_date (YYYY-MM-DD), start_time (HH:MM 24-hr format if provided), category (choose one: Meeting, Birthday, Client, Deadline, Holiday, Interview, Task, Attendance, ACR). If no date provided, assume ${new Date().toISOString().split('T')[0]}. Output ONLY valid JSON without markdown formatting.`;
+      
+      const res = await fetch('/api/chatbot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: [{ role: 'user', content: prompt }] })
+      });
+      
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      
+      try {
+        const parsedText = data.reply.replace(/```json/g, '').replace(/```/g, '').trim();
+        const parsed = JSON.parse(parsedText);
+        
+        setNewEvent({
+          title: parsed.title || '',
+          event_date: parsed.event_date || new Date().toISOString().split('T')[0],
+          start_time: parsed.start_time || '',
+          end_time: '',
+          category: parsed.category || 'Meeting'
+        });
+        setEditingId(null);
+        setShowAddModal(true);
+        setSmartScheduleQuery('');
+      } catch (err) {
+        showToast('Could not parse AI response. Please try again.');
+      }
+      
+    } catch {
+      showToast('Error connecting to AI service.');
+    } finally {
+      setSmartScheduling(false);
+    }
   };
 
   const handleGenerateDescription = async () => {
@@ -286,7 +338,19 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
       ]
     };
 
-    const options = categorySuccessMessages[category] || categorySuccessMessages['Meeting'];
+    const c = (category || '').toLowerCase();
+    let matchedKey: Category = 'Meeting';
+    if (c.includes('meeting') || c.includes('consultation')) matchedKey = 'Meeting';
+    else if (c.includes('birthday') || c.includes('greeting')) matchedKey = 'Birthday';
+    else if (c.includes('client') || c.includes('call')) matchedKey = 'Client';
+    else if (c.includes('deadline') || c.includes('reminder')) matchedKey = 'Deadline';
+    else if (c.includes('holiday') || c.includes('leave')) matchedKey = 'Holiday';
+    else if (c.includes('interview') || c.includes('training')) matchedKey = 'Interview';
+    else if (c.includes('task') || c.includes('admin')) matchedKey = 'Task';
+    else if (c.includes('attendance')) matchedKey = 'Attendance';
+    else if (c.includes('processing') || c.includes('delivery') || c.includes('acr')) matchedKey = 'ACR';
+
+    const options = categorySuccessMessages[matchedKey];
     let successMessage = options[Math.floor(Math.random() * options.length)];
     setCelebrationMessage(successMessage);
 
@@ -356,7 +420,18 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
     }
   }, []);
 
-  useEffect(() => { fetchEvents(); }, [fetchEvents]);
+  useEffect(() => {
+    fetchEvents();
+    const subscription = supabase
+      .channel('calendar_events_channel')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'calendar_events' }, payload => {
+        fetchEvents();
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, [fetchEvents]);
 
   useEffect(() => {
     const savedCats = localStorage.getItem('tp_calendar_categories');
@@ -1017,6 +1092,23 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
             </div>
           </div>
           <div className={styles.topbarRight}>
+            <form onSubmit={handleAISmartSchedule} className="hidden md:flex relative items-center mr-2">
+              <input 
+                type="text" 
+                placeholder="✨ AI Smart Schedule..."
+                value={smartScheduleQuery}
+                onChange={e => setSmartScheduleQuery(e.target.value)}
+                disabled={smartScheduling}
+                className="w-64 pl-4 pr-10 py-1.5 text-xs bg-surface border border-border rounded-full focus:outline-none focus:border-primary transition-all disabled:opacity-50 text-foreground"
+              />
+              <button 
+                type="submit" 
+                disabled={smartScheduling}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-[#F4C542] hover:text-[#e0b53c] disabled:opacity-50"
+              >
+                <Sparkles size={14} className={smartScheduling ? "animate-pulse" : ""} />
+              </button>
+            </form>
 
             <button className={styles.addBtn} onClick={() => openAddModal(new Date().toISOString().split('T')[0])}>
               <Plus size={14} /> Log Activity
@@ -1453,7 +1545,7 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
           </div>
         )}
         {deleteConfirmOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4 animate-in fade-in duration-200">
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-md rounded-[24px] p-6 shadow-2xl flex flex-col items-center text-center animate-in zoom-in-95 duration-200">
               <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-50 dark:bg-rose-950/30 text-rose-500">
                 <Trash2 size={24} />

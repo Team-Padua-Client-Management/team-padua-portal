@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Header from '@/app/components/admin/AdminHeader/page';
-import Sidebar from '@/app/components/admin/AdminSidebar/page';
-import { Settings, Shield, FolderArchive, HelpCircle, Trash2, RotateCcw, MonitorSmartphone, Bell, Users, Globe, ExternalLink, Plus } from 'lucide-react';
+import Header from '@/app/components/admin/AdminHeader';
+import Sidebar from '@/app/components/admin/AdminSidebar';
+import { Settings, Shield, FolderArchive, HelpCircle, Trash2, RotateCcw, MonitorSmartphone, Bell, Users, Globe, ExternalLink, Plus, Paintbrush, Sun, Moon } from 'lucide-react';
 import { supabase } from '@/app/lib/supabase/client';
 
 export default function AdminSettings() {
@@ -16,6 +16,7 @@ export default function AdminSettings() {
   const [newPortalName, setNewPortalName] = useState('');
   const [newPortalUrl, setNewPortalUrl] = useState('');
   const [newPortalIconUrl, setNewPortalIconUrl] = useState('');
+  const [currentTheme, setCurrentTheme] = useState('light');
 
   // General System Settings
   const [allowRegistration, setAllowRegistration] = useState(true);
@@ -28,6 +29,9 @@ export default function AdminSettings() {
       if (stored) {
         setCustomPortals(JSON.parse(stored));
       }
+      
+      const theme = localStorage.getItem('theme') || 'light';
+      setCurrentTheme(theme);
       
       const reg = localStorage.getItem('sys_allow_registration');
       if (reg) setAllowRegistration(reg === '1');
@@ -292,6 +296,51 @@ export default function AdminSettings() {
                   <h2 className="text-lg font-bold flex items-center gap-2 mb-6"><Globe size={20} className="text-amber-500" /> Platform Preferences</h2>
                   
                   <div className="space-y-6">
+                    {/* Theme Mode Expansion Setting */}
+                    <div className="mb-6 p-5 rounded-2xl border border-border/80 bg-muted/10">
+                      <h3 className="font-bold flex items-center gap-2 mb-2 text-sm"><Paintbrush size={16} className="text-amber-500" /> Platform Theme Mode</h3>
+                      <p className="text-xs text-muted-foreground mb-4">Select a system appearance preset. This updates dashboard headers, widgets, client management panels, and forms immediately.</p>
+                      
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        {[
+                          { id: 'light', name: 'Light Slate', bg: 'bg-[#F6F7FB]', text: 'text-slate-800', border: 'border-slate-300', dot: 'bg-[#F4C542]' },
+                          { id: 'dark', name: 'Charcoal Dark', bg: 'bg-[#0F1117]', text: 'text-slate-200', border: 'border-slate-800', dot: 'bg-[#F4C542]' },
+                          { id: 'midnight', name: 'Midnight Blue', bg: 'bg-[#070913]', text: 'text-[#F1F5F9]', border: 'border-[#3B82F6]/30', dot: 'bg-[#3B82F6]' },
+                          { id: 'forest', name: 'Forest Green', bg: 'bg-[#09110E]', text: 'text-[#ECFDF5]', border: 'border-[#10B981]/30', dot: 'bg-[#10B981]' },
+                          { id: 'sunset', name: 'Sunset Warm', bg: 'bg-[#120B09]', text: 'text-[#FFF7ED]', border: 'border-[#F97316]/30', dot: 'bg-[#F97316]' },
+                          { id: 'slate', name: 'Slate Steel', bg: 'bg-[#0F172A]', text: 'text-[#F8FAFC]', border: 'border-[#38BDF8]/30', dot: 'bg-[#38BDF8]' }
+                        ].map((t) => (
+                          <button
+                            key={t.id}
+                            onClick={() => {
+                              setCurrentTheme(t.id);
+                              localStorage.setItem('theme', t.id);
+                              document.documentElement.setAttribute('data-theme', t.id);
+                              const isDark = ["dark", "midnight", "forest", "sunset", "slate"].includes(t.id);
+                              if (isDark) {
+                                document.documentElement.classList.add('dark');
+                              } else {
+                                document.documentElement.classList.remove('dark');
+                              }
+                              window.dispatchEvent(new CustomEvent('theme-change', { detail: { theme: t.id } }));
+                            }}
+                            className={`flex flex-col items-center justify-between p-3 rounded-xl border-2 text-center transition-all cursor-pointer hover:scale-[1.02] hover:shadow-sm ${
+                              currentTheme === t.id ? 'border-amber-500 bg-amber-500/5' : 'border-border bg-card'
+                            }`}
+                          >
+                            <div className={`w-full h-8 rounded-lg ${t.bg} border ${t.border} flex items-center justify-center mb-2.5 relative overflow-hidden`}>
+                              <div className="absolute top-1.5 left-1.5 flex gap-1 items-center">
+                                <span className={`w-1.5 h-1.5 rounded-full ${t.dot}`} />
+                                <span className="text-[6px] font-bold font-mono opacity-80" style={{ color: 'var(--text-secondary)' }}>Aa</span>
+                              </div>
+                              <div className="w-4/5 h-1 bg-border/50 absolute bottom-2 rounded-sm" />
+                              <div className="w-1/2 h-1 bg-border/30 absolute bottom-1 rounded-sm" />
+                            </div>
+                            <span className="text-xs font-bold text-foreground">{t.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                     <div className="flex items-center justify-between p-4 rounded-xl" style={{ backgroundColor: 'var(--surface-2)', border: '1px solid var(--border)' }}>
                       <div>
                         <h3 className="font-bold flex items-center gap-2"><Users size={16} /> Allow User Registration</h3>

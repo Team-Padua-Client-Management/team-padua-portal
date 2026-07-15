@@ -13,8 +13,8 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { Search, Plus, MoreVertical, Megaphone, CheckCircle, Clock, Trash2, Edit3, Pin, Archive, HelpCircle } from 'lucide-react';
-import Header from "@/app/components/admin/AdminHeader/page";
-import Sidebar from "@/app/components/admin/AdminSidebar/page";
+import Header from "@/app/components/admin/AdminHeader";
+import Sidebar from "@/app/components/admin/AdminSidebar";
 import { supabase } from "@/app/lib/supabase/client";
 import GoogleMapsPicker from '@/components/shared/GoogleMapsPicker';
 import AttachmentUpload, { AttachedFile } from '@/components/shared/AttachmentUpload';

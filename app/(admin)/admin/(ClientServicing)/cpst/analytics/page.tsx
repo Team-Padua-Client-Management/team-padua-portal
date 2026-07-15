@@ -30,8 +30,8 @@ import {
   TrendingUp, Activity, Info,
   ArrowDown, ArrowUp, List
 } from 'lucide-react';
-import Header from "@/app/components/admin/AdminHeader/page";
-import Sidebar from "@/app/components/admin/AdminSidebar/page";
+import Header from "@/app/components/admin/AdminHeader";
+import Sidebar from "@/app/components/admin/AdminSidebar";
 
 interface Client {
   id: string;
@@ -215,7 +215,7 @@ const getCalendarDaysGrid = () => {
               bgClass = 'bg-yellow-100/60 dark:bg-yellow-900/20 text-[#A97800] dark:text-[#F4C542] font-bold hover:bg-yellow-200/60 dark:hover:bg-yellow-900/40';
             }
             if (isToday) {
-              bgClass = 'bg-[#F4C542] dark:bg-[#A97800] text-white font-bold shadow-xs';
+              bgClass = 'bg-primary dark:bg-[#A97800] text-white font-bold shadow-xs';
             }
 
             return (
@@ -259,7 +259,7 @@ const getCalendarDaysGrid = () => {
         {[
           { l: 'Today', v: tdyCount, c: 'text-red-600 dark:text-red-400 bg-red-50/50 dark:bg-red-950/10 border-red-200 dark:border-red-950/40' },
           { l: 'Tmrw', v: tmrwCount, c: 'text-amber-600 dark:text-amber-400 bg-amber-50/50 dark:bg-amber-950/10 border-amber-200 dark:border-amber-950/40' },
-          { l: '7 Days', v: weekCount, c: 'text-yellow-600 dark:text-yellow-400 bg-yellow-50/50 dark:bg-yellow-950/10 border-[#F4C542]/30 dark:border-yellow-950/40' },
+          { l: '7 Days', v: weekCount, c: 'text-yellow-600 dark:text-yellow-400 bg-yellow-50/50 dark:bg-yellow-950/10 border-primary/30 dark:border-yellow-950/40' },
           { l: 'Month', v: mthCount, c: 'text-purple-600 dark:text-purple-400 bg-purple-50/50 dark:bg-purple-950/10 border-purple-200 dark:border-purple-950/40' }
         ].map((item, i) => (
           <div key={i} className={`${styles.div_142} ${item.c}`}>
@@ -541,7 +541,7 @@ const getMostCommonAge = (arr: number[]) => {
                   return (
                     <div
                       key={i}
-                      className={`${styles.card_143} ${card.isYellowBorder ? 'border-[#F4C542]/40 ring-1 ring-[#F4C542]/10' : 'border-border'
+                      className={`${styles.card_143} ${card.isYellowBorder ? 'border-primary/40 ring-1 ring-[#F4C542]/10' : 'border-border'
                         }`}
                     >
                       <div className={styles.table_57}>
@@ -641,7 +641,7 @@ const getMostCommonAge = (arr: number[]) => {
                   <div className={styles.div_92}>
                     {[
                       { label: 'SERVICED', count: servicedTotal, color: 'bg-green-500 dark:bg-green-600' },
-                      { label: 'LEAD', count: leadTotal, color: 'bg-[#F4C542]' },
+                      { label: 'LEAD', count: leadTotal, color: 'bg-primary' },
                       { label: 'PROSPECT', count: prospectTotal, color: 'bg-blue-500 dark:bg-blue-600' }
                     ].map((statusRow, i) => {
                       const barWidth = maxStatusCount > 0 ? (statusRow.count / maxStatusCount) * 100 : 0;

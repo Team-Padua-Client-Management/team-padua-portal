@@ -23,8 +23,8 @@ import styles from "@/styles/admin/faq/page.module.css";
 // ======================================================
 import React, { useState, useMemo, useEffect } from 'react';
 import { Search, Plus, MoreVertical, HelpCircle } from 'lucide-react';
-import Header from "@/app/components/admin/AdminHeader/page";
-import Sidebar from "@/app/components/admin/AdminSidebar/page";
+import Header from "@/app/components/admin/AdminHeader";
+import Sidebar from "@/app/components/admin/AdminSidebar";
 import { supabase } from "@/app/lib/supabase/client";
 
 interface FAQ {

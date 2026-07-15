@@ -52,8 +52,10 @@ const handleThemeChange = (e: any) => {
     };
   }, []);
 
+  const isDarkTheme = ["dark", "midnight", "forest", "sunset", "slate"].includes(theme);
+
   return (
-    <div className={theme === "dark" ? "dark" : ""}>
+    <div className={isDarkTheme ? "dark" : ""} data-theme={theme}>
       <div className={styles.text_0}>
         <AdminLayoutProvider>
           {children}

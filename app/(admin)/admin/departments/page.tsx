@@ -26,8 +26,8 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/app/lib/supabase/client";
 import { DEPARTMENTS } from "@/app/lib/departments";
-import Header from "@/app/components/admin/AdminHeader/page";
-import Sidebar from "@/app/components/admin/AdminSidebar/page";
+import Header from "@/app/components/admin/AdminHeader";
+import Sidebar from "@/app/components/admin/AdminSidebar";
 import { Building2, Users, ArrowRight } from "lucide-react";
 
 type MemberCount = Record<string, number>;

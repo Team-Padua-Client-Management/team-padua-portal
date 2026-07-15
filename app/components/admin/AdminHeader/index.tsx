@@ -59,6 +59,7 @@ export default function AdminHeader({ onMenuClick }: HeaderProps) {
 
   const [profileOpen, setProfileOpen] = useState(false);
   const [isDark, setIsDark] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [presenceStatus, setPresenceStatus] = useState<'online' | 'offline' | 'busy'>('online');
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
@@ -83,6 +84,10 @@ export default function AdminHeader({ onMenuClick }: HeaderProps) {
   };
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 10);
     };
@@ -93,9 +98,10 @@ export default function AdminHeader({ onMenuClick }: HeaderProps) {
   useEffect(() => {
     const theme = localStorage.getItem('theme') || 'light';
     setTimeout(() => {
-      setIsDark(theme === 'dark');
+      const isThemeDark = ["dark", "midnight", "forest", "sunset", "slate"].includes(theme);
+      setIsDark(isThemeDark);
       document.documentElement.setAttribute('data-theme', theme);
-      if (theme === 'dark') {
+      if (isThemeDark) {
         document.documentElement.classList.add('dark');
       } else {
         document.documentElement.classList.remove('dark');
@@ -167,12 +173,16 @@ export default function AdminHeader({ onMenuClick }: HeaderProps) {
   };
 
   const toggleTheme = () => {
-    const nextDark = !isDark;
-    const nextTheme = nextDark ? 'dark' : 'light';
-    setIsDark(nextDark);
+    const themes = ['light', 'dark', 'midnight', 'forest', 'sunset', 'slate'];
+    const current = localStorage.getItem('theme') || 'light';
+    const nextIndex = (themes.indexOf(current) + 1) % themes.length;
+    const nextTheme = themes[nextIndex];
+
+    const isNextDark = ["dark", "midnight", "forest", "sunset", "slate"].includes(nextTheme);
+    setIsDark(isNextDark);
     localStorage.setItem('theme', nextTheme);
     document.documentElement.setAttribute('data-theme', nextTheme);
-    if (nextDark) {
+    if (isNextDark) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
@@ -345,9 +355,11 @@ export default function AdminHeader({ onMenuClick }: HeaderProps) {
                 >
                   <div className={styles.dropdownItemLeft}>
                     {isDark ? <Sun size={14} className={styles.dropdownItemIcon} /> : <Moon size={14} className={styles.dropdownItemIcon} />}
-                    <span>{isDark ? 'Light Mode' : 'Dark Mode'}</span>
+                    <span>Cycle Theme</span>
                   </div>
-                  <span className={styles.themeValue}>{isDark ? 'Dark' : 'Light'}</span>
+                  <span className={styles.themeValue} style={{ textTransform: 'capitalize' }}>
+                    {mounted ? localStorage.getItem('theme') || 'light' : 'light'}
+                  </span>
                 </button>
                 <button
                   onClick={handleLogout}

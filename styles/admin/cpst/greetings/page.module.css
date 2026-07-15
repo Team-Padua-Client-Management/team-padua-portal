@@ -280,7 +280,7 @@
 }
 
 .input_64 {
-  @apply flex-1 flex items-center justify-center gap-1.5 border border-border bg-muted/20 hover:bg-muted text-xs font-bold px-4 py-2.5 rounded-lg transition cursor-pointer select-none h-10;
+  @apply flex-1 flex items-center justify-center gap-1.5 border border-border bg-muted/20 hover:bg-surface-2 text-xs font-bold px-4 py-2.5 rounded-lg transition cursor-pointer select-none h-10;
 }
 
 .text_65 {
@@ -404,7 +404,7 @@
 }
 
 .table_95 {
-  @apply hover:bg-muted/10 transition;
+  @apply hover:bg-surface-2/10 transition;
 }
 
 .text_96 {
@@ -496,7 +496,7 @@
 }
 
 .table_118 {
-  @apply w-6 h-6 flex items-center justify-center hover:bg-muted text-muted-foreground hover:text-foreground transition cursor-pointer rounded-md border border-border;
+  @apply w-6 h-6 flex items-center justify-center hover:bg-surface-2 text-muted-foreground hover:text-foreground transition cursor-pointer rounded-md border border-border;
 }
 
 .container_119 {

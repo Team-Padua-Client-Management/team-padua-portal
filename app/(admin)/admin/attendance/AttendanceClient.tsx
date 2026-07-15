@@ -26,8 +26,8 @@ import React, { useState, useMemo, useEffect } from "react";
 import { ChevronLeft, ChevronRight, Search, X, ChevronRight as ArrowRight } from "lucide-react";
 import { supabase } from "@/app/lib/supabase/client";
 import ProfileAvatar from "@/components/shared/ProfileAvatar";
-import Sidebar from "@/app/components/admin/AdminSidebar/page";
-import Header from "@/app/components/admin/AdminHeader/page";
+import Sidebar from "@/app/components/admin/AdminSidebar";
+import Header from "@/app/components/admin/AdminHeader";
 
 interface User {
   id: string;

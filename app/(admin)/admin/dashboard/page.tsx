@@ -5,11 +5,12 @@ import {
   Users, ClipboardList, CalendarCheck, CalendarDays,
   Building2, UsersRound, Megaphone, MessageSquare,
   CircleHelp, Paintbrush, RefreshCw, Loader2, ArrowUpRight, Wallet,
-  Settings
+  Settings, UserPlus, FileArchive, LayoutList, FileText, RefreshCcw,
+  CheckCircle, UserCheck
 } from 'lucide-react';
 import Link from 'next/link';
-import Header from "@/app/components/admin/AdminHeader/page";
-import Sidebar from "@/app/components/admin/AdminSidebar/page";
+import Header from "@/app/components/admin/AdminHeader";
+import Sidebar from "@/app/components/admin/AdminSidebar";
 import { supabase } from "@/app/lib/supabase/client";
 import styles from "@/styles/admin/dashboard/page.module.css";
 import WelcomeModal from "@/components/shared/WelcomeModal";
@@ -36,6 +37,36 @@ export default function DashboardOverviewPage() {
   const [adminName, setAdminName] = useState('Administrator');
   const [greeting, setGreeting] = useState('Good Morning');
   const [customPortals, setCustomPortals] = useState<any[]>([]);
+
+  const metrics = [
+    { id: "MEMBERS", title: "MEMBERS", linkText: "MANAGE", href: "/admin/members", icon: Users },
+    { id: "CPST", title: "CPST", linkText: "PROSPECTS", href: "/admin/cpst", icon: UserPlus },
+    { id: "ACR", title: "ACR", linkText: "SECTOR", href: "/admin/acr", icon: FileArchive },
+    { id: "CPC", title: "CPC", linkText: "SECTOR", href: "/admin/cpc", icon: Users },
+    { id: "FST", title: "FST", linkText: "SECTOR", href: "/admin/fst", icon: LayoutList },
+    { id: "MNGT", title: "MNGT", linkText: "SECTOR", href: "/admin/mngt", icon: LayoutList },
+    { id: "PPU", title: "PPU", linkText: "SECTOR", href: "/admin/ppu", icon: FileText },
+    { id: "BCR", title: "BCR", linkText: "SECTOR", href: "/admin/bcr", icon: FileText },
+    { id: "FUND_SWITCHING", title: "FUND SWITCHING", linkText: "SECTOR", href: "/admin/fund-switching", icon: RefreshCcw },
+    { id: "FUND_WITHDRAWAL", title: "FUND WITHDRAWAL", linkText: "SECTOR", href: "/admin/fund-withdrawal", icon: Wallet },
+    { id: "ACA", title: "ACA", linkText: "SECTOR", href: "/admin/aca", icon: CheckCircle },
+    { id: "REINSTATEMENT_SRO", title: "REINSTATEMENT SRO", linkText: "SECTOR", href: "/admin/reinstatement-sro", icon: RefreshCcw },
+    { id: "REINSTATEMENT_PDI", title: "REINSTATEMENT PDI", linkText: "SECTOR", href: "/admin/reinstatement-pdi", icon: RefreshCcw },
+    { id: "CSMV", title: "CSMV", linkText: "SECTOR", href: "/admin/csmv", icon: UserCheck }
+  ];
+
+  const getMetricCount = (id: string) => {
+    switch (id) {
+      case 'MEMBERS': return kpis.members;
+      case 'CPST': return kpis.cpst;
+      case 'ACR': return kpis.acr;
+      case 'CPC': return kpis.cpc;
+      case 'FST': return kpis.fst;
+      case 'MNGT': return kpis.mngt;
+      case 'PPU': return kpis.ppu;
+      default: return 0;
+    }
+  };
 
   useEffect(() => {
     try {
@@ -565,84 +596,23 @@ export default function DashboardOverviewPage() {
               <p className={styles.text_44}>Live database statistics counters across workspace sectors and links to manage</p>
             </div>
             <div className={styles.container_45}>
-              <Link href="/admin/members" className={`${styles.card_46} group`}>
-                <div className={styles.text_47}>
-                  <span className={styles.table_48}>Members</span>
-                  <Users size={14} className={`${styles.table_49} group`} />
-                </div>
-                <div className={styles.container_50}>
-                  <h3 className={styles.table_51}>{kpis.members}</h3>
-                  <span className={styles.text_52}>Manage <ArrowUpRight size={10} /></span>
-                </div>
-              </Link>
-
-              <Link href="/admin/cpst" className={`${styles.card_53} group`}>
-                <div className={styles.text_54}>
-                  <span className={styles.table_55}>CPST</span>
-                  <ClipboardList size={14} className={`${styles.table_56} group`} />
-                </div>
-                <div className={styles.container_57}>
-                  <h3 className={styles.table_58}>{kpis.cpst}</h3>
-                  <span className={styles.text_59}>Prospects <ArrowUpRight size={10} /></span>
-                </div>
-              </Link>
-
-              <Link href="/admin/acr" className={`${styles.card_67} group`}>
-                <div className={styles.text_68}>
-                  <span className={styles.table_69}>ACR</span>
-                  <Building2 size={14} className={`${styles.table_70} group`} />
-                </div>
-                <div className={styles.container_71}>
-                  <h3 className={styles.table_72}>{kpis.acr}</h3>
-                  <span className={styles.text_73}>Sector <ArrowUpRight size={10} /></span>
-                </div>
-              </Link>
-
-              <Link href="/admin/cpc" className={`${styles.card_46} group`}>
-                <div className={styles.text_47}>
-                  <span className={styles.table_48}>CPC</span>
-                  <UsersRound size={14} className={`${styles.table_49} group`} />
-                </div>
-                <div className={styles.container_50}>
-                  <h3 className={styles.table_51}>{kpis.cpc}</h3>
-                  <span className={styles.text_52}>Sector <ArrowUpRight size={10} /></span>
-                </div>
-              </Link>
-
-              <Link href="/admin/fst" className={`${styles.card_53} group`}>
-                <div className={styles.text_54}>
-                  <span className={styles.table_55}>FST</span>
-                  <CalendarDays size={14} className={`${styles.table_56} group`} />
-                </div>
-                <div className={styles.container_57}>
-                  <h3 className={styles.table_58}>{kpis.fst}</h3>
-                  <span className={styles.text_59}>Sector <ArrowUpRight size={10} /></span>
-                </div>
-              </Link>
-
-              <Link href="/admin/mngt" className={`${styles.card_67} group`}>
-                <div className={styles.text_68}>
-                  <span className={styles.table_69}>MNGT</span>
-                  <MessageSquare size={14} className={`${styles.table_70} group`} />
-                </div>
-                <div className={styles.container_71}>
-                  <h3 className={styles.table_72}>{kpis.mngt}</h3>
-                  <span className={styles.text_73}>Sector <ArrowUpRight size={10} /></span>
-                </div>
-              </Link>
-
-              <Link href="/admin/ppu" className={`${styles.card_46} group`}>
-                <div className={styles.text_47}>
-                  <span className={styles.table_48}>PPU</span>
-                  <Wallet size={14} className={`${styles.table_49} group`} />
-                </div>
-                <div className={styles.container_50}>
-                  <h3 className={styles.table_51}>{kpis.ppu}</h3>
-                  <span className={styles.text_52}>Sector <ArrowUpRight size={10} /></span>
-                </div>
-              </Link>
-
-
+              {metrics.map((metric) => {
+                const Icon = metric.icon;
+                return (
+                  <Link key={metric.id} href={metric.href} className={`${styles.card_46} group`}>
+                    <div className={styles.text_47}>
+                      <span className={styles.table_48}>{metric.title}</span>
+                      <Icon size={14} className="group-hover:text-primary transition-colors" />
+                    </div>
+                    <div className={styles.container_50}>
+                      <h3 className={styles.table_51}>{getMetricCount(metric.id)}</h3>
+                      <span className={styles.text_52}>
+                        {metric.linkText} <ArrowUpRight size={10} />
+                      </span>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           </div>
 

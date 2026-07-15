@@ -312,7 +312,7 @@
 }
 
 .table_72 {
-  @apply h-4 w-full bg-muted/10 rounded-full overflow-hidden relative group-hover:bg-muted/20 transition-colors;
+  @apply h-4 w-full bg-muted/10 rounded-full overflow-hidden relative group-hover:bg-surface-2/20 transition-colors;
 }
 
 .table_73 {
@@ -536,7 +536,7 @@
 }
 
 .table_128 {
-  @apply hover:bg-muted/5 transition-colors;
+  @apply hover:bg-surface-2/5 transition-colors;
 }
 
 .text_129 {

@@ -17,7 +17,7 @@ import styles from "@/styles/admin/members/AdminMembersTable/AdminMembersTable.m
 import { X } from "lucide-react";
 import ProfileAvatar from "@/components/shared/ProfileAvatar";
 
-export type ClientServicingModule = "cpst" | "acr" | "fst" | "cpc" | "ppu" | "mngt";
+export type ClientServicingModule = "cpst" | "acr" | "fst" | "cpc" | "ppu" | "mngt" | "csmv" | "bcr" | "aca" | "sro" | "pdi";
 
 export interface ModulePermissions {
   view: boolean;
@@ -44,6 +44,11 @@ export const defaultClientServicingPermissions: ClientServicingPermissions = {
   cpc: { ...defaultModulePermissions },
   ppu: { ...defaultModulePermissions },
   mngt: { ...defaultModulePermissions },
+  csmv: { ...defaultModulePermissions },
+  bcr: { ...defaultModulePermissions },
+  aca: { ...defaultModulePermissions },
+  sro: { ...defaultModulePermissions },
+  pdi: { ...defaultModulePermissions },
 };
 
 export interface User {
@@ -364,14 +369,17 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
 
       {/* Modal Section */}
       {isModalOpen && selectedUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-card border border-border w-full max-w-3xl rounded-2xl shadow-xl overflow-hidden">
-            <div className="flex justify-between items-center p-4 border-b border-border bg-muted/30">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-[#121318] border border-slate-200 dark:border-zinc-800/80 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150">
+            <div className="flex justify-between items-center p-6 border-b border-slate-100 dark:border-zinc-800/80 bg-slate-50/50 dark:bg-zinc-900/30">
               <div>
-                <h3 className="font-semibold text-foreground">Client Servicing Access Manager</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">{selectedUser.name}</p>
+                <h3 className="text-base font-bold text-slate-800 dark:text-zinc-100">Client Servicing Access Manager</h3>
+                <p className="text-xs text-slate-500 dark:text-zinc-400 font-medium mt-0.5">{selectedUser.name}</p>
               </div>
-              <button onClick={closeModal} className="text-muted-foreground hover:text-foreground p-1 transition-colors">
+              <button 
+                onClick={closeModal} 
+                className="text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 p-1.5 hover:bg-slate-100 dark:hover:bg-zinc-850 rounded-xl transition-all"
+              >
                 <X size={18} />
               </button>
             </div>
@@ -379,16 +387,16 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
             <div className="p-0 overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-muted/30 border-b border-border">
-                    <th className="p-3 text-xs font-semibold text-muted-foreground">Module</th>
-                    <th className="p-3 text-xs font-semibold text-muted-foreground text-center">View</th>
-                    <th className="p-3 text-xs font-semibold text-muted-foreground text-center">Create</th>
-                    <th className="p-3 text-xs font-semibold text-muted-foreground text-center">Edit</th>
-                    <th className="p-3 text-xs font-semibold text-muted-foreground text-center">Delete</th>
-                    <th className="p-3 text-xs font-semibold text-muted-foreground text-center">Export</th>
+                  <tr className="bg-slate-50/75 dark:bg-zinc-900/40 border-b border-slate-100 dark:border-zinc-800/80">
+                    <th className="py-3 px-5 text-[10px] font-bold text-slate-500 dark:text-zinc-400 tracking-wider uppercase">Module</th>
+                    <th className="py-3 px-4 text-[10px] font-bold text-slate-500 dark:text-zinc-400 tracking-wider uppercase text-center">View</th>
+                    <th className="py-3 px-4 text-[10px] font-bold text-slate-500 dark:text-zinc-400 tracking-wider uppercase text-center">Create</th>
+                    <th className="py-3 px-4 text-[10px] font-bold text-slate-500 dark:text-zinc-400 tracking-wider uppercase text-center">Edit</th>
+                    <th className="py-3 px-4 text-[10px] font-bold text-slate-500 dark:text-zinc-400 tracking-wider uppercase text-center">Delete</th>
+                    <th className="py-3 px-4 text-[10px] font-bold text-slate-500 dark:text-zinc-400 tracking-wider uppercase text-center">Export</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border">
+                <tbody className="divide-y divide-slate-100 dark:divide-zinc-800/80">
                   {[
                     { id: "cpst" as ClientServicingModule, label: "CPST" },
                     { id: "acr" as ClientServicingModule, label: "ACR" },
@@ -397,14 +405,14 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
                     { id: "ppu" as ClientServicingModule, label: "PPU" },
                     { id: "mngt" as ClientServicingModule, label: "MNGT" },
                   ].map(module => (
-                    <tr key={module.id} className="hover:bg-muted/10 transition-colors">
-                      <td className="p-3 text-sm font-semibold text-foreground border-r border-border">{module.label}</td>
+                    <tr key={module.id} className="hover:bg-slate-50/30 dark:hover:bg-zinc-900/20 transition-all duration-150">
+                      <td className="py-3.5 px-5 text-xs font-bold text-slate-700 dark:text-zinc-300">{module.label}</td>
                       {["view", "create", "edit", "delete", "export"].map((action) => (
-                        <td key={action} className="p-3 text-center border-r border-border last:border-0">
+                        <td key={action} className="py-3.5 px-4 text-center">
                           <label className="cursor-pointer flex items-center justify-center w-full h-full">
                             <input
                               type="checkbox"
-                              className="w-4 h-4 rounded border-border text-[#F4C542] focus:ring-[#F4C542]"
+                              className="w-4 h-4 rounded border-slate-300 dark:border-zinc-700 text-[#F4C542] focus:ring-[#F4C542] focus:ring-offset-0 bg-white dark:bg-zinc-800 transition cursor-pointer"
                               checked={tempPermissions[module.id][action as keyof ModulePermissions]}
                               onChange={() => togglePermission(module.id, action as keyof ModulePermissions)}
                             />
@@ -417,16 +425,16 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
               </table>
             </div>
 
-            <div className="flex items-center justify-end gap-3 p-4 border-t border-border bg-muted/30">
+            <div className="flex items-center justify-end gap-3 p-5 border-t border-slate-100 dark:border-zinc-800/80 bg-slate-50/50 dark:bg-zinc-900/30">
               <button
                 onClick={closeModal}
-                className="px-4 py-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                className="px-4.5 py-2 text-xs font-semibold text-slate-500 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-800/60 rounded-xl transition-all"
               >
                 Cancel
               </button>
               <button
                 onClick={savePermissions}
-                className="px-4 py-2 text-sm font-bold bg-[#F4C542] text-black rounded-lg shadow hover:bg-[#d9af39] transition-colors"
+                className="px-5 py-2 text-xs font-bold bg-[#F4C542] text-black rounded-xl shadow-sm hover:shadow hover:bg-[#d9af39] transition-all hover:-translate-y-0.5"
               >
                 Save Changes
               </button>

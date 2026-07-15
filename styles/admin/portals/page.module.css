@@ -1,7 +1,7 @@
 @reference "../../globals/globals.css";
 
 .page {
-  @apply flex min-h-screen bg-[#F6F7FB] dark:bg-[#0F1117] text-text font-sans antialiased;
+  @apply flex min-h-screen bg-background text-text font-sans antialiased;
 }
 
 .content {
@@ -144,7 +144,7 @@
 }
 
 .resourceCard {
-  @apply relative flex flex-col bg-[#11131C] dark:bg-[#0A0C10] border overflow-hidden cursor-pointer select-none;
+  @apply relative flex flex-col bg-card border overflow-hidden cursor-pointer select-none;
   border-radius: 20px;
   border-color: rgba(255, 255, 255, 0.08);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
@@ -209,7 +209,7 @@
 
 /* Dropdown Menu Style */
 .menuDropdown {
-  @apply absolute top-10 right-0 w-40 bg-[#161821] border border-white/10 rounded-xl shadow-2xl py-1.5 z-20 flex flex-col gap-0.5;
+  @apply absolute top-10 right-0 w-40 bg-card border border-white/10 rounded-xl shadow-2xl py-1.5 z-20 flex flex-col gap-0.5;
   animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   backdrop-filter: blur(12px);
 }

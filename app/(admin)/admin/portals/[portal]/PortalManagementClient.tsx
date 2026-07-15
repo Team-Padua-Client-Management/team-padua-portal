@@ -8,8 +8,8 @@ import {
   MoreVertical
 } from 'lucide-react';
 import Link from 'next/link';
-import Sidebar from '@/app/components/admin/AdminSidebar/page';
-import Header from '@/app/components/admin/AdminHeader/page';
+import Sidebar from '@/app/components/admin/AdminSidebar';
+import Header from '@/app/components/admin/AdminHeader';
 import styles from '@/styles/admin/portals/page.module.css';
 import { supabase } from '@/app/lib/supabase/client';
 

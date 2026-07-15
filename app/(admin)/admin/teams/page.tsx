@@ -24,8 +24,8 @@ import styles from "@/styles/admin/teams/page.module.css";
 // ======================================================
 import React, { useState, useEffect, useMemo } from 'react';
 import { Search, Plus, MoreVertical, Loader2 } from 'lucide-react';
-import Header from "@/app/components/admin/AdminHeader/page";
-import Sidebar from "@/app/components/admin/AdminSidebar/page";
+import Header from "@/app/components/admin/AdminHeader";
+import Sidebar from "@/app/components/admin/AdminSidebar";
 import { supabase } from '@/app/lib/supabase/client';
 
 interface Team {
