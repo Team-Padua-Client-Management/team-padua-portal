@@ -1,8 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Header from '@/app/components/admin/AdminHeader/page';
-import Sidebar from '@/app/components/user/UserSidebar/page';
 import { Settings, Eye, Moon, LayoutGrid, Save, CheckCircle } from 'lucide-react';
 import { supabase } from '@/app/lib/supabase/client';
 
@@ -16,7 +14,7 @@ export default function UserSettings() {
     defaultModule: 'dashboard',
     showArchivedCS: false
   });
-  
+
   const [saved, setSaved] = useState(false);
   const [customPortals, setCustomPortals] = useState<any[]>([]);
   const [newPortalName, setNewPortalName] = useState('');
@@ -80,7 +78,7 @@ export default function UserSettings() {
   const handleSave = async () => {
     localStorage.setItem('user_preferences', JSON.stringify(preferences));
     localStorage.setItem('show_archived_cs', String(preferences.showArchivedCS));
-    
+
     if (userId) {
       await supabase.from('profiles').update({ full_name: profileName }).eq('id', userId);
       // Dispatch profile update event to live-reload header/display names
@@ -93,7 +91,6 @@ export default function UserSettings() {
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--background)', color: 'var(--text)' }}>
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         {/* Header - We can render a basic mobile toggle or use Header */}
@@ -239,7 +236,7 @@ export default function UserSettings() {
               <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0 }}>
                 Create quick-access shortcuts to primary service domains and external tools.
               </p>
-              
+
               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <input
                   type="text"

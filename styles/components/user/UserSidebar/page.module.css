@@ -113,7 +113,7 @@
 
 .mobileCloseBtn {
   @apply flex h-8 w-8 items-center justify-center rounded-md border border-transparent transition-colors;
-  color: #374151;
+  color: var(--text-secondary);
 }
 
 .mobileCloseBtn:hover {
@@ -123,12 +123,13 @@
 }
 
 .sidebarTitle {
-  @apply text-base font-serif font-bold text-[#111827] tracking-tight whitespace-nowrap;
+  @apply text-base font-serif font-bold tracking-tight whitespace-nowrap;
+  color: var(--text);
 }
 
 .sidebarSubtitle {
   @apply text-[9px] uppercase font-bold tracking-wider font-mono mt-0.5 whitespace-nowrap;
-  color: #5F6368;
+  color: var(--text-secondary);
 }
 
 .mobileCloseBtn {
@@ -254,13 +255,13 @@
 
 .navItemInactive {
   background-color: transparent;
-  color: #374151;
+  color: var(--text-secondary);
   border-left: 3px solid transparent;
 }
 
 .navItemInactive:hover {
-  background-color: #FFF9E8;
-  color: #000000;
+  background-color: var(--surface-2);
+  color: var(--text);
   border-left: 3px solid transparent;
 }
 
@@ -270,9 +271,9 @@
 }
 
 .navItemActive {
-  background-color: #FFF4CC !important;
-  color: #111827 !important;
-  border-left: 3px solid #F4C542 !important;
+  background-color: var(--surface-2) !important;
+  color: var(--text) !important;
+  border-left: 3px solid var(--primary) !important;
   font-weight: 600 !important;
 }
 
@@ -289,18 +290,18 @@
 
 /* Sub-items dropdown links Active/Inactive/Hover */
 .navSubInactive {
-  color: #374151;
+  color: var(--text-secondary);
   background-color: transparent;
 }
 
 .navSubInactive:hover {
-  background-color: #FFF9E8;
-  color: #000000;
+  background-color: var(--surface-2);
+  color: var(--text);
 }
 
 .navSubActive {
-  background-color: #FFF4CC !important;
-  color: #111827 !important;
+  background-color: var(--surface-2) !important;
+  color: var(--text) !important;
   font-weight: 600 !important;
 }
 
@@ -315,7 +316,7 @@
 }
 
 .navItemCollapsed:hover {
-  background-color: #FFF9E8;
+  background-color: var(--surface-2);
 }
 
 .collapsedSidebar {

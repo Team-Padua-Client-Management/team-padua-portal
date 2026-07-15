@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import styles from "@/styles/user/dashboard/personal/page.module.css";
 import WelcomeModal from "@/components/shared/WelcomeModal";
+import WelcomeHero from "@/components/shared/WelcomeHero";
 
 function getGreeting(): { text: string; icon: React.ReactNode } {
   const h = new Date().getHours();
@@ -188,35 +189,7 @@ export default function DashboardPage() {
 
       <div className={styles.mainWrapper}>
         <div className={styles.mainContent}>
-          {/* Hero Section */}
-          <div className={styles.heroGlassCard}>
-            <div className={styles.heroGlow} />
-
-            <div className={styles.heroLeft}>
-              <div className={styles.greetingBadge}>
-                {greeting.icon} {greeting.text}
-              </div>
-              <h1 className={styles.welcomeText}>
-                Welcome, <span className={styles.usernameHighlight}>{userName}</span>
-              </h1>
-              <div className={styles.memberBadge}>Member</div>
-            </div>
-
-            <div className={styles.heroRight}>
-              <div className={styles.dateDisplay}>{phDate}</div>
-              <div className={styles.verticalDivider} />
-              <div className={styles.timeDisplay}>
-                <span className={styles.timeText}>{phTime || "00:00:00 AM"}</span>
-              </div>
-              <button
-                onClick={handleRefresh}
-                className={styles.refreshButton}
-                title="Refresh Dashboard"
-              >
-                <RefreshCw size={16} className={isRefreshing ? styles.spinIcon : ""} />
-              </button>
-            </div>
-          </div>
+          <WelcomeHero userName={userName} role={userRole} />
 
           {/* External Portals */}
           <div>

@@ -11,9 +11,7 @@ import styles from '@/styles/components/calendar/CalendarContent.module.css';
 
 type ViewMode = 'Month' | 'Week' | 'Day' | 'Agenda' | 'Gallery' | 'Timeline' | 'Year' | 'Quarter';
 
-type Category =
-  | 'Meeting' | 'Meeting' | 'Birthday' | 'Client' | 'Deadline' | 'Holiday'
-  | 'Interview' | 'Task' | 'Attendance' | 'ACR';
+type Category = string;
 
 interface CalendarEvent {
   id: string;
@@ -28,8 +26,26 @@ interface CalendarEvent {
   module_source?: 'manual' | 'tasks' | 'attendance' | 'cpst' | 'acr' | 'birthdays';
 }
 
-const CATEGORIES: Category[] = [
-  'Meeting', 'Birthday', 'Client', 'Deadline', 'Holiday', 'Interview', 'Task', 'Attendance', 'ACR'
+const DEFAULT_CATEGORIES: Category[] = [
+  "Client Meeting",
+  "Client Follow-up",
+  "Client Call",
+  "Financial Consultation",
+  "Policy Review",
+  "Premium Reminder",
+  "Document Processing",
+  "Policy Delivery",
+  "Birthday Greeting",
+  "Welcome Call",
+  "Team Meeting",
+  "Training",
+  "Business Development",
+  "Administrative Task",
+  "Task",
+  "Reminder",
+  "Leave",
+  "Holiday",
+  "Other"
 ];
 
 const VIEW_MODES: ViewMode[] = ['Month', 'Week', 'Day', 'Agenda', 'Gallery', 'Timeline', 'Year', 'Quarter'];
@@ -41,18 +57,16 @@ const WEEKDAY_LABELS_LONG = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const HOURS = Array.from({ length: 15 }, (_, i) => i + 6);
 
 const catClass = (cat: Category) => {
-  switch (cat) {
-    case 'Meeting': return styles.catMeeting;
-    case 'Birthday': return styles.catBirthday;
-    case 'Client': return styles.catClient;
-    case 'Deadline': return styles.catDeadline;
-    case 'Holiday': return styles.catHoliday;
-    case 'Interview': return styles.catInterview;
-    case 'Task': return styles.catTask;
-    case 'Attendance': return styles.catAttendance;
-    case 'ACR': return styles.catAcr;
-    default: return '';
-  }
+  const c = (cat || '').toLowerCase();
+  if (c.includes('meeting') || c.includes('consultation')) return styles.catMeeting;
+  if (c.includes('birthday') || c.includes('greeting')) return styles.catBirthday;
+  if (c.includes('client') || c.includes('call')) return styles.catClient;
+  if (c.includes('deadline') || c.includes('reminder')) return styles.catDeadline;
+  if (c.includes('holiday') || c.includes('leave')) return styles.catHoliday;
+  if (c.includes('interview') || c.includes('training')) return styles.catInterview;
+  if (c.includes('processing') || c.includes('delivery')) return styles.catAcr;
+  if (c.includes('task') || c.includes('admin')) return styles.catTask;
+  return styles.catMeeting; // fallback
 };
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -74,17 +88,21 @@ interface CalendarContentProps {
   subtitle: string;
 }
 
-export default function CalendarContent({ title, subtitle }: CalendarContentProps) {
+export default function CalendarContent({ title, subtitle }: CalendarContentProps): React.JSX.Element {
+  const isAdmin = typeof window !== 'undefined' && window.location.pathname.includes('/admin/');
   const [viewMode, setViewMode] = useState<ViewMode>('Month');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategories] = useState<Category[]>(CATEGORIES);
+  const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES);
+  const [showManageCategories, setShowManageCategories] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(DEFAULT_CATEGORIES);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newEvent, setNewEvent] = useState<Partial<CalendarEvent>>({
-    category: 'Meeting', start_time: '09:00', end_time: '10:00'
+    category: 'Client Meeting', start_time: '', end_time: ''
   });
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -95,10 +113,225 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebratedEvent, setCelebratedEvent] = useState<CalendarEvent | null>(null);
   const [isEditCelebration, setIsEditCelebration] = useState(false);
+  const [celebrationMessage, setCelebrationMessage] = useState('');
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteEventId, setDeleteEventId] = useState<string | null>(null);
+  const [generatingDesc, setGeneratingDesc] = useState(false);
 
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 3000);
+  };
+
+  const handleGenerateDescription = async () => {
+    const category = newEvent.category || 'Meeting';
+    setGeneratingDesc(true);
+    
+    const fallbacks: Record<Category, string[]> = {
+      Meeting: [
+        "Reviewing advisor performance metrics and coordinating regional recruitment pipelines.",
+        "Discussing auto-charge setups and policy switching requests for key clients.",
+        "Strategic sync on digital tools and mentorship program expansion plans.",
+        "Client case alignment and change request review with the coordinator.",
+        "Quarterly business review and planning for branch production goals."
+      ],
+      Birthday: [
+        "Prepare birthday greetings and coordinate welcome gifts for celebrates.",
+        "Send personalized card and policy anniversary note to the client.",
+        "Coordinate birthday client outreach log and greeting checkups.",
+        "Execute automated birthday SMS greetings scheduler check.",
+        "Deliver a warm birthday token and plan policy checkups."
+      ],
+      Client: [
+        "Aligning on portfolio allocations and policy card updates.",
+        "Processing beneficiary realignments and change request logs.",
+        "Conducting comprehensive policy review session for family coverage.",
+        "Onboarding new advisor reassignment request for active policies.",
+        "Drafting personalized advisory notes and financial growth plan review."
+      ],
+      Deadline: [
+        "Submit all advisor change request (ACR) documents to the unit office.",
+        "Verify premium updates and grace period logs before billing run.",
+        "Reinstatement validation and document upload final check.",
+        "Recruitment metrics reporting and intern cohort onboarding checklist.",
+        "Upload all signed switching forms to central database storage."
+      ],
+      Holiday: [
+        "Sun Life operational holiday - advisor servicing systems on auto-reply.",
+        "National non-working holiday. Emergency request routing active.",
+        "System maintenance window and database index verification.",
+        "Team rest day - client communications queued for next working day.",
+        "End of year holiday. Standard operations resume on next weekday."
+      ],
+      Interview: [
+        "Evaluate candidate for the Advisor Support Associate internship position.",
+        "Recruitment cohort screening and initial mentorship program sync.",
+        "Unit coordinator interview for prospective financial advisor leads.",
+        "Final interview panel for business support associate applicants.",
+        "Recruiting coordination call and screening feedback review."
+      ],
+      Task: [
+        "Onboarding new advisor credentials and system permissions.",
+        "Reconciling premium payments and updating grace period calendar logs.",
+        "Archiving signed change requests and document scan validation.",
+        "Generate monthly client engagement logs and activity report.",
+        "Verify auto-charge arrangements and upload confirmation files."
+      ],
+      Attendance: [
+        "Daily attendance log and operational sync meeting kickoff.",
+        "Weekly branch status sync and activity check-in.",
+        "Mentor-advisor coordination check and shift validation.",
+        "Quarterly internship attendance review and onboarding check.",
+        "Log hours and submit performance sheets for unit tracking."
+      ],
+      ACR: [
+        "Audit advisor change requests and update active assignees.",
+        "Verify reassignment consent documents and log system changes.",
+        "Sync realigned clients list with Sun Life portal system database.",
+        "Process pending advisor reassignment queues for client policy cards.",
+        "Prepare transition logs for realigned policyholders."
+      ]
+    };
+
+    const list = fallbacks[category] || fallbacks['Meeting'];
+    const randomFallback = list[Math.floor(Math.random() * list.length)];
+
+    try {
+      const prompt = `Generate a short, professional, friendly 1-sentence description for a calendar event under the category: "${category}". Keep it focused on client servicing, advisory workflow, or Sun Life operational context. Do not mention code, databases, or tech stacks.`;
+      
+      const res = await fetch('/api/chatbot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: [{ role: 'user', content: prompt }] })
+      });
+      
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      if (data.reply) {
+        setNewEvent(p => ({ ...p, description: data.reply.trim() }));
+      } else {
+        setNewEvent(p => ({ ...p, description: randomFallback }));
+      }
+    } catch {
+      setNewEvent(p => ({ ...p, description: randomFallback }));
+    } finally {
+      setGeneratingDesc(false);
+    }
+  };
+
+  const generateCelebrationMessage = async (category: Category, title: string) => {
+    const categorySuccessMessages: Record<Category, string[]> = {
+      Meeting: [
+        "Great sync session logged! Let's translate these notes into advisor production. 🤝",
+        "Meeting successfully scheduled. Productive team alignments are the key to BizDev success! 📈",
+        "Collaboration is power! Your team sync session is now on the master calendar. 🌟",
+        "Meeting logged! Operational excellence starts with clear scheduling. 📅",
+        "Strategy meeting booked. Ready to align our goals and support the advisory practice! 🚀"
+      ],
+      Birthday: [
+        "Happy birthday tracker logged! Time to celebrate our valued clients and team members. 🎂",
+        "Birthday added! Let's make their special day memorable with warm greetings and care. 🎈",
+        "Special day logged. Make sure to schedule client birthday outreach messages! 🎉",
+        "Birthday reminder saved. Connecting with clients on their special day builds lifelong trust! ❤️",
+        "Celebration logged! Prepare the greetings template and bring a smile to their day. 🎁"
+      ],
+      Client: [
+        "Client review logged! Helping our clients achieve financial security is our core mission. 💼",
+        "Advisory session scheduled. Client trust is built one meaningful conversation at a time. ✨",
+        "Portfolio sync logged. Delivering excellent financial support is what we do best! 💛",
+        "Client servicing log added. Keep up the high-touch servicing and strategic advice! 🎯",
+        "Client meeting successfully scheduled. Strong client relations lead to lifetime security. 🤝"
+      ],
+      Deadline: [
+        "Deadline tracker logged. Action fast and stay focused to get these filings finalized! ⚡",
+        "Deadline added. Staying ahead of schedule keeps our operations running smoothly! ⏰",
+        "Important milestone logged. Clear scheduling helps us execute advisor goals on time! 🏁",
+        "Operational deadline saved. Keep up the great pace to ensure zero processing friction. 📁",
+        "Filing deadline logged. Let's get the paperwork checked, approved, and submitted! 📝"
+      ],
+      Holiday: [
+        "Holiday logged! Time for a well-deserved rest and rejuvenation. Enjoy the break! 🌴",
+        "Operational break scheduled. Resting is just as important as working hard! ☕",
+        "Holiday marked. Hope everyone has a peaceful, relaxing, and pleasant day off! ☀️",
+        "Vacation day saved. Take some time to disconnect, unwind, and recharge! 🌊",
+        "Public holiday logged. Master calendar updated to reflect operational break hours. 🍂"
+      ],
+      Interview: [
+        "Interview scheduled! Let's welcome the next wave of talent to the internship cohort. 🎓",
+        "Intern screening logged. Nurturing future leaders starts with the very first chat! 💡",
+        "Recruiting call added. Finding the right talent drives Team Padua's operational success. 🔍",
+        "Coordinator interview saved. Let's make candidate onboarding smooth and inspiring! 🤝",
+        "Candidate talk logged. Looking forward to reviewing their skills and advisor sync fit. 👥"
+      ],
+      Task: [
+        "Task successfully added. Checking off items on our list keeps the office running like clockwork! ⚙️",
+        "Action item saved. Stay focused, work smart, and complete it with high quality! 🛠️",
+        "Productivity task logged. Every single checked item moves our business development goals forward! 🚀",
+        "Workspace task scheduled. Clear priorities lead to high-level business results! 📊",
+        "Task logged. Let's tackle it efficiently and keep up the high momentum! ⚡"
+      ],
+      Attendance: [
+        "Attendance sync scheduled. Thank you for maintaining operational check-in accountability! 🔑",
+        "Daily attendance slot logged. Synchronization keeps our support teams perfectly aligned. 👥",
+        "Log verified. Building operational transparency helps us support financial advisors best. 📊",
+        "Weekly check-in logged. High productivity is built on continuous team presence! 🏃",
+        "Shift slots added. Looking forward to a highly productive and collaborative schedule. 🗓️"
+      ],
+      ACR: [
+        "Advisor Change Request (ACR) logged. Ensuring smooth policy realignments maintains client confidence! 🔄",
+        "Advisor reassignment scheduled. Proper transition tracking guarantees zero client servicing gaps. 🛡️",
+        "ACR slot saved. Fast, organized realignments are a key part of operational support. 🗂️",
+        "Policy alignment log added. Client support remains steady during advisor realignments. 🤝",
+        "Reassignment log logged. Helping advisors transition files is critical for our BizDev workflow. 📂"
+      ]
+    };
+
+    const options = categorySuccessMessages[category] || categorySuccessMessages['Meeting'];
+    let successMessage = options[Math.floor(Math.random() * options.length)];
+    setCelebrationMessage(successMessage);
+
+    try {
+      const prompt = `Generate a short 1-sentence celebration or notification text for logging a calendar event. Category: "${category}", Title: "${title}". Make it professional, friendly, and highly category-specific (e.g. if category is Birthday, say Happy Birthday or celebrate the client). Do not include markdown or quotes. Keep it brief.`;
+      const res = await fetch('/api/chatbot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: [{ role: 'user', content: prompt }] })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.reply) setCelebrationMessage(data.reply.trim());
+      }
+    } catch {}
+  };
+
+  const handleAddCategory = (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    if (categories.includes(trimmed)) {
+      showToast('Category already exists.');
+      return;
+    }
+    const updated = [...categories, trimmed];
+    setCategories(updated);
+    setSelectedCategories(updated);
+    localStorage.setItem('tp_calendar_categories', JSON.stringify(updated));
+    setNewCategoryName('');
+    showToast('Category added.');
+  };
+
+  const handleDeleteCategory = (name: string) => {
+    if (categories.length <= 1) {
+      showToast('At least one category is required.');
+      return;
+    }
+    const updated = categories.filter(c => c !== name);
+    setCategories(updated);
+    setSelectedCategories(updated);
+    localStorage.setItem('tp_calendar_categories', JSON.stringify(updated));
+    if (newEvent.category === name) {
+      setNewEvent(p => ({ ...p, category: updated[0] }));
+    }
+    showToast('Category deleted.');
   };
 
   const fetchEvents = useCallback(async () => {
@@ -124,6 +357,19 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
   }, []);
 
   useEffect(() => { fetchEvents(); }, [fetchEvents]);
+
+  useEffect(() => {
+    const savedCats = localStorage.getItem('tp_calendar_categories');
+    if (savedCats) {
+      try {
+        const parsed = JSON.parse(savedCats);
+        setCategories(parsed);
+        setSelectedCategories(parsed);
+      } catch {}
+    } else {
+      localStorage.setItem('tp_calendar_categories', JSON.stringify(DEFAULT_CATEGORIES));
+    }
+  }, []);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -154,7 +400,7 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
 
   const openAddModal = (dateStr: string) => {
     setEditingId(null);
-    setNewEvent({ event_date: dateStr, category: 'Meeting', start_time: '09:00', end_time: '10:00' });
+    setNewEvent({ event_date: dateStr, category: 'Meeting', start_time: '', end_time: '' });
     setShowAddModal(true);
   };
 
@@ -179,8 +425,8 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
       description: newEvent.description || '',
       event_date: newEvent.event_date,
       end_date: newEvent.event_date,
-      start_time: newEvent.start_time || '00:00',
-      end_time: newEvent.end_time || '00:00',
+      start_time: newEvent.start_time || '',
+      end_time: newEvent.end_time || '',
       location_name: newEvent.location_name || '',
       category: newEvent.category || 'Meeting'
     };
@@ -214,6 +460,7 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
       if (updatedObj) {
         setCelebratedEvent(updatedObj);
         setIsEditCelebration(true);
+        generateCelebrationMessage(updatedObj.category, updatedObj.title);
         setShowCelebration(true);
       }
     } else {
@@ -245,6 +492,7 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
       if (createdObj) {
         setCelebratedEvent(createdObj);
         setIsEditCelebration(false);
+        generateCelebrationMessage(createdObj.category, createdObj.title);
         setShowCelebration(true);
       }
     }
@@ -252,8 +500,16 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
     setEditingId(null);
   };
 
-  const handleDeleteEvent = async (id: string) => {
-    if (!confirm('Discard this calendar event?')) return;
+  const handleDeleteEvent = (id: string) => {
+    setDeleteEventId(id);
+    setDeleteConfirmOpen(true);
+  };
+
+  const executeDeleteEvent = async () => {
+    if (!deleteEventId) return;
+    const id = deleteEventId;
+    setDeleteConfirmOpen(false);
+    setDeleteEventId(null);
     const targetEvent = events.find(ev => ev.id === id);
     const eventTitle = targetEvent?.title ? `"${targetEvent.title}"` : "A calendar event";
 
@@ -558,7 +814,7 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
   const renderTimelineView = () => {
     const total = daysInMonth(year, month);
     const days = Array.from({ length: total }, (_, i) => i + 1);
-    const activeCategories = CATEGORIES.filter(cat => filteredEvents.some(e => {
+    const activeCategories = categories.filter(cat => filteredEvents.some(e => {
       const d = new Date(e.event_date);
       return e.category === cat && d.getFullYear() === year && d.getMonth() === month;
     }));
@@ -755,6 +1011,9 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
             <div>
               <div className={styles.title}>{title}</div>
               <div className={styles.subtitle}>{subtitle}</div>
+              <p className="text-xs text-muted-foreground mt-1 max-w-md hidden md:block">
+                Tip: Press <kbd className="px-1.5 py-0.5 rounded-md bg-muted border border-border text-[10px] font-mono mx-1">N</kbd> to quickly log a new event. Click on any date to manage your schedule.
+              </p>
             </div>
           </div>
           <div className={styles.topbarRight}>
@@ -1007,35 +1266,74 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
                   <input type="date" required value={newEvent.event_date || ''} onChange={e => setNewEvent(p => ({ ...p, event_date: e.target.value }))} className={styles.formInput} />
                 </div>
                 <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Category</label>
-                  <input
-                    type="text"
-                    list="calendar-categories"
-                    value={newEvent.category || ''}
-                    onChange={e => setNewEvent(p => ({ ...p, category: e.target.value as Category }))}
-                    className={styles.formSelect}
-                    placeholder="Type or select a category"
-                  />
-                  <datalist id="calendar-categories">
-                    {CATEGORIES.map(c => <option key={c} value={c} />)}
-                  </datalist>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className={styles.formLabel}>Category</label>
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => setShowManageCategories(true)}
+                        className="text-[9px] text-[#A3843B] dark:text-[#FFC72C] hover:underline flex items-center gap-1 font-bold uppercase tracking-wider cursor-pointer bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full"
+                      >
+                        ⚙️ Manage
+                      </button>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <select
+                      value={newEvent.category || 'Client Meeting'}
+                      onChange={e => setNewEvent(p => ({ ...p, category: e.target.value }))}
+                      className={`${styles.formSelect} w-full appearance-none pr-10`}
+                    >
+                      {categories.map(c => <option key={c} value={c} className="dark:bg-slate-900">{c}</option>)}
+                    </select>
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none flex items-center text-slate-400">
+                      <ChevronDown size={14} />
+                    </div>
+                  </div>
                 </div>
               </div>
 
               <div className={styles.formRow}>
                 <div className={styles.formGroup}>
                   <label className={styles.formLabel}>Start Time</label>
-                  <input type="time" value={newEvent.start_time || ''} onChange={e => setNewEvent(p => ({ ...p, start_time: e.target.value }))} className={styles.formInput} />
+                  <div className={styles.timeInputWrapper}>
+                    <input
+                      type="time"
+                      value={newEvent.start_time || ''}
+                      onChange={e => setNewEvent(p => ({ ...p, start_time: e.target.value }))}
+                      className={styles.timeInput}
+                    />
+                    <Clock size={15} className={styles.timeInputIcon} />
+                  </div>
                 </div>
                 <div className={styles.formGroup}>
                   <label className={styles.formLabel}>End Time</label>
-                  <input type="time" value={newEvent.end_time || ''} onChange={e => setNewEvent(p => ({ ...p, end_time: e.target.value }))} className={styles.formInput} />
+                  <div className={styles.timeInputWrapper}>
+                    <input
+                      type="time"
+                      value={newEvent.end_time || ''}
+                      onChange={e => setNewEvent(p => ({ ...p, end_time: e.target.value }))}
+                      className={styles.timeInput}
+                    />
+                    <Clock size={15} className={styles.timeInputIcon} />
+                  </div>
                 </div>
               </div>
 
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Description</label>
-                <textarea value={newEvent.description || ''} onChange={e => setNewEvent(p => ({ ...p, description: e.target.value }))} className={styles.formTextarea} placeholder="Optional notes" />
+                <div className="flex justify-between items-center mb-1">
+                  <label className={styles.formLabel}>Description</label>
+                  <button
+                    type="button"
+                    onClick={handleGenerateDescription}
+                    disabled={generatingDesc}
+                    className="text-[10px] text-[#A3843B] dark:text-[#FFC72C] hover:underline flex items-center gap-1 font-bold uppercase tracking-wider cursor-pointer"
+                  >
+                    <Sparkles size={10} />
+                    {generatingDesc ? 'Generating...' : 'Suggest with AI'}
+                  </button>
+                </div>
+                <textarea value={newEvent.description || ''} onChange={e => setNewEvent(p => ({ ...p, description: e.target.value }))} className={styles.formTextarea} placeholder="Enter event details or generate a suggestion above" />
               </div>
 
               <button type="submit" className={styles.submitBtn}>{editingId ? 'Save Changes' : 'Deploy Workspace Event'}</button>
@@ -1134,9 +1432,9 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
                   {celebratedEvent.title}
                 </div>
                 <p className={styles.celebrationText}>
-                  {isEditCelebration
+                  {celebrationMessage || (isEditCelebration
                     ? 'Excellent! You successfully updated this workspace event. Everything is set and ready to go! 🚀'
-                    : 'Awesome job! You successfully added this activity to the master workspace calendar. Keep up the high productivity! 🚀'}
+                    : 'Awesome job! You successfully added this activity to the master workspace calendar. Keep up the high productivity! 🚀')}
                 </p>
               </motion.div>
 
@@ -1152,6 +1450,104 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
                 Let's Keep Going!
               </motion.button>
             </motion.div>
+          </div>
+        )}
+        {deleteConfirmOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-md rounded-[24px] p-6 shadow-2xl flex flex-col items-center text-center animate-in zoom-in-95 duration-200">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-50 dark:bg-rose-950/30 text-rose-500">
+                <Trash2 size={24} />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Discard Event</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+                Are you sure you want to discard this calendar event? This action will permanently remove it from the database schedule.
+              </p>
+              <div className="flex gap-3 w-full mt-6">
+                <button
+                  onClick={() => { setDeleteConfirmOpen(false); setDeleteEventId(null); }}
+                  className="flex-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 py-2.5 rounded-xl font-semibold text-xs uppercase tracking-wider transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={executeDeleteEvent}
+                  className="flex-1 bg-rose-500 hover:bg-rose-600 text-white py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider shadow-lg shadow-rose-500/20 transition"
+                >
+                  Discard
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        {showManageCategories && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-md rounded-[28px] p-6 shadow-2xl flex flex-col animate-in zoom-in-95 duration-200">
+              
+              <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
+                <h3 className="text-base font-extrabold text-slate-900 dark:text-white uppercase tracking-wider">
+                  Manage Categories
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowManageCategories(false)}
+                  className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-400 hover:text-slate-600 transition cursor-pointer"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Add New Category form */}
+              <div className="flex gap-2 mb-4">
+                <input
+                  type="text"
+                  placeholder="New category name"
+                  value={newCategoryName}
+                  onChange={e => setNewCategoryName(e.target.value)}
+                  className="flex-1 px-3.5 py-2 border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-white rounded-xl text-xs outline-none focus:border-[#FFC72C] focus:ring-1 focus:ring-[#FFC72C]"
+                  onKeyDown={e => { if (e.key === 'Enter') handleAddCategory(newCategoryName); }}
+                />
+                <button
+                  type="button"
+                  onClick={() => handleAddCategory(newCategoryName)}
+                  className="px-4 py-2 bg-[#FFC72C] hover:bg-[#e2b229] text-slate-900 rounded-xl text-xs font-bold transition cursor-pointer"
+                >
+                  Add
+                </button>
+              </div>
+
+              {/* Categories list container */}
+              <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
+                {categories.map((cat) => (
+                  <div
+                    key={cat}
+                    className="flex justify-between items-center px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-900 rounded-xl"
+                  >
+                    <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                      {cat}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteCategory(cat)}
+                      className="text-slate-400 hover:text-rose-500 p-1 rounded transition cursor-pointer"
+                      title="Delete Category"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowManageCategories(false)}
+                  className="px-4.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs uppercase tracking-wider transition cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+
+            </div>
           </div>
         )}
       </AnimatePresence>

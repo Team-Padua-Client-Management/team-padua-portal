@@ -15,6 +15,7 @@ import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from "@/styles/admin/members/AdminMembersTable/AdminMembersTable.module.css";
 import { X } from "lucide-react";
+import ProfileAvatar from "@/components/shared/ProfileAvatar";
 
 export type ClientServicingModule = "cpst" | "acr" | "fst" | "cpc" | "ppu" | "mngt";
 
@@ -57,6 +58,7 @@ export interface User {
   lastActive: string;
   phone: string;
   provider: string;
+  presence_status?: string;
   team?: string;
   avatar?: string;
   gender?: string;
@@ -78,7 +80,7 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [tempPermissions, setTempPermissions] = useState<ClientServicingPermissions>(defaultClientServicingPermissions);
 
-  const roles = ["Admin", "Manager", "Intern", "Member"];
+  const roles = ["Admin", "Advisor", "Bizdev", "Member"];
   const departments = ["ASA", "BSA", "CSA", "DSA"];
 
   // Helper function to extract First Name & Surname Initials
@@ -86,7 +88,7 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
     const parts = fullName.trim().split(/\s+/);
     if (parts.length === 0) return "?";
     if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-    
+
     const firstInitial = parts[0].charAt(0).toUpperCase();
     const surnameInitial = parts[parts.length - 1].charAt(0).toUpperCase();
     return `${firstInitial}${surnameInitial}`;
@@ -165,7 +167,7 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
 
   const savePermissions = async () => {
     if (!selectedUser) return;
-    
+
     const updatedUser = {
       ...selectedUser,
       client_servicing_permissions: tempPermissions
@@ -270,34 +272,32 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
                   <tr key={u.id} className={styles.table_20}>
                     <td className={styles.div_21}>
                       <div className={styles.container_22} onClick={() => router.push(`/admin/users/${u.id}`)}>
-                        
+
                         {/* Avatar Wrap logic that manages automatic fallbacks */}
                         <div className="relative flex items-center justify-center shrink-0">
-                          {u.avatar ? (
-                            <img 
-                              src={u.avatar} 
-                              alt={u.name} 
-                              className={styles.div_23} 
-                              onError={(e) => {
-                                // If image link breaks, hide it and force fallback to show
-                                e.currentTarget.style.display = 'none';
-                                const fallbackEl = e.currentTarget.nextElementSibling as HTMLElement;
-                                if (fallbackEl) fallbackEl.style.display = 'flex';
-                              }}
+                          <ProfileAvatar
+                            avatarUrl={u.avatar}
+                            name={u.name}
+                            size={36}
+                            className={styles.div_23}
+                          />
+                          {u.presence_status && (
+                            <span
+                              className={`absolute bottom-0 right-0 w-3 h-3 border-2 border-background rounded-full ${u.presence_status === "Online"
+                                  ? "bg-emerald-500"
+                                  : u.presence_status === "Busy"
+                                    ? "bg-red-500"
+                                    : "bg-gray-400"
+                                }`}
+                              title={u.presence_status}
                             />
-                          ) : null}
-                          
-                          <div 
-                            className={styles.text_24}
-                            style={{ display: u.avatar ? 'none' : 'flex' }}
-                          >
-                            {getInitials(u.name)}
-                          </div>
+                          )}
                         </div>
 
                         <div className={styles.div_25}>
                           <span className={styles.table_26}>{u.name}</span>
                           <span className={styles.table_27}>{u.email}</span>
+                          <span className="text-[9px] text-muted-foreground font-semibold mt-0.5">Status: {u.presence_status}</span>
                         </div>
                       </div>
                     </td>
@@ -322,7 +322,7 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
                     </td>
                     <td className={styles.div_33}>
                       <span className={`${styles.text_36} ${u.status === "Active" ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-[#4ade80]" :
-                          u.status === "Pending" ? "bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-[#fef08a]" : "bg-muted text-muted-foreground"
+                        u.status === "Pending" ? "bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-[#fef08a]" : "bg-muted text-muted-foreground"
                         }`}>
                         <span className={`${styles.div_37} ${u.status === "Active" ? "bg-emerald-500" : u.status === "Pending" ? "bg-amber-500" : "bg-muted-foreground"}`} />
                         {u.status}
@@ -331,12 +331,12 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
                     <td className={styles.div_33}>
                       <div className="flex flex-col gap-1 items-start">
                         <div className="flex flex-wrap max-w-[150px] gap-1 text-[10px] text-muted-foreground font-semibold">
-                           {u.client_servicing_permissions?.cpst?.view && <span className="text-emerald-500">☑ CPST</span>}
-                           {u.client_servicing_permissions?.acr?.view && <span className="text-emerald-500">☑ ACR</span>}
-                           {u.client_servicing_permissions?.fst?.view && <span className="text-emerald-500">☑ FST</span>}
-                           {u.client_servicing_permissions?.cpc?.view && <span className="text-emerald-500">☑ CPC</span>}
-                           {u.client_servicing_permissions?.ppu?.view && <span className="text-emerald-500">☑ PPU</span>}
-                           {u.client_servicing_permissions?.mngt?.view && <span className="text-emerald-500">☑ MNGT</span>}
+                          {u.client_servicing_permissions?.cpst?.view && <span className="text-emerald-500">☑ CPST</span>}
+                          {u.client_servicing_permissions?.acr?.view && <span className="text-emerald-500">☑ ACR</span>}
+                          {u.client_servicing_permissions?.fst?.view && <span className="text-emerald-500">☑ FST</span>}
+                          {u.client_servicing_permissions?.cpc?.view && <span className="text-emerald-500">☑ CPC</span>}
+                          {u.client_servicing_permissions?.ppu?.view && <span className="text-emerald-500">☑ PPU</span>}
+                          {u.client_servicing_permissions?.mngt?.view && <span className="text-emerald-500">☑ MNGT</span>}
                         </div>
                         <button
                           onClick={() => openModal(u)}
@@ -375,7 +375,7 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
                 <X size={18} />
               </button>
             </div>
-            
+
             <div className="p-0 overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
@@ -402,8 +402,8 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
                       {["view", "create", "edit", "delete", "export"].map((action) => (
                         <td key={action} className="p-3 text-center border-r border-border last:border-0">
                           <label className="cursor-pointer flex items-center justify-center w-full h-full">
-                            <input 
-                              type="checkbox" 
+                            <input
+                              type="checkbox"
                               className="w-4 h-4 rounded border-border text-[#F4C542] focus:ring-[#F4C542]"
                               checked={tempPermissions[module.id][action as keyof ModulePermissions]}
                               onChange={() => togglePermission(module.id, action as keyof ModulePermissions)}
@@ -418,13 +418,13 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
             </div>
 
             <div className="flex items-center justify-end gap-3 p-4 border-t border-border bg-muted/30">
-              <button 
+              <button
                 onClick={closeModal}
                 className="px-4 py-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
               >
                 Cancel
               </button>
-              <button 
+              <button
                 onClick={savePermissions}
                 className="px-4 py-2 text-sm font-bold bg-[#F4C542] text-black rounded-lg shadow hover:bg-[#d9af39] transition-colors"
               >

@@ -54,8 +54,11 @@ export default async function AdminMembers() {
                 birthday: profile.birthday ?? "",
                 address: profile.address ?? "",
                 avatar: profile.avatar_url || googleAvatar || "",
+                avatarMode: profile.avatar_mode || (googleAvatar ? "upload" : "initials"),
+                aiSeed: profile.ai_seed || u.id || u.email || "default",
                 provider: u.app_metadata?.provider || "email",
                 status: profile.status || (u.email_confirmed_at ? "Active" : "Pending"),
+                presence_status: profile.presence_status || "Offline",
                 joined: u.created_at ?? "",
                 lastActive: u.last_sign_in_at ?? "",
                 client_servicing_permissions: profile.client_servicing_permissions || {

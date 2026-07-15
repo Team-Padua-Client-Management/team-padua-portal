@@ -382,6 +382,13 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
         <div className={styles.sidebarMobileWrapper}>
           <div className={styles.sidebarOverlay} onClick={effectiveOnClose} />
           <aside className={styles.sidebarDrawer}>
+            <button
+              onClick={effectiveOnClose}
+              className="absolute top-4 right-4 z-50 p-2 text-slate-500 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-full cursor-pointer transition border-0 flex items-center justify-center shadow-sm"
+              aria-label="Close sidebar menu"
+            >
+              <X size={16} />
+            </button>
             {sidebarContent}
           </aside>
         </div>

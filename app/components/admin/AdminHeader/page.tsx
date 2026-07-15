@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { supabase } from '@/app/lib/supabase/client';
 import NotificationBell from "@/components/shared/NotificationBell";
 import { useAdminLayoutContext } from '@/app/components/admin/AdminLayoutContext';
+import ProfileAvatar from "@/components/shared/ProfileAvatar";
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -122,6 +123,8 @@ export default function AdminHeader({ onMenuClick }: HeaderProps) {
       .single();
 
     const rawRole = profileData?.role || session.user.user_metadata?.role || 'Associate';
+    const googleAvatar = session.user.user_metadata?.avatar_url || '';
+
     setUserData({
       name:
         profileData?.full_name ||
@@ -130,7 +133,7 @@ export default function AdminHeader({ onMenuClick }: HeaderProps) {
         session.user.email?.split('@')[0] ||
         'User',
       email: session.user.email || '',
-      avatar: profileData?.avatar_url || session.user.user_metadata?.avatar_url || '',
+      avatar: profileData?.avatar_url || googleAvatar || '',
       role: rawRole.toUpperCase(),
     });
   };
@@ -191,12 +194,12 @@ export default function AdminHeader({ onMenuClick }: HeaderProps) {
 
   const renderAvatar = (wrapperClass: string, showStatusDot: boolean = false) => (
     <div className="relative shrink-0">
-      <div className={wrapperClass}>
-        {userData.avatar ? (
-          <img src={userData.avatar} alt={userData.name} />
-        ) : (
-          <span>{initials}</span>
-        )}
+      <div className={wrapperClass} style={{ border: "none", background: "none" }}>
+        <ProfileAvatar
+          avatarUrl={userData.avatar}
+          name={userData.name}
+          size={28}
+        />
       </div>
       {showStatusDot && (
         <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 border border-white dark:border-background rounded-full shadow-2xs ${presenceStatus === 'online' ? 'bg-emerald-500' :

@@ -7,6 +7,7 @@ import { User, LogOut, ChevronDown, Bell, Sun, Moon, Menu, Search, Settings } fr
 import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/app/lib/supabase/client';
 import NotificationBell from "@/components/shared/NotificationBell";
+import ProfileAvatar from "@/components/shared/ProfileAvatar";
 
 interface UserData {
   name: string;
@@ -112,10 +113,12 @@ export default function UserHeader({ onMenuClick, isSidebarOpen }: UserHeaderPro
     const rawRole = profileData?.role || session.user.user_metadata?.role || 'Associate';
     const formattedRole = rawRole.toUpperCase();
 
+    const googleAvatar = session.user.user_metadata?.avatar_url || '';
+
     setUserData({
       name: profileData?.full_name || session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
       email: session.user.email || '',
-      avatar: profileData?.avatar_url || session.user.user_metadata?.avatar_url || '',
+      avatar: profileData?.avatar_url || googleAvatar || '',
       role: formattedRole,
     });
   };
@@ -183,12 +186,12 @@ export default function UserHeader({ onMenuClick, isSidebarOpen }: UserHeaderPro
 
   const renderAvatar = (wrapperClass: string, showStatusDot: boolean = false) => (
     <div className="relative shrink-0">
-      <div className={wrapperClass}>
-        {userData.avatar ? (
-          <img src={userData.avatar} alt={userData.name} />
-        ) : (
-          <span>{initials}</span>
-        )}
+      <div className={wrapperClass} style={{ border: "none", background: "none" }}>
+        <ProfileAvatar
+          avatarUrl={userData.avatar}
+          name={userData.name}
+          size={28}
+        />
       </div>
       {showStatusDot && (
         <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 border border-white dark:border-background rounded-full shadow-2xs ${

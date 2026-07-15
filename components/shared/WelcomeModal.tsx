@@ -62,9 +62,7 @@ export default function WelcomeModal({ userName, role }: WelcomeModalProps) {
           Welcome, <span className={styles.username}>{userName}</span>!
         </h2>
         <p className={styles.desc}>
-          {isAdmin 
-            ? "Welcome back to the Team Padua Control Terminal. Let's make today highly productive!"
-            : "We're glad to have you here in the Team Padua Client Management Portal."}
+          We are glad to have you here in the Client Management Portal! This workspace was humbly designed and coordinated by the Team Padua Business Development (BizDev) team to simplify client servicing workflows, reduce administrative overhead, and support your daily advisory operations. We are honored to serve your practice!
         </p>
 
         {/* Feature Highlights */}

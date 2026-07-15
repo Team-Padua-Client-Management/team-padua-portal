@@ -50,6 +50,8 @@ export const SignUp = async (formData: FormData) => {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
   const name = formData.get("name") as string;
+  const role = formData.get("role") as string;
+  const phone = formData.get("phone") as string;
 
   const { error } = await supabase.auth.signUp({
     email,
@@ -57,6 +59,8 @@ export const SignUp = async (formData: FormData) => {
     options: {
       data: {
         name,
+        role,
+        phone,
       },
     },
   });
@@ -64,6 +68,14 @@ export const SignUp = async (formData: FormData) => {
   if (error) {
     return { error: error.message };
   }
+
+  // Notify admins
+  await supabase.from("notifications").insert({
+    title: "New Member Registration",
+    description: `A new member (${name || email}) has just signed up and is pending approval.`,
+    type: "user",
+    is_read: false
+  });
 
   return { success: true, email };
 };

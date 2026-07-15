@@ -13,6 +13,7 @@ import Sidebar from "@/app/components/admin/AdminSidebar/page";
 import { supabase } from "@/app/lib/supabase/client";
 import styles from "@/styles/admin/dashboard/page.module.css";
 import WelcomeModal from "@/components/shared/WelcomeModal";
+import WelcomeHero from "@/components/shared/WelcomeHero";
 
 type KpiData = {
   members: number;
@@ -178,36 +179,7 @@ export default function DashboardOverviewPage() {
         <Header />
 
         <main className={styles.div_11}>
-          <div className={styles.heroGlassCard}>
-            <div className={styles.heroGlow} />
-
-            <div className={styles.heroLeft}>
-              <div className={styles.greetingBadge}>
-                {greeting}
-              </div>
-              <h1 className={styles.welcomeText}>
-                Welcome, <span className={styles.usernameHighlight}>{adminName}</span>
-              </h1>
-              <div className={styles.memberBadge}>Administrator</div>
-            </div>
-
-            <div className={styles.heroRight}>
-              <div className={styles.dateDisplay}>
-                {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
-              </div>
-              <div className={styles.verticalDivider} />
-              <div className={styles.timeDisplay}>
-                <span className={styles.timeText}>ACTIVE</span>
-              </div>
-              <button
-                onClick={handleRefresh}
-                className={styles.refreshButton}
-                title="Refresh Workspace Grid"
-              >
-                <RefreshCw size={16} className={isRefreshing ? styles.spinIcon : ""} />
-              </button>
-            </div>
-          </div>
+          <WelcomeHero userName={adminName} role="Administrator" />
 
           <div className={styles.div_23}>
             <div className="flex items-center gap-2">

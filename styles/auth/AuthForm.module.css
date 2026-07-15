@@ -44,7 +44,7 @@
    Visual control elements and cards
 ====================================================== */
 .table_6 {
-  @apply w-full pl-10 pr-12 pt-5 pb-2 bg-transparent rounded-2xl outline-none text-sm text-slate-900 placeholder-transparent;
+  @apply w-full pl-10 pr-12 pt-5 pb-2 bg-transparent rounded-2xl outline-none text-sm text-slate-900 dark:text-white placeholder-transparent;
 }
 
 .container_7 {
@@ -52,15 +52,15 @@
 }
 
 .container_8 {
-  @apply flex items-start gap-3 bg-rose-50 border-2 border-rose-200 rounded-2xl px-4 py-3 animate-in slide-in-from-top-2 duration-300;
+  @apply flex items-start gap-3 bg-rose-50 dark:bg-rose-950/20 border-2 border-rose-200 dark:border-rose-900/50 rounded-2xl px-4 py-3 animate-in slide-in-from-top-2 duration-300;
 }
 
 .text_9 {
-  @apply w-4 h-4 text-rose-500 shrink-0 mt-0.5;
+  @apply w-4 h-4 text-rose-500 dark:text-rose-400 shrink-0 mt-0.5;
 }
 
 .text_10 {
-  @apply text-sm text-rose-700 font-medium flex-1;
+  @apply text-sm text-rose-700 dark:text-rose-300 font-medium flex-1;
 }
 
 .table_11 {
@@ -80,7 +80,7 @@
 }
 
 .div_15 {
-  @apply relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 border border-slate-100;
+  @apply relative bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-md p-8 border border-slate-100 dark:border-slate-800;
 }
 
 .table_16 {
@@ -104,19 +104,19 @@
 }
 
 .text_21 {
-  @apply text-xl font-bold text-slate-900 mb-2;
+  @apply text-xl font-bold text-slate-900 dark:text-white mb-2;
 }
 
 .text_22 {
-  @apply text-sm text-slate-500 mb-1;
+  @apply text-sm text-slate-500 dark:text-slate-400 mb-1;
 }
 
 .text_23 {
-  @apply text-sm font-semibold text-slate-800 mb-6;
+  @apply text-sm font-semibold text-slate-800 dark:text-slate-200 mb-6;
 }
 
 .table_24 {
-  @apply w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-full transition-all text-sm;
+  @apply w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl transition-all text-sm;
 }
 
 .container_25 {
@@ -136,19 +136,19 @@
 }
 
 .container_29 {
-  @apply flex items-center gap-2 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2.5 mb-4;
+  @apply flex items-center gap-2 bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/50 rounded-xl px-3 py-2.5 mb-4;
 }
 
 .text_30 {
-  @apply w-4 h-4 text-rose-500 shrink-0;
+  @apply w-4 h-4 text-rose-500 dark:text-rose-400 shrink-0;
 }
 
 .text_31 {
-  @apply text-xs text-rose-600 font-medium;
+  @apply text-xs text-rose-600 dark:text-rose-400 font-medium;
 }
 
 .table_32 {
-  @apply mt-4 w-full bg-amber-400 hover:bg-amber-500 text-black font-bold py-3.5 rounded-full transition-all duration-200 text-sm disabled:opacity-60;
+  @apply mt-4 w-full bg-amber-400 hover:bg-amber-500 text-black font-bold py-3.5 rounded-xl transition-all duration-200 text-sm disabled:opacity-60;
 }
 
 .container_33 {
@@ -156,15 +156,15 @@
 }
 
 .container_34 {
-  @apply flex-1 h-px bg-slate-200;
+  @apply flex-1 h-px bg-slate-200 dark:bg-slate-800;
 }
 
 .text_35 {
-  @apply text-xs text-slate-400 font-medium;
+  @apply text-xs text-slate-400 dark:text-slate-500 font-medium;
 }
 
 .container_36 {
-  @apply flex-1 h-px bg-slate-200;
+  @apply flex-1 h-px bg-slate-200 dark:bg-slate-800;
 }
 
 .div_37 {
@@ -172,7 +172,7 @@
 }
 
 .table_38 {
-  @apply w-full flex items-center gap-3 border-2 border-slate-200 hover:border-amber-300 bg-white hover:bg-amber-50 py-3 px-4 rounded-full transition-all duration-200;
+  @apply w-full flex items-center gap-3 border-2 border-slate-200 dark:border-slate-800 hover:border-amber-300 dark:hover:border-amber-500 bg-white dark:bg-slate-900 hover:bg-amber-50 dark:hover:bg-amber-950/25 py-3 px-4 rounded-xl transition-all duration-200;
 }
 
 .div_39 {
@@ -188,11 +188,11 @@
 }
 
 .table_42 {
-  @apply text-xs font-bold text-slate-800 truncate;
+  @apply text-xs font-bold text-slate-800 dark:text-slate-200 truncate;
 }
 
 .table_43 {
-  @apply text-[10px] text-slate-400 truncate;
+  @apply text-[10px] text-slate-400 dark:text-slate-500 truncate;
 }
 
 .container_44 {
@@ -264,7 +264,7 @@
 }
 
 .input_61 {
-  @apply text-xs text-slate-600 font-medium select-none;
+  @apply text-xs text-slate-600 dark:text-slate-400 font-medium select-none;
 }
 
 .table_62 {
@@ -272,7 +272,7 @@
 }
 
 .table_63 {
-  @apply w-full bg-amber-400 hover:bg-amber-500 active:scale-[0.98] text-black font-bold py-3.5 rounded-full transition-all duration-200 text-sm shadow-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100;
+  @apply w-full bg-amber-400 hover:bg-amber-500 active:scale-[0.98] text-black font-bold py-3.5 rounded-xl transition-all duration-200 text-sm shadow-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100;
 }
 
 .container_64 {
@@ -288,11 +288,11 @@
 }
 
 .table_67 {
-  @apply w-full flex items-center justify-center gap-3 border-2 border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 active:scale-[0.98] py-3.5 px-4 rounded-full transition-all duration-200 text-sm font-semibold text-slate-700 shadow-sm disabled:opacity-60;
+  @apply w-full flex items-center justify-center gap-3 border-2 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-[0.98] py-3.5 px-4 rounded-xl transition-all duration-200 text-sm font-semibold text-slate-700 dark:text-slate-200 shadow-sm disabled:opacity-60;
 }
 
 .table_68 {
-  @apply relative flex items-center border-2 rounded-2xl bg-white transition-all duration-200;
+  @apply relative flex items-center border-2 rounded-2xl bg-white dark:bg-slate-950 transition-all duration-200;
 }
 
 .table_69 {

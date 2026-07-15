@@ -24,6 +24,7 @@ import {
   ArrowLeft, User, Mail, Phone, Cake, MapPin, Briefcase, Shield,
   Activity, Users, Award, Globe, FileText, ExternalLink, QrCode, Navigation
 } from "lucide-react";
+import ProfileAvatar from "@/components/shared/ProfileAvatar";
 
 interface SocialLink {
   id: string;
@@ -50,8 +51,6 @@ interface UserViewProps {
     website: string;
     gcashQr: string | null;
     bannerTheme: string;
-    avatarMode: string;
-    aiSeed: string;
     region: string;
     province: string;
     city: string;
@@ -108,80 +107,7 @@ function PlatformBadge({ platform, size = 28 }: { platform: string; size?: numbe
   );
 }
 
-/**
- * Executes operations logic for AiAvatar.
- *
- * @param { seed, size = 96 }: { seed: string; size?: number }
- * @returns State operations sequence.
- */
-function AiAvatar({ seed, size = 96 }: { seed: string; size?: number }) {
-  /**
- * Executes operations logic for hash.
- *
- * @param s: string
- * @returns State operations sequence.
- */
-const hash = (s: string) => [...s].reduce((a, c) => (Math.imul(31, a) + c.charCodeAt(0)) | 0, 0);
-  const n = Math.abs(hash(seed));
-  const palettes = [
-    { bg: ["#FFF9E5", "#FFF7D6"], orb1: "#F4C542", orb2: "#E6A800", acc: "#000000" },
-    { bg: ["#1a1a2e", "#16213e"], orb1: "#e94560", orb2: "#0f3460", acc: "#e94560" },
-    { bg: ["#0d1117", "#161b22"], orb1: "#58a6ff", orb2: "#1f6feb", acc: "#79c0ff" },
-    { bg: ["#0a0a0a", "#1a0a2e"], orb1: "#a855f7", orb2: "#7c3aed", acc: "#d8b4fe" },
-  ];
-  const shapes = [
-    "M 20,50 Q 35,20 50,50 Q 65,80 80,50",
-    "M 15,40 Q 40,10 60,40 Q 80,70 85,45",
-  ];
-  const pal = palettes[n % palettes.length];
-  const cx1 = 20 + (n % 40);
-  const cy1 = 20 + ((n >> 4) % 40);
-  const cx2 = 60 + (n % 30);
-  const cy2 = 50 + ((n >> 8) % 30);
-  const shape = shapes[(n >> 2) % shapes.length];
-  return (
-    <svg width={size} height={size} viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style={{ display: "block" }}>
-      <defs>
-        <linearGradient id={`bg-${seed}`} x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor={pal.bg[0]} />
-          <stop offset="100%" stopColor={pal.bg[1]} />
-        </linearGradient>
-        <radialGradient id={`orb1-${seed}`} cx="30%" cy="30%" r="60%">
-          <stop offset="0%" stopColor={pal.orb1} stopOpacity="0.7" />
-          <stop offset="100%" stopColor={pal.orb1} stopOpacity="0" />
-        </radialGradient>
-        <radialGradient id={`orb2-${seed}`} cx="70%" cy="70%" r="60%">
-          <stop offset="0%" stopColor={pal.orb2} stopOpacity="0.6" />
-          <stop offset="100%" stopColor={pal.orb2} stopOpacity="0" />
-        </radialGradient>
-      </defs>
-      <rect width="100" height="100" fill={`url(#bg-${seed})`} />
-      <circle cx={cx1} cy={cy1} r="55" fill={`url(#orb1-${seed})`} />
-      <circle cx={cx2} cy={cy2} r="45" fill={`url(#orb2-${seed})`} />
-      <path d={shape} fill="none" stroke={pal.acc} strokeWidth="1" strokeOpacity="0.5" />
-      <circle cx="50" cy="50" r="3" fill={pal.acc} fillOpacity="0.9" />
-    </svg>
-  );
-}
-
-/**
- * Executes operations logic for InitialsAvatar.
- *
- * @param { name, size = 96 }: { name: string; size?: number }
- * @returns State operations sequence.
- */
-function InitialsAvatar({ name, size = 96 }: { name: string; size?: number }) {
-  const parts = name.trim().split(" ").filter(Boolean);
-  const initials = parts.length >= 2 ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase() : name.slice(0, 2).toUpperCase();
-  return (
-    <div
-      style={{ width: size, height: size, fontSize: size * 0.35 }}
-      className={styles.text_1}
-    >
-      {initials}
-    </div>
-  );
-}
+// Shared components imported above
 
 /**
  * UserViewClient
@@ -204,28 +130,7 @@ export default function UserViewClient({ initialUser, socialLinks, tasks }: User
   const completedTasks = tasks.filter(t => t.status === 'Completed').length;
   const pendingTasks = tasks.filter(t => t.status !== 'Completed').length;
 
-  /**
- * Executes operations logic for AvatarDisplay.
- *
- * @param { size = 96 }: { size?: number }
- * @returns State operations sequence.
- */
-const AvatarDisplay = ({ size = 96 }: { size?: number }) => {
-    if (user.avatarMode === "upload" && user.avatar) {
-      return (
-        <img src={user.avatar} alt={user.name} style={{ width: size, height: size }}
-          className={styles.div_2} />
-      );
-    }
-    if (user.avatarMode === "ai" && user.aiSeed) {
-      return (
-        <div className={styles.div_3} style={{ width: size, height: size }}>
-          <AiAvatar seed={user.aiSeed} size={size} />
-        </div>
-      );
-    }
-    return <InitialsAvatar name={user.name} size={size} />;
-  };
+  // Local AvatarDisplay helper removed
 
   const tabs = [
     { id: "overview", label: "Overview", icon: Activity },
@@ -294,7 +199,12 @@ const LocationInformationCard = () => (
         <div className={styles.card_18}>
           <div className={styles.container_19}>
             <div className={styles.div_20}>
-              <AvatarDisplay size={96} />
+              <ProfileAvatar
+                avatarUrl={user.avatar}
+                name={user.name}
+                size={96}
+                className={styles.div_2}
+              />
               <span className={`${styles.card_113} ${user.status === 'Active' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
             </div>
 
