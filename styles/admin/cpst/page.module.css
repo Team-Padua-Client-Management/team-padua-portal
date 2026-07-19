@@ -1,25 +1,11 @@
 @reference "../../globals/globals.css";
 
-/* ======================================================
-   page.module.css
-   Style definitions for: app/(admin)/admin/cpst/page.module.css
-====================================================== */
-
-/* ======================================================
-   Structural Layout Components
-   Main grid and layout flex wraps
-====================================================== */
 .container_0 {
-  @apply fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4;
+  @apply fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 backdrop-blur-sm p-4;
 }
 
-
-/* ======================================================
-   Interactive Actions & Cards
-   Visual control elements and cards
-====================================================== */
 .card_1 {
-  @apply bg-card border border-border/50 w-full max-w-4xl max-h-[90vh] rounded-xl flex flex-col shadow-[0_8px_20px_rgb(0,0,0,0.08)] relative animate-in zoom-in-95 duration-150 overflow-hidden;
+  @apply bg-card border border-border/50 w-full max-w-4xl max-h-[90vh] rounded-[32px] flex flex-col shadow-2xl relative animate-in zoom-in-95 duration-150 overflow-hidden;
 }
 
 .div_2 {
@@ -27,18 +13,13 @@
 }
 
 .table_3 {
-  @apply absolute right-4 top-4 p-1.5 rounded-xl text-text-secondary hover:bg-surface-2/80 hover:text-text transition cursor-pointer z-10;
+  @apply absolute right-4 top-4 p-2 rounded-full text-text-secondary hover:bg-surface-2/80 hover:text-text transition cursor-pointer z-10;
 }
 
 .table_4 {
   @apply text-sm font-bold text-text uppercase tracking-wider;
 }
 
-
-/* ======================================================
-   Typography & Label Aesthetics
-   Font weights, leading scales, and text colors
-====================================================== */
 .text_5 {
   @apply text-[11px] text-text-secondary mt-0.5;
 }
@@ -60,15 +41,15 @@
 }
 
 .text_10 {
-  @apply w-full bg-muted/40 border border-border/50 rounded-xl pl-9 pr-4 py-2 text-xs focus:outline-none focus:border-muted-foreground/50 text-text;
+  @apply w-full bg-muted/40 border border-border/50 rounded-full pl-9 pr-4 py-2 text-xs focus:outline-none focus:border-muted-foreground/50 text-text;
 }
 
 .table_11 {
-  @apply flex items-center gap-2 bg-[#F4C542] hover:bg-[#c59d28] text-black font-semibold px-4 py-2 rounded-xl text-xs transition duration-155 shadow-2xs cursor-pointer shrink-0;
+  @apply flex items-center gap-2 bg-[#F4C542] hover:bg-[#c59d28] text-black font-semibold px-4 py-2.5 rounded-full text-xs transition duration-200 shadow-sm cursor-pointer shrink-0;
 }
 
 .div_12 {
-  @apply border border-border/50 rounded-xl overflow-hidden;
+  @apply border border-border/50 rounded-2xl overflow-hidden;
 }
 
 .div_13 {
@@ -116,7 +97,7 @@
 }
 
 .table_24 {
-  @apply hover:bg-surface-2/5 transition duration-155 cursor-pointer;
+  @apply hover:bg-surface-2/5 transition duration-150 cursor-pointer;
 }
 
 .text_25 {
@@ -180,7 +161,7 @@
 }
 
 .card_40 {
-  @apply grid grid-cols-2 md:grid-cols-4 gap-4 bg-card border border-border/50 rounded-xl p-4;
+  @apply grid grid-cols-2 md:grid-cols-4 gap-4 bg-card border border-border/50 rounded-2xl p-4;
 }
 
 .div_41 {
@@ -200,7 +181,7 @@
 }
 
 .card_45 {
-  @apply bg-card border border-border/50 rounded-xl p-4 break-words whitespace-normal;
+  @apply bg-card border border-border/50 rounded-2xl p-4 break-words whitespace-normal;
 }
 
 .table_46 {
@@ -208,7 +189,7 @@
 }
 
 .card_47 {
-  @apply bg-card border border-border/50 rounded-xl p-4 break-words whitespace-normal;
+  @apply bg-card border border-border/50 rounded-2xl p-4 break-words whitespace-normal;
 }
 
 .table_48 {
@@ -224,7 +205,7 @@
 }
 
 .table_51 {
-  @apply px-6 py-2 text-xs font-bold text-text border border-border/50 rounded-xl hover:bg-surface-2/50 transition cursor-pointer;
+  @apply px-6 py-2.5 text-xs font-bold text-text border border-border/50 rounded-full hover:bg-surface-2/50 transition cursor-pointer;
 }
 
 .text_52 {
@@ -256,11 +237,11 @@
 }
 
 .table_59 {
-  @apply flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white font-semibold px-5 py-2.5 rounded-xl text-xs transition duration-150 shadow-2xs cursor-pointer;
+  @apply flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white font-semibold px-5 py-2.5 rounded-full text-xs transition duration-200 shadow-sm cursor-pointer;
 }
 
 .table_60 {
-  @apply flex items-center gap-2 bg-gradient-to-r from-[#F4C542] to-[#e6b800] hover:from-[#e6b800] hover:to-[#c59d28] text-black font-bold px-5 py-3 rounded-xl text-xs transition-all duration-200 shadow-md hover:shadow-lg hover:shadow-[#F4C542]/20 cursor-pointer border border-[#F4C542]/30;
+  @apply flex items-center gap-2 bg-gradient-to-r from-[#F4C542] to-[#e6b800] hover:from-[#e6b800] hover:to-[#c59d28] text-black font-bold px-5 py-3 rounded-full text-xs transition-all duration-200 shadow-md hover:shadow-lg hover:shadow-[#F4C542]/20 cursor-pointer active:scale-[0.97] border border-[#F4C542]/30;
 }
 
 .container_61 {
@@ -288,7 +269,7 @@
 }
 
 .card_67 {
-  @apply bg-card border border-border/50 p-5 rounded-lg shadow-xs flex flex-col justify-between hover:border-[#F4C542]/50 transition duration-200 hover:shadow-md;
+  @apply bg-card border border-border/50 p-5 rounded-3xl shadow-sm flex flex-col justify-between hover:border-[#F4C542]/50 transition duration-200 hover:shadow-md hover:-translate-y-0.5;
 }
 
 .container_68 {
@@ -308,11 +289,11 @@
 }
 
 .table_72 {
-  @apply mt-4 flex items-center justify-center gap-2 border border-border/50 bg-card hover:bg-surface-2/60 text-text font-semibold px-4 py-2.5 rounded-lg text-xs transition duration-155 cursor-pointer w-full;
+  @apply mt-4 flex items-center justify-center gap-2 border border-border/50 bg-card hover:bg-surface-2/60 text-text font-semibold px-4 py-2.5 rounded-full text-xs transition duration-200 cursor-pointer w-full active:scale-[0.98];
 }
 
 .card_73 {
-  @apply flex flex-col md:flex-row items-center gap-3 bg-card border border-border/50 p-4 rounded-lg shadow-2xs w-full;
+  @apply flex flex-col md:flex-row items-center gap-3 bg-card border border-border/50 p-4 rounded-3xl shadow-sm w-full;
 }
 
 .container_74 {
@@ -324,7 +305,7 @@
 }
 
 .text_76 {
-  @apply w-full bg-card border border-border/50 rounded-full h-11 pl-10 pr-4 text-sm text-text transition duration-150 focus:outline-none focus:border-[#F4C542] focus:ring-2 focus:ring-[#F4C542]/10;
+  @apply w-full bg-card border border-border/50 rounded-full h-11 pl-10 pr-4 text-sm text-text transition duration-200 focus:outline-none focus:border-[#F4C542] focus:ring-4 focus:ring-[#F4C542]/10;
 }
 
 .container_77 {
@@ -340,11 +321,11 @@
 }
 
 .card_80 {
-  @apply bg-card border border-border/50 rounded-lg px-3.5 py-2.5 text-xs focus:outline-none focus:border-[#F4C542] focus:ring-1 focus:ring-[#F4C542]/25 text-text w-full md:w-48 cursor-pointer transition duration-150;
+  @apply bg-card border border-border/50 rounded-full px-4 py-2.5 text-xs focus:outline-none focus:border-[#F4C542] focus:ring-4 focus:ring-[#F4C542]/10 text-text w-full md:w-48 cursor-pointer transition duration-200;
 }
 
 .card_81 {
-  @apply bg-card border border-border/50 rounded-lg px-3.5 py-2.5 text-xs focus:outline-none focus:border-[#F4C542] focus:ring-1 focus:ring-[#F4C542]/25 text-text w-full md:w-48 cursor-pointer transition duration-150;
+  @apply bg-card border border-border/50 rounded-full px-4 py-2.5 text-xs focus:outline-none focus:border-[#F4C542] focus:ring-4 focus:ring-[#F4C542]/10 text-text w-full md:w-48 cursor-pointer transition duration-200;
 }
 
 .container_82 {
@@ -356,11 +337,11 @@
 }
 
 .card_84 {
-  @apply bg-card border border-border/50 rounded-lg px-3.5 py-2.5 text-xs focus:outline-none focus:border-[#F4C542] focus:ring-1 focus:ring-[#F4C542]/25 text-text w-full md:w-56 cursor-pointer transition duration-150;
+  @apply bg-card border border-border/50 rounded-full px-4 py-2.5 text-xs focus:outline-none focus:border-[#F4C542] focus:ring-4 focus:ring-[#F4C542]/10 text-text w-full md:w-56 cursor-pointer transition duration-200;
 }
 
 .card_85 {
-  @apply bg-card border border-border/50 rounded-lg overflow-hidden shadow-2xs;
+  @apply bg-card border border-border/50 rounded-3xl overflow-hidden shadow-sm;
 }
 
 .div_86 {
@@ -416,7 +397,7 @@
 }
 
 .table_99 {
-  @apply h-11 hover:bg-surface-2/5 transition duration-150 border-b border-border/50;
+  @apply h-12 hover:bg-surface-2/5 transition duration-200 border-b border-border/50;
 }
 
 .text_100 {
@@ -460,15 +441,15 @@
 }
 
 .table_110 {
-  @apply flex justify-center items-center gap-1 opacity-0 group-hover:opacity-100 transition duration-150;
+  @apply flex justify-center items-center gap-1 opacity-0 group-hover:opacity-100 transition duration-200;
 }
 
 .table_111 {
-  @apply p-1 text-text-secondary hover:text-text transition rounded-xl hover:bg-surface-2/80 cursor-pointer;
+  @apply p-2 text-text-secondary hover:text-text transition rounded-full hover:bg-surface-2/80 cursor-pointer;
 }
 
 .table_112 {
-  @apply p-1 text-text-secondary hover:text-red-500 transition rounded-xl hover:bg-red-50 dark:hover:bg-red-950/20 cursor-pointer;
+  @apply p-2 text-text-secondary hover:text-red-500 transition rounded-full hover:bg-red-50 dark:hover:bg-red-950/20 cursor-pointer;
 }
 
 .text_113 {
@@ -476,11 +457,11 @@
 }
 
 .container_114 {
-  @apply fixed inset-0 z-50 flex items-center justify-end bg-black/60 backdrop-blur-xs p-4;
+  @apply fixed inset-0 z-50 flex items-center justify-end bg-slate-900/45 backdrop-blur-sm p-4;
 }
 
 .card_115 {
-  @apply bg-card border border-border/50 w-full max-w-md h-full rounded-xl flex flex-col shadow-2xl relative animate-in slide-in-from-right duration-200 overflow-hidden;
+  @apply bg-card border border-border/50 w-full max-w-md h-full rounded-[28px] flex flex-col shadow-2xl relative animate-in slide-in-from-right duration-200 overflow-hidden;
 }
 
 .container_116 {
@@ -488,7 +469,7 @@
 }
 
 .table_117 {
-  @apply absolute right-4 top-4 p-1.5 rounded-xl text-text-secondary hover:bg-surface-2/80 hover:text-text transition cursor-pointer z-10;
+  @apply absolute right-4 top-4 p-2 rounded-full text-text-secondary hover:bg-surface-2/80 hover:text-text transition cursor-pointer z-10;
 }
 
 .div_118 {
@@ -512,7 +493,7 @@
 }
 
 .text_123 {
-  @apply w-full bg-card border border-border/50 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-[#F4C542] focus:ring-2 focus:ring-[#F4C542]/10 text-text transition duration-150;
+  @apply w-full bg-card border border-border/50 rounded-2xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-[#F4C542] focus:ring-4 focus:ring-[#F4C542]/10 text-text transition duration-200;
 }
 
 .table_124 {
@@ -520,7 +501,7 @@
 }
 
 .text_125 {
-  @apply w-full bg-card border border-border/50 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-[#F4C542] focus:ring-2 focus:ring-[#F4C542]/10 text-text transition duration-150;
+  @apply w-full bg-card border border-border/50 rounded-2xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-[#F4C542] focus:ring-4 focus:ring-[#F4C542]/10 text-text transition duration-200;
 }
 
 .container_126 {
@@ -532,7 +513,7 @@
 }
 
 .text_128 {
-  @apply w-full bg-card border border-border/50 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-[#F4C542] focus:ring-2 focus:ring-[#F4C542]/10 text-text transition duration-150;
+  @apply w-full bg-card border border-border/50 rounded-2xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-[#F4C542] focus:ring-4 focus:ring-[#F4C542]/10 text-text transition duration-200;
 }
 
 .table_129 {
@@ -540,7 +521,7 @@
 }
 
 .text_130 {
-  @apply w-full bg-card border border-border/50 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-[#F4C542] focus:ring-2 focus:ring-[#F4C542]/10 text-text transition duration-150;
+  @apply w-full bg-card border border-border/50 rounded-2xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-[#F4C542] focus:ring-4 focus:ring-[#F4C542]/10 text-text transition duration-200;
 }
 
 .table_131 {
@@ -548,7 +529,7 @@
 }
 
 .text_132 {
-  @apply w-full bg-card border border-border/50 rounded-xl p-3 text-xs focus:outline-none focus:border-[#F4C542] focus:ring-2 focus:ring-[#F4C542]/10 text-text resize-none transition duration-150;
+  @apply w-full bg-card border border-border/50 rounded-2xl p-3.5 text-xs focus:outline-none focus:border-[#F4C542] focus:ring-4 focus:ring-[#F4C542]/10 text-text resize-none transition duration-200;
 }
 
 .container_133 {
@@ -556,19 +537,19 @@
 }
 
 .table_134 {
-  @apply flex-1 bg-[#F4C542] hover:bg-[#c59d28] text-black font-semibold text-xs py-2.5 rounded-xl transition duration-155 cursor-pointer;
+  @apply flex-1 bg-gradient-to-r from-[#F4C542] to-[#e6b800] hover:from-[#e6b800] hover:to-[#c59d28] text-black font-bold text-xs py-2.5 rounded-full transition duration-200 cursor-pointer active:scale-[0.97] shadow-sm;
 }
 
 .table_135 {
-  @apply flex-1 bg-transparent border border-border/50 text-text hover:bg-surface-2 text-xs font-semibold py-2.5 rounded-xl transition duration-155 cursor-pointer;
+  @apply flex-1 bg-transparent border border-border/50 text-text hover:bg-surface-2 text-xs font-semibold py-2.5 rounded-full transition duration-200 cursor-pointer active:scale-[0.97];
 }
 
 .container_136 {
-  @apply fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4;
+  @apply fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 backdrop-blur-sm p-4;
 }
 
 .card_137 {
-  @apply bg-card border border-border/50 w-full max-w-2xl rounded-xl flex flex-col shadow-2xl relative animate-in zoom-in-95 duration-150 overflow-hidden max-h-[90vh];
+  @apply bg-card border border-border/50 w-full max-w-2xl rounded-[28px] flex flex-col shadow-2xl relative animate-in zoom-in-95 duration-150 overflow-hidden max-h-[90vh];
 }
 
 .div_138 {
@@ -576,7 +557,7 @@
 }
 
 .table_139 {
-  @apply absolute right-4 top-4 p-1.5 rounded-xl text-text-secondary hover:bg-surface-2/80 hover:text-text transition cursor-pointer z-10;
+  @apply absolute right-4 top-4 p-2 rounded-full text-text-secondary hover:bg-surface-2/80 hover:text-text transition cursor-pointer z-10;
 }
 
 .div_140 {
@@ -632,7 +613,7 @@
 }
 
 .container_153 {
-  @apply flex items-start gap-2.5 p-3 bg-card rounded-xl border border-border/50;
+  @apply flex items-start gap-2.5 p-3.5 bg-card rounded-2xl border border-border/50;
 }
 
 .text_154 {
@@ -656,7 +637,7 @@
 }
 
 .text_159 {
-  @apply bg-green-500/10 border border-green-500/20 dark:border-green-950 rounded-xl p-3 text-center;
+  @apply bg-green-500/10 border border-green-500/20 dark:border-green-950 rounded-2xl p-3 text-center;
 }
 
 .text_160 {
@@ -668,7 +649,7 @@
 }
 
 .text_162 {
-  @apply bg-yellow-500/10 border border-yellow-500/20 dark:border-yellow-950 rounded-xl p-3 text-center;
+  @apply bg-yellow-500/10 border border-yellow-500/20 dark:border-yellow-950 rounded-2xl p-3 text-center;
 }
 
 .text_163 {
@@ -692,11 +673,11 @@
 }
 
 .div_168 {
-  @apply border border-border/50 rounded-xl overflow-hidden shadow-2xs;
+  @apply border border-border/50 rounded-2xl overflow-hidden shadow-sm;
 }
 
 .div_169 {
-  @apply bg-muted/20 px-3 py-2 border-b border-border/50;
+  @apply bg-muted/20 px-3.5 py-2.5 border-b border-border/50;
 }
 
 .table_170 {
@@ -708,7 +689,7 @@
 }
 
 .div_172 {
-  @apply px-3 py-2;
+  @apply px-3.5 py-2.5;
 }
 
 .table_173 {
@@ -724,15 +705,15 @@
 }
 
 .table_176 {
-  @apply flex items-center gap-1.5 text-xs text-text-secondary hover:text-text border border-border/50 rounded-xl px-3 py-2 transition cursor-pointer font-semibold;
+  @apply flex items-center gap-1.5 text-xs text-text-secondary hover:text-text border border-border/50 rounded-full px-3.5 py-2 transition cursor-pointer font-semibold;
 }
 
 .table_177 {
-  @apply text-xs text-text-secondary hover:text-text border border-border/50 rounded-xl px-3 py-2 transition cursor-pointer font-semibold;
+  @apply text-xs text-text-secondary hover:text-text border border-border/50 rounded-full px-3.5 py-2 transition cursor-pointer font-semibold;
 }
 
 .table_178 {
-  @apply flex-1 bg-[#F4C542] hover:bg-[#c59d28] text-black font-bold text-xs rounded-xl px-4 py-2 transition cursor-pointer shadow-2xs;
+  @apply flex-1 bg-gradient-to-r from-[#F4C542] to-[#e6b800] hover:from-[#e6b800] hover:to-[#c59d28] text-black font-bold text-xs rounded-full px-4 py-2 transition cursor-pointer shadow-sm active:scale-[0.97];
 }
 
 .div_179 {
@@ -740,7 +721,7 @@
 }
 
 .container_180 {
-  @apply flex items-start gap-2.5 p-3 bg-card rounded-xl border border-border/50;
+  @apply flex items-start gap-2.5 p-3.5 bg-card rounded-2xl border border-border/50;
 }
 
 .text_181 {
@@ -776,7 +757,7 @@
 }
 
 .card_189 {
-  @apply bg-card border border-border/50 rounded-xl p-3.5 space-y-1;
+  @apply bg-card border border-border/50 rounded-2xl p-3.5 space-y-1;
 }
 
 .table_190 {
@@ -796,7 +777,7 @@
 }
 
 .text_194 {
-  @apply bg-background border border-border/50 rounded-xl p-3 space-y-1.5 max-h-40 overflow-y-auto font-mono text-[11px] leading-normal;
+  @apply bg-background border border-border/50 rounded-2xl p-3.5 space-y-1.5 max-h-40 overflow-y-auto font-mono text-[11px] leading-normal;
 }
 
 .container_195 {
@@ -828,7 +809,7 @@
 }
 
 .container_202 {
-  @apply flex items-start gap-2.5 p-3 bg-green-500/10 border border-green-500/20 dark:border-green-950 rounded-xl;
+  @apply flex items-start gap-2.5 p-3.5 bg-green-500/10 border border-green-500/20 dark:border-green-950 rounded-2xl;
 }
 
 .text_203 {
@@ -852,15 +833,15 @@
 }
 
 .table_208 {
-  @apply flex items-center gap-1.5 text-xs text-text-secondary hover:text-text border border-border/50 rounded-xl px-3 py-2 transition cursor-pointer font-semibold;
+  @apply flex items-center gap-1.5 text-xs text-text-secondary hover:text-text border border-border/50 rounded-full px-3.5 py-2 transition cursor-pointer font-semibold;
 }
 
 .table_209 {
-  @apply flex-1 text-xs text-text-secondary hover:text-text border border-border/50 rounded-xl px-3 py-2 transition cursor-pointer text-center font-semibold;
+  @apply flex-1 text-xs text-text-secondary hover:text-text border border-border/50 rounded-full px-3.5 py-2 transition cursor-pointer text-center font-semibold;
 }
 
 .table_210 {
-  @apply flex-1 bg-[#F4C542] hover:bg-[#c59d28] text-black font-bold text-xs rounded-xl px-3 py-2 transition cursor-pointer text-center;
+  @apply flex-1 bg-gradient-to-r from-[#F4C542] to-[#e6b800] hover:from-[#e6b800] hover:to-[#c59d28] text-black font-bold text-xs rounded-full px-3.5 py-2 transition cursor-pointer text-center shadow-sm active:scale-[0.97];
 }
 
 .div_211 {
@@ -868,7 +849,7 @@
 }
 
 .container_212 {
-  @apply flex items-start gap-2.5 p-3 bg-red-500/10 border border-red-500/20 dark:border-red-950 rounded-xl;
+  @apply flex items-start gap-2.5 p-3.5 bg-red-500/10 border border-red-500/20 dark:border-red-950 rounded-2xl;
 }
 
 .text_213 {
@@ -884,15 +865,15 @@
 }
 
 .table_216 {
-  @apply w-full text-xs text-text-secondary hover:text-text border border-border/50 rounded-xl px-3 py-2 transition cursor-pointer text-center font-semibold;
+  @apply w-full text-xs text-text-secondary hover:text-text border border-border/50 rounded-full px-3.5 py-2 transition cursor-pointer text-center font-semibold;
 }
 
 .container_217 {
-  @apply fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-xs p-4;
+  @apply fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/45 backdrop-blur-sm p-4;
 }
 
 .text_218 {
-  @apply bg-[#1A1813] border border-zinc-800 text-white w-full max-w-sm rounded-xl flex flex-col p-6 shadow-2xl relative animate-in zoom-in-95 duration-150;
+  @apply bg-[#1A1813] border border-zinc-800 text-white w-full max-w-sm rounded-[28px] flex flex-col p-6 shadow-2xl relative animate-in zoom-in-95 duration-150;
 }
 
 .table_219 {
@@ -908,11 +889,11 @@
 }
 
 .table_222 {
-  @apply bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-semibold px-4 py-2 rounded-xl transition cursor-pointer;
+  @apply bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-semibold px-4 py-2.5 rounded-full transition cursor-pointer active:scale-[0.97];
 }
 
 .table_223 {
-  @apply bg-[#F4C542] hover:bg-[#c59d28] text-black font-bold text-xs px-4 py-2 rounded-xl transition cursor-pointer;
+  @apply bg-gradient-to-r from-[#F4C542] to-[#e6b800] hover:from-[#e6b800] hover:to-[#c59d28] text-black font-bold text-xs px-4 py-2.5 rounded-full transition cursor-pointer active:scale-[0.97] shadow-sm;
 }
 
 .text_224 {
@@ -920,7 +901,7 @@
 }
 
 .text_225 {
-  @apply text-[9px] font-bold px-2 py-0.5 rounded border;
+  @apply text-[9px] font-bold px-2 py-0.5 rounded-full border;
 }
 
 .text_226 {
@@ -928,7 +909,7 @@
 }
 
 .card_227 {
-  @apply bg-card p-5 rounded-lg shadow-xs transition duration-200 hover:shadow-md hover:-translate-y-0.5 hover:border-[#F4C542]/50 border border-border/50;
+  @apply bg-card p-5 rounded-3xl shadow-sm transition duration-200 hover:shadow-md hover:-translate-y-0.5 hover:border-[#F4C542]/50 border border-border/50;
 }
 
 .table_228 {
@@ -944,18 +925,17 @@
 }
 
 .table_231 {
-  @apply relative border border-dashed rounded-xl p-10 text-center cursor-pointer transition-all duration-150;
+  @apply relative border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all duration-200;
 }
 
 .table_232 {
-  @apply bg-red-500/10 border rounded-xl p-3 text-center transition;
+  @apply bg-red-500/10 border rounded-2xl p-3 text-center transition;
 }
 
 /* ======================================================
    Client Servicing Premium UI Theme Overrides
    ====================================================== */
 
-/* LIGHT MODE ONLY OVERRIDES */
 :global(html:not(.dark)) .card_1,
 :global(html:not(.dark)) .card_40,
 :global(html:not(.dark)) .card_45,
@@ -969,25 +949,25 @@
 :global(html:not(.dark)) .card_115,
 :global(html:not(.dark)) .card_227,
 :global(html:not(.dark)) :global([class*="card_"]) {
-    background-color: #ffffff !important;
-    border: 1px solid rgba(0, 0, 0, 0.06) !important;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.01) !important;
+  background-color: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.01) !important;
 }
 
 :global(html:not(.dark)) :global([class*="card_"]):hover,
 :global(html:not(.dark)) .card_67:hover,
 :global(html:not(.dark)) .card_227:hover {
-    border-color: rgba(244, 197, 66, 0.4) !important;
-    box-shadow: 0 12px 35px rgba(244, 197, 66, 0.08) !important;
+  border-color: rgba(244, 197, 66, 0.4) !important;
+  box-shadow: 0 12px 35px rgba(244, 197, 66, 0.1) !important;
 }
 
 :global(html:not(.dark)) .table_15,
 :global(html:not(.dark)) .table_88,
 :global(html:not(.dark)) :global(thead),
 :global(html:not(.dark)) :global(th) {
-    background-color: #fafafa !important;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
-    color: var(--ink-soft) !important;
+  background-color: #fafafa !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
+  color: var(--ink-soft) !important;
 }
 
 :global(html:not(.dark)) .text_10,
@@ -995,9 +975,9 @@
 :global(html:not(.dark)) :global(input),
 :global(html:not(.dark)) :global(select),
 :global(html:not(.dark)) :global(textarea) {
-    background-color: #ffffff !important;
-    border: 1.5px solid rgba(0, 0, 0, 0.08) !important;
-    color: var(--ink) !important;
+  background-color: #ffffff !important;
+  border: 1.5px solid rgba(0, 0, 0, 0.08) !important;
+  color: var(--ink) !important;
 }
 
 :global(html:not(.dark)) .text_10:focus,
@@ -1005,68 +985,81 @@
 :global(html:not(.dark)) :global(input):focus,
 :global(html:not(.dark)) :global(select):focus,
 :global(html:not(.dark)) :global(textarea):focus {
-    border-color: #F4C542 !important;
-    box-shadow: 0 0 0 3px rgba(244, 197, 66, 0.1) !important;
-    background-color: #ffffff !important;
+  border-color: #F4C542 !important;
+  box-shadow: 0 0 0 4px rgba(244, 197, 66, 0.1) !important;
+  background-color: #ffffff !important;
 }
 
 :global(html:not(.dark)) :global(tr):hover {
-    background-color: #fafafa !important;
+  background-color: #fafafa !important;
 }
 
-/* Button override colors only for light mode */
 :global(html:not(.dark)) .table_11,
 :global(html:not(.dark)) .table_60,
 :global(html:not(.dark)) .table_223,
 :global(html:not(.dark)) :global(button[type="submit"]) {
-    background: linear-gradient(135deg, #FFFbeb 0%, #fcd34d 100%) !important;
-    color: #b45309 !important;
-    border: 1.5px solid rgba(244, 197, 66, 0.3) !important;
-    box-shadow: 0 4px 12px rgba(244, 197, 66, 0.1) !important;
+  background: linear-gradient(135deg, #FFFbeb 0%, #fcd34d 100%) !important;
+  color: #b45309 !important;
+  border: 1.5px solid rgba(244, 197, 66, 0.3) !important;
+  box-shadow: 0 4px 12px rgba(244, 197, 66, 0.12) !important;
 }
 
 :global(html:not(.dark)) .table_11:hover,
 :global(html:not(.dark)) .table_60:hover,
 :global(html:not(.dark)) .table_223:hover,
 :global(html:not(.dark)) :global(button[type="submit"]):hover {
-    background: linear-gradient(135deg, #fde68a 0%, #f59e0b 100%) !important;
-    color: #78350f !important;
-    box-shadow: 0 6px 18px rgba(244, 197, 66, 0.18) !important;
+  background: linear-gradient(135deg, #fde68a 0%, #f59e0b 100%) !important;
+  color: #78350f !important;
+  box-shadow: 0 6px 18px rgba(244, 197, 66, 0.2) !important;
 }
 
 :global(html:not(.dark)) .table_51,
 :global(html:not(.dark)) :global(button:not([type="submit"]):not(.todayBtn)) {
-    background-color: #ffffff !important;
-    border: 1.5px solid rgba(0, 0, 0, 0.08) !important;
-    color: var(--ink-soft) !important;
+  background-color: #ffffff !important;
+  border: 1.5px solid rgba(0, 0, 0, 0.08) !important;
+  color: var(--ink-soft) !important;
 }
 
 :global(html:not(.dark)) .table_51:hover,
 :global(html:not(.dark)) :global(button:not([type="submit"]):not(.todayBtn)):hover {
-    background-color: #fafafa !important;
-    border-color: rgba(0, 0, 0, 0.15) !important;
-    color: var(--ink) !important;
+  background-color: #fafafa !important;
+  border-color: rgba(0, 0, 0, 0.15) !important;
+  color: var(--ink) !important;
 }
 
 /* GLOBAL FUNCTIONAL / SHAPE OVERRIDES (Applied in both themes) */
-:global([class*="table_"]), :global(button), 
-.table_11, .table_51, .table_59, .table_60, .table_72, .table_111, .table_112, .table_222, .table_223 {
-    border-radius: 12px !important;
-    transition: all 0.2s ease-in-out !important;
+:global([class*="table_"]),
+:global(button),
+.table_11,
+.table_51,
+.table_59,
+.table_60,
+.table_72,
+.table_111,
+.table_112,
+.table_222,
+.table_223 {
+  border-radius: 9999px !important;
+  transition: all 0.2s ease-in-out !important;
 }
 
 :global(html:not(.dark)) :global(input),
 :global(html:not(.dark)) :global(select),
 :global(html:not(.dark)) :global(textarea) {
-    border-radius: 12px !important;
-    padding-left: 1rem !important;
-    padding-right: 1rem !important;
+  border-radius: 16px !important;
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
 }
 
-:global(html) .card_1, :global(html) .card_115 {
-    border-radius: 28px !important;
+:global(html) .card_1,
+:global(html) .card_115,
+:global(html) .card_137 {
+  border-radius: 32px !important;
 }
 
-:global(html) .container_0, :global(html) .container_114 {
-    backdrop-filter: blur(8px) !important;
+:global(html) .container_0,
+:global(html) .container_114,
+:global(html) .container_136,
+:global(html) .container_217 {
+  backdrop-filter: blur(8px) !important;
 }

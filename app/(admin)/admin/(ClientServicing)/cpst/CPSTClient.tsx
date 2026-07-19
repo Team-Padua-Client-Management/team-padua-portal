@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import {
   Plus, Search, Edit2, Trash2, X,
-  Upload, FileSpreadsheet, Download, CheckCircle2, Target, Users, Star,
-  AlertCircle, Loader2, Eye, EyeOff
+  Upload, FileSpreadsheet, CheckCircle2, Target, Users, Star,
+  AlertCircle, Loader2, Eye, EyeOff, ImageIcon
 } from 'lucide-react';
 import AdminHeader from '@/app/components/admin/AdminHeader';
 import AdminSidebar from '@/app/components/admin/AdminSidebar';
@@ -44,6 +44,9 @@ interface CPSTClientProps {
   canExport: boolean;
 }
 
+const formInputClass = "w-full px-3.5 py-2.5 border border-border rounded-2xl text-xs focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 bg-card text-foreground transition-all duration-200";
+const formLabelClass = "block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5";
+
 export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }: CPSTClientProps) {
   const [clients, setClients] = useState<ClientManagementRecord[]>([]);
   const [search, setSearch] = useState('');
@@ -57,7 +60,6 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
   const [clientToDelete, setClientToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Drag and Drop & Import state
   const [isDragging, setIsDragging] = useState(false);
   const [importMethod, setImportMethod] = useState<'file' | 'paste'>('file');
   const [pastedText, setPastedText] = useState('');
@@ -94,6 +96,10 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
     errorMessage: ''
   });
 
+  const resetImportState = () => {
+    setImportState({ phase: 'idle', fileName: '', validation: null, totalRows: 0, importedCount: 0, updatedCount: 0, skippedCount: 0, skippedHeaders: 0, skippedEmpty: 0, skippedInvalid: 0, errorMessage: '' });
+  };
+
   const parseDateFlexible = (raw: string): string | null => {
     if (!raw) return null;
     const trimmed = raw.trim();
@@ -115,18 +121,18 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
   const parseClientRows = (rows: any[][]) => {
     let headerIndex = -1;
     const requiredHeaders = ["client name", "email address", "contact number", "location", "date of birth", "age"];
-    
+
     for (let i = 0; i < Math.min(rows.length, 30); i++) {
       const row = rows[i] || [];
       const lowerCells = row.map(cell => String(cell).toLowerCase().trim());
-      
+
       let matchCount = 0;
       for (const h of requiredHeaders) {
         if (lowerCells.some(cell => cell.includes(h))) {
           matchCount++;
         }
       }
-      
+
       if (matchCount >= 4) {
         headerIndex = i;
         break;
@@ -149,7 +155,7 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
 
     const valid: Partial<ClientManagementRecord>[] = [];
     const invalid: { rowNumber: number; reason: string; rawData: any }[] = [];
-    
+
     let skippedHeaders = 0;
     let skippedEmpty = 0;
     let skippedInvalid = 0;
@@ -158,7 +164,6 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
       const row = rows[i];
       if (!row || row.every((cell: any) => !String(cell).trim())) {
         skippedEmpty++;
-        console.log(`[IMPORT] Skipped Empty Row ${i + 1}`);
         continue;
       }
 
@@ -171,7 +176,6 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
         rowText.includes("data privacy act")
       ) {
         skippedHeaders++;
-        console.log(`[IMPORT] Skipped Metadata Row ${i + 1}`);
         continue;
       }
 
@@ -183,18 +187,15 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
       const mobileNumber = mobCol >= 0 ? String(row[mobCol] ?? '').trim() : '';
       const email = emailCol >= 0 ? String(row[emailCol] ?? '').trim() : '';
       const address = addCol >= 0 ? String(row[addCol] ?? '').trim() : '';
-      
+
       const rawBday = bdayCol >= 0 ? String(row[bdayCol] ?? '').trim() : '';
       const birthdate = rawBday ? (parseDateFlexible(rawBday) || rawBday) : '';
 
       if (!clientName) {
         skippedInvalid++;
-        console.log(`[IMPORT] Skipped Invalid Row ${rowNumber} (Missing Client Name)`);
         invalid.push({ rowNumber, reason: 'Missing Client Name', rawData });
         continue;
       }
-
-      console.log(`[IMPORT] Imported Client:\n${clientName}`);
 
       valid.push({
         clientName,
@@ -251,57 +252,46 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
     }
   };
 
-
   const processAndImportClients = async (
     validRows: Partial<ClientManagementRecord>[],
     fileName: string,
     parseStats?: { skippedHeaders: number; skippedEmpty: number; skippedInvalid: number }
   ) => {
-    console.log("BEFORE IMPORT (Parsed Excel):", validRows);
     if (validRows.length === 0) return;
     setImportState(prev => ({ ...prev, phase: 'importing', fileName }));
-
-    console.log("=== [IMPORT] Processing Clients ===");
-    console.log("Parsed Rows:", validRows.length);
-    console.log("Valid Rows:", validRows.length);
 
     const parseDate = (value: any) => {
       if (!value) return null;
       const date = new Date(value);
-      if (isNaN(date.getTime())) {
-        console.warn(`[IMPORT] Invalid date encountered: ${value}`);
-        return null;
-      }
+      if (isNaN(date.getTime())) return null;
       return date.toISOString().split("T")[0];
     };
 
     try {
-      // Fetch existing clients to check for duplicates by email or mobile
       const { data: existingClients, error: fetchError } = await supabase.from('cpst_clients').select('id, email, mobile_number, policy_number');
       if (fetchError) throw fetchError;
 
       const recordsToUpsert: any[] = [];
       let importedCount = 0;
       let updatedCount = 0;
-
       let skippedCount = 0;
 
       for (const record of validRows) {
-        const existing = existingClients?.find(c => 
-          (c.email && record.email && c.email.toLowerCase() === record.email.toLowerCase()) || 
+        const existing = existingClients?.find(c =>
+          (c.email && record.email && c.email.toLowerCase() === record.email.toLowerCase()) ||
           (c.mobile_number && record.mobileNumber && c.mobile_number === record.mobileNumber) ||
           (c.policy_number && record.policyNumber && c.policy_number === record.policyNumber && !record.policyNumber.startsWith('PENDING-'))
         );
-        
-        const existingInBatch = recordsToUpsert.find(c => 
-          (c.email && record.email && c.email.toLowerCase() === record.email.toLowerCase()) || 
+
+        const existingInBatch = recordsToUpsert.find(c =>
+          (c.email && record.email && c.email.toLowerCase() === record.email.toLowerCase()) ||
           (c.mobile_number && record.mobileNumber && c.mobile_number === record.mobileNumber) ||
           (c.policy_number && record.policyNumber && c.policy_number === record.policyNumber && !record.policyNumber.startsWith('PENDING-'))
         );
 
         if (existingInBatch) {
           skippedCount++;
-          continue; // Skip duplicate within the same batch
+          continue;
         }
 
         let id = '';
@@ -332,16 +322,7 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
         });
       }
 
-      console.log("Inserted Rows:", importedCount);
-      console.log("Updated Rows:", updatedCount);
-      console.log("Skipped Rows:", skippedCount);
-
-      console.log("CLIENT DATA:", recordsToUpsert);
-      const result = await supabase.from('cpst_clients').upsert(recordsToUpsert).select();
-      console.log("RESULT:", result);
-      console.log("USER:", await supabase.auth.getUser());
-
-      const { error } = result;
+      const { error } = await supabase.from('cpst_clients').upsert(recordsToUpsert).select();
       if (error) throw error;
 
       setImportState(prev => ({
@@ -357,7 +338,6 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
       }));
       fetchClients();
     } catch (err) {
-      console.error("[FRONTEND] processAndImportClients error:", typeof err === 'object' ? JSON.stringify(err, null, 2) : err);
       setImportState(prev => ({
         ...prev,
         phase: 'error',
@@ -370,25 +350,13 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
     try {
       const XLSX = await import('xlsx');
       const buffer = await file.arrayBuffer();
-
-      console.log("=== [FRONTEND] Parse Decrypted File ===");
-      console.log("File Name:", file.name);
-      console.log("File Type:", file.type);
-      console.log("File Size:", file.size, "bytes");
-      console.log("Buffer Length:", buffer.byteLength, "bytes");
-
       const wb = XLSX.read(buffer, { type: 'array', cellDates: false });
-      console.log("Workbook Sheets:", wb.SheetNames);
-      console.log("Decryption Result: Success and Parsed");
-      console.log("=======================================");
-
       const sheet = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1, raw: true, defval: '' });
 
       const { valid, invalid, stats } = parseClientRows(rows);
       await processAndImportClients(valid, file.name, stats);
     } catch (err) {
-      console.error("[FRONTEND] parseDecryptedFile error:", err);
       setImportState({
         phase: 'error',
         fileName: file.name,
@@ -412,21 +380,12 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
       const XLSX = await import('xlsx');
       const buffer = await file.arrayBuffer();
 
-      console.log("=== [FRONTEND] Parse Original File ===");
-      console.log("File Name:", file.name);
-      console.log("File Type:", file.type);
-      console.log("File Size:", file.size, "bytes");
-      console.log("Buffer Length:", buffer.byteLength, "bytes");
-
-      // Check for OLE CFB file header (D0 CF 11 E0) to catch encrypted file
       let isEncryptedMagic = false;
       if (buffer.byteLength >= 4) {
         const view = new DataView(buffer);
         const magic = view.getUint32(0, false);
-        console.log(`File Magic Hex: 0x${magic.toString(16).toUpperCase()}`);
         if (magic === 0xD0CF11E0) {
           isEncryptedMagic = true;
-          console.log("Detected OLE CFB header (D0 CF 11 E0). Treating as password-protected.");
         }
       }
 
@@ -435,9 +394,6 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
       }
 
       const wb = XLSX.read(buffer, { type: 'array', cellDates: false });
-      console.log("Workbook Sheets:", wb.SheetNames);
-      console.log("=====================================");
-
       const sheet = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1, raw: true, defval: '' });
 
@@ -453,7 +409,6 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
         errMsg.toLowerCase().includes('wrong password') ||
         errMsg.toLowerCase().includes('non-whitespace before first tag');
       if (isPasswordProtected) {
-        console.log("[FRONTEND] File is password protected. Transitioning to password prompt.");
         setImportFile(file);
         setImportState({
           phase: 'password',
@@ -463,7 +418,6 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
           errorMessage: ''
         });
       } else {
-        console.error("[FRONTEND] handleFileSelected error:", errMsg);
         setImportState({
           phase: 'error',
           fileName: file.name,
@@ -518,7 +472,6 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
       }));
 
       const { error } = await supabase.from('cpst_clients').insert(recordsToInsert);
-
       if (error) throw error;
 
       setImportState(prev => ({
@@ -577,7 +530,6 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
           }
         ]);
       } else {
-        console.log("AFTER FETCH (Raw Supabase Data):", data);
         const mappedClients: ClientManagementRecord[] = (data || []).map((c: any) => ({
           id: c.id,
           clientName: c.client_name || '',
@@ -596,7 +548,6 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
           signatureData: c.signature_data || '',
           created_at: c.created_at || ''
         }));
-        console.log("AFTER FETCH (Mapped Data):", mappedClients);
         setClients(mappedClients);
       }
     } catch (err) {
@@ -739,9 +690,6 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
 
   const isAllSelected = filteredClients.length > 0 && selectedIds.length === filteredClients.length;
 
-  console.log("BEFORE RENDER (Clients State):", clients);
-  console.log("BEFORE RENDER (Filtered Clients):", filteredClients);
-
   return (
     <div className={styles.text_52}>
       <AdminSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
@@ -841,7 +789,7 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
               {selectedIds.length > 0 && (
                 <button
                   onClick={() => setClientToDelete('bulk')}
-                  className="px-3 py-1.5 bg-red-500/10 text-red-500 rounded-lg text-xs font-semibold hover:bg-red-500/20 transition whitespace-nowrap"
+                  className="px-4 py-2 bg-red-500/10 text-red-500 rounded-full text-xs font-semibold hover:bg-red-500/20 active:scale-[0.97] transition-all duration-200 whitespace-nowrap"
                 >
                   Delete Selected ({selectedIds.length})
                 </button>
@@ -855,8 +803,8 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
                 <thead>
                   <tr className={styles.table_88}>
                     <th className={styles.text_89}>
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         checked={isAllSelected}
                         onChange={(e) => {
                           if (e.target.checked) setSelectedIds(filteredClients.map(c => c.id));
@@ -887,8 +835,8 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
                     <tr key={client.id} className={`${styles.table_99} group border-b border-border/40 last:border-0`}>
                       <td className={styles.text_100}>
                         <div className="flex items-center gap-2">
-                          <input 
-                            type="checkbox" 
+                          <input
+                            type="checkbox"
                             checked={selectedIds.includes(client.id)}
                             onChange={(e) => {
                               if (e.target.checked) setSelectedIds([...selectedIds, client.id]);
@@ -912,14 +860,14 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
                       <td className={styles.text_107}>{client.fundAllocation}</td>
                       <td className={styles.text_107}>{client.modeOfPayment}</td>
                       <td className="py-2 px-3 text-right sticky right-0 bg-card group-hover:bg-surface-2/50 text-xs">
-                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                           {canEdit && (
-                            <button onClick={() => { setCurrentClient(client); setActiveModal('edit'); }} className="p-1.5 text-muted hover:text-[#F4C542] transition-colors bg-card border border-transparent hover:border-primary rounded-md shadow-sm" title="Edit">
+                            <button onClick={() => { setCurrentClient(client); setActiveModal('edit'); }} className="p-2 text-muted hover:text-[#F4C542] transition-colors duration-200 bg-card border border-transparent hover:border-primary rounded-full shadow-sm" title="Edit">
                               <Edit2 size={14} />
                             </button>
                           )}
                           {canDelete && (
-                            <button onClick={() => confirmDeleteClient(client.id)} className="p-1.5 text-muted hover:text-red-500 transition-colors bg-card border border-transparent hover:border-red-500 rounded-md shadow-sm" title="Delete">
+                            <button onClick={() => confirmDeleteClient(client.id)} className="p-2 text-muted hover:text-red-500 transition-colors duration-200 bg-card border border-transparent hover:border-red-500 rounded-full shadow-sm" title="Delete">
                               <Trash2 size={14} />
                             </button>
                           )}
@@ -940,76 +888,75 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
       </div>
 
       {(activeModal === 'add' || activeModal === 'edit') && (
-        <div className="fixed inset-0 z-50 flex items-center justify-end bg-slate-900/40 backdrop-blur-sm p-4">
-          <div className="bg-card border border-border w-full max-w-md h-full rounded-2xl shadow-2xl relative flex flex-col overflow-hidden animate-in slide-in-from-right duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-end bg-slate-900/45 backdrop-blur-sm p-4">
+          <div className="bg-card border border-border w-full max-w-md h-full rounded-[28px] shadow-2xl relative flex flex-col overflow-hidden animate-in slide-in-from-right duration-200">
             <div className="flex items-center justify-between p-6 border-b border-border bg-surface-2 shrink-0">
               <div>
                 <h2 className="text-base font-bold text-text">{currentClient.id ? 'Edit Client Details' : 'Add New Client'}</h2>
                 <p className="text-xs text-text-secondary">Enter client parameters into the management ledger.</p>
               </div>
-              <button onClick={() => setActiveModal(null)} className="p-2 text-muted hover:text-text hover:bg-slate-200 rounded-xl transition">
+              <button onClick={() => setActiveModal(null)} className="p-2.5 text-muted hover:text-text hover:bg-slate-200 rounded-full transition-colors duration-200">
                 <X size={18} />
               </button>
             </div>
 
             <div className="p-6 overflow-y-auto flex-1 space-y-5">
-
               <form id="cpst-form" onSubmit={handleCreateClient} className="space-y-4 text-left">
                 <div>
-                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5">Client Name <span className="text-red-500">*</span></label>
-                  <input type="text" value={currentClient.clientName || ''} onChange={e => setCurrentClient({ ...currentClient, clientName: e.target.value })} required className="w-full px-3 py-2 border border-border rounded-xl text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary bg-card text-foreground" placeholder="Full Name" />
+                  <label className={formLabelClass}>Client Name <span className="text-red-500">*</span></label>
+                  <input type="text" value={currentClient.clientName || ''} onChange={e => setCurrentClient({ ...currentClient, clientName: e.target.value })} required className={formInputClass} placeholder="Full Name" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5">Relationship</label>
-                  <input type="text" value={currentClient.relationship || ''} onChange={e => setCurrentClient({ ...currentClient, relationship: e.target.value })} className="w-full px-3 py-2 border border-border rounded-xl text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary bg-card text-foreground" placeholder="Self, Spouse, etc." />
+                  <label className={formLabelClass}>Relationship</label>
+                  <input type="text" value={currentClient.relationship || ''} onChange={e => setCurrentClient({ ...currentClient, relationship: e.target.value })} className={formInputClass} placeholder="Self, Spouse, etc." />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5">Approval Date</label>
-                  <input type="date" value={currentClient.approvalDate || ''} onChange={e => setCurrentClient({ ...currentClient, approvalDate: e.target.value })} className="w-full px-3 py-2 border border-border rounded-xl text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary bg-card text-foreground" />
+                  <label className={formLabelClass}>Approval Date</label>
+                  <input type="date" value={currentClient.approvalDate || ''} onChange={e => setCurrentClient({ ...currentClient, approvalDate: e.target.value })} className={formInputClass} />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5">Policy Number</label>
-                  <input type="text" value={currentClient.policyNumber || ''} onChange={e => setCurrentClient({ ...currentClient, policyNumber: e.target.value })} className="w-full px-3 py-2 border border-border rounded-xl text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary bg-card text-foreground" placeholder="POL-12345" />
+                  <label className={formLabelClass}>Policy Number</label>
+                  <input type="text" value={currentClient.policyNumber || ''} onChange={e => setCurrentClient({ ...currentClient, policyNumber: e.target.value })} className={formInputClass} placeholder="POL-12345" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5">Product</label>
-                  <select value={currentClient.product || ''} onChange={e => setCurrentClient({ ...currentClient, product: e.target.value })} className="w-full px-3 py-2 border border-border rounded-xl text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary bg-card text-foreground">
+                  <label className={formLabelClass}>Product</label>
+                  <select value={currentClient.product || ''} onChange={e => setCurrentClient({ ...currentClient, product: e.target.value })} className={formInputClass}>
                     <option value="">Select Product</option>
                     {PRODUCTS.map(p => <option key={p} value={p}>{p}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5">Annual Premium</label>
-                  <input type="number" value={currentClient.annualPremium || ''} onChange={e => setCurrentClient({ ...currentClient, annualPremium: Number(e.target.value) })} className="w-full px-3 py-2 border border-border rounded-xl text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary bg-card text-foreground" placeholder="0.00" />
+                  <label className={formLabelClass}>Annual Premium</label>
+                  <input type="number" value={currentClient.annualPremium || ''} onChange={e => setCurrentClient({ ...currentClient, annualPremium: Number(e.target.value) })} className={formInputClass} placeholder="0.00" />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5">Mode of Payment</label>
-                  <select value={currentClient.modeOfPayment || 'Annual'} onChange={e => setCurrentClient({ ...currentClient, modeOfPayment: e.target.value })} className="w-full px-3 py-2 border border-border rounded-xl text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary bg-card text-foreground">
+                  <label className={formLabelClass}>Mode of Payment</label>
+                  <select value={currentClient.modeOfPayment || 'Annual'} onChange={e => setCurrentClient({ ...currentClient, modeOfPayment: e.target.value })} className={formInputClass}>
                     {PAYMENT_MODES.map(p => <option key={p} value={p}>{p}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5">Fund Allocation</label>
-                  <input type="text" value={currentClient.fundAllocation || ''} onChange={e => setCurrentClient({ ...currentClient, fundAllocation: e.target.value })} className="w-full px-3 py-2 border border-border rounded-xl text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary bg-card text-foreground" placeholder="100% Equity" />
+                  <label className={formLabelClass}>Fund Allocation</label>
+                  <input type="text" value={currentClient.fundAllocation || ''} onChange={e => setCurrentClient({ ...currentClient, fundAllocation: e.target.value })} className={formInputClass} placeholder="100% Equity" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5">Beneficiary</label>
-                  <input type="text" value={currentClient.beneficiary || ''} onChange={e => setCurrentClient({ ...currentClient, beneficiary: e.target.value })} className="w-full px-3 py-2 border border-border rounded-xl text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary bg-card text-foreground" placeholder="Beneficiary Name" />
+                  <label className={formLabelClass}>Beneficiary</label>
+                  <input type="text" value={currentClient.beneficiary || ''} onChange={e => setCurrentClient({ ...currentClient, beneficiary: e.target.value })} className={formInputClass} placeholder="Beneficiary Name" />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5">Mobile Number</label>
-                  <input type="text" value={currentClient.mobileNumber || ''} onChange={e => setCurrentClient({ ...currentClient, mobileNumber: e.target.value })} className="w-full px-3 py-2 border border-border rounded-xl text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary bg-card text-foreground" placeholder="+63..." />
+                  <label className={formLabelClass}>Mobile Number</label>
+                  <input type="text" value={currentClient.mobileNumber || ''} onChange={e => setCurrentClient({ ...currentClient, mobileNumber: e.target.value })} className={formInputClass} placeholder="+63..." />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5">Email Address</label>
-                  <input type="email" value={currentClient.email || ''} onChange={e => setCurrentClient({ ...currentClient, email: e.target.value })} className="w-full px-3 py-2 border border-border rounded-xl text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary bg-card text-foreground" placeholder="email@example.com" />
+                  <label className={formLabelClass}>Email Address</label>
+                  <input type="email" value={currentClient.email || ''} onChange={e => setCurrentClient({ ...currentClient, email: e.target.value })} className={formInputClass} placeholder="email@example.com" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5">Address</label>
-                  <input type="text" value={currentClient.address || ''} onChange={e => setCurrentClient({ ...currentClient, address: e.target.value })} className="w-full px-3 py-2 border border-border rounded-xl text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary bg-card text-foreground" placeholder="Full Address" />
+                  <label className={formLabelClass}>Address</label>
+                  <input type="text" value={currentClient.address || ''} onChange={e => setCurrentClient({ ...currentClient, address: e.target.value })} className={formInputClass} placeholder="Full Address" />
                 </div>
                 <div>
                   <SignaturePad
@@ -1021,10 +968,10 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
             </div>
 
             <div className="flex gap-3 p-6 border-t border-border bg-card shrink-0">
-              <button type="submit" form="cpst-form" className="flex-1 bg-gradient-to-r from-[#F4C542] to-[#e6b800] hover:from-[#e6b800] hover:to-[#c59d28] text-black font-extrabold text-sm py-2.5 rounded-xl transition duration-155 cursor-pointer border border-[#F4C542]/30 shadow-sm">
+              <button type="submit" form="cpst-form" className="flex-1 bg-gradient-to-r from-[#F4C542] to-[#e6b800] hover:from-[#e6b800] hover:to-[#c59d28] text-black font-extrabold text-sm py-2.5 rounded-full transition-all duration-200 cursor-pointer border border-[#F4C542]/30 shadow-sm active:scale-[0.97]">
                 Confirm Save
               </button>
-              <button type="button" onClick={() => setActiveModal(null)} className="flex-1 bg-transparent border border-border text-text hover:bg-surface-2 text-xs font-semibold py-2.5 rounded-xl transition duration-155 cursor-pointer">
+              <button type="button" onClick={() => setActiveModal(null)} className="flex-1 bg-transparent border border-border text-text hover:bg-surface-2 text-xs font-semibold py-2.5 rounded-full transition-all duration-200 cursor-pointer active:scale-[0.97]">
                 Cancel
               </button>
             </div>
@@ -1033,37 +980,36 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
       )}
 
       {activeModal === 'import' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
-          <div className="bg-card border border-border w-full max-w-xl rounded-2xl shadow-2xl relative flex flex-col overflow-hidden animate-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between p-5 border-b border-border bg-surface-2">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 backdrop-blur-sm p-4">
+          <div className="bg-card border border-border w-full max-w-xl rounded-[28px] shadow-2xl relative flex flex-col overflow-hidden animate-in zoom-in-95 duration-150 max-h-[90vh]">
+            <div className="flex items-center justify-between p-5 border-b border-border bg-surface-2 shrink-0">
               <div>
                 <h2 className="text-base font-bold text-text">CAMS Batch Import</h2>
                 <p className="text-xs text-text-secondary">Process client registers via CSV or Excel sheets.</p>
               </div>
               <button
                 onClick={() => {
-                  setImportState({ phase: 'idle', fileName: '', validation: null, totalRows: 0, importedCount: 0, updatedCount: 0, skippedCount: 0, errorMessage: '' });
+                  resetImportState();
                   setPastedText('');
                   setImportFile(null);
                   setPassword('');
                   setImportMethod('file');
                   setActiveModal(null);
                 }}
-                className="p-2 text-muted hover:text-text hover:bg-slate-200 rounded-xl transition"
+                className="p-2.5 text-muted hover:text-text hover:bg-slate-200 rounded-full transition-colors duration-200"
               >
                 <X size={18} />
               </button>
             </div>
 
-            {/* Method Tabs */}
             {importState.phase === 'idle' && (
-              <div className="flex border-b border-border bg-slate-50/50 dark:bg-slate-900/20 p-1 gap-1">
+              <div className="flex border-b border-border bg-slate-50/50 dark:bg-slate-900/20 p-1.5 gap-1.5 shrink-0">
                 <button
                   type="button"
                   onClick={() => setImportMethod('file')}
-                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${importMethod === 'file'
-                      ? 'bg-card text-text shadow-sm border border-border/80'
-                      : 'text-text-secondary hover:text-text hover:bg-surface-2'
+                  className={`flex-1 py-2 text-xs font-bold rounded-full transition-all duration-200 ${importMethod === 'file'
+                    ? 'bg-card text-text shadow-sm border border-border/80'
+                    : 'text-text-secondary hover:text-text hover:bg-surface-2'
                     }`}
                 >
                   File Upload
@@ -1071,9 +1017,9 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
                 <button
                   type="button"
                   onClick={() => setImportMethod('paste')}
-                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${importMethod === 'paste'
-                      ? 'bg-card text-text shadow-sm border border-border/80'
-                      : 'text-text-secondary hover:text-text hover:bg-surface-2'
+                  className={`flex-1 py-2 text-xs font-bold rounded-full transition-all duration-200 ${importMethod === 'paste'
+                    ? 'bg-card text-text shadow-sm border border-border/80'
+                    : 'text-text-secondary hover:text-text hover:bg-surface-2'
                     }`}
                 >
                   Direct Copy & Paste (Excel Bypass)
@@ -1081,32 +1027,30 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
               </div>
             )}
 
-            {/* Phase 1: Idle - Dropzone or Paste Grid */}
             {importState.phase === 'idle' && (
-              <div className="p-6">
+              <div className="p-6 overflow-y-auto">
                 {importMethod === 'file' ? (
                   <div
-                    className={`flex flex-col items-center justify-center transition-all ${isDragging ? 'bg-primary/5 border-primary' : 'bg-transparent border-border'
-                      }`}
+                    className="flex flex-col items-center justify-center transition-all duration-200"
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
                   >
                     <div
-                      className={`w-full border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center cursor-pointer transition ${isDragging ? 'border-primary bg-primary/5 scale-[0.99]' : 'border-border hover:border-primary/55'
+                      className={`w-full border-2 border-dashed rounded-3xl p-8 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 ${isDragging ? 'border-primary bg-primary/5 scale-[0.99]' : 'border-border hover:border-primary/55'
                         }`}
                       onClick={() => {
                         const el = document.getElementById('file-upload-input');
                         if (el) el.click();
                       }}
                     >
-                      <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
+                      <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
                         <FileSpreadsheet size={24} className="text-primary" />
                       </div>
                       <h3 className="text-sm font-bold text-text mb-1">Drag & drop your file here</h3>
                       <p className="text-xs text-text-secondary mb-4">Supports .xlsx and .csv registers</p>
 
-                      <span className="bg-primary text-black font-semibold text-xs px-4 py-2 rounded-xl shadow-sm border border-[#e0b53c] hover:bg-primary/80 transition select-none">
+                      <span className="bg-primary text-black font-semibold text-xs px-5 py-2.5 rounded-full shadow-sm border border-[#e0b53c] hover:bg-primary/80 transition-all duration-200 select-none">
                         Browse Files
                       </span>
 
@@ -1124,7 +1068,7 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    <div className="text-left bg-primary/5 border border-primary/20 rounded-xl p-3 text-xs text-text-secondary">
+                    <div className="text-left bg-primary/5 border border-primary/20 rounded-2xl p-3.5 text-xs text-text-secondary">
                       <p className="font-semibold text-text mb-1">Bypass password locks easily:</p>
                       <ol className="list-decimal pl-4 space-y-1">
                         <li>Open the password-locked file locally in Excel.</li>
@@ -1136,13 +1080,13 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
                       placeholder="Paste columns here (TAB separated Excel grid rows)..."
                       value={pastedText}
                       onChange={e => setPastedText(e.target.value)}
-                      className="w-full h-44 p-3 border border-border rounded-xl text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary bg-card text-foreground font-mono"
+                      className="w-full h-44 p-3.5 border border-border rounded-2xl text-xs focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 bg-card text-foreground font-mono transition-all duration-200"
                     />
                     <button
                       type="button"
                       onClick={() => handlePasteImport(pastedText)}
                       disabled={!pastedText.trim()}
-                      className="w-full bg-primary text-black font-bold text-xs py-2.5 rounded-xl border border-[#e0b53c] hover:bg-primary/80 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full bg-primary text-black font-bold text-xs py-2.5 rounded-full border border-[#e0b53c] hover:bg-primary/80 active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Parse and Validate Paste
                     </button>
@@ -1151,10 +1095,9 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
               </div>
             )}
 
-            {/* Phase 1.5: Password Decryption Required */}
             {importState.phase === 'password' && (
               <div className="p-6 space-y-4">
-                <div className="text-left bg-amber-500/10 border border-amber-500/25 rounded-xl p-3 text-xs text-amber-600 dark:text-amber-400 flex items-start gap-2">
+                <div className="text-left bg-amber-500/10 border border-amber-500/25 rounded-2xl p-3.5 text-xs text-amber-600 dark:text-amber-400 flex items-start gap-2">
                   <AlertCircle className="shrink-0 mt-0.5" size={14} />
                   <div>
                     <p className="font-bold mb-0.5">Password Required</p>
@@ -1162,14 +1105,14 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
                   </div>
                 </div>
                 <div className="space-y-1.5 text-left">
-                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider">Document Password</label>
+                  <label className={formLabelClass}>Document Password</label>
                   <div className="relative">
                     <input
                       type={showPassword ? "text" : "password"}
                       placeholder="Enter password..."
                       value={password}
                       onChange={e => setPassword(e.target.value)}
-                      className="w-full px-3 py-2 pr-10 border border-border rounded-xl text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary bg-card text-foreground"
+                      className={`${formInputClass} pr-10`}
                       onKeyDown={e => {
                         if (e.key === 'Enter' && password) handleDecryptAndImport();
                       }}
@@ -1177,7 +1120,7 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-2.5 text-muted hover:text-text transition-colors"
+                      className="absolute right-3.5 top-2.5 text-muted hover:text-text transition-colors duration-200"
                       title={showPassword ? "Hide password" : "Show password"}
                     >
                       {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
@@ -1192,18 +1135,18 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
                     type="button"
                     onClick={handleDecryptAndImport}
                     disabled={!password}
-                    className="flex-1 bg-primary text-black font-semibold text-xs py-2.5 rounded-xl border border-[#e0b53c] hover:bg-primary/80 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 bg-primary text-black font-semibold text-xs py-2.5 rounded-full border border-[#e0b53c] hover:bg-primary/80 active:scale-[0.97] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Decrypt & Parse File
                   </button>
                   <button
                     type="button"
                     onClick={() => {
-                      setImportState({ phase: 'idle', fileName: '', validation: null, totalRows: 0, importedCount: 0, updatedCount: 0, skippedCount: 0, errorMessage: '' });
+                      resetImportState();
                       setImportFile(null);
                       setPassword('');
                     }}
-                    className="flex-1 bg-transparent border border-border text-text hover:bg-surface-2 text-xs font-semibold py-2.5 rounded-xl transition"
+                    className="flex-1 bg-transparent border border-border text-text hover:bg-surface-2 text-xs font-semibold py-2.5 rounded-full transition-all duration-200 active:scale-[0.97]"
                   >
                     Cancel
                   </button>
@@ -1211,10 +1154,12 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
               </div>
             )}
 
-            {/* Phase 2: Reading / Analyzing */}
             {importState.phase === 'reading' && (
               <div className="p-12 flex flex-col items-center justify-center space-y-4">
-                <Loader2 className="animate-spin text-primary" size={32} />
+                <div className="relative w-14 h-14 flex items-center justify-center">
+                  <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
+                  <div className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+                </div>
                 <div className="text-center">
                   <h3 className="text-sm font-bold text-text">Analyzing Register</h3>
                   <p className="text-xs text-text-secondary mt-1">Reading headers and validating cells...</p>
@@ -1222,7 +1167,6 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
               </div>
             )}
 
-            {/* Phase 3: Preview and Verification */}
             {importState.phase === 'preview' && importState.validation && (
               <div className="flex-1 flex flex-col min-h-0 max-h-[70vh]">
                 <div className="p-5 border-b border-border bg-slate-50/50 dark:bg-slate-900/20 flex items-center justify-between shrink-0">
@@ -1230,12 +1174,12 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
                     <span className="text-xs font-semibold text-text-secondary">File:</span>
                     <span className="text-xs font-bold text-text truncate max-w-[200px]" title={importState.fileName}>{importState.fileName}</span>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-800 dark:bg-green-950/30 dark:text-green-400">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold bg-green-100 text-green-800 dark:bg-green-950/30 dark:text-green-400">
                       {importState.validation.valid.length} Valid
                     </span>
                     {importState.validation.invalid.length > 0 && (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-800 dark:bg-red-950/30 dark:text-red-400">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold bg-red-100 text-red-800 dark:bg-red-950/30 dark:text-red-400">
                         {importState.validation.invalid.length} Error{importState.validation.invalid.length > 1 ? 's' : ''}
                       </span>
                     )}
@@ -1243,13 +1187,12 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
                 </div>
 
                 <div className="p-5 overflow-y-auto space-y-4 flex-1">
-                  {/* Invalid records list (errors) */}
                   {importState.validation.invalid.length > 0 && (
                     <div className="space-y-2">
                       <h4 className="text-xs font-bold text-red-500 uppercase tracking-wider">Validation Errors ({importState.validation.invalid.length})</h4>
-                      <div className="border border-red-200/60 dark:border-red-900/30 rounded-xl bg-red-50/30 dark:bg-red-950/10 overflow-hidden divide-y divide-red-100 dark:divide-red-900/20">
+                      <div className="border border-red-200/60 dark:border-red-900/30 rounded-2xl bg-red-50/30 dark:bg-red-950/10 overflow-hidden divide-y divide-red-100 dark:divide-red-900/20">
                         {importState.validation.invalid.map((inv, idx) => (
-                          <div key={idx} className="p-3 flex items-start gap-2.5 text-xs text-left">
+                          <div key={idx} className="p-3.5 flex items-start gap-2.5 text-xs text-left">
                             <AlertCircle className="text-red-500 shrink-0 mt-0.5" size={14} />
                             <div>
                               <span className="font-semibold text-text">Row {inv.rowNumber}: </span>
@@ -1266,10 +1209,9 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
                     </div>
                   )}
 
-                  {/* Valid records preview */}
                   <div className="space-y-2">
                     <h4 className="text-xs font-bold text-emerald-500 uppercase tracking-wider">Valid Client Records ({importState.validation.valid.length})</h4>
-                    <div className="border border-border rounded-xl bg-card overflow-hidden">
+                    <div className="border border-border rounded-2xl bg-card overflow-hidden">
                       <div className="overflow-x-auto max-h-60">
                         <table className="w-full text-left text-xs whitespace-nowrap">
                           <thead className="bg-surface-2 text-text-secondary border-b border-border sticky top-0">
@@ -1300,18 +1242,18 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
                   <button
                     onClick={handleConfirmImport}
                     disabled={importState.validation.valid.length === 0}
-                    className="flex-1 bg-gradient-to-r from-[#F4C542] to-[#e6b800] hover:from-[#e6b800] hover:to-[#c59d28] disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 text-black font-extrabold text-xs py-2.5 rounded-xl transition shadow-sm cursor-pointer disabled:cursor-not-allowed border border-[#F4C542]/30 disabled:border-transparent"
+                    className="flex-1 bg-gradient-to-r from-[#F4C542] to-[#e6b800] hover:from-[#e6b800] hover:to-[#c59d28] disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 text-black font-extrabold text-xs py-2.5 rounded-full transition-all duration-200 shadow-sm cursor-pointer disabled:cursor-not-allowed border border-[#F4C542]/30 disabled:border-transparent active:scale-[0.97]"
                   >
                     Confirm Import ({importState.validation.valid.length})
                   </button>
                   <button
                     onClick={() => {
-                      setImportState({ phase: 'idle', fileName: '', validation: null, totalRows: 0, importedCount: 0, updatedCount: 0, skippedCount: 0, errorMessage: '' });
+                      resetImportState();
                       setPastedText('');
                       setPassword('');
                       setImportFile(null);
                     }}
-                    className="flex-1 bg-transparent border border-border text-text hover:bg-surface-2 text-xs font-semibold py-2.5 rounded-xl transition"
+                    className="flex-1 bg-transparent border border-border text-text hover:bg-surface-2 text-xs font-semibold py-2.5 rounded-full transition-all duration-200 active:scale-[0.97]"
                   >
                     Reset File
                   </button>
@@ -1319,10 +1261,12 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
               </div>
             )}
 
-            {/* Phase 4: Importing Spinner */}
             {importState.phase === 'importing' && (
               <div className="p-12 flex flex-col items-center justify-center space-y-4">
-                <Loader2 className="animate-spin text-primary" size={32} />
+                <div className="relative w-14 h-14 flex items-center justify-center">
+                  <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
+                  <div className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+                </div>
                 <div className="text-center">
                   <h3 className="text-sm font-bold text-text">Importing Records</h3>
                   <p className="text-xs text-text-secondary mt-1">Uploading and indexing databases...</p>
@@ -1330,10 +1274,9 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
               </div>
             )}
 
-            {/* Phase 5: Done / Success */}
             {importState.phase === 'done' && (
               <div className="p-10 flex flex-col items-center text-center space-y-4">
-                <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-950/30 flex items-center justify-center text-emerald-500">
+                <div className="w-14 h-14 rounded-full bg-emerald-100 dark:bg-emerald-950/30 flex items-center justify-center text-emerald-500">
                   <CheckCircle2 size={28} />
                 </div>
                 <div>
@@ -1347,24 +1290,23 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
                 </div>
                 <button
                   onClick={() => {
-                    setImportState({ phase: 'idle', fileName: '', validation: null, totalRows: 0, importedCount: 0, updatedCount: 0, skippedCount: 0, skippedHeaders: 0, skippedEmpty: 0, skippedInvalid: 0, errorMessage: '' });
+                    resetImportState();
                     setPastedText('');
                     setPassword('');
                     setImportFile(null);
                     setImportMethod('file');
                     setActiveModal(null);
                   }}
-                  className="w-full bg-primary text-black font-semibold text-xs py-2.5 rounded-xl border border-[#e0b53c] hover:bg-primary/80 transition"
+                  className="w-full bg-primary text-black font-semibold text-xs py-2.5 rounded-full border border-[#e0b53c] hover:bg-primary/80 active:scale-[0.97] transition-all duration-200"
                 >
                   Close Panel
                 </button>
               </div>
             )}
 
-            {/* Phase 6: Error State */}
             {importState.phase === 'error' && (
               <div className="p-10 flex flex-col items-center text-center space-y-4">
-                <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-950/30 flex items-center justify-center text-red-500">
+                <div className="w-14 h-14 rounded-full bg-red-100 dark:bg-red-950/30 flex items-center justify-center text-red-500">
                   <AlertCircle size={28} />
                 </div>
                 <div>
@@ -1374,21 +1316,21 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
                 <div className="flex gap-2 w-full">
                   <button
                     onClick={() => {
-                      setImportState({ phase: 'idle', fileName: '', validation: null, totalRows: 0, importedCount: 0, updatedCount: 0, skippedCount: 0, errorMessage: '' });
+                      resetImportState();
                       setPassword('');
                       setImportFile(null);
                     }}
-                    className="flex-1 bg-transparent border border-border text-text hover:bg-surface-2 text-xs font-semibold py-2.5 rounded-xl transition"
+                    className="flex-1 bg-transparent border border-border text-text hover:bg-surface-2 text-xs font-semibold py-2.5 rounded-full transition-all duration-200 active:scale-[0.97]"
                   >
                     Try Again
                   </button>
                   {importState.errorMessage.includes('password-protected') && (
                     <button
                       onClick={() => {
-                        setImportState({ phase: 'idle', fileName: '', validation: null, totalRows: 0, importedCount: 0, updatedCount: 0, skippedCount: 0, errorMessage: '' });
+                        resetImportState();
                         setImportMethod('paste');
                       }}
-                      className="flex-1 bg-primary text-black font-bold text-xs py-2.5 rounded-xl border border-[#e0b53c] hover:bg-primary/80 transition"
+                      className="flex-1 bg-primary text-black font-bold text-xs py-2.5 rounded-full border border-[#e0b53c] hover:bg-primary/80 active:scale-[0.97] transition-all duration-200"
                     >
                       Use Copy & Paste
                     </button>
@@ -1396,7 +1338,6 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
                 </div>
               </div>
             )}
-
           </div>
         </div>
       )}

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Modal } from './Modal';
-import { AlertTriangle, Info, CheckCircle, AlertCircle } from 'lucide-react';
+import { AlertTriangle, Info, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 
 export type ConfirmVariant = 'danger' | 'warning' | 'info' | 'success';
 
@@ -18,26 +18,26 @@ interface ConfirmModalProps {
   isLoading?: boolean;
 }
 
-const variantStyles = {
+const variantStyles: Record<ConfirmVariant, { icon: React.ReactNode; iconBg: string; button: string }> = {
   danger: {
-    icon: <AlertCircle className="h-6 w-6 text-red-600 dark:text-red-500" />,
-    iconBg: 'bg-red-100 dark:bg-red-900/30',
-    button: 'bg-red-600 hover:bg-red-700 text-white border-transparent focus:ring-red-500',
+    icon: <AlertCircle className="h-6 w-6 text-red-600" />,
+    iconBg: 'bg-red-50',
+    button: 'bg-red-600 hover:bg-red-700 text-white',
   },
   warning: {
-    icon: <AlertTriangle className="h-6 w-6 text-amber-600 dark:text-amber-500" />,
-    iconBg: 'bg-amber-100 dark:bg-amber-900/30',
-    button: 'bg-amber-600 hover:bg-amber-700 text-white border-transparent focus:ring-amber-500',
+    icon: <AlertTriangle className="h-6 w-6 text-amber-600" />,
+    iconBg: 'bg-amber-50',
+    button: 'bg-amber-500 hover:bg-amber-600 text-white',
   },
   info: {
-    icon: <Info className="h-6 w-6 text-blue-600 dark:text-blue-500" />,
-    iconBg: 'bg-blue-100 dark:bg-blue-900/30',
-    button: 'bg-blue-600 hover:bg-blue-700 text-white border-transparent focus:ring-blue-500',
+    icon: <Info className="h-6 w-6 text-blue-600" />,
+    iconBg: 'bg-blue-50',
+    button: 'bg-blue-600 hover:bg-blue-700 text-white',
   },
   success: {
-    icon: <CheckCircle className="h-6 w-6 text-emerald-600 dark:text-emerald-500" />,
-    iconBg: 'bg-emerald-100 dark:bg-emerald-900/30',
-    button: 'bg-emerald-600 hover:bg-emerald-700 text-white border-transparent focus:ring-emerald-500',
+    icon: <CheckCircle className="h-6 w-6 text-emerald-600" />,
+    iconBg: 'bg-emerald-50',
+    button: 'bg-emerald-600 hover:bg-emerald-700 text-white',
   },
 };
 
@@ -56,47 +56,38 @@ export function ConfirmModal({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} maxWidth="sm" hideCloseButton>
-      <div className="sm:flex sm:items-start">
-        <div className={`mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full sm:mx-0 sm:h-10 sm:w-10 ${styles.iconBg}`}>
+      <div className="flex flex-col items-center text-center sm:items-start sm:text-left sm:flex-row sm:gap-4">
+        <div className={`mx-auto sm:mx-0 flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${styles.iconBg}`}>
           {styles.icon}
         </div>
-        <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
-          <h3 className="text-lg font-semibold leading-6 text-slate-900 dark:text-white">
+        <div className="mt-3 sm:mt-0">
+          <h3 className="text-lg font-bold text-slate-900">
             {title}
           </h3>
           <div className="mt-2">
-            <p className="text-sm text-slate-500 dark:text-slate-400">
+            <p className="text-sm text-slate-500 leading-relaxed">
               {message}
             </p>
           </div>
         </div>
       </div>
-      <div className="mt-6 sm:mt-5 sm:flex sm:flex-row-reverse gap-3">
-        <button
-          type="button"
-          onClick={onConfirm}
-          disabled={isLoading}
-          className={`inline-flex w-full justify-center rounded-md border px-4 py-2 text-sm font-semibold shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 sm:w-auto sm:text-sm transition-colors ${styles.button} ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
-        >
-          {isLoading ? (
-            <>
-              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Processing...
-            </>
-          ) : (
-            confirmText
-          )}
-        </button>
+      <div className="mt-7 flex flex-col-reverse sm:flex-row gap-3">
         <button
           type="button"
           onClick={onClose}
           disabled={isLoading}
-          className="mt-3 inline-flex w-full justify-center rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:mt-0 sm:w-auto sm:text-sm transition-colors"
+          className="flex-1 inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 active:scale-[0.97] transition-all duration-200 disabled:opacity-50"
         >
           {cancelText}
+        </button>
+        <button
+          type="button"
+          onClick={onConfirm}
+          disabled={isLoading}
+          className={`flex-1 inline-flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold shadow-sm active:scale-[0.97] transition-all duration-200 ${styles.button} ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+        >
+          {isLoading && <Loader2 size={16} className="animate-spin" />}
+          {isLoading ? 'Processing...' : confirmText}
         </button>
       </div>
     </Modal>
