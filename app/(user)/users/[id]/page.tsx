@@ -92,7 +92,8 @@ export default async function UserProfileViewPage({ params }: Props) {
     mapUrl: profile.map_url || "",
 
     avatar: profile.avatar_url || "",
-    status: profile.status || "Active",
+    status: "Active",
+    presenceStatus: profile.status || "offline",
     bio: profile.bio || "",
     website: profile.website || "",
     gcashQr: profile.gcash_qr || null,

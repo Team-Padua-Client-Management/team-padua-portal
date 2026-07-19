@@ -120,9 +120,8 @@ export default async function UserProfilePage({ params }: Props) {
     mapUrl: profile?.map_url || "",
 
     provider: targetUser.app_metadata?.provider || "email",
-    status:
-      profile?.status ||
-      (targetUser.email_confirmed_at ? "Active" : "Pending"),
+    status: targetUser.email_confirmed_at ? "Active" : "Pending",
+    presenceStatus: profile?.status || "offline",
     joined: targetUser.created_at || "",
     lastActive: targetUser.last_sign_in_at || "",
     bio: profile?.bio || "",

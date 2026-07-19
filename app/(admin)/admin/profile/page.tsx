@@ -27,6 +27,7 @@ import { supabase } from "@/app/lib/supabase/client";
 import ProfileAvatar from "@/components/shared/ProfileAvatar";
 import Sidebar from "@/app/components/admin/AdminSidebar";
 import Header from "@/app/components/admin/AdminHeader";
+import UserStatusBadge from "@/components/shared/UserStatusBadge";
 import {
   Shield, Bell, Lock, Camera, Sparkles, Upload, X, ImageIcon,
   Pencil, User, Phone, Globe, Cake, MapPin, FileText, Plus, Trash2,
@@ -124,6 +125,7 @@ export default function ProfilePage() {
   const [profileError, setProfileError] = useState("");
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
+  const [userStatus, setUserStatus] = useState("online");
   const [notifEmail, setNotifEmail] = useState(true);
   const [notifPush, setNotifPush] = useState(false);
   const [twoFactor, setTwoFactor] = useState(false);
@@ -136,6 +138,9 @@ export default function ProfilePage() {
   const [showAvatarPanel, setShowAvatarPanel] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
+  const [avatarFileToUpload, setAvatarFileToUpload] = useState<File | null>(null);
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
 
   const [bgGradient, setBgGradient] = useState(AI_BG_PRESETS[0].style);
   const [showBgPanel, setShowBgPanel] = useState(false);
@@ -225,6 +230,7 @@ const loadProfile = async () => {
           setGcashQr(profile?.gcash_qr || null);
           setSocialLinks(fetchedSocialLinks || []);
           setProfileRole(profile?.role || "Administrator");
+          setUserStatus(profile?.status || "online");
           const notesVal = user.user_metadata?.profile_notes || localStorage.getItem(`tp_notes_${user.id}`) || "";
           setAccountNotes(notesVal);
 
@@ -246,6 +252,33 @@ const loadProfile = async () => {
     loadProfile();
   }, []);
 
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const uniqueId = Math.random().toString(36).slice(2, 9);
+    const channel = supabase
+      .channel(`profiles-status-admin-page-${uniqueId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "profiles",
+          filter: `id=eq.${user.id}`,
+        },
+        (payload) => {
+          if (payload.new && 'status' in payload.new) {
+            setUserStatus((payload.new as any).status || "online");
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
+
   /**
  * Executes operations logic for copyId.
  *
@@ -259,24 +292,43 @@ const copyId = () => {
   };
 
   /**
- * Executes operations logic for handleAvatarSelect.
- *
- * @param e: React.ChangeEvent<HTMLInputElement>
- * @returns State operations sequence.
- */
-const handleAvatarSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+   * Executes operations logic for handleAvatarSelect.
+   *
+   * @param e: React.ChangeEvent<HTMLInputElement>
+   * @returns State operations sequence.
+   */
+  const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setAvatarFileToUpload(file);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setAvatarPreviewUrl(reader.result as string);
+      setIsPreviewModalOpen(true);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  /**
+   * Uploads the selected avatar file to Supabase and updates user profile.
+   */
+  const confirmAvatarUpload = async () => {
+    if (!avatarFileToUpload) return;
     setUploading(true);
     setUploadError("");
     try {
-      const ext = file.name.split(".").pop();
-      const path = `avatars/${user.id}.${ext}`;
-      const { error: storageError } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+      const fileExt = avatarFileToUpload.name.split(".").pop()?.toLowerCase() || "png";
+      const path = `avatars/${user.id}.${fileExt}`;
+      const { error: storageError } = await supabase.storage.from("avatars").upload(path, avatarFileToUpload, { 
+        upsert: true,
+        contentType: avatarFileToUpload.type,
+        cacheControl: "3600",
+      });
       if (storageError) throw storageError;
       const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
       const publicUrl = urlData.publicUrl + `?t=${Date.now()}`;
-      await /* Query database records from active repository grid */ supabase.from("profiles").update({
+      await supabase.from("profiles").update({
         avatar_url: publicUrl,
         avatar_mode: "upload",
         updated_at: new Date().toISOString(),
@@ -284,6 +336,9 @@ const handleAvatarSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
       setUploadedAvatar(publicUrl);
       setAvatarMode("upload");
       setShowAvatarPanel(false);
+      setIsPreviewModalOpen(false);
+      setAvatarFileToUpload(null);
+      setAvatarPreviewUrl(null);
       window.dispatchEvent(new CustomEvent("profile-updated"));
     } catch (err: any) {
       setUploadError(err.message || "Upload failed.");
@@ -304,9 +359,13 @@ const handleGcashSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setGcashUploading(true);
     setGcashError("");
     try {
-      const ext = file.name.split(".").pop();
-      const path = `gcash-qr/${user.id}.${ext}`;
-      const { error: storageError } = await supabase.storage.from("gcash-qr").upload(path, file, { upsert: true });
+      const fileExt = file.name.split(".").pop()?.toLowerCase() || "png";
+      const path = `gcash-qr/${user.id}.${fileExt}`;
+      const { error: storageError } = await supabase.storage.from("gcash-qr").upload(path, file, { 
+        upsert: true,
+        contentType: file.type,
+        cacheControl: "3600",
+      });
       if (storageError) throw storageError;
       const { data: urlData } = supabase.storage.from("gcash-qr").getPublicUrl(path);
       const publicUrl = urlData.publicUrl + `?t=${Date.now()}`;
@@ -319,6 +378,7 @@ const handleGcashSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
       setGcashError(err.message || "Upload failed.");
     } finally {
       setGcashUploading(false);
+      e.target.value = "";
     }
   };
 
@@ -343,14 +403,17 @@ const removeGcashQr = async () => {
  * @returns State operations sequence.
  */
 const regenerateAi = async () => {
-    const newSeed = user?.id + Date.now().toString();
+    const newSeed = Math.random().toString(36).substring(7);
+    const aiUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${newSeed}`;
     const { error } = await /* Query database records from active repository grid */ supabase.from("profiles").update({
       ai_seed: newSeed,
+      avatar_url: aiUrl,
       avatar_mode: "ai",
       updated_at: new Date().toISOString(),
     }).eq("id", user.id);
     if (!error) {
       setAiSeed(newSeed);
+      setUploadedAvatar(aiUrl);
       setAvatarMode("ai");
       window.dispatchEvent(new CustomEvent("profile-updated"));
     }
@@ -615,69 +678,75 @@ const deleteLink = async (id: string) => {
               </div>
             </div>
 
-            <div className={styles.card_35}>
-              <div className={styles.container_36}>
-                <div className={styles.div_37}>
-                  <ProfileAvatar avatarUrl={uploadedAvatar} name={displayName} size={96} className={styles.div_14} />
-                  <button type="button" onClick={() => setShowAvatarPanel(!showAvatarPanel)}
-                    className={styles.table_38}>
-                    <Camera className={styles.text_39} />
-                  </button>
-                  {showAvatarPanel && (
-                    <div className={styles.card_40}>
-                      <div className={styles.container_41}>
-                        <p className={styles.table_42}>Change Avatar</p>
-                        <button type="button" onClick={() => setShowAvatarPanel(false)}>
-                          <X className={styles.text_43} />
-                        </button>
-                      </div>
-                      <button type="button" onClick={() => avatarFileRef.current?.click()} disabled={uploading}
-                        className={styles.table_44}>
-                        <Upload className={styles.text_45} />
-                        <div>
-                          <p className={styles.table_46}>{uploading ? "Uploading..." : "Upload Photo"}</p>
-                          <p className={styles.table_47}>JPG or PNG</p>
-                        </div>
+            <div className="relative z-10 flex flex-col items-center text-center px-8 pb-8 pt-4 bg-card/20 backdrop-blur-sm">
+              <div className="relative shrink-0 -mt-20 sm:-mt-28 z-20">
+                <div className="border-4 border-white dark:border-slate-900 rounded-full shadow-xl bg-background transition-transform duration-300 hover:scale-105">
+                  <ProfileAvatar avatarUrl={uploadedAvatar} name={displayName} size={112} className="w-28 h-28 object-cover rounded-full" />
+                </div>
+                <button type="button" onClick={() => setShowAvatarPanel(!showAvatarPanel)}
+                  className="absolute -bottom-1 -right-1 w-8 h-8 bg-black border border-border rounded-md flex items-center justify-center hover:bg-[#F4C542] transition-colors shadow cursor-pointer z-30">
+                  <Camera className="w-4 h-4 text-white" />
+                </button>
+                {showAvatarPanel && (
+                  <div className="absolute left-1/2 top-full -translate-x-1/2 mt-2 z-[60] w-56 bg-card rounded-2xl border border-border shadow-2xl p-3 space-y-1 text-foreground">
+                    <div className="flex justify-between items-center px-1 pb-2 border-b border-border">
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Change Avatar</p>
+                      <button type="button" onClick={() => setShowAvatarPanel(false)} className="text-muted-foreground hover:text-foreground p-0.5 rounded transition">
+                        <X size={12} />
                       </button>
-                      <button type="button" onClick={regenerateAi}
-                        className={styles.table_48}>
-                        <Sparkles className={styles.text_49} />
-                        <div>
-                          <p className={styles.table_50}>AI Avatar</p>
-                          <p className={styles.table_51}>Generate Unique</p>
-                        </div>
-                      </button>
-                      <button type="button" onClick={async () => {
-                        const { error } = await /* Query database records from active repository grid */ supabase.from("profiles").update({
-                          avatar_mode: "initials",
-                          updated_at: new Date().toISOString(),
-                        }).eq("id", user.id);
-                        if (!error) {
-                          setAvatarMode("initials");
-                          window.dispatchEvent(new CustomEvent("profile-updated"));
-                        }
-                        setShowAvatarPanel(false);
-                      }}
-                        className={styles.table_52}>
-                        <div className={styles.container_53}>
-                          <span className={styles.text_54}>AB</span>
-                        </div>
-                        <div>
-                          <p className={styles.table_55}>Use Initials</p>
-                          <p className={styles.table_56}>Name letters</p>
-                        </div>
-                      </button>
-                      {uploadError && <p className={styles.text_57}>{uploadError}</p>}
-                      <input ref={avatarFileRef} type="file" accept="image/*" className={styles.div_58} onChange={handleAvatarSelect} />
                     </div>
-                  )}
-                </div>
-                <div className={styles.div_59}>
-                  <h1 className={styles.text_60}>{displayName}</h1>
-                  <p className={styles.table_61}>{user.email}</p>
-                </div>
+                    <button type="button" onClick={() => avatarFileRef.current?.click()} disabled={uploading}
+                      className="w-full flex items-center gap-2.5 p-2 rounded-lg text-left text-xs font-semibold hover:bg-muted text-foreground cursor-pointer disabled:opacity-50 transition">
+                      <Upload size={14} className="text-[#F4C542] shrink-0" />
+                      <div>
+                        <p>{uploading ? "Uploading..." : "Upload Photo"}</p>
+                        <p className="text-[8px] text-muted-foreground">JPG or PNG</p>
+                      </div>
+                    </button>
+                    <button type="button" onClick={regenerateAi}
+                      className="w-full flex items-center gap-2.5 p-2 rounded-lg text-left text-xs font-semibold hover:bg-muted text-foreground cursor-pointer transition">
+                      <Sparkles size={14} className="text-[#F4C542] shrink-0 animate-pulse" />
+                      <div>
+                        <p>AI Avatar</p>
+                        <p className="text-[8px] text-muted-foreground">Generate Unique</p>
+                      </div>
+                    </button>
+                    <button type="button" onClick={async () => {
+                      const { error } = await supabase.from("profiles").update({
+                        avatar_url: null,
+                        avatar_mode: "initials",
+                        updated_at: new Date().toISOString(),
+                      }).eq("id", user.id);
+                      if (!error) {
+                        setUploadedAvatar(null);
+                        setAvatarMode("initials");
+                        window.dispatchEvent(new CustomEvent("profile-updated"));
+                      }
+                      setShowAvatarPanel(false);
+                    }}
+                      className="w-full flex items-center gap-2.5 p-2 rounded-lg text-left text-xs font-semibold hover:bg-muted text-foreground cursor-pointer transition">
+                      <span className="w-5 h-5 flex items-center justify-center bg-[#F4C542]/10 text-[#F4C542] rounded text-[9px] font-bold shrink-0">AB</span>
+                      <div>
+                        <p>Use Initials</p>
+                        <p className="text-[8px] text-muted-foreground">Name letters</p>
+                      </div>
+                    </button>
+                    {uploadError && <p className="text-[10px] text-red-500 text-center font-bold">{uploadError}</p>}
+                    <input ref={avatarFileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarSelect} />
+                  </div>
+                )}
               </div>
+              <div className="mt-4 flex flex-col items-center gap-2">
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">{displayName}</h1>
+                <p className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">{profileRole}</p>
+                <div className="py-1">
+                  <UserStatusBadge status={userStatus as any} />
+                </div>
+                <p className="text-sm text-muted-foreground">{user.email}</p>
+              </div>
+            </div>
 
+            <div className="px-8 pb-8 pt-4 bg-card/20 backdrop-blur-sm relative">
               <div className={styles.container_62}>
                 {tabs.map((tab) => (
                   <button key={tab} type="button" onClick={() => setActiveTab(tab)}
@@ -1059,6 +1128,60 @@ const deleteLink = async (id: string) => {
               <button type="button" onClick={saveLink} disabled={savingLinks || !newLinkUrl.trim()}
                 className={styles.table_191}>
                 {savingLinks ? "Saving…" : editingLinkId ? "Update Link" : "Add Link"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Profile Image Preview Modal */}
+      {isPreviewModalOpen && avatarPreviewUrl && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-[#121318] border border-zinc-800 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150">
+            <div className="flex justify-between items-center p-5 border-b border-zinc-800 bg-zinc-900/30">
+              <h3 className="text-sm font-bold text-zinc-100">Check Profile Image</h3>
+              <button 
+                onClick={() => {
+                  setIsPreviewModalOpen(false);
+                  setAvatarFileToUpload(null);
+                  setAvatarPreviewUrl(null);
+                }} 
+                className="text-zinc-500 hover:text-zinc-300 p-1.5 hover:bg-zinc-800 rounded-xl transition"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            
+            <div className="p-6 flex flex-col items-center justify-center bg-zinc-950/40">
+              <div className="relative w-48 h-48 rounded-full overflow-hidden border-4 border-zinc-800 bg-zinc-900 shadow-inner flex items-center justify-center">
+                <img 
+                  src={avatarPreviewUrl} 
+                  alt="Avatar Preview" 
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <p className="text-[11px] text-zinc-400 mt-4 text-center">
+                This is how your new profile image will appear in the workspace.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 p-4 border-t border-zinc-800 bg-zinc-900/20">
+              <button
+                onClick={() => {
+                  setIsPreviewModalOpen(false);
+                  setAvatarFileToUpload(null);
+                  setAvatarPreviewUrl(null);
+                }}
+                className="px-4 py-2 text-xs font-semibold text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50 rounded-xl transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmAvatarUpload}
+                disabled={uploading}
+                className="px-5 py-2 text-xs font-bold bg-[#F4C542] text-black hover:bg-[#d8ad2d] rounded-xl shadow-sm transition disabled:opacity-50"
+              >
+                {uploading ? "Uploading..." : "Upload & Save"}
               </button>
             </div>
           </div>

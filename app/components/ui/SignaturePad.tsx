@@ -5,9 +5,10 @@ import { Upload, X, RotateCcw, PenTool } from 'lucide-react';
 interface SignaturePadProps {
   onSignatureChange: (signatureData: string | null) => void;
   initialSignature?: string | null;
+  title?: string;
 }
 
-export default function SignaturePad({ onSignatureChange, initialSignature }: SignaturePadProps) {
+export default function SignaturePad({ onSignatureChange, initialSignature, title = "Signature" }: SignaturePadProps) {
   const sigCanvas = useRef<SignatureCanvas>(null);
   const [mode, setMode] = useState<'draw' | 'upload'>('draw');
   const [signatureImage, setSignatureImage] = useState<string | null>(initialSignature || null);
@@ -44,7 +45,7 @@ export default function SignaturePad({ onSignatureChange, initialSignature }: Si
   return (
     <div className="w-full bg-card border border-border rounded-none p-4 flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Signature</span>
+        <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{title}</span>
         <div className="flex bg-muted/50 p-1 rounded-none border border-border">
           <button
             type="button"

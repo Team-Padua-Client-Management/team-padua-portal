@@ -6,7 +6,7 @@ import Link from "next/link";
 import {
   RefreshCw, AlertTriangle,
   CalendarCheck, Users, MessageSquare, Gamepad2,
-  Sun, Sunrise, Moon, ChevronRight, Calendar, ArrowUpRight
+  Sun, Sunrise, Moon, ChevronRight, Calendar, ArrowUpRight, Bell
 } from "lucide-react";
 import styles from "@/styles/user/dashboard/personal/page.module.css";
 import WelcomeModal from "@/components/shared/WelcomeModal";
@@ -43,8 +43,32 @@ export default function DashboardPage() {
 
   const [phTime, setPhTime] = useState("");
   const [phDate, setPhDate] = useState("");
+  const [activeAnnouncement, setActiveAnnouncement] = useState<string | null>(null);
+  const [announcementDismissed, setAnnouncementDismissed] = useState(true);
+
+  const checkAnnouncementLocal = () => {
+    const isShow = localStorage.getItem('sys_show_announcements') === '1';
+    const text = localStorage.getItem('sys_announcement_text') || '';
+    if (isShow && text.trim() !== '') {
+      setActiveAnnouncement(text);
+      const dismissed = sessionStorage.getItem(`tp_announcement_dismissed_${encodeURIComponent(text)}`) === 'true';
+      setAnnouncementDismissed(dismissed);
+    } else {
+      setActiveAnnouncement(null);
+    }
+  };
 
   const greeting = useMemo(() => getGreeting(), []);
+
+  useEffect(() => {
+    checkAnnouncementLocal();
+    window.addEventListener('storage', checkAnnouncementLocal);
+    window.addEventListener('announcement-change', checkAnnouncementLocal);
+    return () => {
+      window.removeEventListener('storage', checkAnnouncementLocal);
+      window.removeEventListener('announcement-change', checkAnnouncementLocal);
+    };
+  }, []);
 
   useEffect(() => {
     const updateTime = () => {
@@ -83,6 +107,29 @@ export default function DashboardPage() {
         .eq("receiver_id", uid)
         .eq("is_read", false);
       setUnreadMessages(count || 0);
+
+      // Fetch latest global announcement from Supabase
+      try {
+        const { data: dbAnnouncements } = await supabase
+          .from('notifications')
+          .select('*')
+          .eq('type', 'announcement')
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (dbAnnouncements && dbAnnouncements.length > 0) {
+          const text = dbAnnouncements[0].description;
+          localStorage.setItem('sys_show_announcements', '1');
+          localStorage.setItem('sys_announcement_text', text);
+          setActiveAnnouncement(text);
+          const dismissed = sessionStorage.getItem(`tp_announcement_dismissed_${encodeURIComponent(text)}`) === 'true';
+          setAnnouncementDismissed(dismissed);
+        } else {
+          checkAnnouncementLocal();
+        }
+      } catch (err) {
+        checkAnnouncementLocal();
+      }
 
     } catch {
       setShowErrorModal(true);
@@ -190,6 +237,40 @@ export default function DashboardPage() {
       <div className={styles.mainWrapper}>
         <div className={styles.mainContent}>
           <WelcomeHero userName={userName} role={userRole} />
+
+          {activeAnnouncement && !announcementDismissed && (
+            <div className="relative overflow-hidden rounded-2xl p-5 mb-6 border border-amber-500/30 bg-amber-500/5 dark:bg-amber-500/10 backdrop-blur-md shadow-lg animate-in slide-in-from-top duration-300">
+              <div className="absolute top-0 right-0 w-2 h-2 rounded-full bg-amber-505 animate-ping m-4" style={{ backgroundColor: '#F4C542' }} />
+              <div className="absolute top-0 right-0 w-2 h-2 rounded-full m-4" style={{ backgroundColor: '#F4C542' }} />
+              
+              <div className="flex gap-4 items-start pr-8">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border border-amber-500/20 shadow-inner" style={{ backgroundColor: 'rgba(244, 197, 66, 0.1)', borderColor: 'rgba(244, 197, 66, 0.2)', color: '#F4C542' }}>
+                  <Bell size={20} className="animate-bounce" />
+                </div>
+                <div className="flex-1 space-y-1">
+                  <h4 className="text-xs font-extrabold uppercase tracking-wider flex items-center gap-1.5" style={{ color: '#F4C542' }}>
+                    Global System Announcement
+                  </h4>
+                  <p className="text-xs md:text-sm leading-relaxed font-medium" style={{ color: 'var(--text)' }}>
+                    {activeAnnouncement}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  sessionStorage.setItem(`tp_announcement_dismissed_${encodeURIComponent(activeAnnouncement)}`, 'true');
+                  setAnnouncementDismissed(true);
+                }}
+                className="absolute top-3 right-3 p-1 rounded-lg hover:bg-amber-500/10 transition-colors"
+                style={{ color: '#F4C542', border: 'none', background: 'none', cursor: 'pointer' }}
+                aria-label="Dismiss announcement"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          )}
 
           {/* External Portals */}
           <div>

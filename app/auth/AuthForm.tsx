@@ -5,11 +5,13 @@ import { Eye, EyeOff, Lock, Mail, AlertCircle, CheckCircle2, X, Users, User, Shi
 import { supabase } from "@/app/lib/supabase/client";
 import { SignIn, SignUp } from "../action/auth";
 
+import type { AuthActionResult } from "@/app/lib/auth/types";
+
 const SAVED_EMAIL_KEY = "tp_saved_email";
 const SAVED_GOOGLE_KEY = "tp_saved_google";
 
 type AuthFormProps = {
-  action: (formData: FormData) => Promise<{ error: string } | void>;
+  action: (formData: FormData) => Promise<AuthActionResult>;
 };
 
 type SavedGoogle = { name: string; email: string; avatar: string } | null;

@@ -25,7 +25,10 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
   const effectiveOnClose = onClose ?? layoutContext?.closeSidebar;
   const effectiveOpen = layoutContext?.openSidebar;
   const [dashboardOpen, setDashboardOpen] = useState(false);
+  const [camsOpen, setCamsOpen] = useState(false);
   const [clientServicingOpen, setClientServicingOpen] = useState(false);
+  const [trackersOpen, setTrackersOpen] = useState(false);
+  const [sunlifeFormsOpen, setSunlifeFormsOpen] = useState(false);
   const [portalManagementOpen, setPortalManagementOpen] = useState(false);
   const [greeting, setGreeting] = useState('');
   const [isCollapsed, setIsCollapsed] = useState(true);
@@ -100,10 +103,23 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
         setDashboardOpen(true);
       }, 0);
     }
-    const clientServicingPaths = ['/admin/cpst', '/admin/acr', '/admin/bcr', '/admin/fund-switching', '/admin/fund-withdrawal', '/admin/aca', '/admin/reinstatement-sro', '/admin/reinstatement-pdi', '/admin/csmv'];
-    if (clientServicingPaths.some(p => pathname.startsWith(p))) {
+    const clientServicingPaths = ['/admin/cpst', '/admin/cv', '/admin/pptm', '/admin/cgpt', '/admin/csmv'];
+    const trackerPaths = ['/admin/jf-application', '/admin/jf-bizdev'];
+    const sunlifeFormPaths = [
+      '/admin/acr', '/admin/bcr', '/admin/fund-switching', '/admin/fund-withdrawal',
+      '/admin/aca', '/admin/reinstatement-sro', '/admin/reinstatement-pdi', '/admin/adat'
+    ];
+
+    const isClientServicing = clientServicingPaths.some(p => pathname.startsWith(p));
+    const isTracker = trackerPaths.some(p => pathname.startsWith(p));
+    const isSunlifeForm = sunlifeFormPaths.some(p => pathname.startsWith(p));
+
+    if (isClientServicing || isTracker || isSunlifeForm) {
       setTimeout(() => {
-        setClientServicingOpen(true);
+        setCamsOpen(true);
+        if (isClientServicing) setClientServicingOpen(true);
+        if (isTracker) setTrackersOpen(true);
+        if (isSunlifeForm) setSunlifeFormsOpen(true);
       }, 0);
     }
     if (pathname.startsWith('/admin/portals')) {
@@ -118,16 +134,35 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
   ];
 
   const clientServicingItems = [
-    { name: 'Client Management', href: '/admin/cpst' },
-    { name: 'ACR', href: '/admin/acr' },
-    { name: 'BCR', href: '/admin/bcr' },
+    { name: 'Client Management Tracker', href: '/admin/cpst' },
+    { name: 'Client Policy Card', href: '/admin/cv' },
+    { name: 'Premium Payment', href: '/admin/pptm' },
+    { name: 'Client Welcome Note & Birthday Poster', href: '/admin/cgpt' },
+    { name: 'Client Social Media Visibility', href: '/admin/csmv' },
+  ];
+
+  const trackerItems = [
+    { name: 'JotForm Application Form', href: '/admin/jf-application' },
+    { name: 'JotForm BizDev Recruitment', href: '/admin/jf-bizdev' },
+  ];
+
+  const sunlifeFormItems = [
+    { name: 'FORM', href: '/admin/form' },
+    { name: 'Advisor Change Request', href: '/admin/acr' },
+    { name: 'Beneficiary Change Request', href: '/admin/bcr' },
     { name: 'Fund Switching', href: '/admin/fund-switching' },
     { name: 'Fund Withdrawal', href: '/admin/fund-withdrawal' },
-    { name: 'ACA', href: '/admin/aca' },
-    { name: 'Reinstatement - SRO', href: '/admin/reinstatement-sro' },
-    { name: 'Reinstatement - PDI', href: '/admin/reinstatement-pdi' },
-    { name: 'CSMV', href: '/admin/csmv' },
+    { name: 'Auto Change Arrangement', href: '/admin/aca' },
+    { name: 'Reinstatement SRO', href: '/admin/reinstatement-sro' },
+    { name: 'Reinstatement PDI', href: '/admin/reinstatement-pdi' },
+    { name: 'Advisor Daily Activity Tracker', href: '/admin/adat' },
   ];
+
+  const camsActive = [
+    ...clientServicingItems,
+    ...trackerItems,
+    ...sunlifeFormItems
+  ].some(item => pathname.startsWith(item.href));
 
   const portalItems = [
     { name: 'Overview', href: '/admin/portals' },
@@ -225,7 +260,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
 
         <div className={styles.sidebarNavGroup}>
           <div
-            className={`${isEffectivelyCollapsed ? styles.navItemCollapsed : styles.navItem} ${clientServicingItems.some(item => pathname.startsWith(item.href))
+            className={`${isEffectivelyCollapsed ? styles.navItemCollapsed : styles.navItem} ${camsActive
               ? styles.navItemActive
               : styles.navItemInactive
               }`}
@@ -233,15 +268,15 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
             <button
               onClick={() => {
                 if (isEffectivelyCollapsed) {
-                  window.location.href = clientServicingItems[0].href;
+                  window.location.href = '/admin/cpst';
                 } else {
-                  setClientServicingOpen(!clientServicingOpen);
+                  setCamsOpen(!camsOpen);
                 }
               }}
               title={isEffectivelyCollapsed ? "CAMS" : undefined}
               className={isEffectivelyCollapsed ? 'flex items-center justify-center w-full' : styles.navItemLink}
             >
-              <Briefcase size={16} className={`shrink-0 ${clientServicingItems.some(item => pathname.startsWith(item.href)) ? styles.navIconActive : styles.navIconInactive}`} />
+              <Briefcase size={16} className={`shrink-0 ${camsActive ? styles.navIconActive : styles.navIconInactive}`} />
               <span className={`${styles.navLabel} ${isEffectivelyCollapsed ? styles.navLabelHidden : ''}`}>CAMS</span>
             </button>
             {!isEffectivelyCollapsed && (
@@ -249,30 +284,103 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                 onClick={(e) => {
                   e.stopPropagation();
                   e.preventDefault();
-                  setClientServicingOpen(!clientServicingOpen);
+                  setCamsOpen(!camsOpen);
                 }}
                 className={styles.dropdownToggleBtn}
               >
-                {clientServicingOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                {camsOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
               </button>
             )}
           </div>
 
-          {!isEffectivelyCollapsed && clientServicingOpen && (
-            <div className={styles.sidebarSubNav}>
-              {clientServicingItems.map((sub) => {
-                const subActive = pathname === sub.href || pathname.startsWith(sub.href);
-                return (
-                  <Link
-                    key={sub.href}
-                    href={sub.href}
-                    onClick={onClose}
-                    className={`${styles.sidebarSubNavItem} ${subActive ? styles.navSubActive : styles.navSubInactive}`}
-                  >
-                    <span>{sub.name}</span>
-                  </Link>
-                );
-              })}
+          {!isEffectivelyCollapsed && camsOpen && (
+            <div className={`${styles.sidebarSubNav} flex flex-col gap-1.5`}>
+              {/* Category 1: Client Servicing */}
+              <div className="flex flex-col">
+                <button
+                  type="button"
+                  onClick={() => setClientServicingOpen(!clientServicingOpen)}
+                  className="flex items-center justify-between w-full px-2.5 py-1.5 text-[11px] font-bold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors border-0 cursor-pointer bg-transparent text-left"
+                >
+                  <span>Client Servicing</span>
+                  {clientServicingOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                </button>
+                {clientServicingOpen && (
+                  <div className="pl-2 border-l border-slate-200 dark:border-slate-800 ml-1.5 mt-1 space-y-0.5">
+                    {clientServicingItems.map((sub) => {
+                      const subActive = pathname === sub.href || pathname.startsWith(sub.href);
+                      return (
+                        <Link
+                          key={sub.href}
+                          href={sub.href}
+                          onClick={onClose}
+                          className={`${styles.sidebarSubNavItem} ${subActive ? styles.navSubActive : styles.navSubInactive}`}
+                        >
+                          <span>{sub.name}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Category 2: Trackers */}
+              <div className="flex flex-col">
+                <button
+                  type="button"
+                  onClick={() => setTrackersOpen(!trackersOpen)}
+                  className="flex items-center justify-between w-full px-2.5 py-1.5 text-[11px] font-bold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors border-0 cursor-pointer bg-transparent text-left"
+                >
+                  <span>Trackers</span>
+                  {trackersOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                </button>
+                {trackersOpen && (
+                  <div className="pl-2 border-l border-slate-200 dark:border-slate-800 ml-1.5 mt-1 space-y-0.5">
+                    {trackerItems.map((sub) => {
+                      const subActive = pathname === sub.href || pathname.startsWith(sub.href);
+                      return (
+                        <Link
+                          key={sub.href}
+                          href={sub.href}
+                          onClick={onClose}
+                          className={`${styles.sidebarSubNavItem} ${subActive ? styles.navSubActive : styles.navSubInactive}`}
+                        >
+                          <span>{sub.name}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Category 3: Sun Life Forms */}
+              <div className="flex flex-col">
+                <button
+                  type="button"
+                  onClick={() => setSunlifeFormsOpen(!sunlifeFormsOpen)}
+                  className="flex items-center justify-between w-full px-2.5 py-1.5 text-[11px] font-bold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors border-0 cursor-pointer bg-transparent text-left"
+                >
+                  <span>Sun Life Forms</span>
+                  {sunlifeFormsOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                </button>
+                {sunlifeFormsOpen && (
+                  <div className="pl-2 border-l border-slate-200 dark:border-slate-800 ml-1.5 mt-1 space-y-0.5">
+                    {sunlifeFormItems.map((sub) => {
+                      const subActive = pathname === sub.href || pathname.startsWith(sub.href);
+                      return (
+                        <Link
+                          key={sub.href}
+                          href={sub.href}
+                          onClick={onClose}
+                          className={`${styles.sidebarSubNavItem} ${subActive ? styles.navSubActive : styles.navSubInactive}`}
+                        >
+                          <span>{sub.name}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

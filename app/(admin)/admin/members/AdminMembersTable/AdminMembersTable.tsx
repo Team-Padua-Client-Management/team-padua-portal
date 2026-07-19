@@ -11,11 +11,12 @@
  * - Handles modular presentation logic.
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from "@/styles/admin/members/AdminMembersTable/AdminMembersTable.module.css";
 import { X } from "lucide-react";
 import ProfileAvatar from "@/components/shared/ProfileAvatar";
+import { supabase } from "@/app/lib/supabase/client";
 
 export type ClientServicingModule = "cpst" | "acr" | "fst" | "cpc" | "ppu" | "mngt" | "csmv" | "bcr" | "aca" | "sro" | "pdi";
 
@@ -84,6 +85,43 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [tempPermissions, setTempPermissions] = useState<ClientServicingPermissions>(defaultClientServicingPermissions);
+
+  useEffect(() => {
+    const uniqueId = Math.random().toString(36).slice(2, 9);
+    const channel = supabase
+      .channel(`profiles-status-table-sync-${uniqueId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "profiles",
+        },
+        (payload) => {
+          const updatedProfile = payload.new as any;
+          if (updatedProfile && updatedProfile.id) {
+            setUsers((prev) =>
+              prev.map((u) =>
+                u.id === updatedProfile.id
+                  ? {
+                    ...u,
+                    presence_status: updatedProfile.status || "offline",
+                    avatar: updatedProfile.avatar_url || u.avatar,
+                    name: updatedProfile.full_name || u.name,
+                    role: updatedProfile.role || u.role,
+                  }
+                  : u
+              )
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const roles = ["Admin", "Advisor", "Bizdev", "Member"];
   const departments = ["ASA", "BSA", "CSA", "DSA"];
@@ -288,11 +326,13 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
                           />
                           {u.presence_status && (
                             <span
-                              className={`absolute bottom-0 right-0 w-3 h-3 border-2 border-background rounded-full ${u.presence_status === "Online"
-                                  ? "bg-emerald-500"
-                                  : u.presence_status === "Busy"
-                                    ? "bg-red-500"
-                                    : "bg-gray-400"
+                              className={`absolute bottom-0 right-0 w-3 h-3 border-2 border-background rounded-full ${u.presence_status.toLowerCase() === "online"
+                                  ? "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.6)]"
+                                  : u.presence_status.toLowerCase() === "pending"
+                                    ? "bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.6)]"
+                                    : u.presence_status.toLowerCase() === "busy"
+                                      ? "bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.6)]"
+                                      : "bg-gray-400"
                                 }`}
                               title={u.presence_status}
                             />
@@ -302,7 +342,14 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
                         <div className={styles.div_25}>
                           <span className={styles.table_26}>{u.name}</span>
                           <span className={styles.table_27}>{u.email}</span>
-                          <span className="text-[9px] text-muted-foreground font-semibold mt-0.5">Status: {u.presence_status}</span>
+                          <span className={`text-[9px] font-bold mt-0.5 capitalize ${u.presence_status?.toLowerCase() === "online"
+                              ? "text-emerald-600 dark:text-emerald-400"
+                              : u.presence_status?.toLowerCase() === "pending"
+                                ? "text-amber-600 dark:text-amber-400"
+                                : u.presence_status?.toLowerCase() === "busy"
+                                  ? "text-red-600 dark:text-red-400"
+                                  : "text-gray-500 dark:text-gray-400"
+                            }`}>● {u.presence_status}</span>
                         </div>
                       </div>
                     </td>
@@ -326,12 +373,32 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
                       </select>
                     </td>
                     <td className={styles.div_33}>
-                      <span className={`${styles.text_36} ${u.status === "Active" ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-[#4ade80]" :
-                        u.status === "Pending" ? "bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-[#fef08a]" : "bg-muted text-muted-foreground"
-                        }`}>
-                        <span className={`${styles.div_37} ${u.status === "Active" ? "bg-emerald-500" : u.status === "Pending" ? "bg-amber-500" : "bg-muted-foreground"}`} />
-                        {u.status}
-                      </span>
+                      {(() => {
+                        const s = u.status?.toLowerCase();
+                        const isGreen = s === "active" || s === "online";
+                        const isYellow = s === "pending";
+                        const isRed = s === "disabled" || s === "busy";
+                        const badgeBg = isGreen
+                          ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-200 dark:ring-emerald-800/50"
+                          : isYellow
+                            ? "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 ring-1 ring-amber-200 dark:ring-amber-800/50"
+                            : isRed
+                              ? "bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 ring-1 ring-red-200 dark:ring-red-800/50"
+                              : "bg-gray-100 dark:bg-gray-800/30 text-gray-600 dark:text-gray-400 ring-1 ring-gray-200 dark:ring-gray-700/50";
+                        const dotBg = isGreen
+                          ? "bg-emerald-500 shadow-[0_0_4px_rgba(16,185,129,0.5)]"
+                          : isYellow
+                            ? "bg-amber-400 shadow-[0_0_4px_rgba(251,191,36,0.5)]"
+                            : isRed
+                              ? "bg-red-500 shadow-[0_0_4px_rgba(239,68,68,0.5)]"
+                              : "bg-gray-400";
+                        return (
+                          <span className={`${styles.text_36} ${badgeBg}`}>
+                            <span className={`${styles.div_37} ${dotBg}`} />
+                            {u.status}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className={styles.div_33}>
                       <div className="flex flex-col gap-1 items-start">
@@ -376,8 +443,8 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
                 <h3 className="text-base font-bold text-slate-800 dark:text-zinc-100">Client Servicing Access Manager</h3>
                 <p className="text-xs text-slate-500 dark:text-zinc-400 font-medium mt-0.5">{selectedUser.name}</p>
               </div>
-              <button 
-                onClick={closeModal} 
+              <button
+                onClick={closeModal}
                 className="text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 p-1.5 hover:bg-slate-100 dark:hover:bg-zinc-850 rounded-xl transition-all"
               >
                 <X size={18} />

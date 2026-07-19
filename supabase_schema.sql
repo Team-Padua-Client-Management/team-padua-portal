@@ -348,4 +348,44 @@ CREATE POLICY "Allow update for authenticated users on portal_resources" ON publ
 CREATE POLICY "Allow delete for authenticated users on portal_resources" ON public.portal_resources FOR DELETE USING (auth.role() = 'authenticated');
 
 
+-- =========================================================================
+-- 14. MAINTENANCE SETTINGS TABLE (Global Maintenance Management System)
+-- =========================================================================
 
+CREATE TABLE IF NOT EXISTS public.maintenance_settings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  module_key TEXT UNIQUE NOT NULL,
+  enabled BOOLEAN DEFAULT FALSE,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+ALTER TABLE public.maintenance_settings ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public read access to maintenance_settings"
+  ON public.maintenance_settings FOR SELECT USING (true);
+
+CREATE POLICY "Allow authenticated full access to maintenance_settings"
+  ON public.maintenance_settings FOR ALL USING (auth.role() = 'authenticated');
+
+-- Seed all module keys
+INSERT INTO public.maintenance_settings (module_key, enabled) VALUES
+  ('full_system', false),
+  ('dashboard', false),
+  ('calendar', false),
+  ('attendance', false),
+  ('messages', false),
+  ('faq', false),
+  ('teams', false),
+  ('members', false),
+  ('profile', false),
+  ('client_servicing', false),
+  ('acr', false),
+  ('bcr', false),
+  ('aca', false),
+  ('fund_switching', false),
+  ('fund_withdrawal', false),
+  ('reinstatement', false),
+  ('sro', false),
+  ('pdi', false),
+  ('cpst', false)
+ON CONFLICT (module_key) DO NOTHING;

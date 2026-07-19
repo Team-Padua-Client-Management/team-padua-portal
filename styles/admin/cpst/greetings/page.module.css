@@ -56,7 +56,7 @@
 }
 
 .card_8 {
-  @apply bg-card shadow-2xs p-6 border border-border/80 rounded-xl space-y-6;
+  @apply bg-card shadow-2xs p-6 border border-border/80 rounded-lg space-y-6;
 }
 
 .table_9 {
@@ -216,7 +216,7 @@
 }
 
 .card_48 {
-  @apply bg-card shadow-2xs p-6 border border-border/80 rounded-xl space-y-4;
+  @apply bg-card shadow-2xs p-6 border border-border/80 rounded-lg space-y-4;
 }
 
 .table_49 {
@@ -296,7 +296,7 @@
 }
 
 .card_68 {
-  @apply bg-card shadow-2xs p-6 border border-border/80 rounded-xl space-y-4;
+  @apply bg-card shadow-2xs p-6 border border-border/80 rounded-lg space-y-4;
 }
 
 .table_69 {
@@ -324,7 +324,7 @@
 }
 
 .card_75 {
-  @apply bg-card shadow-2xs p-6 border border-border/80 rounded-xl space-y-4;
+  @apply bg-card shadow-2xs p-6 border border-border/80 rounded-lg space-y-4;
 }
 
 .container_76 {

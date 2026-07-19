@@ -13,6 +13,13 @@
 
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import {
+  getModuleKeyFromPath,
+  isExemptPath,
+  isFullMaintenance,
+  isModuleMaintenance,
+  type MaintenanceSetting,
+} from "@/app/lib/maintenance";
 
 /**
  * Executes operations logic for updateSession.
@@ -140,7 +147,40 @@ export async function updateSession(request: NextRequest) {
   }
 
   // ───────────────────────────────────────────────────────────────────────────
-  // 4. RETURN RESPONSE
+  // 4. MAINTENANCE MODE CHECKS
+  // ───────────────────────────────────────────────────────────────────────────
+  // Admins bypass all maintenance checks. Exempt paths (settings, auth,
+  // maintenance pages, API routes) are never blocked.
+  if (!isAdmin && !isExemptPath(pathname) && (isAdminPage || isUserPage)) {
+    try {
+      const { data: maintenanceData } = await supabase
+        .from("maintenance_settings")
+        .select("module_key, enabled, updated_at");
+
+      const settings: MaintenanceSetting[] = (maintenanceData ?? []) as MaintenanceSetting[];
+
+      // Check full-system maintenance first
+      if (isFullMaintenance(settings)) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/maintenance";
+        return NextResponse.redirect(url);
+      }
+
+      // Check per-module maintenance
+      const moduleKey = getModuleKeyFromPath(pathname);
+      if (moduleKey && isModuleMaintenance(settings, moduleKey)) {
+        const url = request.nextUrl.clone();
+        url.pathname = `/maintenance/${moduleKey}`;
+        return NextResponse.redirect(url);
+      }
+    } catch (err) {
+      // If maintenance check fails, allow access rather than blocking
+      console.error("Maintenance check error:", err);
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 5. RETURN RESPONSE
   // ───────────────────────────────────────────────────────────────────────────
   return supabaseResponse;
 }

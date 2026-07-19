@@ -25,6 +25,7 @@ import styles from "@/styles/user/profile/page.module.css";
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { supabase } from "@/app/lib/supabase/client";
 import ProfileAvatar from "@/components/shared/ProfileAvatar";
+import UserStatusBadge from "@/components/shared/UserStatusBadge";
 import {
   Shield, Bell, Lock, Camera, Sparkles, Upload, X, ImageIcon,
   Pencil, User, Phone, Globe, Cake, MapPin, FileText, Plus, Trash2,
@@ -670,6 +671,9 @@ export default function ProfilePage() {
   const [showAvatarPanel, setShowAvatarPanel] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
+  const [avatarFileToUpload, setAvatarFileToUpload] = useState<File | null>(null);
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
 
   const [bgGradient, setBgGradient] = useState(AI_BG_PRESETS[0].style);
   const [showBgPanel, setShowBgPanel] = useState(false);
@@ -677,6 +681,8 @@ export default function ProfilePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [profileRole, setProfileRole] = useState("Member");
+  const [userStatus, setUserStatus] = useState("online");
 
   const [form, setForm] = useState({
     full_name: "",
@@ -776,6 +782,8 @@ const loadProfile = async () => {
           setBgGradient(profile?.banner_theme || AI_BG_PRESETS[0].style);
           setGcashQr(profile?.gcash_qr || null);
           setSocialLinks(fetchedSocialLinks || []);
+          setProfileRole(profile?.role || "Member");
+          setUserStatus(profile?.status || "online");
           const notesVal = user.user_metadata?.profile_notes || localStorage.getItem(`tp_notes_${user.id}`) || "";
           setAccountNotes(notesVal);
 
@@ -810,6 +818,33 @@ const loadProfile = async () => {
     loadProfile();
   }, []);
 
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const uniqueId = Math.random().toString(36).slice(2, 9);
+    const channel = supabase
+      .channel(`profiles-status-user-page-${uniqueId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "profiles",
+          filter: `id=eq.${user.id}`,
+        },
+        (payload) => {
+          if (payload.new && 'status' in payload.new) {
+            setUserStatus((payload.new as any).status || "online");
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
+
   /**
  * Executes operations logic for copyId.
  *
@@ -823,24 +858,43 @@ const copyId = () => {
   };
 
   /**
- * Executes operations logic for handleAvatarSelect.
- *
- * @param e: React.ChangeEvent<HTMLInputElement>
- * @returns State operations sequence.
- */
-const handleAvatarSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+   * Executes operations logic for handleAvatarSelect.
+   *
+   * @param e: React.ChangeEvent<HTMLInputElement>
+   * @returns State operations sequence.
+   */
+  const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setAvatarFileToUpload(file);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setAvatarPreviewUrl(reader.result as string);
+      setIsPreviewModalOpen(true);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  /**
+   * Uploads the selected avatar file to Supabase and updates user profile.
+   */
+  const confirmAvatarUpload = async () => {
+    if (!avatarFileToUpload) return;
     setUploading(true);
     setUploadError("");
     try {
-      const ext = file.name.split(".").pop();
-      const path = `avatars/${user.id}.${ext}`;
-      const { error: storageError } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+      const fileExt = avatarFileToUpload.name.split(".").pop()?.toLowerCase() || "png";
+      const path = `avatars/${user.id}.${fileExt}`;
+      const { error: storageError } = await supabase.storage.from("avatars").upload(path, avatarFileToUpload, { 
+        upsert: true,
+        contentType: avatarFileToUpload.type,
+        cacheControl: "3600",
+      });
       if (storageError) throw storageError;
       const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
       const publicUrl = urlData.publicUrl + `?t=${Date.now()}`;
-      await /* Query database records from active repository grid */ supabase.from("profiles").update({
+      await supabase.from("profiles").update({
         avatar_url: publicUrl,
         avatar_mode: "upload",
         updated_at: new Date().toISOString(),
@@ -848,6 +902,9 @@ const handleAvatarSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
       setUploadedAvatar(publicUrl);
       setAvatarMode("upload");
       setShowAvatarPanel(false);
+      setIsPreviewModalOpen(false);
+      setAvatarFileToUpload(null);
+      setAvatarPreviewUrl(null);
       window.dispatchEvent(new CustomEvent("profile-updated"));
     } catch (err: any) {
       setUploadError(err.message || "Upload failed.");
@@ -857,20 +914,24 @@ const handleAvatarSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
   };
 
   /**
- * Executes operations logic for handleGcashSelect.
- *
- * @param e: React.ChangeEvent<HTMLInputElement>
- * @returns State operations sequence.
- */
-const handleGcashSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  * Executes operations logic for handleGcashSelect.
+  *
+  * @param e: React.ChangeEvent<HTMLInputElement>
+  * @returns State operations sequence.
+  */
+  const handleGcashSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setGcashUploading(true);
     setGcashError("");
     try {
-      const ext = file.name.split(".").pop();
-      const path = `gcash-qr/${user.id}.${ext}`;
-      const { error: storageError } = await supabase.storage.from("gcash-qr").upload(path, file, { upsert: true });
+      const fileExt = file.name.split(".").pop()?.toLowerCase() || "png";
+      const path = `gcash-qr/${user.id}.${fileExt}`;
+      const { error: storageError } = await supabase.storage.from("gcash-qr").upload(path, file, { 
+        upsert: true,
+        contentType: file.type,
+        cacheControl: "3600",
+      });
       if (storageError) throw storageError;
       const { data: urlData } = supabase.storage.from("gcash-qr").getPublicUrl(path);
       const publicUrl = urlData.publicUrl + `?t=${Date.now()}`;
@@ -883,16 +944,17 @@ const handleGcashSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
       setGcashError(err.message || "Upload failed.");
     } finally {
       setGcashUploading(false);
+      e.target.value = "";
     }
   };
 
   /**
- * Executes operations logic for removeGcashQr.
- *
- * 
- * @returns State operations sequence.
- */
-const removeGcashQr = async () => {
+  * Executes operations logic for removeGcashQr.
+  *
+  * 
+  * @returns State operations sequence.
+  */
+  const removeGcashQr = async () => {
     const { error } = await /* Query database records from active repository grid */ supabase.from("profiles").update({
       gcash_qr: null,
       updated_at: new Date().toISOString(),
@@ -901,20 +963,23 @@ const removeGcashQr = async () => {
   };
 
   /**
- * Executes operations logic for regenerateAi.
- *
- * 
- * @returns State operations sequence.
- */
-const regenerateAi = async () => {
-    const newSeed = user?.id + Date.now().toString();
+  * Executes operations logic for regenerateAi.
+  *
+  * 
+  * @returns State operations sequence.
+  */
+  const regenerateAi = async () => {
+    const newSeed = Math.random().toString(36).substring(7);
+    const aiUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${newSeed}`;
     const { error } = await /* Query database records from active repository grid */ supabase.from("profiles").update({
       ai_seed: newSeed,
+      avatar_url: aiUrl,
       avatar_mode: "ai",
       updated_at: new Date().toISOString(),
     }).eq("id", user.id);
     if (!error) {
       setAiSeed(newSeed);
+      setUploadedAvatar(aiUrl);
       setAvatarMode("ai");
       window.dispatchEvent(new CustomEvent("profile-updated"));
     }
@@ -1155,428 +1220,567 @@ const deleteLink = async (id: string) => {
 
 
   return (
-    <div className={styles.text_38}>
-      <div className={styles.div_39}>
-        <h2 className={styles.text_40}>Profile Settings</h2>
-        <p className={styles.table_41}>Update information and preferences</p>
-      </div>
-
-      <div className={styles.card_42}>
-        <div className={styles.div_43} style={bannerStyle}>
-          <div className={styles.div_44}>
-            <button type="button" onClick={() => setShowBgPanel(!showBgPanel)}
-              className={styles.table_45}>
-              <ImageIcon className={styles.div_46} /> Theme Banner
-            </button>
-            {showBgPanel && (
-              <div className={styles.card_47}>
-                <div className={styles.container_48}>
-                  <p className={styles.table_49}>Select Theme Banner</p>
-                  <button type="button" onClick={() => setShowBgPanel(false)}>
-                    <X className={styles.text_50} />
-                  </button>
-                </div>
-                <div className={styles.container_51}>
-                  {AI_BG_PRESETS.map(preset => (
-                    <button key={preset.id} type="button"
-                      onClick={async () => {
-                        const { error } = await /* Query database records from active repository grid */ supabase.from("profiles").update({
-                          banner_theme: preset.style,
-                          updated_at: new Date().toISOString(),
-                        }).eq("id", user.id);
-                        if (!error) {
-                          setBgGradient(preset.style);
-                          setShowBgPanel(false);
-                        }
-                      }}
-                      className={`${styles.container_52} group`}>
-                      <div className={`${styles.table_53} group`}
-                        style={{ background: preset.style }} />
-                      <span className={styles.table_54}>{preset.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+    <div className="flex-1 flex flex-col min-w-0" style={{ backgroundColor: 'var(--background)', color: 'var(--text)' }}>
+      {/* Top Header Card */}
+      <div className="p-4 md:p-8 w-full space-y-6">
+        
+        <div className="mb-6">
+          <h1 className="text-2xl font-black tracking-tight">Profile Settings</h1>
+          <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>Update your digital details, social platforms, and account configs.</p>
         </div>
 
-        <div className={styles.card_55}>
-          <div className={styles.container_56}>
-            <div className={styles.div_57}>
-               <ProfileAvatar avatarUrl={uploadedAvatar} name={displayName} size={96} className={styles.div_36} />
-              <button type="button" onClick={() => setShowAvatarPanel(!showAvatarPanel)}
-                className={styles.table_58}>
-                <Camera className={styles.text_59} />
+        {/* Banner Preset & Card Wrapper */}
+        <div className="rounded-3xl overflow-hidden border shadow-lg bg-card" style={{ borderColor: 'var(--border)' }}>
+          {/* Banner Container */}
+          <div className="relative h-44 sm:h-56 md:h-64 transition-all duration-500" style={bannerStyle}>
+            <div className="absolute top-4 right-4">
+              <button 
+                type="button" 
+                onClick={() => setShowBgPanel(!showBgPanel)}
+                className="flex items-center gap-1.5 px-4 py-2 text-[10px] font-extrabold uppercase tracking-wider backdrop-blur-md bg-white/20 hover:bg-white/30 border border-white/20 text-white rounded-full transition cursor-pointer shadow-sm"
+              >
+                <ImageIcon size={12} /> Theme Banner
               </button>
-              {showAvatarPanel && (
-                <div className={styles.card_60}>
-                  <div className={styles.container_61}>
-                    <p className={styles.table_62}>Change Avatar</p>
-                    <button type="button" onClick={() => setShowAvatarPanel(false)}>
-                      <X className={styles.text_63} />
+              {showBgPanel && (
+                <div className="absolute right-0 mt-2 z-50 w-72 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl p-4 animate-in fade-in-50 slide-in-from-top-1">
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Select Banner Preset</span>
+                    <button type="button" onClick={() => setShowBgPanel(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                      <X size={14} />
                     </button>
                   </div>
-                  <button type="button" onClick={() => avatarFileRef.current?.click()} disabled={uploading}
-                    className={styles.table_64}>
-                    <Upload className={styles.text_65} />
-                    <div>
-                      <p className={styles.table_66}>{uploading ? "Uploading..." : "Upload Photo"}</p>
-                      <p className={styles.table_67}>JPG or PNG</p>
-                    </div>
-                  </button>
-                  <button type="button" onClick={regenerateAi}
-                    className={styles.table_68}>
-                    <Sparkles className={styles.text_69} />
-                    <div>
-                      <p className={styles.table_70}>AI Avatar</p>
-                      <p className={styles.table_71}>Generate Unique</p>
-                    </div>
-                  </button>
-                  <button type="button" onClick={async () => {
-                    const { error } = await /* Query database records from active repository grid */ supabase.from("profiles").update({
-                      avatar_mode: "initials",
-                      updated_at: new Date().toISOString(),
-                    }).eq("id", user.id);
-                    if (!error) {
-                      setAvatarMode("initials");
-                      window.dispatchEvent(new CustomEvent("profile-updated"));
-                    }
-                    setShowAvatarPanel(false);
-                  }}
-                    className={styles.table_72}>
-                    <div className={styles.container_73}>
-                      <span className={styles.text_74}>AB</span>
-                    </div>
-                    <div>
-                      <p className={styles.table_75}>Use Initials</p>
-                      <p className={styles.table_76}>Name letters</p>
-                    </div>
-                  </button>
-                  {uploadError && <p className={styles.text_77}>{uploadError}</p>}
-                  <input ref={avatarFileRef} type="file" accept="image/*" className={styles.div_78} onChange={handleAvatarSelect} />
+                  <div className="grid grid-cols-2 gap-2">
+                    {AI_BG_PRESETS.map(preset => (
+                      <button 
+                        key={preset.id} 
+                        type="button"
+                        onClick={async () => {
+                          const { error } = await supabase.from("profiles").update({
+                            banner_theme: preset.style,
+                            updated_at: new Date().toISOString(),
+                          }).eq("id", user.id);
+                          if (!error) {
+                            setBgGradient(preset.style);
+                            setShowBgPanel(false);
+                          }
+                        }}
+                        className={`flex flex-col gap-1.5 p-1.5 rounded-lg border-2 hover:scale-[1.02] transition cursor-pointer text-left ${
+                          bgGradient === preset.style ? 'border-amber-500 bg-amber-500/5' : 'border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700 bg-slate-50 dark:bg-slate-950'
+                        }`}
+                      >
+                        <div className="w-full h-10 rounded-md" style={{ background: preset.style }} />
+                        <span className="text-[9px] font-bold text-center w-full truncate">{preset.label}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
-            <div className={styles.div_79}>
-              <h1 className={styles.text_80}>{displayName}</h1>
-              <p className={styles.table_81}>{user.email}</p>
+          </div>
+
+          {/* Profile Header Details block - Redesigned to match Admin Profile Layout (centered & overlapping) */}
+          <div className="relative z-10 flex flex-col items-center text-center px-8 pb-8 pt-4 border-b" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surface)' }}>
+            <div className="relative shrink-0 -mt-20 sm:-mt-28 z-20">
+              <div className="border-4 border-white dark:border-slate-900 rounded-full shadow-xl bg-background transition-transform duration-300 hover:scale-105 w-28 h-28 group overflow-hidden">
+                <ProfileAvatar avatarUrl={uploadedAvatar} name={displayName} size={112} className="w-full h-full object-cover rounded-full" />
+                <button
+                  type="button"
+                  onClick={() => setShowAvatarPanel(!showAvatarPanel)}
+                  className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white text-[10px] font-extrabold uppercase tracking-widest transition-opacity cursor-pointer duration-200 z-30"
+                >
+                  <Camera size={20} className="mb-1" />
+                  Change Photo
+                </button>
+              </div>
+              {showAvatarPanel && (
+                <div className="absolute left-1/2 top-full -translate-x-1/2 mt-2 z-[60] w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-3 space-y-1 text-left">
+                  <div className="flex justify-between items-center px-1 pb-2 border-b" style={{ borderColor: 'var(--border)' }}>
+                    <span className="text-[9px] font-bold uppercase text-slate-400">Change Avatar</span>
+                    <button type="button" onClick={() => setShowAvatarPanel(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded transition">
+                      <X size={12} />
+                    </button>
+                  </div>
+                  <button 
+                    type="button" 
+                    onClick={() => avatarFileRef.current?.click()} 
+                    disabled={uploading}
+                    className="w-full flex items-center gap-2.5 p-2 rounded-lg text-left text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 cursor-pointer disabled:opacity-50 transition"
+                  >
+                    <Upload size={14} className="text-amber-500 shrink-0" />
+                    <div>
+                      <p>{uploading ? "Uploading..." : "Upload Photo"}</p>
+                      <p className="text-[8px] opacity-60">JPG or PNG</p>
+                    </div>
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={regenerateAi}
+                    className="w-full flex items-center gap-2.5 p-2 rounded-lg text-left text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 cursor-pointer transition"
+                  >
+                    <Sparkles size={14} className="text-amber-500 animate-pulse shrink-0" />
+                    <div>
+                      <p>AI Avatar</p>
+                      <p className="text-[8px] opacity-60">Generate abstract</p>
+                    </div>
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={async () => {
+                      const { error } = await supabase.from("profiles").update({
+                        avatar_url: null,
+                        avatar_mode: "initials",
+                        updated_at: new Date().toISOString(),
+                      }).eq("id", user.id);
+                      if (!error) {
+                        setUploadedAvatar(null);
+                        setAvatarMode("initials");
+                        window.dispatchEvent(new CustomEvent("profile-updated"));
+                      }
+                      setShowAvatarPanel(false);
+                    }}
+                    className="w-full flex items-center gap-2.5 p-2 rounded-lg text-left text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 cursor-pointer transition"
+                  >
+                    <span className="w-5 h-5 flex items-center justify-center bg-amber-500/10 text-amber-500 rounded text-[9px] font-bold shrink-0">AB</span>
+                    <div>
+                      <p>Use Initials</p>
+                      <p className="text-[8px] opacity-60">Letters from name</p>
+                    </div>
+                  </button>
+                  {uploadError && <p className="text-[10px] text-red-500 text-center font-bold">{uploadError}</p>}
+                  <input ref={avatarFileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarSelect} />
+                </div>
+              )}
+            </div>
+            
+            <div className="mt-4 flex flex-col items-center gap-2">
+              <h2 className="text-2xl font-black text-slate-900 dark:text-white">
+                {displayName}
+              </h2>
+              <p className="text-xs font-bold text-amber-500 uppercase tracking-widest">{profileRole}</p>
+              <div className="py-1">
+                <UserStatusBadge status={userStatus as any} />
+              </div>
+              <p className="text-xs text-slate-400 dark:text-slate-500 font-semibold">{user.email}</p>
             </div>
           </div>
 
-          <div className={styles.container_82}>
-            {tabs.map(tab => (
-              <button key={tab} type="button" onClick={() => setActiveTab(tab)}
-                className={`${styles.table_221} ${activeTab === tab
-                  ? "bg-[#FFF7D6] dark:bg-[#2E2818] text-black dark:text-[#F4C542] border border-[#F4C542]"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                  }`}>
-                {tab}
-              </button>
-            ))}
-          </div>
+          {/* Profile Action Tabs */}
+          <div className="flex gap-1 overflow-x-auto pb-1.5 md:pb-0 px-6 md:px-8 pt-4">
+              {tabs.map(tab => (
+                <button 
+                  key={tab} 
+                  type="button" 
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap ${
+                    activeTab === tab
+                      ? "bg-amber-500 text-slate-950 shadow-md shadow-amber-500/15"
+                      : "text-slate-500 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100/50 dark:hover:bg-slate-800/50"
+                  }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
 
-          {activeTab === "overview" && (
-            <div className={styles.container_83}>
-              <div className={styles.div_84}>
-
-                <div className={styles.card_85}>
-                  <div className={styles.container_86}>
-                    <h2 className={styles.text_87}>Personal Info</h2>
-                    <button type="button" onClick={() => setIsModalOpen(true)}
-                      className={styles.table_88}>
-                      <Pencil size={11} /> Edit Profile
-                    </button>
-                  </div>
-                  <div className={styles.div_89}>
-                    {[
-                      { label: "Full Name", value: form.full_name, icon: User },
-                      { label: "Phone", value: form.phone, icon: Phone },
-                      { label: "Website", value: form.website, icon: Globe },
-                      { label: "Birthday", value: form.birthday, icon: Cake },
-                    ].map(({ label, value, icon: Icon }) => (
-                      <div key={label} className={styles.container_90}>
-                        <div className={styles.container_91}>
-                          <Icon size={12} className={styles.text_92} />
-                        </div>
-                        <div className={styles.container_93}>
-                          <p className={styles.table_94}>{label}</p>
-                          <p className={styles.table_95}>
-                            {value || <span className={styles.text_96}>Not set</span>}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-
-                    <div className={styles.container_97}>
-                      <div className={styles.container_98}>
-                        <MapPin size={12} className={styles.text_99} />
-                      </div>
-                      <div className={styles.container_100}>
-                        <p className={styles.table_101}>Address</p>
-                        {addressDisplay ? (
-                          <div>
-                            <p className={styles.text_102}>{addressDisplay}</p>
-                            {address.map_url && (
-                              <a href={address.map_url} target="_blank" rel="noopener noreferrer"
-                                className={styles.table_103}>
-                                <ExternalLink size={9} /> View on Map
-                              </a>
-                            )}
+          {/* TAB CONTENTS CONTAINER */}
+          <div style={{ backgroundColor: 'var(--surface)' }}>
+            
+            {/* OVERVIEW TAB */}
+            {activeTab === "overview" && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6 md:p-8">
+                
+                {/* Left Column: Personal Info & Credentials */}
+                <div className="lg:col-span-2 space-y-6">
+                  {/* Personal Info Card */}
+                  <div className="rounded-2xl p-6 border bg-slate-50/50 dark:bg-slate-950/20" style={{ borderColor: 'var(--border)' }}>
+                    <div className="flex justify-between items-center mb-6">
+                      <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">Personal Info</h3>
+                      <button 
+                        type="button" 
+                        onClick={() => setIsModalOpen(true)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all hover:opacity-90 cursor-pointer"
+                      >
+                        <Pencil size={10} /> Edit Profile
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {[
+                        { label: "Full Name", value: form.full_name, icon: User },
+                        { label: "Phone", value: form.phone, icon: Phone },
+                        { label: "Website", value: form.website, icon: Globe },
+                        { label: "Birthday", value: form.birthday, icon: Cake },
+                      ].map(({ label, value, icon: Icon }) => (
+                        <div key={label} className="flex gap-3 p-3.5 rounded-xl border bg-card" style={{ borderColor: 'var(--border)' }}>
+                          <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0 border border-amber-500/20">
+                            <Icon size={14} />
                           </div>
-                        ) : (
-                          <p className={styles.text_104}>Not set</p>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className={styles.container_105}>
-                      <div className={styles.container_106}>
-                        <FileText size={12} className={styles.text_107} />
-                      </div>
-                      <div className={styles.container_108}>
-                        <p className={styles.table_109}>Bio</p>
-                        <p className={styles.text_110}>
-                          {form.bio || <span className={styles.text_111}>Not set</span>}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className={styles.card_112}>
-                  <h2 className={styles.text_113}>
-                    <Shield className={styles.text_114} /> Account Credentials
-                  </h2>
-                  <div className={styles.div_115}>
-                    <div className={styles.container_116}>
-                      <div>
-                        <p className={styles.table_117}>Email Address</p>
-                        <p className={styles.text_118}>{user.email}</p>
-                      </div>
-                      <span className={styles.table_119}>
-                        Verified
-                      </span>
-                    </div>
-                    <div className={styles.container_120}>
-                      <div>
-                        <p className={styles.table_121}>Auth Provider</p>
-                        <p className={styles.text_122}>{provider}</p>
-                      </div>
-                    </div>
-                    <div className={styles.container_123}>
-                      <div>
-                        <p className={styles.table_124}>Member Since</p>
-                        <p className={styles.text_125}>{joinedDate}</p>
-                      </div>
-                    </div>
-                    <div className={styles.container_126}>
-                      <div className={styles.div_127}>
-                        <p className={styles.table_128}>Workspace Account ID</p>
-                        <p className={styles.table_129}>{user.id}</p>
-                      </div>
-                      <button type="button" onClick={copyId}
-                        className={styles.table_130}>
-                        {copied ? "Copied" : "Copy"}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className={styles.card_131}>
-                  <div className={styles.container_132}>
-                    <h2 className={styles.text_133}>
-                      <ExternalLink className={styles.text_134} /> Third Party Links
-                    </h2>
-                    <button type="button" onClick={openAddLink}
-                      className={styles.table_135}>
-                      <Plus size={11} /> Add Link
-                    </button>
-                  </div>
-                  {socialLinks.length === 0 ? (
-                    <div className={styles.container_136}>
-                      <ExternalLink className={styles.text_137} />
-                      <p className={styles.table_138}>No links added yet</p>
-                      <button type="button" onClick={openAddLink}
-                        className={styles.text_139}>
-                        Add your first link
-                      </button>
-                    </div>
-                  ) : (
-                    <div className={styles.div_140}>
-                      {socialLinks.map(link => (
-                        <div key={link.id} className={`${styles.container_141} group`}>
-                          <PlatformBadge platform={link.platform} size={30} />
-                          <div className={styles.container_142}>
-                            <p className={styles.table_143}>
-                              {PLATFORM_META[link.platform]?.label || "Website"}
+                          <div className="min-w-0">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">{label}</p>
+                            <p className="text-xs font-semibold text-slate-700 dark:text-slate-200 mt-0.5 truncate">
+                              {value || <span className="text-slate-400 font-normal italic">Not set</span>}
                             </p>
-                            <p className={styles.table_144}>{link.url}</p>
-                          </div>
-                          <div className={`${styles.table_145} group`}>
-                            <a href={link.url} target="_blank" rel="noopener noreferrer"
-                              className={styles.card_146}>
-                              <ExternalLink size={10} className={styles.text_147} />
-                            </a>
-                            <button type="button" onClick={() => openEditLink(link)}
-                              className={styles.card_148}>
-                              <Pencil size={10} className={styles.text_149} />
-                            </button>
-                            <button type="button" onClick={() => deleteLink(link.id)}
-                              className={styles.card_150}>
-                              <Trash2 size={10} className={styles.text_151} />
-                            </button>
                           </div>
                         </div>
                       ))}
-                    </div>
-                  )}
-                </div>
-              </div>
 
-              <div className={styles.div_152}>
-                <div className={styles.card_153}>
-                  <div className={styles.container_154}>
-                    <h3 className={styles.table_155}>
-                      <QrCode size={12} className={styles.text_156} /> GCash QR Code
+                      <div className="flex gap-3 p-3.5 rounded-xl border bg-card md:col-span-2" style={{ borderColor: 'var(--border)' }}>
+                        <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0 border border-amber-500/20">
+                          <MapPin size={14} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Address</p>
+                          {addressDisplay ? (
+                            <div className="mt-0.5">
+                              <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">{addressDisplay}</p>
+                              {address.map_url && (
+                                <a 
+                                  href={address.map_url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 mt-1 text-[10px] text-amber-500 hover:text-amber-600 font-extrabold uppercase tracking-wider"
+                                >
+                                  <ExternalLink size={9} /> View on Map
+                                </a>
+                              )}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-slate-400 italic mt-0.5">Not set</p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex gap-3 p-3.5 rounded-xl border bg-card md:col-span-2" style={{ borderColor: 'var(--border)' }}>
+                        <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0 border border-amber-500/20">
+                          <FileText size={14} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Bio</p>
+                          <p className="text-xs font-semibold text-slate-700 dark:text-slate-200 mt-0.5 leading-relaxed">
+                            {form.bio || <span className="text-slate-400 font-normal italic">Not set</span>}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Account Credentials Card */}
+                  <div className="rounded-2xl p-6 border bg-slate-50/50 dark:bg-slate-950/20" style={{ borderColor: 'var(--border)' }}>
+                    <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 mb-6 flex items-center gap-2">
+                      <Shield size={16} className="text-amber-500" /> Account Credentials
                     </h3>
-                    {gcashQr && (
-                      <button type="button" onClick={removeGcashQr}
-                        className={styles.table_157}>
-                        Remove
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="p-4 rounded-xl border bg-card" style={{ borderColor: 'var(--border)' }}>
+                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Email Address</p>
+                        <p className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-1 truncate">{user.email}</p>
+                        <span className="inline-flex mt-2 px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                          Verified
+                        </span>
+                      </div>
+                      <div className="p-4 rounded-xl border bg-card" style={{ borderColor: 'var(--border)' }}>
+                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Auth Provider</p>
+                        <p className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-1 capitalize truncate">{provider}</p>
+                      </div>
+                      <div className="p-4 rounded-xl border bg-card" style={{ borderColor: 'var(--border)' }}>
+                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Member Since</p>
+                        <p className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-1 truncate">{joinedDate}</p>
+                      </div>
+                      <div className="p-4 rounded-xl border bg-card flex flex-col justify-between" style={{ borderColor: 'var(--border)' }}>
+                        <div>
+                          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Workspace Account ID</p>
+                          <p className="text-[10px] font-mono text-slate-500 mt-1 truncate">{user.id}</p>
+                        </div>
+                        <button 
+                          type="button" 
+                          onClick={copyId}
+                          className="mt-2 text-left self-start text-[9px] font-bold uppercase tracking-wider text-amber-500 hover:text-amber-600 transition-colors cursor-pointer"
+                        >
+                          {copied ? "✓ Copied ID" : "Copy Account ID"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column: Social Links, QR Code, Session Info */}
+                <div className="space-y-6">
+                  
+                  {/* Third Party Links Card */}
+                  <div className="rounded-2xl p-6 border bg-slate-50/50 dark:bg-slate-950/20" style={{ borderColor: 'var(--border)' }}>
+                    <div className="flex justify-between items-center mb-6">
+                      <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                        <ExternalLink size={16} className="text-amber-500" /> Web Links
+                      </h3>
+                      <button 
+                        type="button" 
+                        onClick={openAddLink}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all hover:opacity-90 cursor-pointer"
+                      >
+                        <Plus size={10} /> Add Link
                       </button>
+                    </div>
+
+                    {socialLinks.length === 0 ? (
+                      <div className="text-center py-10 border border-dashed rounded-xl" style={{ borderColor: 'var(--border)' }}>
+                        <ExternalLink size={24} className="mx-auto text-slate-400 mb-2" />
+                        <p className="text-xs text-slate-400 font-bold uppercase tracking-wide">No web links added yet</p>
+                        <button 
+                          type="button" 
+                          onClick={openAddLink}
+                          className="mt-2 text-xs font-bold text-amber-500 hover:text-amber-600 transition-colors cursor-pointer"
+                        >
+                          Add first link
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {socialLinks.map(link => (
+                          <div 
+                            key={link.id} 
+                            className="flex items-center justify-between p-3 rounded-xl border bg-card group relative" 
+                            style={{ borderColor: 'var(--border)' }}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <PlatformBadge platform={link.platform} size={28} />
+                              <div className="min-w-0">
+                                <p className="text-[10px] font-black uppercase tracking-wide">{PLATFORM_META[link.platform]?.label || "Website"}</p>
+                                <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium truncate mt-0.5 max-w-[120px] sm:max-w-[180px]">{link.url}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <a 
+                                href={link.url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-foreground"
+                              >
+                                <ExternalLink size={12} />
+                              </a>
+                              <button 
+                                type="button" 
+                                onClick={() => openEditLink(link)}
+                                className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-amber-500 cursor-pointer"
+                              >
+                                <Pencil size={12} />
+                              </button>
+                              <button 
+                                type="button" 
+                                onClick={() => deleteLink(link.id)}
+                                className="p-1.5 rounded-lg text-slate-500 hover:bg-rose-500/10 hover:text-rose-500 cursor-pointer"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
-                  {gcashQr ? (
-                    <div className={styles.container_158}>
-                      <div className={styles.div_159}>
-                        <img src={gcashQr} alt="GCash QR" className={styles.div_160} />
+
+                  {/* GCash QR Card */}
+                  <div className="rounded-2xl p-6 border bg-slate-50/50 dark:bg-slate-950/20" style={{ borderColor: 'var(--border)' }}>
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                        <QrCode size={16} className="text-amber-500" /> GCash QR
+                      </h3>
+                      {gcashQr && (
+                        <button 
+                          type="button" 
+                          onClick={removeGcashQr}
+                          className="text-[10px] font-bold text-rose-500 hover:text-rose-600 cursor-pointer"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+
+                    {gcashQr ? (
+                      <div className="flex flex-col items-center gap-4">
+                        <div className="p-2 border bg-white rounded-xl shadow-inner max-w-[160px]">
+                          <img src={gcashQr} alt="GCash QR" className="w-full object-contain rounded-lg" />
+                        </div>
+                        <button 
+                          type="button" 
+                          onClick={() => gcashFileRef.current?.click()}
+                          className="w-full py-2.5 rounded-xl border font-bold text-xs transition hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer text-center"
+                          style={{ borderColor: 'var(--border)' }}
+                        >
+                          <Upload size={12} className="inline mr-1" /> Replace QR Code
+                        </button>
                       </div>
-                      <button type="button" onClick={() => gcashFileRef.current?.click()}
-                        className={styles.table_161}>
-                        <Upload size={10} /> Replace QR
-                      </button>
-                    </div>
-                  ) : (
-                    <div className={styles.container_162}>
-                      <div className={styles.container_163}>
-                        <QrCode className={styles.text_164} />
+                    ) : (
+                      <div className="text-center py-6 border border-dashed rounded-xl" style={{ borderColor: 'var(--border)' }}>
+                        <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-900 text-slate-400 mx-auto flex items-center justify-center mb-3">
+                          <QrCode size={20} />
+                        </div>
+                        <button 
+                          type="button" 
+                          onClick={() => gcashFileRef.current?.click()} 
+                          disabled={gcashUploading}
+                          className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs transition cursor-pointer"
+                        >
+                          <Upload size={12} className="inline mr-1" /> {gcashUploading ? "Uploading..." : "Upload QR"}
+                        </button>
+                        <p className="text-[9px] text-slate-400 font-semibold max-w-[200px] mx-auto mt-2 leading-relaxed">
+                          Provide GCash QR so teammates can scan and send details.
+                        </p>
                       </div>
-                      <button type="button" onClick={() => gcashFileRef.current?.click()} disabled={gcashUploading}
-                        className={styles.table_165}>
-                        <Upload size={10} /> {gcashUploading ? "Uploading..." : "Upload QR"}
-                      </button>
-                      <p className={styles.text_166}>
-                        Upload your GCash QR so teammates can send payments
-                      </p>
-                    </div>
-                  )}
-                  {gcashError && <p className={styles.text_167}>{gcashError}</p>}
-                  <input ref={gcashFileRef} type="file" accept="image/*" className={styles.div_168} onChange={handleGcashSelect} />
-                </div>
+                    )}
+                    {gcashError && <p className="text-[10px] text-red-500 text-center font-bold mt-2">{gcashError}</p>}
+                    <input ref={gcashFileRef} type="file" accept="image/*" className="hidden" onChange={handleGcashSelect} />
+                  </div>
 
-                <div className={styles.card_169}>
-                  <h2 className={styles.table_170}>Session Details</h2>
-                  <div className={styles.text_171}>
-                    <div className={styles.div_172}>
-                      <p className={styles.table_173}>Last Login</p>
-                      <p className={styles.text_174}>{lastSignIn}</p>
-                    </div>
-                    <div className={styles.div_175}>
-                      <p className={styles.table_176}>Current Role</p>
-                      <p className={styles.table_177}>{user.role || "intern"}</p>
+                  {/* Session Details Card */}
+                  <div className="rounded-2xl p-6 border bg-slate-50/50 dark:bg-slate-950/20" style={{ borderColor: 'var(--border)' }}>
+                    <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 mb-4">Session Info</h3>
+                    <div className="space-y-3 text-xs">
+                      <div className="flex justify-between py-1 border-b" style={{ borderColor: 'var(--border)' }}>
+                        <span className="text-slate-400 font-semibold">Last Log In</span>
+                        <span className="font-bold text-slate-700 dark:text-slate-200">{lastSignIn}</span>
+                      </div>
+                      <div className="flex justify-between py-1">
+                        <span className="text-slate-400 font-semibold">Platform Access</span>
+                        <span className="font-extrabold text-amber-500 uppercase tracking-widest">{user.role || "intern"}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            </div>
-          )}
 
-          {activeTab === "security" && (
-            <div className="space-y-6">
-              <div className={styles.card_178}>
-                <h2 className={styles.text_179}>
-                  <Lock className={styles.text_180} /> Security Credentials
-                </h2>
-                <div className={styles.container_181}>
-                  <div>
-                    <p className={styles.table_182}>Two-factor authentication</p>
-                    <p className={styles.table_183}>Add an extra layer of security to your account</p>
-                  </div>
-                  <button type="button" onClick={() => setTwoFactor(!twoFactor)}
-                    className={`${styles.table_222} ${twoFactor ? "bg-[#F4C542]" : "bg-muted border border-border"}`}>
-                    <span className={`${styles.table_223} ${twoFactor ? "left-5" : "left-1"}`} />
-                  </button>
                 </div>
-              </div>
 
-              <div className="bg-card border border-border rounded-2xl p-6 space-y-4">
-                <div className="flex items-center gap-2 border-b border-border pb-3">
-                  <div className="p-1.5 bg-[#F4C542]/10 rounded-lg text-[#F4C542] flex items-center justify-center">
-                    <Lock size={16} />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-foreground">Secure Credentials Vault</h3>
-                    <p className="text-[10px] text-muted-foreground">Keep private notes for passwords, emails, and account details here. Saved to your cloud metadata.</p>
-                  </div>
-                </div>
-                <textarea
-                  value={accountNotes}
-                  onChange={(e) => setAccountNotes(e.target.value)}
-                  placeholder="Enter emails, passwords, or recovery codes here..."
-                  rows={6}
-                  className="w-full text-sm font-mono text-foreground bg-muted border border-border rounded-lg p-3 focus:outline-none focus:border-[#F4C542]"
-                />
-                <div className="flex justify-end">
-                  <button
-                    type="button"
-                    onClick={saveAccountNotes}
-                    disabled={isSavingNotes}
-                    className="px-4 py-2 bg-[#F4C542] hover:bg-[#d8ad2d] text-black text-xs font-bold rounded-lg transition"
-                  >
-                    {isSavingNotes ? "Saving Vault..." : "Save Vault Notes"}
-                  </button>
-                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {activeTab === "notifications" && (
-            <div className={styles.card_184}>
-              <h2 className={styles.text_185}>
-                <Bell className={styles.text_186} /> Notification Preferences
-              </h2>
-              <div className={styles.div_187}>
-                {[
-                  { label: "Email Notifications", desc: "Receive automated team ledger updates and summaries", state: notifEmail, toggle: () => setNotifEmail(!notifEmail) },
-                  { label: "Push Notifications", desc: "Receive instant browser announcements and message alerts", state: notifPush, toggle: () => setNotifPush(!notifPush) },
-                ].map(item => (
-                  <div key={item.label} className={styles.container_188}>
+            {/* SECURITY TAB */}
+            {activeTab === "security" && (
+              <div className="p-6 md:p-8 space-y-6">
+                
+                {/* Two-factor authentication Toggle Card */}
+                <div className="rounded-2xl p-6 border bg-slate-50/50 dark:bg-slate-950/20" style={{ borderColor: 'var(--border)' }}>
+                  <div className="flex items-center justify-between gap-4">
                     <div>
-                      <p className={styles.table_189}>{item.label}</p>
-                      <p className={styles.table_190}>{item.desc}</p>
+                      <h3 className="font-bold text-sm">Two-Factor Authentication</h3>
+                      <p className="text-xs opacity-75 mt-1">Configure an additional authentication shield for your workspace profile.</p>
                     </div>
-                    <button type="button" onClick={item.toggle}
-                      className={`${styles.table_224} ${item.state ? "bg-[#F4C542]" : "bg-muted border border-border"}`}>
-                      <span className={`${styles.table_225} ${item.state ? "left-5" : "left-1"}`} />
+                    <button 
+                      type="button" 
+                      onClick={() => setTwoFactor(!twoFactor)}
+                      className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 ${
+                        twoFactor ? "bg-amber-500" : "bg-slate-300 dark:bg-slate-700"
+                      }`}
+                    >
+                      <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        twoFactor ? "translate-x-5" : "translate-x-0"
+                      }`} />
                     </button>
                   </div>
-                ))}
+                </div>
+
+                {/* Secure Credentials Vault Notes */}
+                <div className="rounded-2xl p-6 border bg-slate-50/50 dark:bg-slate-950/20 space-y-4" style={{ borderColor: 'var(--border)' }}>
+                  <div className="flex items-center gap-3 border-b pb-3" style={{ borderColor: 'var(--border)' }}>
+                    <div className="p-2 bg-amber-500/10 text-amber-500 rounded-xl border border-amber-500/20 flex items-center justify-center shrink-0">
+                      <Lock size={16} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-sm">Secure Credentials Vault</h3>
+                      <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mt-0.5">Maintain personal credentials or keys securely in the cloud.</p>
+                    </div>
+                  </div>
+                  <textarea
+                    value={accountNotes}
+                    onChange={(e) => setAccountNotes(e.target.value)}
+                    placeholder="Write emails, passwords, notes or details here securely..."
+                    rows={6}
+                    className="w-full text-sm font-mono bg-card border border-border rounded-xl p-4 focus:outline-none focus:border-amber-500 outline-none transition-all"
+                  />
+                  <div className="flex justify-end pt-2">
+                    <button
+                      type="button"
+                      onClick={saveAccountNotes}
+                      disabled={isSavingNotes}
+                      className="px-6 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-bold rounded-xl hover:opacity-90 transition cursor-pointer"
+                    >
+                      {isSavingNotes ? "Saving Vault..." : "Save Secure Notes"}
+                    </button>
+                  </div>
+                </div>
+
               </div>
-            </div>
-          )}
+            )}
+
+            {/* NOTIFICATIONS TAB */}
+            {activeTab === "notifications" && (
+              <div className="p-6 md:p-8 space-y-4">
+                <div className="rounded-2xl p-6 border bg-slate-50/50 dark:bg-slate-950/20" style={{ borderColor: 'var(--border)' }}>
+                  <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 mb-6 flex items-center gap-2">
+                    <Bell size={16} className="text-amber-500" /> Notifications Settings
+                  </h3>
+                  <div className="space-y-4">
+                    {[
+                      { 
+                        label: "Email Notifications", 
+                        desc: "Receive ledger updates, action alerts and automated team summaries.", 
+                        state: notifEmail, 
+                        toggle: () => setNotifEmail(!notifEmail) 
+                      },
+                      { 
+                        label: "Push Notifications", 
+                        desc: "Receive instant real-time browser prompts and active message alerts.", 
+                        state: notifPush, 
+                        toggle: () => setNotifPush(!notifPush) 
+                      },
+                    ].map(item => (
+                      <div 
+                        key={item.label} 
+                        className="flex items-center justify-between gap-4 p-4 rounded-xl border bg-card" 
+                        style={{ borderColor: 'var(--border)' }}
+                      >
+                        <div>
+                          <h4 className="font-bold text-sm">{item.label}</h4>
+                          <p className="text-xs opacity-75 mt-0.5">{item.desc}</p>
+                        </div>
+                        <button 
+                          type="button" 
+                          onClick={item.toggle}
+                          className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 ${
+                            item.state ? "bg-amber-500" : "bg-slate-300 dark:bg-slate-700"
+                          }`}
+                        >
+                          <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                            item.state ? "translate-x-5" : "translate-x-0"
+                          }`} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+          </div>
         </div>
+
       </div>
 
+      {/* MODALS */}
+      
+      {/* Edit Profile Modal */}
       {isModalOpen && (
-        <div className={styles.container_191}>
-          <div className={styles.card_192}>
-            <button type="button" onClick={() => setIsModalOpen(false)}
-              className={styles.table_193}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-in fade-in-30">
+          <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+            <button 
+              type="button" 
+              onClick={() => setIsModalOpen(false)}
+              className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+            >
               <X size={16} />
             </button>
-            <h3 className={styles.text_194}>Edit Personal Info</h3>
-            <div className={styles.div_195}>
+            
+            <div className="mb-4">
+              <h3 className="text-lg font-bold">Edit Personal Info</h3>
+              <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mt-0.5">Update details visible on your profile.</p>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-4 pr-1 pb-4">
               {[
                 { label: "Full Name", key: "full_name", placeholder: "Your full name" },
                 { label: "Phone", key: "phone", placeholder: "+63 9XX XXX XXXX" },
@@ -1584,91 +1788,187 @@ const deleteLink = async (id: string) => {
                 { label: "Birthday", key: "birthday", placeholder: "YYYY-MM-DD", type: "date" },
               ].map(({ label, key, placeholder, type }) => (
                 <div key={key}>
-                  <label className={styles.table_196}>{label}</label>
-                  <input type={type || "text"} value={form[key as keyof typeof form]}
+                  <label className="block text-xs font-bold uppercase text-slate-400 mb-1">{label}</label>
+                  <input 
+                    type={type || "text"} 
+                    value={form[key as keyof typeof form]}
                     onChange={e => setForm({ ...form, [key]: e.target.value })}
                     placeholder={placeholder}
-                    className={styles.card_197} />
+                    className="w-full p-2.5 rounded-xl border bg-slate-50 dark:bg-slate-950 focus:outline-none focus:border-amber-500 text-sm"
+                    style={{ borderColor: 'var(--border)' }} 
+                  />
                 </div>
               ))}
               <div>
-                <label className={styles.table_198}>Bio</label>
-                <textarea value={form.bio} onChange={e => setForm({ ...form, bio: e.target.value })}
-                  placeholder="A short bio about yourself…" rows={3}
-                  className={styles.card_199} />
+                <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Bio</label>
+                <textarea 
+                  value={form.bio} 
+                  onChange={e => setForm({ ...form, bio: e.target.value })}
+                  placeholder="A short bio about yourself..." 
+                  rows={3}
+                  className="w-full p-2.5 rounded-xl border bg-slate-50 dark:bg-slate-950 focus:outline-none focus:border-amber-500 text-sm"
+                  style={{ borderColor: 'var(--border)' }} 
+                />
               </div>
 
-              <div className={styles.div_200}>
+              <div className="pt-2 border-t" style={{ borderColor: 'var(--border)' }}>
                 <AddressSection address={address} onChange={setAddress} compact />
               </div>
             </div>
-            <div className={styles.container_201}>
-              <button type="button" onClick={() => setIsModalOpen(false)}
-                className={styles.table_202}>
+
+            <div className="flex justify-end gap-3 pt-4 border-t" style={{ borderColor: 'var(--border)' }}>
+              <button 
+                type="button" 
+                onClick={() => setIsModalOpen(false)}
+                className="px-5 py-2.5 rounded-xl border text-xs font-bold transition hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+                style={{ borderColor: 'var(--border)' }}
+              >
                 Cancel
               </button>
-              <button type="button" onClick={saveProfile} disabled={saving}
-                className={styles.table_203}>
-                {saving ? "Saving…" : "Save Changes"}
+              <button 
+                type="button" 
+                onClick={saveProfile} 
+                disabled={saving}
+                className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs transition cursor-pointer"
+              >
+                {saving ? "Saving..." : "Save Changes"}
               </button>
             </div>
           </div>
         </div>
       )}
 
+      {/* Add / Edit Social Link Modal */}
       {showLinkForm && (
-        <div className={styles.container_204}>
-          <div className={styles.card_205}>
-            <button type="button" onClick={() => setShowLinkForm(false)}
-              className={styles.table_206}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-in fade-in-30">
+          <div className="relative w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col">
+            <button 
+              type="button" 
+              onClick={() => setShowLinkForm(false)}
+              className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+            >
               <X size={16} />
             </button>
-            <h3 className={styles.text_207}>
-              {editingLinkId ? "Edit Link" : "Add New Link"}
-            </h3>
-            <div className={styles.div_208}>
+            
+            <div className="mb-4">
+              <h3 className="text-lg font-bold">{editingLinkId ? "Edit Web Link" : "Add Web Link"}</h3>
+              <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mt-0.5">Link a personal portfolio or web channel.</p>
+            </div>
+
+            <div className="space-y-4 py-2">
               <div>
-                <label className={styles.table_209}>URL</label>
-                <input type="url" value={newLinkUrl} onChange={e => handleLinkUrlChange(e.target.value)}
-                  placeholder="https://facebook.com/yourprofile"
-                  className={styles.card_210} />
+                <label className="block text-xs font-bold uppercase text-slate-400 mb-1">URL</label>
+                <input 
+                  type="url" 
+                  value={newLinkUrl} 
+                  onChange={e => handleLinkUrlChange(e.target.value)}
+                  placeholder="https://github.com/username"
+                  className="w-full p-2.5 rounded-xl border bg-slate-50 dark:bg-slate-950 focus:outline-none focus:border-amber-500 text-sm"
+                  style={{ borderColor: 'var(--border)' }} 
+                />
               </div>
               <div>
-                <label className={styles.table_211}>Platform</label>
-                <div className={styles.container_212}>
+                <label className="block text-xs font-bold uppercase text-slate-400 mb-2">Platform</label>
+                <div className="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto p-1 border rounded-xl" style={{ borderColor: 'var(--border)' }}>
                   {PLATFORM_OPTIONS.map(p => (
-                    <button key={p.id} type="button" onClick={() => setNewLinkPlatform(p.id)}
+                    <button 
+                      key={p.id} 
+                      type="button" 
+                      onClick={() => setNewLinkPlatform(p.id)}
                       title={p.label}
-                      className={`${styles.table_226} ${newLinkPlatform === p.id
-                        ? "border-[#F4C542] bg-[#FFF7D6] dark:bg-[#2E2818]"
-                        : "border-border bg-muted hover:border-[#F4C542]/50"
-                        }`}>
-                      <PlatformBadge platform={p.id} size={22} />
-                      <span className={styles.table_213}>{p.label.slice(0, 4)}</span>
+                      className={`flex flex-col items-center justify-center p-2 rounded-lg border text-center transition gap-1 cursor-pointer ${
+                        newLinkPlatform === p.id
+                          ? "border-amber-500 bg-amber-500/5 text-amber-600 dark:text-amber-400"
+                          : "border-border bg-slate-50 dark:bg-slate-950 hover:border-amber-500/30"
+                      }`}
+                    >
+                      <PlatformBadge platform={p.id} size={20} />
+                      <span className="text-[9px] font-bold truncate w-full">{p.label}</span>
                     </button>
                   ))}
                 </div>
               </div>
+              
               {newLinkUrl && (
-                <div className={styles.container_214}>
+                <div className="flex items-center gap-2.5 p-3 rounded-xl border bg-slate-50 dark:bg-slate-950" style={{ borderColor: 'var(--border)' }}>
                   <PlatformBadge platform={newLinkPlatform} size={28} />
-                  <div className={styles.container_215}>
-                    <p className={styles.table_216}>
-                      {PLATFORM_META[newLinkPlatform]?.label}
-                    </p>
-                    <p className={styles.table_217}>{newLinkUrl}</p>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-black uppercase tracking-wide">{PLATFORM_META[newLinkPlatform]?.label}</p>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium truncate mt-0.5">{newLinkUrl}</p>
                   </div>
                 </div>
               )}
             </div>
-            <div className={styles.container_218}>
-              <button type="button" onClick={() => setShowLinkForm(false)}
-                className={styles.table_219}>
+
+            <div className="flex justify-end gap-3 pt-4 border-t mt-4" style={{ borderColor: 'var(--border)' }}>
+              <button 
+                type="button" 
+                onClick={() => setShowLinkForm(false)}
+                className="px-5 py-2.5 rounded-xl border text-xs font-bold transition hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+                style={{ borderColor: 'var(--border)' }}
+              >
                 Cancel
               </button>
-              <button type="button" onClick={saveLink} disabled={savingLinks || !newLinkUrl.trim()}
-                className={styles.table_220}>
-                {savingLinks ? "Saving…" : editingLinkId ? "Update Link" : "Add Link"}
+              <button 
+                type="button" 
+                onClick={saveLink} 
+                disabled={savingLinks || !newLinkUrl.trim()}
+                className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs transition cursor-pointer"
+              >
+                {savingLinks ? "Saving..." : editingLinkId ? "Update Link" : "Add Link"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Profile Image Preview Modal */}
+      {isPreviewModalOpen && avatarPreviewUrl && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-[#121318] border border-zinc-800 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150">
+            <div className="flex justify-between items-center p-5 border-b border-zinc-800 bg-zinc-900/30">
+              <h3 className="text-sm font-bold text-zinc-100">Check Profile Image</h3>
+              <button 
+                onClick={() => {
+                  setIsPreviewModalOpen(false);
+                  setAvatarFileToUpload(null);
+                  setAvatarPreviewUrl(null);
+                }} 
+                className="text-zinc-500 hover:text-zinc-300 p-1.5 hover:bg-zinc-800 rounded-xl transition"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            
+            <div className="p-6 flex flex-col items-center justify-center bg-zinc-950/40">
+              <div className="relative w-48 h-48 rounded-full overflow-hidden border-4 border-zinc-800 bg-zinc-900 shadow-inner flex items-center justify-center">
+                <img 
+                  src={avatarPreviewUrl} 
+                  alt="Avatar Preview" 
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <p className="text-[11px] text-zinc-400 mt-4 text-center">
+                This is how your new profile image will appear in the workspace.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 p-4 border-t border-zinc-800 bg-zinc-900/20">
+              <button
+                onClick={() => {
+                  setIsPreviewModalOpen(false);
+                  setAvatarFileToUpload(null);
+                  setAvatarPreviewUrl(null);
+                }}
+                className="px-4 py-2 text-xs font-semibold text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50 rounded-xl transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmAvatarUpload}
+                disabled={uploading}
+                className="px-5 py-2 text-xs font-bold bg-[#F4C542] text-black hover:bg-[#d8ad2d] rounded-xl shadow-sm transition disabled:opacity-50"
+              >
+                {uploading ? "Uploading..." : "Upload & Save"}
               </button>
             </div>
           </div>
@@ -1677,3 +1977,4 @@ const deleteLink = async (id: string) => {
     </div>
   );
 }
+

@@ -61,15 +61,54 @@ export default function UserHeader({ onMenuClick, isSidebarOpen }: UserHeaderPro
   });
 
   useEffect(() => {
-    const savedStatus = localStorage.getItem('presence-status') as 'online' | 'offline' | 'busy';
-    if (savedStatus) {
-      setPresenceStatus(savedStatus);
-    }
+    let channel: any;
+    
+    const setupSubscription = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+
+      const uniqueId = Math.random().toString(36).slice(2, 9);
+      channel = supabase
+        .channel(`user-header-profile-${session.user.id}-${uniqueId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'profiles',
+            filter: `id=eq.${session.user.id}`,
+          },
+          (payload) => {
+            if (payload.new && 'status' in payload.new) {
+              setPresenceStatus((payload.new as any).status || 'online');
+            }
+          }
+        )
+        .subscribe();
+    };
+
+    setupSubscription();
+
+    return () => {
+      if (channel) supabase.removeChannel(channel);
+    };
   }, []);
 
-  const handleStatusChange = (status: 'online' | 'offline' | 'busy') => {
+  const handleStatusChange = async (status: 'online' | 'offline' | 'busy') => {
     setPresenceStatus(status);
     localStorage.setItem('presence-status', status);
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+      await supabase
+        .from("profiles")
+        .update({
+          status: status,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", session.user.id);
+    }
+
     window.dispatchEvent(new CustomEvent('presence-status-change', { detail: { status } }));
   };
 
@@ -112,7 +151,7 @@ export default function UserHeader({ onMenuClick, isSidebarOpen }: UserHeaderPro
 
     const { data: profileData } = await supabase
       .from('profiles')
-      .select('full_name, role, avatar_url')
+      .select('full_name, role, avatar_url, status')
       .eq('id', session.user.id)
       .single();
 
@@ -120,6 +159,10 @@ export default function UserHeader({ onMenuClick, isSidebarOpen }: UserHeaderPro
     const formattedRole = rawRole.toUpperCase();
 
     const googleAvatar = session.user.user_metadata?.avatar_url || '';
+
+    if (profileData?.status) {
+      setPresenceStatus(profileData.status as any);
+    }
 
     setUserData({
       name: profileData?.full_name || session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
@@ -160,12 +203,11 @@ export default function UserHeader({ onMenuClick, isSidebarOpen }: UserHeaderPro
   };
 
   const toggleTheme = () => {
-    const themes = ['light', 'dark', 'midnight', 'forest', 'sunset', 'slate'];
     const current = localStorage.getItem('theme') || 'light';
-    const nextIndex = (themes.indexOf(current) + 1) % themes.length;
-    const nextTheme = themes[nextIndex];
+    const isCurrentDark = ["dark", "midnight", "forest", "sunset", "slate"].includes(current);
+    const nextTheme = isCurrentDark ? 'light' : 'dark';
 
-    const isNextDark = ["dark", "midnight", "forest", "sunset", "slate"].includes(nextTheme);
+    const isNextDark = nextTheme === 'dark';
     setIsDark(isNextDark);
     localStorage.setItem("theme", nextTheme);
     document.documentElement.setAttribute('data-theme', nextTheme);

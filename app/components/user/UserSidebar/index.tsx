@@ -21,8 +21,20 @@ export default function UserSidebar({ isOpen, onClose }: UserSidebarProps) {
   const [permissions, setPermissions] = useState<any>(null);
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
+  const [isHoveredDelayed, setIsHoveredDelayed] = useState(false);
 
-  const isEffectivelyCollapsed = isCollapsed && !isHovered;
+  const isEffectivelyCollapsed = isCollapsed && !isHoveredDelayed;
+
+  useEffect(() => {
+    if (isHovered) {
+      const timer = setTimeout(() => {
+        setIsHoveredDelayed(true);
+      }, 200);
+      return () => clearTimeout(timer);
+    } else {
+      setIsHoveredDelayed(false);
+    }
+  }, [isHovered]);
 
   useEffect(() => {
     const saved = localStorage.getItem('user-sidebar-collapsed');
@@ -109,14 +121,14 @@ export default function UserSidebar({ isOpen, onClose }: UserSidebarProps) {
     <div className={styles.sidebarInner}>
       {/* Header */}
       <div className={`${styles.sidebarHeader} ${isEffectivelyCollapsed ? styles.sidebarHeaderCollapsed : ''}`}>
-        <div className={styles.sidebarHeaderContainer}>
-          <div className="flex items-center gap-3">
+        <div className={`${styles.sidebarHeaderContainer} ${isEffectivelyCollapsed ? styles.sidebarHeaderContainerCollapsed : ''}`}>
+          <div className={`flex items-center gap-3 ${isEffectivelyCollapsed ? 'justify-center w-full' : ''}`}>
             <Image
               src="/Image/icon/TPC.png"
               alt="Team Padua Logo"
               width={32}
               height={32}
-              className={`object-contain shrink-0 ${styles.logoFade} ${isEffectivelyCollapsed ? styles.logoFadeHidden : ''}`}
+              className="object-contain shrink-0 transition-transform duration-300 hover:rotate-12"
             />
             <div className={`${styles.textFade} ${isEffectivelyCollapsed ? styles.textFadeHidden : ''}`}>
               <h1 className={styles.sidebarTitle}>Team Padua</h1>
@@ -143,15 +155,14 @@ export default function UserSidebar({ isOpen, onClose }: UserSidebarProps) {
           if (item.subItems) {
             const isOpenSection = item.name === "Dashboard" ? isDashboardOpen : isClientServicingOpen;
             return (
-              <div key={item.href} className={styles.sidebarNavGroup}>
+              <div key={item.href} className={`${styles.sidebarNavGroup} relative group`}>
                 <div
                   className={`${isEffectivelyCollapsed ? styles.navItemCollapsed : styles.navItem} ${isParentActive ? styles.navItemActive : styles.navItemInactive}`}
                 >
                   <Link
                     href={item.href}
                     onClick={onClose}
-                    title={isEffectivelyCollapsed ? item.name : undefined}
-                    className={isEffectivelyCollapsed ? 'flex items-center justify-center w-full' : styles.navItemLink}
+                    className={isEffectivelyCollapsed ? 'flex items-center justify-center w-full h-full' : styles.navItemLink}
                   >
                     <Icon size={16} className={`shrink-0 ${isParentActive ? styles.navIconActive : styles.navIconInactive}`} />
                     <span className={`${styles.navLabel} ${isEffectivelyCollapsed ? styles.navLabelHidden : ''}`}>{item.name}</span>
@@ -170,6 +181,11 @@ export default function UserSidebar({ isOpen, onClose }: UserSidebarProps) {
                     </button>
                   )}
                 </div>
+                {isCollapsed && (
+                  <span className={styles.tooltip}>
+                    {item.name}
+                  </span>
+                )}
                 {!isEffectivelyCollapsed && isOpenSection && (
                   <div className={styles.sidebarSubNav}>
                     {item.subItems.map((sub) => {
@@ -192,18 +208,23 @@ export default function UserSidebar({ isOpen, onClose }: UserSidebarProps) {
           }
 
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={onClose}
-              title={isEffectivelyCollapsed ? item.name : undefined}
-              className={`${isEffectivelyCollapsed ? styles.navItemCollapsed : styles.navItem} ${active ? styles.navItemActive : styles.navItemInactive}`}
-            >
-              <div className={isEffectivelyCollapsed ? 'flex items-center justify-center' : styles.navItemLink}>
-                <Icon size={16} className={`shrink-0 ${active ? styles.navIconActive : styles.navIconInactive}`} />
-                <span className={`${styles.navLabel} ${isEffectivelyCollapsed ? styles.navLabelHidden : ''}`}>{item.name}</span>
-              </div>
-            </Link>
+            <div key={item.href} className="relative group">
+              <Link
+                href={item.href}
+                onClick={onClose}
+                className={`${isEffectivelyCollapsed ? styles.navItemCollapsed : styles.navItem} ${active ? styles.navItemActive : styles.navItemInactive}`}
+              >
+                <div className={isEffectivelyCollapsed ? 'flex items-center justify-center w-full h-full' : styles.navItemLink}>
+                  <Icon size={16} className={`shrink-0 ${active ? styles.navIconActive : styles.navIconInactive}`} />
+                  <span className={`${styles.navLabel} ${isEffectivelyCollapsed ? styles.navLabelHidden : ''}`}>{item.name}</span>
+                </div>
+              </Link>
+              {isCollapsed && (
+                <span className={styles.tooltip}>
+                  {item.name}
+                </span>
+              )}
+            </div>
           );
         })}
       </nav>

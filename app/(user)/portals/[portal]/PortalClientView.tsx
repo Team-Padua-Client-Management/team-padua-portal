@@ -6,6 +6,7 @@ import {
   Copy, Star, Loader2, ArrowLeft, Check, AlertCircle, Sparkles
 } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import styles from '@/styles/admin/portals/page.module.css';
 import { supabase } from '@/app/lib/supabase/client';
 
@@ -123,36 +124,6 @@ export default function PortalClientView({
     }
   };
 
-  // Render Thumbnail or abstract aesthetic fallback card top
-  const renderThumbnail = (resource: Resource) => {
-    const categoryColor = resource.category?.color || portalColor || '#F4C542';
-    
-    if (resource.thumbnail) {
-      return (
-        <img
-          src={resource.thumbnail}
-          alt={resource.title}
-          className={`${styles.cardThumbnail} group-hover:scale-105`}
-          onError={(e) => {
-            (e.target as HTMLElement).style.display = 'none';
-          }}
-        />
-      );
-    }
-
-    return (
-      <div 
-        className={styles.cardThumbnailPlaceHolder}
-        style={{
-          background: `linear-gradient(135deg, ${categoryColor}15 0%, ${categoryColor}30 100%)`,
-          color: categoryColor
-        }}
-      >
-        <Sparkles size={24} style={{ color: categoryColor }} className="opacity-70 animate-pulse" />
-        <span className="mt-1 font-mono text-[9px] tracking-widest">{resource.category?.name || 'Asset'}</span>
-      </div>
-    );
-  };
 
   return (
     <div className={styles.container_10}>
@@ -293,76 +264,97 @@ export default function PortalClientView({
           </div>
         ) : viewMode === 'grid' ? (
           /* Grid Layout */
-          <div className={styles.resourcesGrid}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-6">
             {resources.map((resource) => {
               const catColor = resource.category?.color || '#cbd5e1';
               return (
-                <div key={resource.id} className={styles.resourceCard}>
-                  {/* Thumbnail Section */}
-                  <div className={styles.cardThumbnailSection}>
-                    {renderThumbnail(resource)}
-                    
-                    {/* Favorite Pinned star */}
+                <div key={resource.id} className="relative h-[280px] overflow-hidden rounded-3xl shadow-md hover:shadow-xl transition-all duration-300 group border border-border/10">
+                  {/* Full Background Cover */}
+                  {resource.thumbnail ? (
+                    <Image
+                      src={resource.thumbnail}
+                      alt={resource.title}
+                      fill
+                      className="object-cover transition-transform duration-700 group-hover:scale-105"
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <div 
+                      className="absolute inset-0 w-full h-full flex flex-col items-center justify-center transition-transform duration-700 group-hover:scale-105"
+                      style={{
+                        background: `linear-gradient(135deg, ${catColor}15 0%, ${catColor}30 100%)`,
+                        color: catColor
+                      }}
+                    >
+                      <Sparkles size={48} style={{ color: catColor }} className="opacity-40 animate-pulse" />
+                      <span className="mt-4 font-mono text-[10px] tracking-widest opacity-60 uppercase">{resource.category?.name || 'Asset'}</span>
+                    </div>
+                  )}
+
+                  {/* Dark Gradient Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent pointer-events-none" />
+
+                  {/* Top-Right Favorite Button */}
+                  <div className="absolute top-4 right-4 z-10">
                     <button
                       onClick={() => handleToggleFavorite(resource)}
-                      className={styles.cardFavoriteBtn}
+                      className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center transition-colors hover:bg-black/60"
                       title={resource.favorite ? "Unpin Favorite" : "Pin Favorite"}
                     >
                       <Star 
                         size={14} 
-                        className={resource.favorite ? "fill-[#F4C542] text-[#F4C542]" : "text-muted hover:text-[#F4C542]"} 
+                        className={resource.favorite ? "fill-[#F4C542] text-[#F4C542]" : "text-white/70 hover:text-white"} 
                       />
                     </button>
                   </div>
 
-                  {/* Text Metadata */}
-                  <div className={styles.cardMetaContent}>
-                    <div className={styles.cardTextContent}>
-                      <div className={styles.cardHeader}>
-                        <h3 className={styles.cardTitle} title={resource.title}>
-                          {resource.title}
-                        </h3>
-                      </div>
-                      <p className={styles.cardDescription} title={resource.description}>
-                        {resource.description || 'No description provided.'}
-                      </p>
-                    </div>
+                  {/* Bottom Content Area */}
+                  <div className="absolute bottom-0 left-0 right-0 p-6 z-10 flex flex-col justify-end">
+                    <h3 className="text-white font-bold text-lg leading-tight mb-1" title={resource.title}>
+                      {resource.title}
+                    </h3>
+                    <p className="text-zinc-300 text-xs line-clamp-2 mb-4" title={resource.description}>
+                      {resource.description || 'No description provided.'}
+                    </p>
 
-                    {/* Badges and Footer */}
-                    <div className="flex flex-col gap-2 mt-auto">
-                      <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between mt-auto">
+                      {/* Tags */}
+                      <div className="flex gap-2">
                         <span 
-                          className={styles.badgeCategory}
+                          className="px-2.5 py-1 rounded-full text-[9px] font-bold tracking-widest uppercase border backdrop-blur-md"
                           style={{
-                            borderColor: `${catColor}30`,
-                            backgroundColor: `${catColor}10`,
+                            borderColor: `${catColor}50`,
+                            backgroundColor: `${catColor}20`,
                             color: catColor
                           }}
                         >
                           {resource.category?.name || 'Uncategorized'}
                         </span>
+                        <span className="px-2.5 py-1 rounded-full text-[9px] font-bold tracking-widest uppercase border border-emerald-500/50 bg-emerald-500/20 text-emerald-400 backdrop-blur-md">
+                          {resource.status}
+                        </span>
                       </div>
 
-                      {/* Footer Buttons */}
-                      <div className={styles.cardFooter}>
-                        <div className={styles.cardActions} style={{ marginLeft: 'auto' }}>
-                          <a
-                            href={resource.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={styles.cardActionBtn}
-                            title="Open Resource"
-                          >
-                            <ExternalLink size={12} />
-                          </a>
-                          <button
-                            onClick={() => handleCopyLink(resource.url, resource.id)}
-                            className={styles.cardActionBtn}
-                            title="Copy URL"
-                          >
-                            <Copy size={12} className={copiedId === resource.id ? "text-emerald-500" : ""} />
-                          </button>
-                        </div>
+                      {/* Action Links */}
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => handleCopyLink(resource.url, resource.id)}
+                          className="p-2 rounded-md bg-white/10 hover:bg-white/20 text-white transition-colors backdrop-blur-md"
+                          title="Copy URL"
+                        >
+                          <Copy size={12} className={copiedId === resource.id ? "text-emerald-400" : ""} />
+                        </button>
+                        <a
+                          href={resource.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-2 rounded-md bg-white/10 hover:bg-white/20 text-white transition-colors backdrop-blur-md"
+                          title="Open Resource"
+                        >
+                          <ExternalLink size={12} />
+                        </a>
                       </div>
                     </div>
                   </div>

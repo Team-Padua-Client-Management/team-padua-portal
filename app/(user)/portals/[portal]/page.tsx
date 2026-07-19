@@ -2,7 +2,7 @@ import React from 'react';
 import { redirect, notFound } from 'next/navigation';
 import { createClient } from '@/app/lib/supabase/server';
 import { portalsConfig } from '@/app/lib/portals/config';
-import PortalClientView from './PortalClientView';
+import PortalClientView from "./PortalClientView";
 
 interface Props {
   params: Promise<{ portal: string }>;

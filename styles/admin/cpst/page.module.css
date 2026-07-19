@@ -236,7 +236,7 @@
 }
 
 .div_54 {
-  @apply p-3 sm:p-5 lg:p-6 w-full space-y-6 overflow-y-auto;
+  @apply p-4 md:p-6 lg:p-8 w-full max-w-[1920px] mx-auto space-y-8 overflow-y-auto;
 }
 
 .container_55 {
@@ -264,11 +264,11 @@
 }
 
 .container_61 {
-  @apply grid grid-cols-1 lg:grid-cols-3 gap-6;
+  @apply grid grid-cols-1 lg:grid-cols-3 gap-8;
 }
 
 .container_62 {
-  @apply lg:col-span-2 grid grid-cols-2 md:grid-cols-4 gap-4;
+  @apply lg:col-span-2 grid grid-cols-2 md:grid-cols-4 gap-6;
 }
 
 .table_63 {
@@ -288,7 +288,7 @@
 }
 
 .card_67 {
-  @apply bg-card border border-border/50 p-5 rounded-xl shadow-xs flex flex-col justify-between hover:border-[#F4C542]/50 transition duration-200 hover:shadow-md;
+  @apply bg-card border border-border/50 p-5 rounded-lg shadow-xs flex flex-col justify-between hover:border-[#F4C542]/50 transition duration-200 hover:shadow-md;
 }
 
 .container_68 {
@@ -308,11 +308,11 @@
 }
 
 .table_72 {
-  @apply mt-4 flex items-center justify-center gap-2 border border-border/50 bg-card hover:bg-surface-2/60 text-text font-semibold px-4 py-2.5 rounded-xl text-xs transition duration-155 cursor-pointer w-full;
+  @apply mt-4 flex items-center justify-center gap-2 border border-border/50 bg-card hover:bg-surface-2/60 text-text font-semibold px-4 py-2.5 rounded-lg text-xs transition duration-155 cursor-pointer w-full;
 }
 
 .card_73 {
-  @apply flex flex-col md:flex-row items-center gap-3 bg-card border border-border/50 p-4 rounded-xl shadow-2xs w-full;
+  @apply flex flex-col md:flex-row items-center gap-3 bg-card border border-border/50 p-4 rounded-lg shadow-2xs w-full;
 }
 
 .container_74 {
@@ -340,11 +340,11 @@
 }
 
 .card_80 {
-  @apply bg-card border border-border/50 rounded-xl px-2.5 py-2 text-xs focus:outline-none focus:border-muted-foreground/50 text-text w-full md:w-36 cursor-pointer;
+  @apply bg-card border border-border/50 rounded-lg px-3.5 py-2.5 text-xs focus:outline-none focus:border-[#F4C542] focus:ring-1 focus:ring-[#F4C542]/25 text-text w-full md:w-48 cursor-pointer transition duration-150;
 }
 
 .card_81 {
-  @apply bg-card border border-border/50 rounded-xl px-2.5 py-2 text-xs focus:outline-none focus:border-muted-foreground/50 text-text w-full md:w-36 cursor-pointer;
+  @apply bg-card border border-border/50 rounded-lg px-3.5 py-2.5 text-xs focus:outline-none focus:border-[#F4C542] focus:ring-1 focus:ring-[#F4C542]/25 text-text w-full md:w-48 cursor-pointer transition duration-150;
 }
 
 .container_82 {
@@ -356,11 +356,11 @@
 }
 
 .card_84 {
-  @apply bg-card border border-border/50 rounded-xl px-2.5 py-2 text-xs focus:outline-none focus:border-muted-foreground/50 text-text w-full md:w-44 cursor-pointer;
+  @apply bg-card border border-border/50 rounded-lg px-3.5 py-2.5 text-xs focus:outline-none focus:border-[#F4C542] focus:ring-1 focus:ring-[#F4C542]/25 text-text w-full md:w-56 cursor-pointer transition duration-150;
 }
 
 .card_85 {
-  @apply bg-card border border-border/50 rounded-xl overflow-hidden shadow-2xs;
+  @apply bg-card border border-border/50 rounded-lg overflow-hidden shadow-2xs;
 }
 
 .div_86 {
@@ -432,7 +432,7 @@
 }
 
 .div_103 {
-  @apply py-1 px-4;
+  @apply py-2.5 px-4;
 }
 
 .container_104 {
@@ -448,15 +448,15 @@
 }
 
 .text_107 {
-  @apply py-1 px-4 text-center font-mono text-[13px] text-text-secondary font-medium;
+  @apply py-2.5 px-4 text-center font-mono text-[13px] text-text-secondary font-medium;
 }
 
 .text_108 {
-  @apply py-1 px-4 text-center font-bold text-[13px] text-text;
+  @apply py-2.5 px-4 text-center font-bold text-[13px] text-text;
 }
 
 .text_109 {
-  @apply py-1 px-4 text-center;
+  @apply py-2.5 px-4 text-center;
 }
 
 .table_110 {
@@ -928,7 +928,7 @@
 }
 
 .card_227 {
-  @apply bg-card p-5 rounded-xl shadow-xs transition duration-200 hover:shadow-md hover:-translate-y-0.5 hover:border-[#F4C542]/50 border border-border/50;
+  @apply bg-card p-5 rounded-lg shadow-xs transition duration-200 hover:shadow-md hover:-translate-y-0.5 hover:border-[#F4C542]/50 border border-border/50;
 }
 
 .table_228 {

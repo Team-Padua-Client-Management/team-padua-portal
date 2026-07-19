@@ -14,11 +14,13 @@
 ;
 
 import styles from "@/styles/user/users/[id]/UserViewClient.module.css";
+import UserStatusBadge from "@/components/shared/UserStatusBadge";
+import { supabase } from "@/app/lib/supabase/client";
 
-  // ======================================================
+// ======================================================
 // State Initialization & Hooks
 // ======================================================
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, User, Mail, Phone, Cake, MapPin, Briefcase, Shield,
@@ -45,6 +47,7 @@ interface UserViewProps {
     gender: string;
     birthday: string;
     address: string;
+    presenceStatus?: string;
     avatar: string;
     status: string;
     bio: string;
@@ -126,6 +129,32 @@ export default function UserViewClient({ initialUser, socialLinks, tasks }: User
   const [activeTab, setActiveTab] = useState("overview");
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const router = useRouter();
+  const [presenceStatus, setPresenceStatus] = useState(initialUser.presenceStatus || 'offline');
+
+  useEffect(() => {
+    const uniqueId = Math.random().toString(36).slice(2, 9);
+    const channel = supabase
+      .channel(`user-view-presence-${initialUser.id}-${uniqueId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+          filter: `id=eq.${initialUser.id}`,
+        },
+        (payload) => {
+          if (payload.new && 'status' in payload.new) {
+            setPresenceStatus((payload.new as any).status || 'offline');
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [initialUser.id]);
 
   const completedTasks = tasks.filter(t => t.status === 'Completed').length;
   const pendingTasks = tasks.filter(t => t.status !== 'Completed').length;
@@ -196,33 +225,38 @@ const LocationInformationCard = () => (
       <div className={styles.card_16}>
         <div className={styles.div_17} style={{ background: user.bannerTheme }} />
 
-        <div className={styles.card_18}>
-          <div className={styles.container_19}>
-            <div className={styles.div_20}>
-              <ProfileAvatar
-                avatarUrl={user.avatar}
-                name={user.name}
-                size={96}
-                className={styles.div_2}
-              />
-              <span className={`${styles.card_113} ${user.status === 'Active' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-            </div>
+        <div className="relative z-10 flex flex-col items-center text-center px-8 pb-8 pt-4 bg-card/20 backdrop-blur-sm">
+          <div className="relative shrink-0 -mt-20 sm:-mt-28 border-4 border-white dark:border-slate-900 rounded-full shadow-xl bg-background transition-transform duration-300 hover:scale-105 z-20 w-28 h-28 overflow-hidden">
+            <ProfileAvatar
+              avatarUrl={user.avatar}
+              name={user.name}
+              size={112}
+              className="w-full h-full object-cover rounded-full"
+            />
+            <span className={`absolute bottom-1 right-1 w-4.5 h-4.5 border-3 border-card rounded-full shadow-md animate-pulse ${
+              presenceStatus === 'online' ? 'bg-emerald-500' :
+              presenceStatus === 'busy' ? 'bg-rose-500' : 'bg-slate-400'
+            }`} />
+          </div>
 
-            <div className={styles.container_21}>
-              <h1 className={styles.text_22}>{user.name}</h1>
-              <div className={styles.container_23}>
-                <span className={styles.table_24}>
-                  {user.role}
-                </span>
-                <span className={`${styles.table_114} ${user.status === "Active" ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400" :
-                  user.status === "Pending" ? "bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400" :
-                    "bg-rose-50 dark:bg-rose-950/20 text-rose-700 dark:text-rose-400"
-                  }`}>
-                  {user.status}
-                </span>
-              </div>
+          <div className="mt-4 flex flex-col items-center gap-2">
+            <h1 className={styles.text_22}>{user.name}</h1>
+            <div className={styles.container_23}>
+              <span className={styles.table_24}>
+                {user.role}
+              </span>
+              <span className={`${styles.table_114} ${user.status === "Active" ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400" :
+                user.status === "Pending" ? "bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400" :
+                  "bg-rose-50 dark:bg-rose-950/20 text-rose-700 dark:text-rose-400"
+                }`}>
+                {user.status}
+              </span>
+              <UserStatusBadge status={presenceStatus as any} />
             </div>
           </div>
+        </div>
+
+        <div className="px-8 pb-8 pt-4">
 
           <div className={styles.container_25}>
             {tabs.map((tab) => {
