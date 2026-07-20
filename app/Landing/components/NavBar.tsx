@@ -9,6 +9,7 @@ const navLinks = [
   { label: 'Overview', href: '#overview' },
   { label: 'Modules', href: '#modules' },
   { label: 'Team Padua', href: '#about' },
+  { label: 'Security', href: '#security' },
   { label: 'Portal Preview', href: '#preview' },
   { label: 'FAQ', href: '#faq' },
 ];
@@ -43,7 +44,7 @@ export default function NavBar() {
         </a>
 
         {/* Desktop Nav */}
-        <nav className="hidden lg:flex items-center gap-8 text-xs font-semibold uppercase tracking-wider text-[#666666]">
+        <nav className="hidden lg:flex items-center gap-7 text-xs font-semibold uppercase tracking-wider text-[#666666]">
           {navLinks.map((link) => (
             <a
               key={link.href}

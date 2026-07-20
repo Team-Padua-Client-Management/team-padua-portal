@@ -5,12 +5,29 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { ArrowRight, Sparkles, Bell, Users, Wallet, Calendar } from 'lucide-react';
 import type { LandingStats } from '@/app/api/landing-stats/route';
+import { getStat, ILLUSTRATIVE_STATS } from '../../../lib/statDisplay';
 
 interface HeroSectionProps {
   stats: LandingStats;
 }
 
+// Small inline tag shown next to illustrative (not-yet-live) numbers.
+// Keeps the page honest instead of implying fabricated live data.
+function SampleTag() {
+  return (
+    <span className="ml-1 text-[9px] font-semibold text-[#A3843B]/70 normal-case tracking-normal">
+      (sample)
+    </span>
+  );
+}
+
 export default function HeroSection({ stats }: HeroSectionProps) {
+  const activeClients = getStat(stats.activeClients, ILLUSTRATIVE_STATS.activeClients);
+  const birthdays = getStat(stats.birthdaysThisMonth, ILLUSTRATIVE_STATS.birthdaysThisMonth);
+  const acr = getStat(stats.acrRequests, ILLUSTRATIVE_STATS.acrRequests);
+  const totalClients = getStat(stats.totalClients, ILLUSTRATIVE_STATS.totalClients);
+  const upcomingEvents = getStat(stats.upcomingEvents, ILLUSTRATIVE_STATS.upcomingEvents);
+
   return (
     <section
       id="overview"
@@ -82,24 +99,18 @@ export default function HeroSection({ stats }: HeroSectionProps) {
         >
           <div className="flex items-center gap-1.5">
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="font-semibold text-[#111111]">
-              {stats.activeClients > 0 ? stats.activeClients : '—'}
-            </span>
-            &nbsp;active clients
+            <span className="font-semibold text-[#111111]">{activeClients.value}</span>
+            &nbsp;active clients{activeClients.isSample && <SampleTag />}
           </div>
           <div className="flex items-center gap-1.5">
             <div className="w-1.5 h-1.5 rounded-full bg-[#FFC72C]" />
-            <span className="font-semibold text-[#111111]">
-              {stats.birthdaysThisMonth > 0 ? stats.birthdaysThisMonth : '—'}
-            </span>
-            &nbsp;birthdays this month
+            <span className="font-semibold text-[#111111]">{birthdays.value}</span>
+            &nbsp;birthdays this month{birthdays.isSample && <SampleTag />}
           </div>
           <div className="flex items-center gap-1.5">
             <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
-            <span className="font-semibold text-[#111111]">
-              {stats.acrRequests > 0 ? stats.acrRequests : '—'}
-            </span>
-            &nbsp;service requests
+            <span className="font-semibold text-[#111111]">{acr.value}</span>
+            &nbsp;service requests{acr.isSample && <SampleTag />}
           </div>
         </motion.div>
       </div>
@@ -149,8 +160,8 @@ export default function HeroSection({ stats }: HeroSectionProps) {
               </div>
               <div>
                 <p className="text-[10px] text-[#666666] uppercase font-bold">Clients</p>
-                <p className="text-sm font-extrabold text-[#111111]">
-                  {stats.totalClients > 0 ? stats.totalClients : '—'}
+                <p className="text-sm font-extrabold text-[#111111] flex items-center">
+                  {totalClients.value}{totalClients.isSample && <SampleTag />}
                 </p>
               </div>
             </div>
@@ -169,8 +180,8 @@ export default function HeroSection({ stats }: HeroSectionProps) {
               </div>
               <div>
                 <p className="text-[10px] text-[#666666] uppercase font-bold">Events</p>
-                <p className="text-sm font-extrabold text-[#111111]">
-                  {stats.upcomingEvents > 0 ? stats.upcomingEvents : '—'}
+                <p className="text-sm font-extrabold text-[#111111] flex items-center">
+                  {upcomingEvents.value}{upcomingEvents.isSample && <SampleTag />}
                 </p>
               </div>
             </div>
@@ -184,6 +195,13 @@ export default function HeroSection({ stats }: HeroSectionProps) {
               </div>
             </div>
           </div>
+
+          {/* Honesty note — only shown while any figure above is illustrative */}
+          {(activeClients.isSample || totalClients.isSample || upcomingEvents.isSample) && (
+            <p className="text-center text-[9px] text-[#A3843B]/70 mt-2 uppercase tracking-wider font-semibold">
+              Sample figures shown for preview — your dashboard reflects live data
+            </p>
+          )}
         </div>
       </motion.div>
     </section>

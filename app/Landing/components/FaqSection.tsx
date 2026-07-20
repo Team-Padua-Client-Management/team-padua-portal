@@ -23,15 +23,22 @@ const STATIC_FAQS = [
   {
     question: 'Is client information secure on this platform?',
     answer:
-      'Yes. The portal integrates enterprise-grade security policies and strict access authorization rules to ensure client policy records and advisor workflows remain protected and confidential at all times.',
+      'Yes. The portal uses role-based access controls and secure sign-in so client policy records and advisor workflows stay confidential. Data is handled in line with the Data Privacy Act of 2012 (RA 10173), and the platform does not store or transmit payment credentials.',
     category: 'Security',
     is_pinned: false,
   },
   {
-    question: 'Who developed and maintains the platform?',
+    question: 'Does this replace official Sun Life systems?',
     answer:
-      'The system was designed and developed by John Renz Bandianon, Advisor Support Associate Intern, under the leadership and strategic direction of Team Padua Business Development.',
+      "No. The portal is an operational layer on top of your existing process — a place to organize and track client and policy information your team already manages. All official transactions and submissions still go through Sun Life's standard channels.",
     category: 'General',
+    is_pinned: false,
+  },
+  {
+    question: 'How do I get onboarded if I\'m a new advisor under Team Padua?',
+    answer:
+      'New advisors are onboarded directly by the team. Reach out through the contact form below or your team lead, and you\'ll receive login credentials along with a short walkthrough of the portal\'s modules before your first session.',
+    category: 'Access',
     is_pinned: false,
   },
 ];
@@ -41,7 +48,7 @@ interface FaqSectionProps {
 }
 
 export default function FaqSection({ stats }: FaqSectionProps) {
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [activeIndex, setActiveIndex] = useState<number | null>(0);
 
   // Use live DB FAQs if available, otherwise fall back to static list
   const faqs = stats.faqs.length > 0 ? stats.faqs : STATIC_FAQS;
@@ -98,11 +105,10 @@ export default function FaqSection({ stats }: FaqSectionProps) {
                   {faq.question}
                 </span>
                 <div
-                  className={`w-8 h-8 rounded-full border flex items-center justify-center shrink-0 transition-all duration-300 ${
-                    isOpen
+                  className={`w-8 h-8 rounded-full border flex items-center justify-center shrink-0 transition-all duration-300 ${isOpen
                       ? 'bg-[#FFC72C] border-[#FFC72C] text-[#111111] rotate-180'
                       : 'border-slate-200 text-[#666666]'
-                  }`}
+                    }`}
                 >
                   <ChevronDown size={13} />
                 </div>

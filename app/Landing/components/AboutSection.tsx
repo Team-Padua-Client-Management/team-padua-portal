@@ -3,7 +3,7 @@
 import React from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, Info } from 'lucide-react';
 
 const benefits = [
   'Faster, error-free policy servicing',
@@ -69,6 +69,18 @@ export default function AboutSection() {
               this platform replaces scattered spreadsheets and manual logs with a single,
               secure workspace that handles the operational complexity so advisors can stay
               client-focused.
+            </p>
+          </div>
+
+          {/* Complements-not-replaces callout */}
+          <div className="flex gap-3 bg-blue-50/60 border border-blue-100 rounded-2xl p-5">
+            <Info size={16} className="text-blue-500 shrink-0 mt-0.5" />
+            <p className="text-xs text-[#444444] leading-relaxed">
+              <span className="font-bold text-[#111111]">This portal complements — it doesn't replace — official Sun Life systems.</span>{' '}
+              Think of it as Team Padua's operational layer: a place to organize and track the
+              same client and policy information you already manage, without duplicating work
+              across spreadsheets and chat threads. All official transactions and submissions
+              still follow Sun Life's standard channels.
             </p>
           </div>
 

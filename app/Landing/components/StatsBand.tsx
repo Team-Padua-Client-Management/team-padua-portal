@@ -3,36 +3,48 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import type { LandingStats } from '@/app/api/landing-stats/route';
+import { getStat, ILLUSTRATIVE_STATS } from '../../../lib/statDisplay';
+
 
 interface StatsBandProps {
   stats: LandingStats;
 }
 
-const buildCallouts = (stats: LandingStats) => [
-  {
-    value: stats.totalClients > 0 ? `${stats.totalClients}+` : '100%',
-    label: 'Client records organized',
-    sublabel: 'All in one secure workspace',
-  },
-  {
-    value: 'Anywhere',
-    label: 'Access — anytime',
-    sublabel: 'Cloud-hosted, always available',
-  },
-  {
-    value: 'Real-time',
-    label: 'Premium monitoring',
-    sublabel: 'Payment status updated live',
-  },
-  {
-    value: stats.teamMembers > 0 ? `${stats.teamMembers}` : 'One',
-    label: stats.teamMembers > 1 ? 'Team members on the portal' : 'Centralized platform',
-    sublabel: 'All operations, one workspace',
-  },
-];
+const buildCallouts = (stats: LandingStats) => {
+  const totalClients = getStat(stats.totalClients, ILLUSTRATIVE_STATS.totalClients, '+');
+  const teamMembers = getStat(stats.teamMembers, ILLUSTRATIVE_STATS.teamMembers);
+
+  return [
+    {
+      value: totalClients.value,
+      isSample: totalClients.isSample,
+      label: 'Client records organized',
+      sublabel: 'All in one secure workspace',
+    },
+    {
+      value: 'Anywhere',
+      isSample: false,
+      label: 'Access — anytime',
+      sublabel: 'Cloud-hosted, always available',
+    },
+    {
+      value: 'Real-time',
+      isSample: false,
+      label: 'Premium monitoring',
+      sublabel: 'Payment status updated live',
+    },
+    {
+      value: teamMembers.value,
+      isSample: teamMembers.isSample,
+      label: 'Team members on the portal',
+      sublabel: 'All operations, one workspace',
+    },
+  ];
+};
 
 export default function StatsBand({ stats }: StatsBandProps) {
   const callouts = buildCallouts(stats);
+  const anySample = callouts.some((c) => c.isSample);
 
   return (
     <section className="bg-[#111111] py-20">
@@ -64,6 +76,12 @@ export default function StatsBand({ stats }: StatsBandProps) {
             </motion.div>
           ))}
         </div>
+
+        {anySample && (
+          <p className="text-center text-[9px] text-white/30 mt-10 uppercase tracking-wider font-semibold">
+            Illustrative figures shown for preview purposes
+          </p>
+        )}
       </div>
     </section>
   );

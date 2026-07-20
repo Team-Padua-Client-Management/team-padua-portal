@@ -10,7 +10,12 @@ import { supabase } from "@/app/lib/supabase/client";
 import styles from "@/styles/admin/cpst/page.module.css";
 import SignaturePad from '@/app/components/ui/SignaturePad';
 import ClientSelector from '@/app/components/shared/ClientSelector';
+// ── PDF generators ────────────────────────────────────────────────────────
+// DEFAULT: template-based generator — overlays data on the real Sun Life PDF.
+import { generateAdvisorChangeRequestPdfFromTemplate } from '@/app/lib/pdf/generateAdvisorChangeRequestPdfFromTemplate';
+// FALLBACK (scratch-built): kept as a reference / fallback — do NOT remove.
 import { generateAdvisorChangeRequestPdf } from '@/app/lib/pdf/generateAdvisorChangeRequestPdf';
+// ──────────────────────────────────────────────────────────────────────────
 
 const TABLE_NAME = 'advisor_change_requests';
 
@@ -426,7 +431,16 @@ export default function AdvisorChangeRequestPage() {
       const ownerName = getClientNameParts(record.client?.client_name);
       const ownerDob = record.client?.birthdate || '';
 
-      const pdfBytes = await generateAdvisorChangeRequestPdf(record, ownerName, ownerDob);
+      // ── DEFAULT: template-based generator ────────────────────────────────
+      // Uses the real Sun Life blank form as a background and overlays data on
+      // top — pixel-perfect match to the official form design.
+      // If the template file is missing from /public/forms/, an error is shown
+      // to the user via setError() below (no silent crash).
+      const pdfBytes = await generateAdvisorChangeRequestPdfFromTemplate(record, ownerName, ownerDob);
+
+      // ── FALLBACK (scratch-built) — uncomment to switch back ───────────────
+      // const pdfBytes = await generateAdvisorChangeRequestPdf(record, ownerName, ownerDob);
+      // ─────────────────────────────────────────────────────────────────────
 
       const blob = new Blob([pdfBytes as any], { type: 'application/pdf' });
       const downloadUrl = URL.createObjectURL(blob);
@@ -443,7 +457,9 @@ export default function AdvisorChangeRequestPage() {
       setTimeout(() => setSuccess(""), 3000);
     } catch (err: any) {
       console.error('Error generating PDF:', err);
-      setError(err.message || 'Failed to generate PDF');
+      // Surface template-fetch failures (e.g. missing /public/forms/ file)
+      // and any other generation errors as a visible toast via setError().
+      setError(err.message || 'Failed to generate PDF. Please check that the template file exists in /public/forms/.');
     } finally {
       setIsGeneratingPdf(false);
       setGeneratingPdfId(null);

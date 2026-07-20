@@ -1,0 +1,958 @@
+{
+  "1": [
+    {
+      "name": "undefined",
+      "type": "PDFTextField",
+      "y": 528,
+      "x": 145
+    },
+    {
+      "name": "MI",
+      "type": "PDFTextField",
+      "y": 506,
+      "x": 144
+    },
+    {
+      "name": "undefined_2",
+      "type": "PDFTextField",
+      "y": 488,
+      "x": 517
+    },
+    {
+      "name": "For CompanyBusiness Planholder",
+      "type": "PDFTextField",
+      "y": 487,
+      "x": 144
+    },
+    {
+      "name": "undefined_3",
+      "type": "PDFTextField",
+      "y": 453,
+      "x": 144
+    },
+    {
+      "name": "undefined_4",
+      "type": "PDFTextField",
+      "y": 433,
+      "x": 145
+    },
+    {
+      "name": "Add Beneficiaryies",
+      "type": "PDFCheckBox",
+      "y": 357,
+      "x": 44
+    },
+    {
+      "name": "Remove Beneficiaryies",
+      "type": "PDFCheckBox",
+      "y": 357,
+      "x": 227
+    },
+    {
+      "name": "Change of Beneficiary Information",
+      "type": "PDFCheckBox",
+      "y": 357,
+      "x": 399
+    },
+    {
+      "name": "Kindly complete the needed information below to add beneficiaryies to your plan If there are more than 2 additional beneficiaries",
+      "type": "PDFTextField",
+      "y": 312,
+      "x": 181
+    },
+    {
+      "name": "4 Birthdate eg 01FEB2026",
+      "type": "PDFTextField",
+      "y": 236,
+      "x": 38
+    },
+    {
+      "name": "Mother1",
+      "type": "PDFCheckBox",
+      "y": 210,
+      "x": 119
+    },
+    {
+      "name": "Day",
+      "type": "PDFTextField",
+      "y": 203,
+      "x": 326
+    },
+    {
+      "name": "Month",
+      "type": "PDFTextField",
+      "y": 203,
+      "x": 365
+    },
+    {
+      "name": "Month2",
+      "type": "PDFTextField",
+      "y": 203,
+      "x": 399
+    },
+    {
+      "name": "Year1",
+      "type": "PDFTextField",
+      "y": 203,
+      "x": 421
+    },
+    {
+      "name": "Year",
+      "type": "PDFTextField",
+      "y": 203,
+      "x": 455
+    },
+    {
+      "name": "Day1",
+      "type": "PDFTextField",
+      "y": 202,
+      "x": 343
+    },
+    {
+      "name": "Month1",
+      "type": "PDFTextField",
+      "y": 202,
+      "x": 382
+    },
+    {
+      "name": "Year2",
+      "type": "PDFTextField",
+      "y": 202,
+      "x": 439
+    },
+    {
+      "name": "Year3",
+      "type": "PDFTextField",
+      "y": 202,
+      "x": 472
+    },
+    {
+      "name": "7 Relationship to the planholder",
+      "type": "PDFTextField",
+      "y": 167,
+      "x": 38
+    },
+    {
+      "name": "6 CitizenshipsNationalityies",
+      "type": "PDFTextField",
+      "y": 167,
+      "x": 312
+    },
+    {
+      "name": "Father",
+      "type": "PDFCheckBox",
+      "y": 145,
+      "x": 50
+    },
+    {
+      "name": "Mother",
+      "type": "PDFCheckBox",
+      "y": 145,
+      "x": 110
+    },
+    {
+      "name": "Primary",
+      "type": "PDFCheckBox",
+      "y": 145,
+      "x": 325
+    },
+    {
+      "name": "Employer",
+      "type": "PDFCheckBox",
+      "y": 135,
+      "x": 50
+    },
+    {
+      "name": "undefined_10",
+      "type": "PDFCheckBox",
+      "y": 135,
+      "x": 110
+    },
+    {
+      "name": "Others specify",
+      "type": "PDFTextField",
+      "y": 135,
+      "x": 179
+    },
+    {
+      "name": "Contingent in the event of death of all primary beneficiaryies",
+      "type": "PDFCheckBox",
+      "y": 135,
+      "x": 325
+    },
+    {
+      "name": "undefined_11",
+      "type": "PDFCheckBox",
+      "y": 107,
+      "x": 50
+    },
+    {
+      "name": "undefined_12",
+      "type": "PDFCheckBox",
+      "y": 106,
+      "x": 118
+    },
+    {
+      "name": "10 Home PhoneMobile No country code area code  tel no",
+      "type": "PDFTextField",
+      "y": 98,
+      "x": 313
+    },
+    {
+      "name": "11 Address No Street VillageSubdivision Barangay CityMunicipality ProvinceState Country PO Box is not acceptable",
+      "type": "PDFTextField",
+      "y": 65,
+      "x": 38
+    }
+  ],
+  "2": [
+    {
+      "name": "12 Name Last Name First Name Middle NameCompany or Business Name",
+      "type": "PDFTextField",
+      "y": 687,
+      "x": 37
+    },
+    {
+      "name": "Mother3",
+      "type": "PDFCheckBox",
+      "y": 661,
+      "x": 118
+    },
+    {
+      "name": "Day2",
+      "type": "PDFTextField",
+      "y": 654,
+      "x": 330
+    },
+    {
+      "name": "Day3",
+      "type": "PDFTextField",
+      "y": 654,
+      "x": 347
+    },
+    {
+      "name": "Month3",
+      "type": "PDFTextField",
+      "y": 654,
+      "x": 369
+    },
+    {
+      "name": "Month5",
+      "type": "PDFTextField",
+      "y": 654,
+      "x": 402
+    },
+    {
+      "name": "Year5",
+      "type": "PDFTextField",
+      "y": 654,
+      "x": 425
+    },
+    {
+      "name": "Year6",
+      "type": "PDFTextField",
+      "y": 654,
+      "x": 442
+    },
+    {
+      "name": "Year4",
+      "type": "PDFTextField",
+      "y": 654,
+      "x": 459
+    },
+    {
+      "name": "Year7",
+      "type": "PDFTextField",
+      "y": 654,
+      "x": 477
+    },
+    {
+      "name": "Month4",
+      "type": "PDFTextField",
+      "y": 653,
+      "x": 386
+    },
+    {
+      "name": "15 Country of BirthIncorporation or Business Registration",
+      "type": "PDFTextField",
+      "y": 618,
+      "x": 37
+    },
+    {
+      "name": "16 CitizenshipsNationalityies",
+      "type": "PDFTextField",
+      "y": 618,
+      "x": 435
+    },
+    {
+      "name": "17 Relationship to the planholder",
+      "type": "PDFTextField",
+      "y": 597,
+      "x": 56
+    },
+    {
+      "name": "Primary_2",
+      "type": "PDFCheckBox",
+      "y": 597,
+      "x": 328
+    },
+    {
+      "name": "Mother_2",
+      "type": "PDFCheckBox",
+      "y": 596,
+      "x": 117
+    },
+    {
+      "name": "Employer_2",
+      "type": "PDFTextField",
+      "y": 586,
+      "x": 56
+    },
+    {
+      "name": "undefined_13",
+      "type": "PDFCheckBox",
+      "y": 586,
+      "x": 117
+    },
+    {
+      "name": "Others specify_2",
+      "type": "PDFTextField",
+      "y": 586,
+      "x": 192
+    },
+    {
+      "name": "Contingent in the event of death of all primary beneficiaryies_2",
+      "type": "PDFCheckBox",
+      "y": 586,
+      "x": 328
+    },
+    {
+      "name": "undefined_14",
+      "type": "PDFCheckBox",
+      "y": 558,
+      "x": 54
+    },
+    {
+      "name": "undefined_15",
+      "type": "PDFCheckBox",
+      "y": 558,
+      "x": 117
+    },
+    {
+      "name": "20 Home PhoneMobile No country code area code  tel no",
+      "type": "PDFTextField",
+      "y": 549,
+      "x": 312
+    },
+    {
+      "name": "21 Address No Street VillageSubdivision Barangay CityMunicipality ProvinceState Country PO Box is not acceptable",
+      "type": "PDFTextField",
+      "y": 516,
+      "x": 37
+    },
+    {
+      "name": "Kindly complete the information below to remove existing beneficiaryies",
+      "type": "PDFTextField",
+      "y": 448,
+      "x": 37
+    },
+    {
+      "name": "23 Name Last Name First Name Middle NameCompany or Business Name",
+      "type": "PDFTextField",
+      "y": 420,
+      "x": 37
+    },
+    {
+      "name": "24 Original Beneficiary Name Last Name First Name Middle NameCompany or Business Name as it appears in the plan agreement",
+      "type": "PDFTextField",
+      "y": 341,
+      "x": 37
+    },
+    {
+      "name": "Name",
+      "type": "PDFCheckBox",
+      "y": 287,
+      "x": 45
+    },
+    {
+      "name": "Last Name First Name Middle Name",
+      "type": "PDFTextField",
+      "y": 285,
+      "x": 190
+    },
+    {
+      "name": "New Other Legal Names",
+      "type": "PDFCheckBox",
+      "y": 267,
+      "x": 45
+    },
+    {
+      "name": "undefined_16",
+      "type": "PDFTextField",
+      "y": 263,
+      "x": 190
+    },
+    {
+      "name": "Mother2",
+      "type": "PDFCheckBox",
+      "y": 248,
+      "x": 241
+    },
+    {
+      "name": "Sex at birth",
+      "type": "PDFCheckBox",
+      "y": 247,
+      "x": 45
+    },
+    {
+      "name": "Birthdate eg 01APR2020",
+      "type": "PDFCheckBox",
+      "y": 224,
+      "x": 45
+    },
+    {
+      "name": "Day4",
+      "type": "PDFTextField",
+      "y": 215,
+      "x": 189
+    },
+    {
+      "name": "Day5",
+      "type": "PDFTextField",
+      "y": 215,
+      "x": 206
+    },
+    {
+      "name": "Month6",
+      "type": "PDFTextField",
+      "y": 215,
+      "x": 229
+    },
+    {
+      "name": "Month7",
+      "type": "PDFTextField",
+      "y": 215,
+      "x": 245
+    },
+    {
+      "name": "Month8",
+      "type": "PDFTextField",
+      "y": 215,
+      "x": 262
+    },
+    {
+      "name": "Year9",
+      "type": "PDFTextField",
+      "y": 215,
+      "x": 285
+    },
+    {
+      "name": "Year10",
+      "type": "PDFTextField",
+      "y": 215,
+      "x": 302
+    },
+    {
+      "name": "Year8",
+      "type": "PDFTextField",
+      "y": 215,
+      "x": 319
+    },
+    {
+      "name": "Year11",
+      "type": "PDFTextField",
+      "y": 215,
+      "x": 336
+    },
+    {
+      "name": "Country of Birth",
+      "type": "PDFCheckBox",
+      "y": 198,
+      "x": 45
+    },
+    {
+      "name": "undefined_23",
+      "type": "PDFTextField",
+      "y": 194,
+      "x": 190
+    },
+    {
+      "name": "CitizenshipsNationalityies",
+      "type": "PDFCheckBox",
+      "y": 175,
+      "x": 45
+    },
+    {
+      "name": "undefined_24",
+      "type": "PDFTextField",
+      "y": 175,
+      "x": 190
+    },
+    {
+      "name": "Others specify_3",
+      "type": "PDFTextField",
+      "y": 165,
+      "x": 390
+    },
+    {
+      "name": "Relationship to the planholder",
+      "type": "PDFCheckBox",
+      "y": 162,
+      "x": 45
+    },
+    {
+      "name": "undefined_25",
+      "type": "PDFCheckBox",
+      "y": 162,
+      "x": 315
+    },
+    {
+      "name": "Father_2",
+      "type": "PDFCheckBox",
+      "y": 161,
+      "x": 189
+    },
+    {
+      "name": "Mother_3",
+      "type": "PDFCheckBox",
+      "y": 161,
+      "x": 252
+    },
+    {
+      "name": "Beneficiary Type",
+      "type": "PDFCheckBox",
+      "y": 149,
+      "x": 45
+    },
+    {
+      "name": "Primary_3",
+      "type": "PDFCheckBox",
+      "y": 148,
+      "x": 189
+    },
+    {
+      "name": "Contingent in the event of death of all primary beneficiaryies_3",
+      "type": "PDFCheckBox",
+      "y": 148,
+      "x": 252
+    },
+    {
+      "name": "Irrevocable",
+      "type": "PDFCheckBox",
+      "y": 136,
+      "x": 252
+    },
+    {
+      "name": "Designation",
+      "type": "PDFCheckBox",
+      "y": 135,
+      "x": 45
+    },
+    {
+      "name": "Revocable",
+      "type": "PDFCheckBox",
+      "y": 135,
+      "x": 189
+    },
+    {
+      "name": "Home PhoneMobile No",
+      "type": "PDFCheckBox",
+      "y": 118,
+      "x": 45
+    },
+    {
+      "name": "undefined_26",
+      "type": "PDFTextField",
+      "y": 107,
+      "x": 253
+    },
+    {
+      "name": "Address",
+      "type": "PDFCheckBox",
+      "y": 78,
+      "x": 45
+    },
+    {
+      "name": "No Street VillageSubdivision Barangay CityMunicipality ProvinceState Country PO Box is not acceptable",
+      "type": "PDFTextField",
+      "y": 68,
+      "x": 190
+    },
+    {
+      "name": "undefined_27",
+      "type": "PDFTextField",
+      "y": 40,
+      "x": 190
+    }
+  ],
+  "3": [
+    {
+      "name": "Company or Business Name",
+      "type": "PDFCheckBox",
+      "y": 704,
+      "x": 40
+    },
+    {
+      "name": "undefined_28",
+      "type": "PDFTextField",
+      "y": 702,
+      "x": 185
+    },
+    {
+      "name": "undefined_29",
+      "type": "PDFTextField",
+      "y": 690,
+      "x": 321
+    },
+    {
+      "name": "Relationship to the life insured",
+      "type": "PDFCheckBox",
+      "y": 688,
+      "x": 40
+    },
+    {
+      "name": "Employer_3",
+      "type": "PDFCheckBox",
+      "y": 688,
+      "x": 184
+    },
+    {
+      "name": "Others specify_4",
+      "type": "PDFCheckBox",
+      "y": 688,
+      "x": 247
+    },
+    {
+      "name": "Country of Incorporation or Business Registration",
+      "type": "PDFCheckBox",
+      "y": 670,
+      "x": 40
+    },
+    {
+      "name": "undefined_30",
+      "type": "PDFTextField",
+      "y": 667,
+      "x": 248
+    },
+    {
+      "name": "Designation_2",
+      "type": "PDFCheckBox",
+      "y": 653,
+      "x": 40
+    },
+    {
+      "name": "Revocable_2",
+      "type": "PDFCheckBox",
+      "y": 653,
+      "x": 184
+    },
+    {
+      "name": "Irrevocable_2",
+      "type": "PDFCheckBox",
+      "y": 653,
+      "x": 247
+    },
+    {
+      "name": "Business PhoneMobile No",
+      "type": "PDFCheckBox",
+      "y": 635,
+      "x": 40
+    },
+    {
+      "name": "undefined_31",
+      "type": "PDFTextField",
+      "y": 627,
+      "x": 248
+    },
+    {
+      "name": "No Street VillageSubdivision Barangay CityMunicipality ProvinceState Country PO Box is not acceptable_2",
+      "type": "PDFTextField",
+      "y": 594,
+      "x": 185
+    },
+    {
+      "name": "Business Address",
+      "type": "PDFCheckBox",
+      "y": 592,
+      "x": 40
+    },
+    {
+      "name": "undefined_32",
+      "type": "PDFTextField",
+      "y": 572,
+      "x": 185
+    },
+    {
+      "name": "Yes I am a citizennational and a legal resident of",
+      "type": "PDFCheckBox",
+      "y": 505,
+      "x": 40
+    },
+    {
+      "name": "specify country",
+      "type": "PDFTextField",
+      "y": 504,
+      "x": 237
+    },
+    {
+      "name": "Yes I am a citizennational of",
+      "type": "PDFCheckBox",
+      "y": 489,
+      "x": 40
+    },
+    {
+      "name": "undefined_33",
+      "type": "PDFTextField",
+      "y": 488,
+      "x": 165
+    },
+    {
+      "name": "specify country but I legally reside in",
+      "type": "PDFTextField",
+      "y": 488,
+      "x": 419
+    },
+    {
+      "name": "None",
+      "type": "PDFCheckBox",
+      "y": 475,
+      "x": 40
+    },
+    {
+      "name": "27 Printed Name",
+      "type": "PDFTextField",
+      "y": 163,
+      "x": 325
+    },
+    {
+      "name": "28 Signature of Authorized Signatory 1For Company Business Policyholder",
+      "type": "PDFTextField",
+      "y": 136,
+      "x": 325
+    },
+    {
+      "name": "30 Signature of Authorized Signatory 2 For Company Business Policyholder",
+      "type": "PDFTextField",
+      "y": 105,
+      "x": 325
+    },
+    {
+      "name": "33 Printed Name",
+      "type": "PDFTextField",
+      "y": 75,
+      "x": 325
+    },
+    {
+      "name": "Day6",
+      "type": "PDFTextField",
+      "y": 42,
+      "x": 343
+    },
+    {
+      "name": "Day7",
+      "type": "PDFTextField",
+      "y": 42,
+      "x": 361
+    },
+    {
+      "name": "Month9",
+      "type": "PDFTextField",
+      "y": 42,
+      "x": 383
+    },
+    {
+      "name": "Month10",
+      "type": "PDFTextField",
+      "y": 42,
+      "x": 400
+    },
+    {
+      "name": "Month11",
+      "type": "PDFTextField",
+      "y": 42,
+      "x": 416
+    },
+    {
+      "name": "Year13",
+      "type": "PDFTextField",
+      "y": 42,
+      "x": 439
+    },
+    {
+      "name": "Year14",
+      "type": "PDFTextField",
+      "y": 42,
+      "x": 456
+    },
+    {
+      "name": "Year12",
+      "type": "PDFTextField",
+      "y": 42,
+      "x": 473
+    },
+    {
+      "name": "Year15",
+      "type": "PDFTextField",
+      "y": 42,
+      "x": 490
+    },
+    {
+      "name": "30 Signature of Authorized Signatory 2 For Company Business Policyholder 31 Printed Name and Job Title 32 Signature of Witness a thirdparty or anyone who is not the Planholder or beneficiary 33 Printed Name",
+      "type": "PDFTextField",
+      "y": 38,
+      "x": 37
+    }
+  ],
+  "4": [
+    {
+      "name": "42 Signature of Irrevocable Beneficiary 2",
+      "type": "PDFTextField",
+      "y": 690,
+      "x": 320
+    },
+    {
+      "name": "39 Printed Name",
+      "type": "PDFTextField",
+      "y": 657,
+      "x": 320
+    },
+    {
+      "name": "Day8",
+      "type": "PDFTextField",
+      "y": 618,
+      "x": 339
+    },
+    {
+      "name": "Day9",
+      "type": "PDFTextField",
+      "y": 618,
+      "x": 356
+    },
+    {
+      "name": "Month12",
+      "type": "PDFTextField",
+      "y": 618,
+      "x": 379
+    },
+    {
+      "name": "Month13",
+      "type": "PDFTextField",
+      "y": 618,
+      "x": 396
+    },
+    {
+      "name": "Month14",
+      "type": "PDFTextField",
+      "y": 618,
+      "x": 412
+    },
+    {
+      "name": "Year17",
+      "type": "PDFTextField",
+      "y": 618,
+      "x": 435
+    },
+    {
+      "name": "Year18",
+      "type": "PDFTextField",
+      "y": 618,
+      "x": 452
+    },
+    {
+      "name": "Year16",
+      "type": "PDFTextField",
+      "y": 618,
+      "x": 469
+    },
+    {
+      "name": "Year19",
+      "type": "PDFTextField",
+      "y": 618,
+      "x": 486
+    },
+    {
+      "name": "44 Signature of Witness a thirdparty or anyone who is not the planholder or beneficiary",
+      "type": "PDFTextField",
+      "y": 582,
+      "x": 320
+    },
+    {
+      "name": "45 Printed Name",
+      "type": "PDFTextField",
+      "y": 549,
+      "x": 320
+    },
+    {
+      "name": "Day10",
+      "type": "PDFTextField",
+      "y": 510,
+      "x": 340
+    },
+    {
+      "name": "Day11",
+      "type": "PDFTextField",
+      "y": 509,
+      "x": 357
+    },
+    {
+      "name": "Month15",
+      "type": "PDFTextField",
+      "y": 509,
+      "x": 379
+    },
+    {
+      "name": "Month16",
+      "type": "PDFTextField",
+      "y": 509,
+      "x": 396
+    },
+    {
+      "name": "Month17",
+      "type": "PDFTextField",
+      "y": 509,
+      "x": 413
+    },
+    {
+      "name": "Year21",
+      "type": "PDFTextField",
+      "y": 509,
+      "x": 435
+    },
+    {
+      "name": "Year22",
+      "type": "PDFTextField",
+      "y": 509,
+      "x": 453
+    },
+    {
+      "name": "Year20",
+      "type": "PDFTextField",
+      "y": 509,
+      "x": 469
+    },
+    {
+      "name": "Year23",
+      "type": "PDFTextField",
+      "y": 509,
+      "x": 486
+    },
+    {
+      "name": "46 Place of Signing",
+      "type": "PDFTextField",
+      "y": 506,
+      "x": 37
+    },
+    {
+      "name": "Yes",
+      "type": "PDFCheckBox",
+      "y": 291,
+      "x": 86
+    },
+    {
+      "name": "Yes1",
+      "type": "PDFCheckBox",
+      "y": 290,
+      "x": 128
+    }
+  ]
+}

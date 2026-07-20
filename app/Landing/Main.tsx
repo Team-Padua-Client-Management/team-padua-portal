@@ -13,10 +13,12 @@ import AdvisorJourney from './components/AdvisorJourney';
 import AboutSection from './components/AboutSection';
 import ModuleDeepDives from './components/ModuleDeepDives';
 import BentoGrid from './components/BentoGrid';
+import SecuritySection from './components/SecuritySection';
 import TeamSection from './components/TeamSection';
 import LivePreview from './components/LivePreview';
 import StatsBand from './components/StatsBand';
 import FaqSection from './components/FaqSection';
+import ContactSection from './components/ContactSection';
 import FinalCTA from './components/FinalCTA';
 
 const EMPTY_STATS: LandingStats = {
@@ -103,7 +105,7 @@ export default function HomePage() {
         {/* 4. Advisor Journey (3-step) */}
         <AdvisorJourney />
 
-        {/* 5. About the Platform */}
+        {/* 5. About the Platform (now includes "complements Sun Life" note) */}
         <AboutSection />
 
         {/* 6. Module Deep-Dives (alternating) */}
@@ -112,21 +114,27 @@ export default function HomePage() {
         {/* 7. Bento Grid */}
         <BentoGrid />
 
-        {/* 8. Team Padua (leadership + intern depts) */}
+        {/* 8. Security & Data Privacy */}
+        <SecuritySection />
+
+        {/* 9. Team Padua (leadership + intern depts) */}
         <TeamSection />
 
-        {/* 9. Live Portal Preview */}
+        {/* 10. Live Portal Preview */}
         <LivePreview />
 
-        {/* 10. Stats Band (dark section) */}
+        {/* 11. Stats Band (dark section) */}
         <div className="!mt-0">
           <StatsBand stats={resolvedStats} />
         </div>
 
-        {/* 11. FAQ */}
+        {/* 12. FAQ */}
         <FaqSection stats={resolvedStats} />
 
-        {/* 12. Final CTA */}
+        {/* 13. Contact form */}
+        <ContactSection />
+
+        {/* 14. Final CTA */}
         <FinalCTA />
 
       </main>
