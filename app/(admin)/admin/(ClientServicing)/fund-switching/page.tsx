@@ -584,7 +584,7 @@ export default function FundSwitchingPage() {
           </div>
 
           {error && (
-            <div className="fixed top-6 right-6 z-[100] max-w-sm animate-[slideInRight_0.2s_ease-out]">
+            <div className="fixed top-6 right-6 z-100 max-w-sm animate-[slideInRight_0.2s_ease-out]">
               <div className="bg-white border border-red-100 rounded-2xl p-4 flex items-center gap-3 shadow-lg">
                 <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center shrink-0">
                   <AlertCircle className="text-red-500" size={16} />
@@ -597,7 +597,7 @@ export default function FundSwitchingPage() {
             </div>
           )}
           {success && (
-            <div className="fixed top-6 right-6 z-[100] max-w-sm animate-[slideInRight_0.2s_ease-out]">
+            <div className="fixed top-6 right-6 z-100 max-w-sm animate-[slideInRight_0.2s_ease-out]">
               <div className="bg-white border border-emerald-100 rounded-2xl p-4 flex items-center gap-3 shadow-lg">
                 <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center shrink-0">
                   <CheckCircle2 className="text-emerald-500" size={16} />
@@ -1102,7 +1102,7 @@ export default function FundSwitchingPage() {
       )}
 
       {isGeneratingPdf && (
-        <div className="fixed inset-0 bg-gray-900/30 backdrop-blur-sm flex items-center justify-center p-4 z-[70] animate-[fadeIn_0.15s_ease-out]">
+        <div className="fixed inset-0 bg-gray-900/30 backdrop-blur-sm flex items-center justify-center p-4 z-70 animate-[fadeIn_0.15s_ease-out]">
           <div className="bg-white rounded-[32px] w-full max-w-xs shadow-2xl p-8 flex flex-col items-center text-center animate-[scaleIn_0.2s_ease-out]">
             <div className="relative w-16 h-16 flex items-center justify-center mb-4">
               <div className="absolute inset-0 rounded-full border-4 border-amber-100" />
