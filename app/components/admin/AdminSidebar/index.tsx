@@ -107,7 +107,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
     const trackerPaths = ['/admin/jf-application', '/admin/jf-bizdev'];
     const sunlifeFormPaths = [
       '/admin/acr', '/admin/bcr', '/admin/fund-switching', '/admin/fund-withdrawal',
-      '/admin/aca', '/admin/reinstatement-sro', '/admin/reinstatement-pdi', '/admin/adat'
+      '/admin/aca', '/admin/reinstatement-sro', '/admin/reinstatement-pdi'
     ];
 
     const isClientServicing = clientServicingPaths.some(p => pathname.startsWith(p));
@@ -141,10 +141,10 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
     { name: 'Client Social Media Visibility', href: '/admin/csmv' },
   ];
 
-  const trackerItems = [
-    { name: 'JotForm Application Form', href: '/admin/jf-application' },
-    { name: 'JotForm BizDev Recruitment', href: '/admin/jf-bizdev' },
-  ];
+  // const trackerItems = [
+  //   { name: 'JotForm Application Form', href: '/admin/jf-application' },
+  //   { name: 'JotForm BizDev Recruitment', href: '/admin/jf-bizdev' },
+  // ];
 
   const sunlifeFormItems = [
     { name: 'FORM', href: '/admin/form' },
@@ -155,12 +155,11 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
     { name: 'Auto Change Arrangement', href: '/admin/aca' },
     { name: 'Reinstatement SRO', href: '/admin/reinstatement-sro' },
     { name: 'Reinstatement PDI', href: '/admin/reinstatement-pdi' },
-    { name: 'Advisor Daily Activity Tracker', href: '/admin/adat' },
+    // { name: 'Advisor Daily Activity Tracker', href: '/admin/adat' },
   ];
 
   const camsActive = [
     ...clientServicingItems,
-    ...trackerItems,
     ...sunlifeFormItems
   ].some(item => pathname.startsWith(item.href));
 
@@ -325,7 +324,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
               </div>
 
               {/* Category 2: Trackers */}
-              <div className="flex flex-col">
+              {/* <div className="flex flex-col">
                 <button
                   type="button"
                   onClick={() => setTrackersOpen(!trackersOpen)}
@@ -351,7 +350,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                     })}
                   </div>
                 )}
-              </div>
+              </div> */}
 
               {/* Category 3: Sun Life Forms */}
               <div className="flex flex-col">

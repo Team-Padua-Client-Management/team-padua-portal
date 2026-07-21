@@ -10,12 +10,7 @@ import { supabase } from "@/app/lib/supabase/client";
 import styles from "@/styles/admin/cpst/page.module.css";
 import SignaturePad from '@/app/components/ui/SignaturePad';
 import ClientSelector from '@/app/components/shared/ClientSelector';
-// ── PDF generators ────────────────────────────────────────────────────────
-// DEFAULT: template-based generator — overlays data on the real Sun Life PDF.
 import { generateAdvisorChangeRequestPdfFromTemplate } from '@/app/lib/pdf/generateAdvisorChangeRequestPdfFromTemplate';
-// FALLBACK (scratch-built): kept as a reference / fallback — do NOT remove.
-import { generateAdvisorChangeRequestPdf } from '@/app/lib/pdf/generateAdvisorChangeRequestPdf';
-// ──────────────────────────────────────────────────────────────────────────
 
 const TABLE_NAME = 'advisor_change_requests';
 
@@ -25,10 +20,8 @@ export interface FormRecord {
   client?: { client_name: string; policy_number: string | null; birthdate: string | null };
   status: string;
   created_at?: string;
-
   company_name: string;
   designation: string;
-
   request_type: 'specific_policy' | 'all_accounts' | '';
   policy_numbers: string;
   account_individual_life: boolean;
@@ -36,23 +29,18 @@ export interface FormRecord {
   account_mutual_fund: boolean;
   account_pre_need: boolean;
   reference_policy_number: string;
-
   reason_type: 'no_advisor' | 'prefer_another' | '';
   reason_details: string;
-
   new_advisor_last_name: string;
   new_advisor_first_name: string;
   new_advisor_middle_name: string;
-
   place_of_signing: string;
   date_of_signing: string;
   policy_owner_signature: string;
   new_advisor_signature: string;
   code_number: string;
   nbo_iso: string;
-
   wants_communication: boolean;
-
   received_by_staff: string;
   receiving_department: string;
   date_received: string;
@@ -90,25 +78,24 @@ const defaultRecord: Omit<FormRecord, 'id' | 'client_id' | 'created_at'> = {
   time_received: '',
 };
 
-const inputClass = "w-full px-4 py-2.5 border border-gray-200 rounded-2xl text-sm text-gray-900 placeholder:text-gray-400 bg-white focus:outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-400 transition-all duration-200";
-const inputDisabledClass = "w-full px-4 py-2.5 border border-gray-100 rounded-2xl text-sm bg-gray-50 text-gray-500 cursor-not-allowed";
-const labelClass = "block text-sm font-medium text-gray-600 mb-1.5";
-const cardClass = "bg-white p-6 rounded-[28px] border border-gray-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)]";
+const inputDisabledClass = "w-full px-3 py-2 border border-gray-200 text-sm bg-[#fffef5] text-gray-700 cursor-not-allowed";
 
-function SectionHeader({ letter, title, badge }: { letter: string; title: string; badge?: string }) {
+function PdfSectionHeader({ letter, title }: { letter: string; title: string }) {
   return (
-    <div className="flex items-center justify-between mb-5">
-      <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-full bg-gray-900 text-white flex items-center justify-center text-sm font-semibold shrink-0">
-          {letter}
-        </div>
-        <h3 className="text-base font-semibold text-gray-900">{title}</h3>
+    <div className="flex items-center gap-0 bg-gray-900 text-white">
+      <div className="w-10 h-8 flex items-center justify-center text-sm font-bold border-r border-gray-600 shrink-0">
+        {letter}
       </div>
-      {badge && (
-        <span className="text-xs font-medium text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
-          {badge}
-        </span>
-      )}
+      <div className="px-3 py-1.5 text-sm font-semibold">{title}</div>
+    </div>
+  );
+}
+
+function FieldCell({ label, children, className = '' }: { label?: string; children: React.ReactNode; className?: string }) {
+  return (
+    <div className={`border border-gray-300 p-2 ${className}`}>
+      {label && <div className="text-xs text-gray-500 mb-1">{label}</div>}
+      {children}
     </div>
   );
 }
@@ -240,6 +227,7 @@ export default function AdvisorChangeRequestPage() {
   const [selectedClientDetails, setSelectedClientDetails] = useState<{
     client_name: string;
     birthdate: string | null;
+    policy_number: string | null;
   } | null>(null);
 
   useEffect(() => {
@@ -251,7 +239,7 @@ export default function AdvisorChangeRequestPage() {
       try {
         const { data, error: err } = await supabase
           .from('cpst_clients')
-          .select('client_name, birthdate')
+          .select('client_name, birthdate, policy_number')
           .eq('id', formData.client_id)
           .single();
         if (err) throw err;
@@ -321,8 +309,24 @@ export default function AdvisorChangeRequestPage() {
     fetchRecords();
   }, []);
 
-  const handleClientSelect = (clientId: string) => {
+  const handleClientSelect = async (clientId: string) => {
     setFormData(prev => ({ ...prev, client_id: clientId }));
+    try {
+      const { data, error } = await supabase
+        .from('cpst_clients')
+        .select('client_name, birthdate, policy_number')
+        .eq('id', clientId)
+        .single();
+      if (!error && data) {
+        setFormData(prev => ({
+          ...prev,
+          policy_numbers: data.policy_number || prev.policy_numbers,
+          reference_policy_number: data.policy_number || prev.reference_policy_number
+        }));
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleOpenModal = (record?: FormRecord) => {
@@ -360,7 +364,8 @@ export default function AdvisorChangeRequestPage() {
       if (record.client) {
         setSelectedClientDetails({
           client_name: record.client.client_name,
-          birthdate: record.client.birthdate
+          birthdate: record.client.birthdate,
+          policy_number: record.client.policy_number
         });
       }
     } else {
@@ -385,11 +390,11 @@ export default function AdvisorChangeRequestPage() {
       setIsSubmitting(true);
       setError("");
 
-      if (editingRecord) {
-        const payload: any = { ...formData };
-        if (!payload.date_received) payload.date_received = null;
-        if (!payload.date_of_signing) payload.date_of_signing = null;
+      const payload: any = { ...formData };
+      if (!payload.date_received) payload.date_received = null;
+      if (!payload.date_of_signing) payload.date_of_signing = null;
 
+      if (editingRecord) {
         const { error: updateError } = await supabase
           .from(TABLE_NAME)
           .update(payload)
@@ -398,10 +403,6 @@ export default function AdvisorChangeRequestPage() {
         if (updateError) throw updateError;
         setSuccess("Record updated successfully");
       } else {
-        const payload: any = { ...formData };
-        if (!payload.date_received) payload.date_received = null;
-        if (!payload.date_of_signing) payload.date_of_signing = null;
-
         const { error: insertError } = await supabase
           .from(TABLE_NAME)
           .insert([payload]);
@@ -430,17 +431,7 @@ export default function AdvisorChangeRequestPage() {
 
       const ownerName = getClientNameParts(record.client?.client_name);
       const ownerDob = record.client?.birthdate || '';
-
-      // ── DEFAULT: template-based generator ────────────────────────────────
-      // Uses the real Sun Life blank form as a background and overlays data on
-      // top — pixel-perfect match to the official form design.
-      // If the template file is missing from /public/forms/, an error is shown
-      // to the user via setError() below (no silent crash).
       const pdfBytes = await generateAdvisorChangeRequestPdfFromTemplate(record, ownerName, ownerDob);
-
-      // ── FALLBACK (scratch-built) — uncomment to switch back ───────────────
-      // const pdfBytes = await generateAdvisorChangeRequestPdf(record, ownerName, ownerDob);
-      // ─────────────────────────────────────────────────────────────────────
 
       const blob = new Blob([pdfBytes as any], { type: 'application/pdf' });
       const downloadUrl = URL.createObjectURL(blob);
@@ -457,8 +448,6 @@ export default function AdvisorChangeRequestPage() {
       setTimeout(() => setSuccess(""), 3000);
     } catch (err: any) {
       console.error('Error generating PDF:', err);
-      // Surface template-fetch failures (e.g. missing /public/forms/ file)
-      // and any other generation errors as a visible toast via setError().
       setError(err.message || 'Failed to generate PDF. Please check that the template file exists in /public/forms/.');
     } finally {
       setIsGeneratingPdf(false);
@@ -646,336 +635,391 @@ export default function AdvisorChangeRequestPage() {
       </div>
 
       {isModalOpen && (
-        <Modal onClose={() => setIsModalOpen(false)}>
-          <div className="px-7 py-5 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center">
-                <FileText className="text-amber-500" size={18} />
+        <Modal onClose={() => setIsModalOpen(false)} maxWidth="max-w-5xl">
+          <div className="flex items-center justify-between shrink-0" style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)' }}>
+            <div className="flex items-center gap-0">
+              <div className="w-1.5 h-16 bg-[#F2AF00]" />
+              <div className="px-5 py-3">
+                <p className="text-xs font-semibold text-[#F2AF00] tracking-widest uppercase mb-0.5">Sun Life of Canada (Philippines), Inc.</p>
+                <h2 className="text-lg font-bold text-white tracking-tight">
+                  {editingRecord ? 'Edit — Advisor Change Request' : 'New Advisor Change Request'}
+                </h2>
               </div>
-              <h2 className="text-xl font-bold text-gray-900 tracking-tight">
-                {editingRecord ? 'Edit Advisor Change Request' : 'New Advisor Change Request'}
-              </h2>
             </div>
             <button
               onClick={() => setIsModalOpen(false)}
-              className="p-2.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors duration-200"
+              className="mr-4 p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-full transition-colors duration-200"
             >
               <X size={20} />
             </button>
           </div>
 
-          <div className="p-7 overflow-y-auto bg-gray-50/60 flex-1">
-            <form id="acrForm" onSubmit={handleSubmit} className="space-y-6">
-              <div className={cardClass}>
-                <h3 className="text-base font-semibold text-gray-900 mb-4">Select Client</h3>
-                <ClientSelector
-                  onChange={handleClientSelect}
-                  value={formData.client_id}
-                />
-              </div>
+          <div className="px-6 py-4 bg-gray-50 border-b border-gray-200 shrink-0">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Select Client</p>
+            <ClientSelector
+              onChange={handleClientSelect}
+              value={formData.client_id}
+            />
+          </div>
 
+          <div className="overflow-y-auto flex-1" style={{ background: '#f8f8f6' }}>
+            <form id="acrForm" onSubmit={handleSubmit}>
               {formData.client_id && (
-                <>
-                  <div className="bg-[#F2AF00] w-full py-4 px-6 rounded-[28px] flex items-center justify-between shadow-sm">
-                    <h2 className="text-xl font-bold text-black uppercase tracking-wide">Advisor Change Request</h2>
-                    <div className="text-black font-bold text-xl tracking-tighter">Sun Life</div>
-                  </div>
-
-                  <div className={cardClass}>
-                    <SectionHeader letter="A" title="General Information" />
-                    <div className="space-y-4">
-                      <p className="font-semibold text-gray-900 text-sm">A.1 Policy Owner/Policy Holder (for Group Insurance)/Plan Holder/Investor</p>
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div>
-                          <label className={labelClass}>Last Name</label>
-                          <input type="text" value={clientNameParts.last} disabled className={inputDisabledClass} />
-                        </div>
-                        <div>
-                          <label className={labelClass}>First Name</label>
-                          <input type="text" value={clientNameParts.first} disabled className={inputDisabledClass} />
-                        </div>
-                        <div>
-                          <label className={labelClass}>Middle Name</label>
-                          <input type="text" value={clientNameParts.middle} disabled className={inputDisabledClass} />
-                        </div>
-                        <div>
-                          <label className={labelClass}>
-                            Date of Birth (For Individual Account only)
-                            <span className="block text-xs font-normal text-gray-400">Day-Month-Year, e.g. 01-JAN-2020</span>
-                          </label>
-                          <input type="date" value={clientDob} disabled className={inputDisabledClass} />
-                        </div>
-                      </div>
-
-                      <p className="font-semibold text-gray-900 text-sm mt-4">A.2</p>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className={labelClass}>Company Name</label>
-                          <input type="text" value={formData.company_name} onChange={e => setFormData({ ...formData, company_name: e.target.value })} className={inputClass} />
-                        </div>
-                        <div>
-                          <label className={labelClass}>Designation</label>
-                          <input type="text" value={formData.designation} onChange={e => setFormData({ ...formData, designation: e.target.value })} className={inputClass} />
-                        </div>
-                      </div>
-                      <p className="text-xs text-gray-400 mt-2">Names and DOB auto-filled from client record</p>
+                <div className="max-w-4xl mx-auto p-6 space-y-0">
+                  <div className="flex items-stretch border border-gray-300 bg-white">
+                    <div className="flex-1 bg-[#F2AF00] px-6 py-4 flex items-center">
+                      <h1 className="text-2xl font-bold text-gray-900">Advisor Change Request</h1>
                     </div>
-                  </div>
-
-                  <div className={cardClass}>
-                    <SectionHeader letter="B" title="Request Details (choose one below)" />
-                    <div className="space-y-6">
-                      <div className={`space-y-2 p-4 rounded-3xl border transition-colors duration-200 ${formData.request_type === 'specific_policy' ? 'border-amber-200 bg-amber-50/40' : 'border-gray-100 bg-gray-50/50'}`}>
-                        <label className="flex items-start gap-3 font-medium text-gray-900 cursor-pointer">
-                          <input type="radio" name="request_type" checked={formData.request_type === 'specific_policy'} onChange={() => setFormData({ ...formData, request_type: 'specific_policy', account_individual_life: false, account_group_life: false, account_mutual_fund: false, account_pre_need: false, reference_policy_number: '' })} className="mt-1 accent-gray-900" />
-                          <div className="max-w-2xl">
-                            <p className="leading-snug">B.1 Request a particular policy/plan/account number(s) only.</p>
-                            <p className="text-sm font-normal text-gray-600 mt-1 leading-snug">Specify below the policy/plan/account number(s) to be transferred (incorrect policy/plan/account number(s) will not be processed):</p>
-                          </div>
-                        </label>
-                        {formData.request_type === 'specific_policy' && (
-                          <div className="ml-7 pl-1 pt-1">
-                            <textarea placeholder="Policy/Plan/Account Number(s)" value={formData.policy_numbers} onChange={e => setFormData({ ...formData, policy_numbers: e.target.value })} className={`${inputClass} rounded-2xl`} rows={3} />
-                          </div>
-                        )}
-                      </div>
-
-                      <div className={`space-y-2 p-4 rounded-3xl border transition-colors duration-200 ${formData.request_type === 'all_accounts' ? 'border-amber-200 bg-amber-50/40' : 'border-gray-100 bg-gray-50/50'}`}>
-                        <label className="flex items-start gap-3 font-medium text-gray-900 cursor-pointer">
-                          <input type="radio" name="request_type" checked={formData.request_type === 'all_accounts'} onChange={() => setFormData({ ...formData, request_type: 'all_accounts', policy_numbers: '' })} className="mt-1 accent-gray-900" />
-                          <div className="max-w-2xl">
-                            <p className="leading-snug">B.2 Request will apply to ALL existing client's account as of date of request (select the applicable type of account to be transferred):</p>
-                          </div>
-                        </label>
-                        {formData.request_type === 'all_accounts' && (
-                          <div className="ml-7 pl-1 pt-1 space-y-4">
-                            <div className="space-y-2">
-                              <label className="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" checked={formData.account_individual_life} onChange={e => setFormData({ ...formData, account_individual_life: e.target.checked })} className="accent-gray-900 rounded" />
-                                <span className="text-sm text-gray-700">All Individual Life Insurance Policies</span>
-                              </label>
-                              <label className="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" checked={formData.account_group_life} onChange={e => setFormData({ ...formData, account_group_life: e.target.checked })} className="accent-gray-900 rounded" />
-                                <span className="text-sm text-gray-700">All Group Life Insurance Contracts (for Policyholder of Group Insurance)</span>
-                              </label>
-                              <label className="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" checked={formData.account_mutual_fund} onChange={e => setFormData({ ...formData, account_mutual_fund: e.target.checked })} className="accent-gray-900 rounded" />
-                                <span className="text-sm text-gray-700">All Mutual Fund Accounts</span>
-                              </label>
-                              <label className="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" checked={formData.account_pre_need} onChange={e => setFormData({ ...formData, account_pre_need: e.target.checked })} className="accent-gray-900 rounded" />
-                                <span className="text-sm text-gray-700">All Pre-Need Plans</span>
-                              </label>
-                            </div>
-                            <div>
-                              <label className={labelClass}>For our reference, specify at least one policy/plan/account number:</label>
-                              <input type="text" value={formData.reference_policy_number} onChange={e => setFormData({ ...formData, reference_policy_number: e.target.value })} className={`${inputClass} max-w-md`} />
-                            </div>
-                          </div>
-                        )}
+                    <div className="px-6 py-4 flex items-center justify-center border-l border-gray-300 bg-white">
+                      <div className="text-right">
+                        <div className="text-2xl font-black tracking-tight text-gray-900">Sun Life</div>
+                        <div className="text-[10px] text-gray-500 font-medium">of Canada (Philippines), Inc.</div>
                       </div>
                     </div>
                   </div>
 
-                  <div className={cardClass}>
-                    <SectionHeader letter="C" title="Reason for Change" />
-                    <div className="space-y-3">
-                      <label className={`flex items-center gap-3 p-3.5 rounded-2xl border transition-colors duration-200 cursor-pointer ${formData.reason_type === 'no_advisor' ? 'border-amber-200 bg-amber-50/40' : 'border-transparent hover:bg-gray-50'}`}>
-                        <input type="radio" name="reason_type" checked={formData.reason_type === 'no_advisor'} onChange={() => setFormData({ ...formData, reason_type: 'no_advisor', reason_details: '' })} className="accent-gray-900" />
-                        <span className="text-sm text-gray-900">You have no Advisor</span>
+                  <div className="border border-t-0 border-gray-300 bg-white px-5 py-3 text-xs text-gray-600 leading-relaxed">
+                    In this form <em>&quot;you&quot;</em> and <em>&quot;your&quot;</em> refer to the policy owner/plan holder/investor/company&apos;s authorized representative accomplishing this form, while <em>we, us, our,</em> and <em>the Company</em> refer to Sun Life of Canada (Philippines), Inc., Sun Life Financial Plans, Inc., or Sun Life Asset Management Co., Inc., which are members of the Sun Life group of companies.
+                  </div>
+                  <div className="border border-t-0 border-gray-300 bg-[#fffdf0] px-5 py-3 text-xs text-gray-700">
+                    <span className="font-bold">IMPORTANT NOTES:</span> Write legibly using <strong>capital letters</strong>. Write N/A if question is not applicable. Mark the box(es) with an &quot;X&quot; to indicate your choice(s) then sign the form only when completely filled out.
+                  </div>
+
+                  <div className="border border-t-0 border-gray-300">
+                    <PdfSectionHeader letter="A" title="General Information" />
+
+                    <div className="px-3 py-2 text-xs text-gray-700 border-b border-gray-200 bg-white">
+                      <span className="font-semibold">A1.</span> Policy Owner/Policy Holder (for Group Insurance)/Plan Holder/Investor
+                      <span className="ml-4 text-gray-400">For Individual Account only</span>
+                    </div>
+
+                    <div className="grid grid-cols-4 border-b border-gray-200">
+                      <FieldCell label="Last Name" className="col-span-1 border-r">
+                        <input type="text" value={clientNameParts.last} disabled className={inputDisabledClass + " border-0 p-0 bg-transparent text-gray-800"} />
+                      </FieldCell>
+                      <FieldCell label="First Name" className="col-span-1 border-r">
+                        <input type="text" value={clientNameParts.first} disabled className={inputDisabledClass + " border-0 p-0 bg-transparent text-gray-800"} />
+                      </FieldCell>
+                      <FieldCell label="Middle Name" className="col-span-1 border-r">
+                        <input type="text" value={clientNameParts.middle} disabled className={inputDisabledClass + " border-0 p-0 bg-transparent text-gray-800"} />
+                      </FieldCell>
+                      <FieldCell className="col-span-1">
+                        <div className="text-xs text-gray-500 mb-1">Date of Birth <span className="text-gray-400">(e.g. 09-JAN-2020)</span></div>
+                        <input type="date" value={clientDob} disabled className={inputDisabledClass + " border-0 p-0 bg-transparent text-gray-800"} />
+                      </FieldCell>
+                    </div>
+
+                    <div className="px-3 py-1.5 text-xs text-gray-600 border-b border-gray-200 bg-white">
+                      <span className="font-semibold">A2.</span> Company Name &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Designation
+                    </div>
+                    <div className="grid grid-cols-3">
+                      <FieldCell className="col-span-2 border-r">
+                        <input
+                          type="text"
+                          value={formData.company_name}
+                          onChange={e => setFormData({ ...formData, company_name: e.target.value })}
+                          className="w-full border-0 p-0 text-sm text-gray-900 bg-transparent focus:outline-none"
+                        />
+                      </FieldCell>
+                      <FieldCell className="col-span-1">
+                        <input
+                          type="text"
+                          value={formData.designation}
+                          onChange={e => setFormData({ ...formData, designation: e.target.value })}
+                          className="w-full border-0 p-0 text-sm text-gray-900 bg-transparent focus:outline-none"
+                        />
+                      </FieldCell>
+                    </div>
+                    <div className="px-3 py-1.5 text-[10px] text-gray-400 bg-gray-50 border-t border-gray-200">Names and date of birth are auto-filled from the selected client record.</div>
+                  </div>
+
+                  <div className="border border-t-0 border-gray-300">
+                    <PdfSectionHeader letter="B" title="Request Details (choose one below)" />
+
+                    <div className={`border-b border-gray-200 px-4 py-3 transition-colors ${ formData.request_type === 'specific_policy' ? 'bg-amber-50' : 'bg-white' }`}>
+                      <label className="flex items-start gap-3 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="request_type"
+                          checked={formData.request_type === 'specific_policy'}
+                          onChange={() => setFormData({ ...formData, request_type: 'specific_policy', account_individual_life: false, account_group_life: false, account_mutual_fund: false, account_pre_need: false, reference_policy_number: '' })}
+                          className="mt-0.5 accent-gray-900"
+                        />
+                        <div className="text-xs text-gray-800 flex-1">
+                          <span className="font-bold">B.1</span> <strong>Request a particular policy/plan/account number(s) only.</strong><br />
+                          <span className="text-gray-600">Specify below the policy/plan/account number(s) to be transferred <em>(incorrect policy/plan/account number(s) will not be processed)</em>:</span>
+                        </div>
                       </label>
-                      <label className={`flex items-start gap-3 p-3.5 rounded-2xl border transition-colors duration-200 cursor-pointer ${formData.reason_type === 'prefer_another' ? 'border-amber-200 bg-amber-50/40' : 'border-transparent hover:bg-gray-50'}`}>
-                        <input type="radio" name="reason_type" checked={formData.reason_type === 'prefer_another'} onChange={() => setFormData({ ...formData, reason_type: 'prefer_another' })} className="mt-1 accent-gray-900" />
-                        <div className="flex-1 max-w-xl">
-                          <span className="text-sm text-gray-900">You prefer another Advisor (provide reason below)</span>
+                      {formData.request_type === 'specific_policy' && (
+                        <div className="mt-3 ml-6">
+                          <textarea
+                            placeholder="Policy/Plan/Account Number(s)"
+                            value={formData.policy_numbers}
+                            onChange={e => setFormData({ ...formData, policy_numbers: e.target.value })}
+                            className="w-full border border-gray-300 p-2 text-sm text-gray-900 bg-white focus:outline-none focus:border-amber-400 resize-none"
+                            rows={4}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className={`px-4 py-3 transition-colors ${ formData.request_type === 'all_accounts' ? 'bg-amber-50' : 'bg-white' }`}>
+                      <label className="flex items-start gap-3 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="request_type"
+                          checked={formData.request_type === 'all_accounts'}
+                          onChange={() => setFormData({ ...formData, request_type: 'all_accounts', policy_numbers: '' })}
+                          className="mt-0.5 accent-gray-900"
+                        />
+                        <div className="text-xs text-gray-800">
+                          <span className="font-bold">B.2</span> Request will apply to <strong>ALL</strong> existing client&apos;s account as of date of request <em>(select the applicable type of account to be transferred)</em>:
+                        </div>
+                      </label>
+                      {formData.request_type === 'all_accounts' && (
+                        <div className="ml-6 mt-3 space-y-3">
+                          <div className="space-y-2">
+                            {[
+                              { key: 'account_individual_life' as const, label: 'All Individual Life Insurance Policies' },
+                              { key: 'account_group_life' as const, label: 'All Group Life Insurance Contracts (for Policyholder of Group Insurance)' },
+                              { key: 'account_mutual_fund' as const, label: 'All Mutual Fund Accounts' },
+                              { key: 'account_pre_need' as const, label: 'All Pre-Need Plans' },
+                            ].map(({ key, label }) => (
+                              <label key={key} className="flex items-center gap-2.5 cursor-pointer text-xs text-gray-700">
+                                <span className="w-4 h-4 border border-gray-400 flex items-center justify-center bg-white shrink-0">
+                                  {formData[key] && <span className="text-gray-900 font-bold text-xs">✕</span>}
+                                </span>
+                                <input type="checkbox" checked={formData[key]} onChange={e => setFormData({ ...formData, [key]: e.target.checked })} className="sr-only" />
+                                {label}
+                              </label>
+                            ))}
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-gray-700">
+                            <span>For our reference, specify at least <strong>one</strong> policy/plan/account number:</span>
+                            <input
+                              type="text"
+                              value={formData.reference_policy_number}
+                              onChange={e => setFormData({ ...formData, reference_policy_number: e.target.value })}
+                              className="flex-1 border-b border-gray-400 pb-0.5 text-sm text-gray-900 bg-transparent focus:outline-none focus:border-amber-500"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="border border-t-0 border-gray-300">
+                    <PdfSectionHeader letter="C" title="Reason for Change" />
+                    <div className="px-4 py-3 bg-white space-y-3">
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <span className={`w-4 h-4 border flex items-center justify-center shrink-0 ${ formData.reason_type === 'no_advisor' ? 'border-gray-600 bg-white' : 'border-gray-400 bg-white' }`}>
+                          {formData.reason_type === 'no_advisor' && <span className="text-gray-900 font-bold text-xs">✕</span>}
+                        </span>
+                        <input type="radio" name="reason_type" checked={formData.reason_type === 'no_advisor'} onChange={() => setFormData({ ...formData, reason_type: 'no_advisor', reason_details: '' })} className="sr-only" />
+                        <span className="text-xs text-gray-800">You have no Advisor</span>
+                      </label>
+                      <label className="flex items-start gap-3 cursor-pointer">
+                        <span className={`w-4 h-4 border flex items-center justify-center shrink-0 mt-0.5 ${ formData.reason_type === 'prefer_another' ? 'border-gray-600 bg-white' : 'border-gray-400 bg-white' }`}>
+                          {formData.reason_type === 'prefer_another' && <span className="text-gray-900 font-bold text-xs">✕</span>}
+                        </span>
+                        <input type="radio" name="reason_type" checked={formData.reason_type === 'prefer_another'} onChange={() => setFormData({ ...formData, reason_type: 'prefer_another' })} className="sr-only" />
+                        <div className="flex-1">
+                          <span className="text-xs text-gray-800">You prefer another Advisor <em>(provide reason below)</em></span>
                           {formData.reason_type === 'prefer_another' && (
-                            <textarea value={formData.reason_details} onChange={e => setFormData({ ...formData, reason_details: e.target.value })} className={`${inputClass} mt-2`} rows={3} placeholder="Please provide details..." />
+                            <textarea
+                              value={formData.reason_details}
+                              onChange={e => setFormData({ ...formData, reason_details: e.target.value })}
+                              className="mt-2 w-full border border-gray-300 p-2 text-sm text-gray-900 bg-white focus:outline-none focus:border-amber-400 resize-none"
+                              rows={4}
+                              placeholder="Please provide details..."
+                            />
+                          )}
+                          {formData.reason_type !== 'prefer_another' && (
+                            <div className="mt-2 h-20 border border-gray-200 bg-gray-50" />
                           )}
                         </div>
                       </label>
                     </div>
                   </div>
 
-                  <div className={cardClass}>
-                    <SectionHeader letter="D" title="New Advisor Information" />
-                    <p className="font-semibold text-gray-900 text-sm mb-4">New Advisor's Full Name</p>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <label className={labelClass}>Last Name</label>
-                        <input type="text" value={formData.new_advisor_last_name} onChange={e => setFormData({ ...formData, new_advisor_last_name: e.target.value })} className={inputClass} />
+                  <div className="border border-t-0 border-gray-300 bg-white px-4 py-1.5 flex items-center justify-between">
+                    <span className="text-[10px] text-gray-400">SACR.04.24</span>
+                    <span className="text-[10px] text-gray-400">Page 1 of 2</span>
+                  </div>
+
+                  <div className="mt-6 border border-gray-300">
+                    <PdfSectionHeader letter="D" title="New Advisor Information" />
+                    <div className="px-3 py-2 text-xs text-gray-700 border-b border-gray-200 bg-white font-semibold">New Advisor&apos;s Full Name</div>
+                    <div className="grid grid-cols-3">
+                      <FieldCell label="Last Name" className="border-r border-b border-gray-200">
+                        <input type="text" value={formData.new_advisor_last_name} onChange={e => setFormData({ ...formData, new_advisor_last_name: e.target.value })} className="w-full border-0 p-0 text-sm text-gray-900 bg-transparent focus:outline-none" />
+                      </FieldCell>
+                      <FieldCell label="First Name" className="border-r border-b border-gray-200">
+                        <input type="text" value={formData.new_advisor_first_name} onChange={e => setFormData({ ...formData, new_advisor_first_name: e.target.value })} className="w-full border-0 p-0 text-sm text-gray-900 bg-transparent focus:outline-none" />
+                      </FieldCell>
+                      <FieldCell label="Middle Name" className="border-b border-gray-200">
+                        <input type="text" value={formData.new_advisor_middle_name} onChange={e => setFormData({ ...formData, new_advisor_middle_name: e.target.value })} className="w-full border-0 p-0 text-sm text-gray-900 bg-transparent focus:outline-none" />
+                      </FieldCell>
+                    </div>
+                  </div>
+
+                  <div className="border border-t-0 border-gray-300">
+                    <PdfSectionHeader letter="E" title="Signatures" />
+                    <div className="px-4 py-3 bg-white text-xs text-gray-600 leading-relaxed border-b border-gray-200">
+                      <p className="font-semibold text-gray-800 mb-1">By signing below, you confirm your understanding and agreement to the following:</p>
+                      <p className="mb-0.5">a. All services relating to your account(s) as indicated in this form shall be coursed through your new servicing advisor.</p>
+                      <p className="mb-0.5">b. You will inform us within 30 calendar days of any change in your circumstances, including but not limited to citizenship, and submit the applicable document accordingly.</p>
+                      <p className="mb-0.5">c. You acknowledge the Company&apos;s statutory responsibility to provide your information, including but not limited to local or foreign tax status, to the appropriate authority.</p>
+                      <p className="mb-0.5">d. You acknowledge that the Company, its employees, duly authorized representatives, related companies, third party service providers and vendors, shall process and share your and your insured&apos;s information, with any person or organization to (i) service this account, (ii) process claims and enforce the contract, and (iii) pursue its legitimate and lawful rights and interests and other purposes allowed under privacy laws and regulations.</p>
+                      <p className="mb-0.5">e. Your personal data shall be retained throughout the existence of your account(s) and/or until expiration of the retention limit set by laws and regulations from account closure. You certify that you have read, understood and agree with the declarations and authorizations above, including Sun Life&apos;s privacy policy found in https://online.sunlife.com.ph/privacy.</p>
+                      <p>f. Your rights include the right to be informed, access your data, rectify errors, object to processing, and file a complaint. Should you have any concerns, you may get in touch with our Data Protection Officer at privacyconcern@sunlife.com.</p>
+                    </div>
+
+                    <div className="px-3 py-2 text-xs text-gray-700 border-b border-gray-200 bg-white">
+                      <span className="font-semibold">E.1</span> Complete Name of Policy Owner/Policy Holder (for Group Insurance)/Plan Holder/Investor
+                    </div>
+                    <div className="grid grid-cols-3 border-b border-gray-200">
+                      <FieldCell label="Last Name" className="border-r">
+                        <input type="text" value={clientNameParts.last} disabled className={inputDisabledClass + " border-0 p-0 bg-transparent"} />
+                      </FieldCell>
+                      <FieldCell label="First Name" className="border-r">
+                        <input type="text" value={clientNameParts.first} disabled className={inputDisabledClass + " border-0 p-0 bg-transparent"} />
+                      </FieldCell>
+                      <FieldCell label="Middle Name">
+                        <input type="text" value={clientNameParts.middle} disabled className={inputDisabledClass + " border-0 p-0 bg-transparent"} />
+                      </FieldCell>
+                    </div>
+                    <div className="grid grid-cols-2 border-b border-gray-200">
+                      <FieldCell label="Place of Signing" className="border-r">
+                        <input type="text" value={formData.place_of_signing} onChange={e => setFormData({ ...formData, place_of_signing: e.target.value })} className="w-full border-0 p-0 text-sm text-gray-900 bg-transparent focus:outline-none" />
+                      </FieldCell>
+                      <FieldCell>
+                        <div className="text-xs text-gray-500 mb-1">Date of Signing <span className="text-gray-400">(e.g. 01-JAN-2019)</span></div>
+                        <input type="date" value={formData.date_of_signing} onChange={e => setFormData({ ...formData, date_of_signing: e.target.value })} className="w-full border-0 p-0 text-sm text-gray-900 bg-transparent focus:outline-none" />
+                      </FieldCell>
+                    </div>
+
+                    <div className="px-3 py-2 text-xs font-semibold text-gray-700 border-b border-gray-200 bg-white">E.2 Accepted:</div>
+                    <FieldCell label="Signature of Policy Owner/Policy Holder (for Group Insurance)/Plan Holder/Investor" className="border-b border-gray-200">
+                      <div className="border border-gray-200 rounded-sm overflow-hidden bg-white">
+                        <SignaturePad
+                          initialSignature={formData.policy_owner_signature}
+                          onSignatureChange={(data: string | null) => setFormData({ ...formData, policy_owner_signature: data || '' })}
+                          title="Policy Owner Signature"
+                        />
                       </div>
-                      <div>
-                        <label className={labelClass}>First Name</label>
-                        <input type="text" value={formData.new_advisor_first_name} onChange={e => setFormData({ ...formData, new_advisor_first_name: e.target.value })} className={inputClass} />
+                    </FieldCell>
+                    <div className="grid grid-cols-3 border-b border-gray-200">
+                      <FieldCell label="Signature of New Advisor" className="col-span-1 border-r">
+                        <div className="border border-gray-200 rounded-sm overflow-hidden bg-white">
+                          <SignaturePad
+                            initialSignature={formData.new_advisor_signature}
+                            onSignatureChange={(data: string | null) => setFormData({ ...formData, new_advisor_signature: data || '' })}
+                            title="New Advisor Signature"
+                          />
+                        </div>
+                      </FieldCell>
+                      <FieldCell label="Code Number" className="col-span-1 border-r">
+                        <input type="text" value={formData.code_number} onChange={e => setFormData({ ...formData, code_number: e.target.value })} className="w-full border-0 p-0 text-sm text-gray-900 bg-transparent focus:outline-none" />
+                      </FieldCell>
+                      <FieldCell label="NBO/ISO">
+                        <input type="text" value={formData.nbo_iso} onChange={e => setFormData({ ...formData, nbo_iso: e.target.value })} className="w-full border-0 p-0 text-sm text-gray-900 bg-transparent focus:outline-none" />
+                      </FieldCell>
+                    </div>
+
+                    <div className="border-b border-gray-200" style={{ background: '#1a1a1a' }}>
+                      <p className="px-4 py-2 text-xs text-white">
+                        <strong>Let us serve you better!</strong> Updating made easier. You may now update your contact information via the Client Portal or Mobile App.
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-2 border-b border-gray-200">
+                      <div className="border-r border-gray-200 px-4 py-3">
+                        <p className="text-xs font-bold text-gray-900 mb-2">Option 1: Via Client Portal (www.sunlife.com.ph)</p>
+                        <ol className="list-decimal pl-4 space-y-1 text-xs text-gray-600">
+                          <li>Visit sunlife.com.ph and click on the Sign In button.</li>
+                          <li>Click Settings and select edit Contract Details/Mailing Address</li>
+                          <li>Update relevant details then click Save.</li>
+                        </ol>
                       </div>
-                      <div>
-                        <label className={labelClass}>Middle Name</label>
-                        <input type="text" value={formData.new_advisor_middle_name} onChange={e => setFormData({ ...formData, new_advisor_middle_name: e.target.value })} className={inputClass} />
+                      <div className="px-4 py-3">
+                        <p className="text-xs font-bold text-gray-900 mb-2">Option 2: Via Mobile App</p>
+                        <p className="text-xs text-gray-600 italic mb-2">Download the Sun Life PH App at App/Play Store</p>
+                        <ol className="list-decimal pl-4 space-y-1 text-xs text-gray-600">
+                          <li>Login to your Sun Life PH Mobile App</li>
+                          <li>Click Service Request and click Personal Details/Update Mailing Address</li>
+                          <li>Click Edit button on your Mobile, International, Home, Business No., or Email Address</li>
+                          <li>Update then click Save.</li>
+                        </ol>
                       </div>
                     </div>
                   </div>
 
-                  <div className={cardClass}>
-                    <SectionHeader letter="E" title="Signatures" />
-                    <div className="space-y-6">
-                      <div className="text-xs text-gray-600 space-y-2 bg-gray-50 p-5 rounded-3xl border border-gray-100">
-                        <p className="font-semibold text-gray-900 mb-2 text-sm">By signing below, you confirm your understanding and agreement to the following:</p>
-                        <p>a. All services relating to your account(s) as indicated in this form shall be coursed through your new servicing advisor.</p>
-                        <p>b. You will inform us within 30 calendar days of any change in your circumstances, including but not limited to citizenship, and submit the applicable document accordingly.</p>
-                        <p>c. You acknowledge the Company's statutory responsibility to provide your information, including but not limited to local or foreign tax status, to the appropriate authority.</p>
-                        <p>d. You acknowledge that the Company, its employees, duly authorized representatives, related companies, third party service providers and vendors, shall process and share your and your insured's information, with any person or organization to (i) service this account, (ii) process claims and enforce the contract, and (iii) pursue its legitimate and lawful rights and interests and other purposes allowed under privacy laws and regulations.</p>
-                        <p>e. Your personal data shall be retained throughout the existence of your account(s) and/or until expiration of the retention limit set by laws and regulations from account closure and the period set for destruction or disposal of records. You certify that you have read, understood and agree with the declarations and authorizations above, including Sun Life's privacy policy found in https://online.sunlife.com.ph/privacy.</p>
-                        <p>f. Your rights include the right to be informed, access your data, rectify errors, object to processing, and file a complaint. For more information about your rights and how we protect your data, you may access our privacy policy at https://online.sunlife.com.ph/privacy. Should you have any concerns in relation to your rights or the processing of your personal data, you may get in touch with our Data Protection Officer at privacyconcern@sunlife.com.</p>
-                      </div>
+                  <div className="border border-t-0 border-gray-300 bg-white px-4 py-3">
+                    <p className="text-xs text-gray-800 mb-3">
+                      <strong>F.2</strong> Would you like to receive personalized communication and product offers from Sun Life of Canada (Philippines), Inc. (SLOCPI); Sun Life Financial Plans, Inc. (SLFPI); Sun Life Asset Management Company, Inc. (SLAMCI); and other members of the Sun Life group that may help with your financial needs?
+                    </p>
+                    <div className="flex items-center gap-6">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <span className={`w-4 h-4 border flex items-center justify-center shrink-0 ${ formData.wants_communication === true ? 'border-gray-700' : 'border-gray-400' }`}>
+                          {formData.wants_communication === true && <span className="text-gray-900 font-bold text-xs">✕</span>}
+                        </span>
+                        <input type="radio" name="wants_comm" checked={formData.wants_communication === true} onChange={() => setFormData({ ...formData, wants_communication: true })} className="sr-only" />
+                        <span className="text-xs font-medium text-gray-700">Yes</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <span className={`w-4 h-4 border flex items-center justify-center shrink-0 ${ formData.wants_communication === false ? 'border-gray-700' : 'border-gray-400' }`}>
+                          {formData.wants_communication === false && <span className="text-gray-900 font-bold text-xs">✕</span>}
+                        </span>
+                        <input type="radio" name="wants_comm" checked={formData.wants_communication === false} onChange={() => setFormData({ ...formData, wants_communication: false })} className="sr-only" />
+                        <span className="text-xs font-medium text-gray-700">No</span>
+                      </label>
+                    </div>
+                  </div>
 
-                      <div>
-                        <p className="font-semibold text-gray-900 text-sm mb-4">E.1 Complete Name of Policy Owner/Policy Holder (for Group Insurance)/Plan Holder/Investor</p>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                          <div>
-                            <label className={labelClass}>Last Name</label>
-                            <input type="text" value={clientNameParts.last} disabled className={inputDisabledClass} />
-                          </div>
-                          <div>
-                            <label className={labelClass}>First Name</label>
-                            <input type="text" value={clientNameParts.first} disabled className={inputDisabledClass} />
-                          </div>
-                          <div>
-                            <label className={labelClass}>Middle Name</label>
-                            <input type="text" value={clientNameParts.middle} disabled className={inputDisabledClass} />
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <label className={labelClass}>Place of Signing</label>
-                            <input type="text" value={formData.place_of_signing} onChange={e => setFormData({ ...formData, place_of_signing: e.target.value })} className={inputClass} />
-                          </div>
-                          <div>
-                            <label className={labelClass}>
-                              Date of Signing
-                              <span className="block text-xs font-normal text-gray-400">Day-Month-Year, e.g. 01-JAN-2019</span>
-                            </label>
-                            <input type="date" value={formData.date_of_signing} onChange={e => setFormData({ ...formData, date_of_signing: e.target.value })} className={inputClass} />
-                          </div>
-                        </div>
+                  <div className="border border-t-0 border-gray-300">
+                    <PdfSectionHeader letter="G" title="For Office Use Only" />
+                    <div className="border border-gray-200 m-2">
+                      <div className="grid grid-cols-3 border-b border-gray-200">
+                        <div className="border-r border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 flex items-center">Requirements received by</div>
+                        <FieldCell label="Complete Name of Staff" className="border-r">
+                          <input type="text" value={formData.received_by_staff} onChange={e => setFormData({ ...formData, received_by_staff: e.target.value })} className="w-full border-0 p-0 text-sm text-gray-900 bg-transparent focus:outline-none" />
+                        </FieldCell>
+                        <FieldCell label="Receiving Department/Office">
+                          <input type="text" value={formData.receiving_department} onChange={e => setFormData({ ...formData, receiving_department: e.target.value })} className="w-full border-0 p-0 text-sm text-gray-900 bg-transparent focus:outline-none" />
+                        </FieldCell>
                       </div>
-
-                      <div>
-                        <p className="font-semibold text-gray-900 text-sm mb-4">E.2 Accepted:</p>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                          <div>
-                            <label className={labelClass}>Signature of Policy Owner/Policy Holder (for Group Insurance)/Plan Holder/Investor</label>
-                            <div className="border border-gray-200 rounded-3xl p-3 bg-gray-50/50 overflow-hidden">
-                              <SignaturePad
-                                initialSignature={formData.policy_owner_signature}
-                                onSignatureChange={(data: string | null) => setFormData({ ...formData, policy_owner_signature: data || '' })}
-                                title="Policy Owner Signature"
-                              />
-                            </div>
-                          </div>
-                          <div>
-                            <label className={labelClass}>Signature of New Advisor</label>
-                            <div className="border border-gray-200 rounded-3xl p-3 bg-gray-50/50 overflow-hidden">
-                              <SignaturePad
-                                initialSignature={formData.new_advisor_signature}
-                                onSignatureChange={(data: string | null) => setFormData({ ...formData, new_advisor_signature: data || '' })}
-                                title="New Advisor Signature"
-                              />
-                            </div>
-                            <div className="grid grid-cols-2 gap-4 mt-4">
-                              <div>
-                                <label className="block text-xs text-gray-500 mb-1">Code Number</label>
-                                <input type="text" value={formData.code_number} onChange={e => setFormData({ ...formData, code_number: e.target.value })} className={`${inputClass} py-2 text-sm`} />
-                              </div>
-                              <div>
-                                <label className="block text-xs text-gray-500 mb-1">NBO/ISO</label>
-                                <input type="text" value={formData.nbo_iso} onChange={e => setFormData({ ...formData, nbo_iso: e.target.value })} className={`${inputClass} py-2 text-sm`} />
-                              </div>
-                            </div>
-                          </div>
+                      <div className="grid grid-cols-3">
+                        <div className="border-r border-gray-200 px-3 py-2">
+                          <div className="text-xs font-semibold text-gray-600">Date Received</div>
+                          <div className="text-[10px] text-gray-400">(e.g. 01-JAN-2019)</div>
                         </div>
-                      </div>
-
-                      <div className="bg-gray-50 p-5 rounded-3xl border border-gray-100">
-                        <p className="font-bold text-gray-900 text-sm italic mb-4">"Let us serve you better! Updating made easier. You may now update your contact information via the Client Portal or Mobile App."</p>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-gray-700">
-                          <div>
-                            <p className="font-bold text-gray-900 mb-2">Option 1: Via Client Portal (www.sunlife.com.ph)</p>
-                            <ol className="list-decimal pl-4 space-y-1">
-                              <li>Visit sunlife.com.ph and click on the Sign In button.</li>
-                              <li>Click Settings and select edit Contract Details/Mailing Address</li>
-                              <li>Update relevant details then click Save.</li>
-                            </ol>
-                          </div>
-                          <div>
-                            <p className="font-bold text-gray-900 mb-2">Option 2: Via Mobile App</p>
-                            <p className="mb-2 italic">Download the Sun Life PH App at App/Play Store or Scan the QR code -{'>'}</p>
-                            <ol className="list-decimal pl-4 space-y-1">
-                              <li>Login to your Sun Life PH Mobile App</li>
-                              <li>Click Service Request and click Personal Details/Update Mailing Address</li>
-                              <li>Click Edit button on your Mobile, International, Home, Business No., or Email Address and/or on your Permanent, Present, or Business Address</li>
-                              <li>Update then click Save.</li>
-                            </ol>
-                          </div>
-                        </div>
+                        <FieldCell label="Date" className="border-r">
+                          <input type="date" value={formData.date_received} onChange={e => setFormData({ ...formData, date_received: e.target.value })} className="w-full border-0 p-0 text-sm text-gray-900 bg-transparent focus:outline-none" />
+                        </FieldCell>
+                        <FieldCell label="Time Received">
+                          <input type="time" value={formData.time_received} onChange={e => setFormData({ ...formData, time_received: e.target.value })} className="w-full border-0 p-0 text-sm text-gray-900 bg-transparent focus:outline-none" />
+                        </FieldCell>
                       </div>
                     </div>
                   </div>
 
-                  <div className={cardClass}>
-                    <label className="flex items-start gap-2 font-medium text-gray-900">
-                      <div className="max-w-2xl">
-                        <p className="leading-snug">F.2 Would you like to receive personalized communication and product offers from Sun Life of Canada (Philippines), Inc. (SLOCPI); Sun Life Financial Plans, Inc. (SLFPI); Sun Life Asset Management Company, Inc. (SLAMCI); and other members of the Sun Life group that may help with your financial needs?</p>
-                      </div>
-                    </label>
-                    <div className="flex gap-3 mt-4">
-                      <button
-                        type="button"
-                        onClick={() => setFormData({ ...formData, wants_communication: true })}
-                        className={`px-5 py-2 rounded-full text-sm font-medium border transition-all duration-200 ${formData.wants_communication === true ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-                      >
-                        Yes
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setFormData({ ...formData, wants_communication: false })}
-                        className={`px-5 py-2 rounded-full text-sm font-medium border transition-all duration-200 ${formData.wants_communication === false ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
-                      >
-                        No
-                      </button>
-                    </div>
+                  <div className="border border-t-0 border-gray-300 bg-white px-4 py-1.5 flex items-center justify-between">
+                    <span className="text-[10px] text-gray-400">SACR.04.24</span>
+                    <span className="text-[10px] text-gray-400">Page 2 of 2</span>
                   </div>
+                </div>
+              )}
 
-                  <div className={cardClass}>
-                    <SectionHeader letter="G" title="For Office Use Only" badge="Sun Life staff use only" />
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className={labelClass}>Requirements received by — Complete Name of Staff</label>
-                          <input type="text" value={formData.received_by_staff} onChange={e => setFormData({ ...formData, received_by_staff: e.target.value })} className={inputClass} />
-                        </div>
-                        <div>
-                          <label className={labelClass}>Receiving Department/Office</label>
-                          <input type="text" value={formData.receiving_department} onChange={e => setFormData({ ...formData, receiving_department: e.target.value })} className={inputClass} />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className={labelClass}>Date Received [e.g. 01-JAN-2019] Day-Month-Year</label>
-                          <input type="date" value={formData.date_received} onChange={e => setFormData({ ...formData, date_received: e.target.value })} className={inputClass} />
-                        </div>
-                        <div>
-                          <label className={labelClass}>Time Received</label>
-                          <input type="time" value={formData.time_received} onChange={e => setFormData({ ...formData, time_received: e.target.value })} className={inputClass} />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </>
+              {!formData.client_id && (
+                <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+                  <FileText size={36} className="mb-3 opacity-30" />
+                  <p className="text-sm">Select a client above to fill out the form</p>
+                </div>
               )}
             </form>
           </div>
 
-          <div className="px-7 py-5 border-t border-gray-100 bg-white flex justify-end gap-3 shrink-0">
+          <div className="px-6 py-4 border-t border-gray-200 bg-white flex justify-end gap-3 shrink-0">
             <SecondaryButton onClick={() => setIsModalOpen(false)}>
               Cancel
             </SecondaryButton>

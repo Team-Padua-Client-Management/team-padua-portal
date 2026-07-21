@@ -24,11 +24,11 @@ export interface BcrRecord {
 
   // Section A - General Info
   planholder_type: 'individual' | 'company' | '';
-  plan_numbers: string; 
-  planholder_last_name: string; 
-  planholder_first_name: string; 
-  planholder_mi: string; 
-  company_name: string; 
+  plan_numbers: string;
+  planholder_last_name: string;
+  planholder_first_name: string;
+  planholder_mi: string;
+  company_name: string;
 
   // Section B - Change Type
   change_type: 'add' | 'remove' | 'change' | '';
@@ -64,7 +64,7 @@ export interface BcrRecord {
 
   // Section B.3 - Change Information
   change_original_name: string;
-  
+
   check_name: boolean;
   change_new_name: string;
   check_new_other_legal_names: boolean;
@@ -115,7 +115,7 @@ export interface BcrRecord {
   date_of_signing: string;
   planholder_signature: string;
   planholder_printed_name: string;
-  
+
   company_signatory1_signature: string;
   company_signatory1_name: string;
   company_signatory2_signature: string;
@@ -137,7 +137,7 @@ export interface BcrRecord {
   witness2_name: string;
   irrevocable_ben2_place: string;
   irrevocable_ben2_date: string;
-  
+
   wants_communication: boolean;
 
   // Company Use Only
@@ -152,9 +152,9 @@ const defaultRecord: Omit<BcrRecord, 'id' | 'client_id' | 'created_at'> = {
   planholder_first_name: '',
   planholder_mi: '',
   company_name: '',
-  
+
   change_type: '',
-  
+
   beneficiary1_name: '',
   beneficiary1_sex: '',
   beneficiary1_birthdate: '',
@@ -166,7 +166,7 @@ const defaultRecord: Omit<BcrRecord, 'id' | 'client_id' | 'created_at'> = {
   beneficiary1_designation: '',
   beneficiary1_phone: '',
   beneficiary1_address: '',
-  
+
   beneficiary2_name: '',
   beneficiary2_sex: '',
   beneficiary2_birthdate: '',
@@ -178,10 +178,10 @@ const defaultRecord: Omit<BcrRecord, 'id' | 'client_id' | 'created_at'> = {
   beneficiary2_designation: '',
   beneficiary2_phone: '',
   beneficiary2_address: '',
-  
+
   remove_beneficiary1_name: '',
   remove_beneficiary2_name: '',
-  
+
   change_original_name: '',
   check_name: false,
   change_new_name: '',
@@ -206,7 +206,7 @@ const defaultRecord: Omit<BcrRecord, 'id' | 'client_id' | 'created_at'> = {
   change_phone: '',
   check_address: false,
   change_address: '',
-  
+
   check_company_name: false,
   change_company_name: '',
   check_company_relationship: false,
@@ -220,12 +220,12 @@ const defaultRecord: Omit<BcrRecord, 'id' | 'client_id' | 'created_at'> = {
   change_company_phone: '',
   check_company_address: false,
   change_company_address: '',
-  
+
   compliance_type: 'none',
   compliance_resident_country: '',
   compliance_citizen_country: '',
   compliance_legally_reside_country: '',
-  
+
   place_of_signing: '',
   date_of_signing: new Date().toISOString().split('T')[0],
   planholder_signature: '',
@@ -236,7 +236,7 @@ const defaultRecord: Omit<BcrRecord, 'id' | 'client_id' | 'created_at'> = {
   company_signatory2_name_title: '',
   witness_signature: '',
   witness_name: '',
-  
+
   irrevocable_ben1_signature: '',
   irrevocable_ben1_name: '',
   irrevocable_ben1_witness_signature: '',
@@ -250,7 +250,7 @@ const defaultRecord: Omit<BcrRecord, 'id' | 'client_id' | 'created_at'> = {
   witness2_name: '',
   irrevocable_ben2_place: '',
   irrevocable_ben2_date: new Date().toISOString().split('T')[0],
-  
+
   wants_communication: true,
 
   company_use_only_notes: '',
@@ -423,7 +423,7 @@ export default function BeneficiaryChangeRequestPage() {
           .single();
         if (err) throw err;
         setSelectedClientDetails(data);
-        
+
         if (!formData.plan_numbers && data.policy_number) {
           setFormData(prev => ({ ...prev, plan_numbers: data.policy_number || '' }));
         }
@@ -843,82 +843,82 @@ export default function BeneficiaryChangeRequestPage() {
                         <div className="p-4 bg-gray-50/50 rounded-2xl border border-gray-100">
                           <h4 className="font-semibold text-gray-900 mb-4">Beneficiary 1</h4>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                            <div><label className={labelClass}>Name</label><input type="text" value={formData.beneficiary1_name} onChange={e => setFormData({...formData, beneficiary1_name: e.target.value})} className={inputClass} /></div>
+                            <div><label className={labelClass}>Name</label><input type="text" value={formData.beneficiary1_name} onChange={e => setFormData({ ...formData, beneficiary1_name: e.target.value })} className={inputClass} /></div>
                             <div>
                               <label className={labelClass}>Sex (at birth)</label>
                               <div className="flex gap-4">
-                                <label className="flex items-center gap-2"><input type="radio" checked={formData.beneficiary1_sex === 'Male'} onChange={() => setFormData({...formData, beneficiary1_sex: 'Male'})} /> <span className="text-sm">Male</span></label>
-                                <label className="flex items-center gap-2"><input type="radio" checked={formData.beneficiary1_sex === 'Female'} onChange={() => setFormData({...formData, beneficiary1_sex: 'Female'})} /> <span className="text-sm">Female</span></label>
+                                <label className="flex items-center gap-2"><input type="radio" checked={formData.beneficiary1_sex === 'Male'} onChange={() => setFormData({ ...formData, beneficiary1_sex: 'Male' })} /> <span className="text-sm">Male</span></label>
+                                <label className="flex items-center gap-2"><input type="radio" checked={formData.beneficiary1_sex === 'Female'} onChange={() => setFormData({ ...formData, beneficiary1_sex: 'Female' })} /> <span className="text-sm">Female</span></label>
                               </div>
                             </div>
-                            <div><label className={labelClass}>Birthdate</label><input type="date" value={formData.beneficiary1_birthdate} onChange={e => setFormData({...formData, beneficiary1_birthdate: e.target.value})} className={inputClass} /></div>
-                            <div><label className={labelClass}>Country of Birth</label><input type="text" value={formData.beneficiary1_country_birth} onChange={e => setFormData({...formData, beneficiary1_country_birth: e.target.value})} className={inputClass} /></div>
-                            <div><label className={labelClass}>Citizenships</label><input type="text" value={formData.beneficiary1_citizenships} onChange={e => setFormData({...formData, beneficiary1_citizenships: e.target.value})} className={inputClass} /></div>
-                            
+                            <div><label className={labelClass}>Birthdate</label><input type="date" value={formData.beneficiary1_birthdate} onChange={e => setFormData({ ...formData, beneficiary1_birthdate: e.target.value })} className={inputClass} /></div>
+                            <div><label className={labelClass}>Country of Birth</label><input type="text" value={formData.beneficiary1_country_birth} onChange={e => setFormData({ ...formData, beneficiary1_country_birth: e.target.value })} className={inputClass} /></div>
+                            <div><label className={labelClass}>Citizenships</label><input type="text" value={formData.beneficiary1_citizenships} onChange={e => setFormData({ ...formData, beneficiary1_citizenships: e.target.value })} className={inputClass} /></div>
+
                             <div>
                               <label className={labelClass}>Relationship</label>
                               <div className="flex flex-wrap gap-3">
                                 {['Father', 'Mother', 'Employer', 'Others'].map(rel => (
-                                  <label key={rel} className="flex items-center gap-2"><input type="radio" checked={formData.beneficiary1_relationship === rel} onChange={() => setFormData({...formData, beneficiary1_relationship: rel as any})} /> <span className="text-sm">{rel}</span></label>
+                                  <label key={rel} className="flex items-center gap-2"><input type="radio" checked={formData.beneficiary1_relationship === rel} onChange={() => setFormData({ ...formData, beneficiary1_relationship: rel as any })} /> <span className="text-sm">{rel}</span></label>
                                 ))}
                               </div>
-                              {formData.beneficiary1_relationship === 'Others' && <input type="text" placeholder="Specify" value={formData.beneficiary1_relationship_others} onChange={e => setFormData({...formData, beneficiary1_relationship_others: e.target.value})} className={`mt-2 ${inputClass}`} />}
+                              {formData.beneficiary1_relationship === 'Others' && <input type="text" placeholder="Specify" value={formData.beneficiary1_relationship_others} onChange={e => setFormData({ ...formData, beneficiary1_relationship_others: e.target.value })} className={`mt-2 ${inputClass}`} />}
                             </div>
 
                             <div>
                               <label className={labelClass}>Beneficiary Type & Designation</label>
                               <div className="flex gap-4">
-                                <select value={formData.beneficiary1_type} onChange={e => setFormData({...formData, beneficiary1_type: e.target.value as any})} className={inputClass}>
+                                <select value={formData.beneficiary1_type} onChange={e => setFormData({ ...formData, beneficiary1_type: e.target.value as any })} className={inputClass}>
                                   <option value="">Type...</option><option value="Primary">Primary</option><option value="Contingent">Contingent</option>
                                 </select>
-                                <select value={formData.beneficiary1_designation} onChange={e => setFormData({...formData, beneficiary1_designation: e.target.value as any})} className={inputClass}>
+                                <select value={formData.beneficiary1_designation} onChange={e => setFormData({ ...formData, beneficiary1_designation: e.target.value as any })} className={inputClass}>
                                   <option value="">Designation...</option><option value="Revocable">Revocable</option><option value="Irrevocable">Irrevocable</option>
                                 </select>
                               </div>
                             </div>
-                            <div><label className={labelClass}>Phone</label><input type="text" value={formData.beneficiary1_phone} onChange={e => setFormData({...formData, beneficiary1_phone: e.target.value})} className={inputClass} /></div>
-                            <div className="col-span-full"><label className={labelClass}>Address</label><input type="text" value={formData.beneficiary1_address} onChange={e => setFormData({...formData, beneficiary1_address: e.target.value})} className={inputClass} /></div>
+                            <div><label className={labelClass}>Phone</label><input type="text" value={formData.beneficiary1_phone} onChange={e => setFormData({ ...formData, beneficiary1_phone: e.target.value })} className={inputClass} /></div>
+                            <div className="col-span-full"><label className={labelClass}>Address</label><input type="text" value={formData.beneficiary1_address} onChange={e => setFormData({ ...formData, beneficiary1_address: e.target.value })} className={inputClass} /></div>
                           </div>
                         </div>
-                        
+
                         <div className="p-4 bg-gray-50/50 rounded-2xl border border-gray-100">
                           <h4 className="font-semibold text-gray-900 mb-4">Beneficiary 2 (Optional)</h4>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div><label className={labelClass}>Name</label><input type="text" value={formData.beneficiary2_name} onChange={e => setFormData({...formData, beneficiary2_name: e.target.value})} className={inputClass} /></div>
+                            <div><label className={labelClass}>Name</label><input type="text" value={formData.beneficiary2_name} onChange={e => setFormData({ ...formData, beneficiary2_name: e.target.value })} className={inputClass} /></div>
                             <div>
                               <label className={labelClass}>Sex (at birth)</label>
                               <div className="flex gap-4">
-                                <label className="flex items-center gap-2"><input type="radio" checked={formData.beneficiary2_sex === 'Male'} onChange={() => setFormData({...formData, beneficiary2_sex: 'Male'})} /> <span className="text-sm">Male</span></label>
-                                <label className="flex items-center gap-2"><input type="radio" checked={formData.beneficiary2_sex === 'Female'} onChange={() => setFormData({...formData, beneficiary2_sex: 'Female'})} /> <span className="text-sm">Female</span></label>
+                                <label className="flex items-center gap-2"><input type="radio" checked={formData.beneficiary2_sex === 'Male'} onChange={() => setFormData({ ...formData, beneficiary2_sex: 'Male' })} /> <span className="text-sm">Male</span></label>
+                                <label className="flex items-center gap-2"><input type="radio" checked={formData.beneficiary2_sex === 'Female'} onChange={() => setFormData({ ...formData, beneficiary2_sex: 'Female' })} /> <span className="text-sm">Female</span></label>
                               </div>
                             </div>
-                            <div><label className={labelClass}>Birthdate</label><input type="date" value={formData.beneficiary2_birthdate} onChange={e => setFormData({...formData, beneficiary2_birthdate: e.target.value})} className={inputClass} /></div>
-                            <div><label className={labelClass}>Country of Birth</label><input type="text" value={formData.beneficiary2_country_birth} onChange={e => setFormData({...formData, beneficiary2_country_birth: e.target.value})} className={inputClass} /></div>
-                            <div><label className={labelClass}>Citizenships</label><input type="text" value={formData.beneficiary2_citizenships} onChange={e => setFormData({...formData, beneficiary2_citizenships: e.target.value})} className={inputClass} /></div>
-                            
+                            <div><label className={labelClass}>Birthdate</label><input type="date" value={formData.beneficiary2_birthdate} onChange={e => setFormData({ ...formData, beneficiary2_birthdate: e.target.value })} className={inputClass} /></div>
+                            <div><label className={labelClass}>Country of Birth</label><input type="text" value={formData.beneficiary2_country_birth} onChange={e => setFormData({ ...formData, beneficiary2_country_birth: e.target.value })} className={inputClass} /></div>
+                            <div><label className={labelClass}>Citizenships</label><input type="text" value={formData.beneficiary2_citizenships} onChange={e => setFormData({ ...formData, beneficiary2_citizenships: e.target.value })} className={inputClass} /></div>
+
                             <div>
                               <label className={labelClass}>Relationship</label>
                               <div className="flex flex-wrap gap-3">
                                 {['Father', 'Mother', 'Employer', 'Others'].map(rel => (
-                                  <label key={rel} className="flex items-center gap-2"><input type="radio" checked={formData.beneficiary2_relationship === rel} onChange={() => setFormData({...formData, beneficiary2_relationship: rel as any})} /> <span className="text-sm">{rel}</span></label>
+                                  <label key={rel} className="flex items-center gap-2"><input type="radio" checked={formData.beneficiary2_relationship === rel} onChange={() => setFormData({ ...formData, beneficiary2_relationship: rel as any })} /> <span className="text-sm">{rel}</span></label>
                                 ))}
                               </div>
-                              {formData.beneficiary2_relationship === 'Others' && <input type="text" placeholder="Specify" value={formData.beneficiary2_relationship_others} onChange={e => setFormData({...formData, beneficiary2_relationship_others: e.target.value})} className={`mt-2 ${inputClass}`} />}
+                              {formData.beneficiary2_relationship === 'Others' && <input type="text" placeholder="Specify" value={formData.beneficiary2_relationship_others} onChange={e => setFormData({ ...formData, beneficiary2_relationship_others: e.target.value })} className={`mt-2 ${inputClass}`} />}
                             </div>
 
                             <div>
                               <label className={labelClass}>Beneficiary Type & Designation</label>
                               <div className="flex gap-4">
-                                <select value={formData.beneficiary2_type} onChange={e => setFormData({...formData, beneficiary2_type: e.target.value as any})} className={inputClass}>
+                                <select value={formData.beneficiary2_type} onChange={e => setFormData({ ...formData, beneficiary2_type: e.target.value as any })} className={inputClass}>
                                   <option value="">Type...</option><option value="Primary">Primary</option><option value="Contingent">Contingent</option>
                                 </select>
-                                <select value={formData.beneficiary2_designation} onChange={e => setFormData({...formData, beneficiary2_designation: e.target.value as any})} className={inputClass}>
+                                <select value={formData.beneficiary2_designation} onChange={e => setFormData({ ...formData, beneficiary2_designation: e.target.value as any })} className={inputClass}>
                                   <option value="">Designation...</option><option value="Revocable">Revocable</option><option value="Irrevocable">Irrevocable</option>
                                 </select>
                               </div>
                             </div>
-                            <div><label className={labelClass}>Phone</label><input type="text" value={formData.beneficiary2_phone} onChange={e => setFormData({...formData, beneficiary2_phone: e.target.value})} className={inputClass} /></div>
-                            <div className="col-span-full"><label className={labelClass}>Address</label><input type="text" value={formData.beneficiary2_address} onChange={e => setFormData({...formData, beneficiary2_address: e.target.value})} className={inputClass} /></div>
+                            <div><label className={labelClass}>Phone</label><input type="text" value={formData.beneficiary2_phone} onChange={e => setFormData({ ...formData, beneficiary2_phone: e.target.value })} className={inputClass} /></div>
+                            <div className="col-span-full"><label className={labelClass}>Address</label><input type="text" value={formData.beneficiary2_address} onChange={e => setFormData({ ...formData, beneficiary2_address: e.target.value })} className={inputClass} /></div>
                           </div>
                         </div>
                       </div>
@@ -926,107 +926,107 @@ export default function BeneficiaryChangeRequestPage() {
 
                     {formData.change_type === 'remove' && (
                       <div className="space-y-4">
-                        <div><label className={labelClass}>Name of Beneficiary 1 to Remove</label><input type="text" value={formData.remove_beneficiary1_name} onChange={e => setFormData({...formData, remove_beneficiary1_name: e.target.value})} className={inputClass} /></div>
-                        <div><label className={labelClass}>Name of Beneficiary 2 to Remove (Optional)</label><input type="text" value={formData.remove_beneficiary2_name} onChange={e => setFormData({...formData, remove_beneficiary2_name: e.target.value})} className={inputClass} /></div>
+                        <div><label className={labelClass}>Name of Beneficiary 1 to Remove</label><input type="text" value={formData.remove_beneficiary1_name} onChange={e => setFormData({ ...formData, remove_beneficiary1_name: e.target.value })} className={inputClass} /></div>
+                        <div><label className={labelClass}>Name of Beneficiary 2 to Remove (Optional)</label><input type="text" value={formData.remove_beneficiary2_name} onChange={e => setFormData({ ...formData, remove_beneficiary2_name: e.target.value })} className={inputClass} /></div>
                       </div>
                     )}
 
                     {formData.change_type === 'change' && (
                       <div className="space-y-4">
-                        <div><label className={labelClass}>Original Beneficiary Name</label><input type="text" value={formData.change_original_name} onChange={e => setFormData({...formData, change_original_name: e.target.value})} className={inputClass} /></div>
+                        <div><label className={labelClass}>Original Beneficiary Name</label><input type="text" value={formData.change_original_name} onChange={e => setFormData({ ...formData, change_original_name: e.target.value })} className={inputClass} /></div>
                         <p className="text-sm text-gray-500 my-2">Check the fields you want to update and provide the new values:</p>
-                        
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="flex gap-2 items-center"><input type="checkbox" checked={formData.check_name} onChange={e => setFormData({...formData, check_name: e.target.checked})} /> <input type="text" placeholder="New Name" value={formData.change_new_name} onChange={e => setFormData({...formData, change_new_name: e.target.value})} disabled={!formData.check_name} className={formData.check_name ? inputClass : inputDisabledClass} /></div>
-                          
-                          <div className="flex gap-2 items-center"><input type="checkbox" checked={formData.check_new_other_legal_names} onChange={e => setFormData({...formData, check_new_other_legal_names: e.target.checked})} /> <input type="text" placeholder="New Other Legal Names" value={formData.change_new_other_legal_names} onChange={e => setFormData({...formData, change_new_other_legal_names: e.target.value})} disabled={!formData.check_new_other_legal_names} className={formData.check_new_other_legal_names ? inputClass : inputDisabledClass} /></div>
-                          
+                          <div className="flex gap-2 items-center"><input type="checkbox" checked={formData.check_name} onChange={e => setFormData({ ...formData, check_name: e.target.checked })} /> <input type="text" placeholder="New Name" value={formData.change_new_name} onChange={e => setFormData({ ...formData, change_new_name: e.target.value })} disabled={!formData.check_name} className={formData.check_name ? inputClass : inputDisabledClass} /></div>
+
+                          <div className="flex gap-2 items-center"><input type="checkbox" checked={formData.check_new_other_legal_names} onChange={e => setFormData({ ...formData, check_new_other_legal_names: e.target.checked })} /> <input type="text" placeholder="New Other Legal Names" value={formData.change_new_other_legal_names} onChange={e => setFormData({ ...formData, change_new_other_legal_names: e.target.value })} disabled={!formData.check_new_other_legal_names} className={formData.check_new_other_legal_names ? inputClass : inputDisabledClass} /></div>
+
                           <div className="flex gap-2 items-center">
-                            <input type="checkbox" checked={formData.check_sex} onChange={e => setFormData({...formData, check_sex: e.target.checked})} />
+                            <input type="checkbox" checked={formData.check_sex} onChange={e => setFormData({ ...formData, check_sex: e.target.checked })} />
                             <div className={`flex items-center gap-4 px-4 py-2 border rounded-2xl flex-1 ${formData.check_sex ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
                               <span className="text-sm text-gray-500 min-w-[40px]">Sex:</span>
-                              <label className="flex items-center gap-2"><input type="radio" checked={formData.change_sex === 'Male'} onChange={() => setFormData({...formData, change_sex: 'Male'})} disabled={!formData.check_sex} /> <span className="text-sm">Male</span></label>
-                              <label className="flex items-center gap-2"><input type="radio" checked={formData.change_sex === 'Female'} onChange={() => setFormData({...formData, change_sex: 'Female'})} disabled={!formData.check_sex} /> <span className="text-sm">Female</span></label>
+                              <label className="flex items-center gap-2"><input type="radio" checked={formData.change_sex === 'Male'} onChange={() => setFormData({ ...formData, change_sex: 'Male' })} disabled={!formData.check_sex} /> <span className="text-sm">Male</span></label>
+                              <label className="flex items-center gap-2"><input type="radio" checked={formData.change_sex === 'Female'} onChange={() => setFormData({ ...formData, change_sex: 'Female' })} disabled={!formData.check_sex} /> <span className="text-sm">Female</span></label>
                             </div>
                           </div>
 
-                          <div className="flex gap-2 items-center"><input type="checkbox" checked={formData.check_birthdate} onChange={e => setFormData({...formData, check_birthdate: e.target.checked})} /> <input type="date" value={formData.change_birthdate} onChange={e => setFormData({...formData, change_birthdate: e.target.value})} disabled={!formData.check_birthdate} className={formData.check_birthdate ? inputClass : inputDisabledClass} /></div>
-                          
-                          <div className="flex gap-2 items-center"><input type="checkbox" checked={formData.check_country_birth} onChange={e => setFormData({...formData, check_country_birth: e.target.checked})} /> <input type="text" placeholder="Country of Birth" value={formData.change_country_birth} onChange={e => setFormData({...formData, change_country_birth: e.target.value})} disabled={!formData.check_country_birth} className={formData.check_country_birth ? inputClass : inputDisabledClass} /></div>
-                          
-                          <div className="flex gap-2 items-center"><input type="checkbox" checked={formData.check_citizenships} onChange={e => setFormData({...formData, check_citizenships: e.target.checked})} /> <input type="text" placeholder="Citizenships" value={formData.change_citizenships} onChange={e => setFormData({...formData, change_citizenships: e.target.value})} disabled={!formData.check_citizenships} className={formData.check_citizenships ? inputClass : inputDisabledClass} /></div>
+                          <div className="flex gap-2 items-center"><input type="checkbox" checked={formData.check_birthdate} onChange={e => setFormData({ ...formData, check_birthdate: e.target.checked })} /> <input type="date" value={formData.change_birthdate} onChange={e => setFormData({ ...formData, change_birthdate: e.target.value })} disabled={!formData.check_birthdate} className={formData.check_birthdate ? inputClass : inputDisabledClass} /></div>
+
+                          <div className="flex gap-2 items-center"><input type="checkbox" checked={formData.check_country_birth} onChange={e => setFormData({ ...formData, check_country_birth: e.target.checked })} /> <input type="text" placeholder="Country of Birth" value={formData.change_country_birth} onChange={e => setFormData({ ...formData, change_country_birth: e.target.value })} disabled={!formData.check_country_birth} className={formData.check_country_birth ? inputClass : inputDisabledClass} /></div>
+
+                          <div className="flex gap-2 items-center"><input type="checkbox" checked={formData.check_citizenships} onChange={e => setFormData({ ...formData, check_citizenships: e.target.checked })} /> <input type="text" placeholder="Citizenships" value={formData.change_citizenships} onChange={e => setFormData({ ...formData, change_citizenships: e.target.value })} disabled={!formData.check_citizenships} className={formData.check_citizenships ? inputClass : inputDisabledClass} /></div>
 
                           <div className="flex gap-2 items-start col-span-full">
-                            <input type="checkbox" className="mt-3" checked={formData.check_relationship} onChange={e => setFormData({...formData, check_relationship: e.target.checked})} />
+                            <input type="checkbox" className="mt-3" checked={formData.check_relationship} onChange={e => setFormData({ ...formData, check_relationship: e.target.checked })} />
                             <div className={`flex flex-col gap-2 p-3 border rounded-2xl flex-1 ${formData.check_relationship ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
                               <span className="text-sm text-gray-500">Relationship:</span>
                               <div className="flex flex-wrap gap-4">
                                 {['Father', 'Mother', 'Employer', 'Others'].map(rel => (
-                                   <label key={rel} className="flex items-center gap-2"><input type="radio" checked={formData.change_relationship === rel} onChange={() => setFormData({...formData, change_relationship: rel as any})} disabled={!formData.check_relationship} /> <span className="text-sm">{rel}</span></label>
+                                  <label key={rel} className="flex items-center gap-2"><input type="radio" checked={formData.change_relationship === rel} onChange={() => setFormData({ ...formData, change_relationship: rel as any })} disabled={!formData.check_relationship} /> <span className="text-sm">{rel}</span></label>
                                 ))}
                               </div>
                               {formData.check_relationship && formData.change_relationship === 'Others' && (
-                                 <input type="text" placeholder="Specify Others" value={formData.change_relationship_others} onChange={e => setFormData({...formData, change_relationship_others: e.target.value})} className={inputClass} />
+                                <input type="text" placeholder="Specify Others" value={formData.change_relationship_others} onChange={e => setFormData({ ...formData, change_relationship_others: e.target.value })} className={inputClass} />
                               )}
                             </div>
                           </div>
 
                           <div className="flex gap-2 items-center">
-                            <input type="checkbox" checked={formData.check_beneficiary_type} onChange={e => setFormData({...formData, check_beneficiary_type: e.target.checked})} />
+                            <input type="checkbox" checked={formData.check_beneficiary_type} onChange={e => setFormData({ ...formData, check_beneficiary_type: e.target.checked })} />
                             <div className={`flex items-center gap-4 px-4 py-2 border rounded-2xl flex-1 ${formData.check_beneficiary_type ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
                               <span className="text-sm text-gray-500 min-w-[40px]">Type:</span>
-                              <label className="flex items-center gap-2"><input type="radio" checked={formData.change_beneficiary_type === 'Primary'} onChange={() => setFormData({...formData, change_beneficiary_type: 'Primary'})} disabled={!formData.check_beneficiary_type} /> <span className="text-sm">Primary</span></label>
-                              <label className="flex items-center gap-2"><input type="radio" checked={formData.change_beneficiary_type === 'Contingent'} onChange={() => setFormData({...formData, change_beneficiary_type: 'Contingent'})} disabled={!formData.check_beneficiary_type} /> <span className="text-sm">Contingent</span></label>
+                              <label className="flex items-center gap-2"><input type="radio" checked={formData.change_beneficiary_type === 'Primary'} onChange={() => setFormData({ ...formData, change_beneficiary_type: 'Primary' })} disabled={!formData.check_beneficiary_type} /> <span className="text-sm">Primary</span></label>
+                              <label className="flex items-center gap-2"><input type="radio" checked={formData.change_beneficiary_type === 'Contingent'} onChange={() => setFormData({ ...formData, change_beneficiary_type: 'Contingent' })} disabled={!formData.check_beneficiary_type} /> <span className="text-sm">Contingent</span></label>
                             </div>
                           </div>
 
                           <div className="flex gap-2 items-center">
-                            <input type="checkbox" checked={formData.check_designation} onChange={e => setFormData({...formData, check_designation: e.target.checked})} /> 
+                            <input type="checkbox" checked={formData.check_designation} onChange={e => setFormData({ ...formData, check_designation: e.target.checked })} />
                             <div className={`flex items-center gap-4 px-4 py-2 border rounded-2xl flex-1 ${formData.check_designation ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
                               <span className="text-sm text-gray-500 min-w-[50px]">Designation:</span>
-                              <label className="flex items-center gap-2"><input type="radio" checked={formData.change_designation === 'Revocable'} onChange={() => setFormData({...formData, change_designation: 'Revocable'})} disabled={!formData.check_designation} /> <span className="text-sm">Revocable</span></label>
-                              <label className="flex items-center gap-2"><input type="radio" checked={formData.change_designation === 'Irrevocable'} onChange={() => setFormData({...formData, change_designation: 'Irrevocable'})} disabled={!formData.check_designation} /> <span className="text-sm">Irrevocable</span></label>
+                              <label className="flex items-center gap-2"><input type="radio" checked={formData.change_designation === 'Revocable'} onChange={() => setFormData({ ...formData, change_designation: 'Revocable' })} disabled={!formData.check_designation} /> <span className="text-sm">Revocable</span></label>
+                              <label className="flex items-center gap-2"><input type="radio" checked={formData.change_designation === 'Irrevocable'} onChange={() => setFormData({ ...formData, change_designation: 'Irrevocable' })} disabled={!formData.check_designation} /> <span className="text-sm">Irrevocable</span></label>
                             </div>
                           </div>
-                          
-                          <div className="flex gap-2 items-center"><input type="checkbox" checked={formData.check_phone} onChange={e => setFormData({...formData, check_phone: e.target.checked})} /> <input type="text" placeholder="New Phone" value={formData.change_phone} onChange={e => setFormData({...formData, change_phone: e.target.value})} disabled={!formData.check_phone} className={formData.check_phone ? inputClass : inputDisabledClass} /></div>
-                          <div className="flex gap-2 items-center col-span-full"><input type="checkbox" checked={formData.check_address} onChange={e => setFormData({...formData, check_address: e.target.checked})} /> <input type="text" placeholder="New Address" value={formData.change_address} onChange={e => setFormData({...formData, change_address: e.target.value})} disabled={!formData.check_address} className={formData.check_address ? inputClass : inputDisabledClass} /></div>
+
+                          <div className="flex gap-2 items-center"><input type="checkbox" checked={formData.check_phone} onChange={e => setFormData({ ...formData, check_phone: e.target.checked })} /> <input type="text" placeholder="New Phone" value={formData.change_phone} onChange={e => setFormData({ ...formData, change_phone: e.target.value })} disabled={!formData.check_phone} className={formData.check_phone ? inputClass : inputDisabledClass} /></div>
+                          <div className="flex gap-2 items-center col-span-full"><input type="checkbox" checked={formData.check_address} onChange={e => setFormData({ ...formData, check_address: e.target.checked })} /> <input type="text" placeholder="New Address" value={formData.change_address} onChange={e => setFormData({ ...formData, change_address: e.target.value })} disabled={!formData.check_address} className={formData.check_address ? inputClass : inputDisabledClass} /></div>
                         </div>
 
                         {formData.planholder_type === 'company' && (
                           <div className="mt-8">
                             <h4 className="font-semibold text-gray-900 mb-4 border-t border-gray-100 pt-4">For Company/Business Planholder</h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div className="flex gap-2 items-center col-span-full"><input type="checkbox" checked={formData.check_company_name} onChange={e => setFormData({...formData, check_company_name: e.target.checked})} /> <input type="text" placeholder="Company/Business Name" value={formData.change_company_name} onChange={e => setFormData({...formData, change_company_name: e.target.value})} disabled={!formData.check_company_name} className={formData.check_company_name ? inputClass : inputDisabledClass} /></div>
-                              
+                              <div className="flex gap-2 items-center col-span-full"><input type="checkbox" checked={formData.check_company_name} onChange={e => setFormData({ ...formData, check_company_name: e.target.checked })} /> <input type="text" placeholder="Company/Business Name" value={formData.change_company_name} onChange={e => setFormData({ ...formData, change_company_name: e.target.value })} disabled={!formData.check_company_name} className={formData.check_company_name ? inputClass : inputDisabledClass} /></div>
+
                               <div className="flex gap-2 items-start col-span-full">
-                                <input type="checkbox" className="mt-3" checked={formData.check_company_relationship} onChange={e => setFormData({...formData, check_company_relationship: e.target.checked})} />
+                                <input type="checkbox" className="mt-3" checked={formData.check_company_relationship} onChange={e => setFormData({ ...formData, check_company_relationship: e.target.checked })} />
                                 <div className={`flex flex-col gap-2 p-3 border rounded-2xl flex-1 ${formData.check_company_relationship ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
                                   <span className="text-sm text-gray-500">Relationship to Life Insured:</span>
                                   <div className="flex flex-wrap gap-4">
                                     {['Employer', 'Others'].map(rel => (
-                                       <label key={rel} className="flex items-center gap-2"><input type="radio" checked={formData.change_company_relationship === rel} onChange={() => setFormData({...formData, change_company_relationship: rel as any})} disabled={!formData.check_company_relationship} /> <span className="text-sm">{rel}</span></label>
+                                      <label key={rel} className="flex items-center gap-2"><input type="radio" checked={formData.change_company_relationship === rel} onChange={() => setFormData({ ...formData, change_company_relationship: rel as any })} disabled={!formData.check_company_relationship} /> <span className="text-sm">{rel}</span></label>
                                     ))}
                                   </div>
                                   {formData.check_company_relationship && formData.change_company_relationship === 'Others' && (
-                                     <input type="text" placeholder="Specify Others" value={formData.change_company_relationship_others} onChange={e => setFormData({...formData, change_company_relationship_others: e.target.value})} className={inputClass} />
+                                    <input type="text" placeholder="Specify Others" value={formData.change_company_relationship_others} onChange={e => setFormData({ ...formData, change_company_relationship_others: e.target.value })} className={inputClass} />
                                   )}
                                 </div>
                               </div>
 
-                              <div className="flex gap-2 items-center"><input type="checkbox" checked={formData.check_company_country_inc} onChange={e => setFormData({...formData, check_company_country_inc: e.target.checked})} /> <input type="text" placeholder="Country of Incorporation" value={formData.change_company_country_inc} onChange={e => setFormData({...formData, change_company_country_inc: e.target.value})} disabled={!formData.check_company_country_inc} className={formData.check_company_country_inc ? inputClass : inputDisabledClass} /></div>
-                              
+                              <div className="flex gap-2 items-center"><input type="checkbox" checked={formData.check_company_country_inc} onChange={e => setFormData({ ...formData, check_company_country_inc: e.target.checked })} /> <input type="text" placeholder="Country of Incorporation" value={formData.change_company_country_inc} onChange={e => setFormData({ ...formData, change_company_country_inc: e.target.value })} disabled={!formData.check_company_country_inc} className={formData.check_company_country_inc ? inputClass : inputDisabledClass} /></div>
+
                               <div className="flex gap-2 items-center">
-                                <input type="checkbox" checked={formData.check_company_designation} onChange={e => setFormData({...formData, check_company_designation: e.target.checked})} /> 
+                                <input type="checkbox" checked={formData.check_company_designation} onChange={e => setFormData({ ...formData, check_company_designation: e.target.checked })} />
                                 <div className={`flex items-center gap-4 px-4 py-2 border rounded-2xl flex-1 ${formData.check_company_designation ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
                                   <span className="text-sm text-gray-500 min-w-[50px]">Designation:</span>
-                                  <label className="flex items-center gap-2"><input type="radio" checked={formData.change_company_company_designation === 'Revocable'} onChange={() => setFormData({...formData, change_company_company_designation: 'Revocable'})} disabled={!formData.check_company_designation} /> <span className="text-sm">Revocable</span></label>
-                                  <label className="flex items-center gap-2"><input type="radio" checked={formData.change_company_company_designation === 'Irrevocable'} onChange={() => setFormData({...formData, change_company_company_designation: 'Irrevocable'})} disabled={!formData.check_company_designation} /> <span className="text-sm">Irrevocable</span></label>
+                                  <label className="flex items-center gap-2"><input type="radio" checked={formData.change_company_company_designation === 'Revocable'} onChange={() => setFormData({ ...formData, change_company_company_designation: 'Revocable' })} disabled={!formData.check_company_designation} /> <span className="text-sm">Revocable</span></label>
+                                  <label className="flex items-center gap-2"><input type="radio" checked={formData.change_company_company_designation === 'Irrevocable'} onChange={() => setFormData({ ...formData, change_company_company_designation: 'Irrevocable' })} disabled={!formData.check_company_designation} /> <span className="text-sm">Irrevocable</span></label>
                                 </div>
                               </div>
-                              
-                              <div className="flex gap-2 items-center"><input type="checkbox" checked={formData.check_company_phone} onChange={e => setFormData({...formData, check_company_phone: e.target.checked})} /> <input type="text" placeholder="Business Phone" value={formData.change_company_phone} onChange={e => setFormData({...formData, change_company_phone: e.target.value})} disabled={!formData.check_company_phone} className={formData.check_company_phone ? inputClass : inputDisabledClass} /></div>
-                              <div className="flex gap-2 items-center col-span-full"><input type="checkbox" checked={formData.check_company_address} onChange={e => setFormData({...formData, check_company_address: e.target.checked})} /> <input type="text" placeholder="Business Address" value={formData.change_company_address} onChange={e => setFormData({...formData, change_company_address: e.target.value})} disabled={!formData.check_company_address} className={formData.check_company_address ? inputClass : inputDisabledClass} /></div>
+
+                              <div className="flex gap-2 items-center"><input type="checkbox" checked={formData.check_company_phone} onChange={e => setFormData({ ...formData, check_company_phone: e.target.checked })} /> <input type="text" placeholder="Business Phone" value={formData.change_company_phone} onChange={e => setFormData({ ...formData, change_company_phone: e.target.value })} disabled={!formData.check_company_phone} className={formData.check_company_phone ? inputClass : inputDisabledClass} /></div>
+                              <div className="flex gap-2 items-center col-span-full"><input type="checkbox" checked={formData.check_company_address} onChange={e => setFormData({ ...formData, check_company_address: e.target.checked })} /> <input type="text" placeholder="Business Address" value={formData.change_company_address} onChange={e => setFormData({ ...formData, change_company_address: e.target.value })} disabled={!formData.check_company_address} className={formData.check_company_address ? inputClass : inputDisabledClass} /></div>
                             </div>
                           </div>
                         )}
@@ -1038,19 +1038,19 @@ export default function BeneficiaryChangeRequestPage() {
                     <SectionHeader letter="C" title="Compliance" />
                     <div className="space-y-4">
                       <label className="flex items-center gap-3">
-                        <input type="radio" checked={formData.compliance_type === 'resident'} onChange={() => setFormData({...formData, compliance_type: 'resident'})} />
+                        <input type="radio" checked={formData.compliance_type === 'resident'} onChange={() => setFormData({ ...formData, compliance_type: 'resident' })} />
                         <span className="text-sm">I am a citizen/national and legal resident of</span>
-                        <input type="text" value={formData.compliance_resident_country} onChange={e => setFormData({...formData, compliance_resident_country: e.target.value})} disabled={formData.compliance_type !== 'resident'} className={`w-40 px-3 py-1 text-sm border rounded-lg ${formData.compliance_type === 'resident' ? 'bg-white' : 'bg-gray-100'}`} />
+                        <input type="text" value={formData.compliance_resident_country} onChange={e => setFormData({ ...formData, compliance_resident_country: e.target.value })} disabled={formData.compliance_type !== 'resident'} className={`w-40 px-3 py-1 text-sm border rounded-lg ${formData.compliance_type === 'resident' ? 'bg-white' : 'bg-gray-100'}`} />
                       </label>
                       <label className="flex items-center gap-3">
-                        <input type="radio" checked={formData.compliance_type === 'citizen'} onChange={() => setFormData({...formData, compliance_type: 'citizen'})} />
+                        <input type="radio" checked={formData.compliance_type === 'citizen'} onChange={() => setFormData({ ...formData, compliance_type: 'citizen' })} />
                         <span className="text-sm">I am a citizen/national of</span>
-                        <input type="text" value={formData.compliance_citizen_country} onChange={e => setFormData({...formData, compliance_citizen_country: e.target.value})} disabled={formData.compliance_type !== 'citizen'} className={`w-32 px-3 py-1 text-sm border rounded-lg ${formData.compliance_type === 'citizen' ? 'bg-white' : 'bg-gray-100'}`} />
+                        <input type="text" value={formData.compliance_citizen_country} onChange={e => setFormData({ ...formData, compliance_citizen_country: e.target.value })} disabled={formData.compliance_type !== 'citizen'} className={`w-32 px-3 py-1 text-sm border rounded-lg ${formData.compliance_type === 'citizen' ? 'bg-white' : 'bg-gray-100'}`} />
                         <span className="text-sm">but I legally reside in</span>
-                        <input type="text" value={formData.compliance_legally_reside_country} onChange={e => setFormData({...formData, compliance_legally_reside_country: e.target.value})} disabled={formData.compliance_type !== 'citizen'} className={`w-32 px-3 py-1 text-sm border rounded-lg ${formData.compliance_type === 'citizen' ? 'bg-white' : 'bg-gray-100'}`} />
+                        <input type="text" value={formData.compliance_legally_reside_country} onChange={e => setFormData({ ...formData, compliance_legally_reside_country: e.target.value })} disabled={formData.compliance_type !== 'citizen'} className={`w-32 px-3 py-1 text-sm border rounded-lg ${formData.compliance_type === 'citizen' ? 'bg-white' : 'bg-gray-100'}`} />
                       </label>
                       <label className="flex items-center gap-3">
-                        <input type="radio" checked={formData.compliance_type === 'none'} onChange={() => setFormData({...formData, compliance_type: 'none'})} />
+                        <input type="radio" checked={formData.compliance_type === 'none'} onChange={() => setFormData({ ...formData, compliance_type: 'none' })} />
                         <span className="text-sm">None</span>
                       </label>
                     </div>
@@ -1058,7 +1058,7 @@ export default function BeneficiaryChangeRequestPage() {
 
                   <div className={cardClass}>
                     <SectionHeader letter="D" title="Signatures" />
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                       <div><label className={labelClass}>Place of Signing</label><input type="text" value={formData.place_of_signing} onChange={e => setFormData({ ...formData, place_of_signing: e.target.value })} className={inputClass} /></div>
                       <div><label className={labelClass}>Date of Signing</label><input type="date" value={formData.date_of_signing} onChange={e => setFormData({ ...formData, date_of_signing: e.target.value })} className={inputClass} /></div>
@@ -1068,12 +1068,12 @@ export default function BeneficiaryChangeRequestPage() {
                       <div>
                         <label className={labelClass}>Planholder Signature</label>
                         <div className="border border-gray-200 rounded-3xl p-3 bg-gray-50/50 overflow-hidden mb-3"><SignaturePad initialSignature={formData.planholder_signature} onSignatureChange={(data: string | null) => setFormData({ ...formData, planholder_signature: data || '' })} title="Planholder Signature" /></div>
-                        <input type="text" placeholder="Printed Name" value={formData.planholder_printed_name} onChange={e => setFormData({...formData, planholder_printed_name: e.target.value})} className={inputClass} />
+                        <input type="text" placeholder="Printed Name" value={formData.planholder_printed_name} onChange={e => setFormData({ ...formData, planholder_printed_name: e.target.value })} className={inputClass} />
                       </div>
                       <div>
                         <label className={labelClass}>Witness Signature</label>
                         <div className="border border-gray-200 rounded-3xl p-3 bg-gray-50/50 overflow-hidden mb-3"><SignaturePad initialSignature={formData.witness_signature} onSignatureChange={(data: string | null) => setFormData({ ...formData, witness_signature: data || '' })} title="Witness Signature" /></div>
-                        <input type="text" placeholder="Witness Name" value={formData.witness_name} onChange={e => setFormData({...formData, witness_name: e.target.value})} className={inputClass} />
+                        <input type="text" placeholder="Witness Name" value={formData.witness_name} onChange={e => setFormData({ ...formData, witness_name: e.target.value })} className={inputClass} />
                       </div>
                     </div>
 
@@ -1082,19 +1082,19 @@ export default function BeneficiaryChangeRequestPage() {
                         <div>
                           <label className={labelClass}>Company Signatory 1</label>
                           <div className="border border-gray-200 rounded-3xl p-3 bg-gray-50/50 overflow-hidden mb-3"><SignaturePad initialSignature={formData.company_signatory1_signature} onSignatureChange={(data: string | null) => setFormData({ ...formData, company_signatory1_signature: data || '' })} title="Signatory 1 Signature" /></div>
-                          <input type="text" placeholder="Name" value={formData.company_signatory1_name} onChange={e => setFormData({...formData, company_signatory1_name: e.target.value})} className={inputClass} />
+                          <input type="text" placeholder="Name" value={formData.company_signatory1_name} onChange={e => setFormData({ ...formData, company_signatory1_name: e.target.value })} className={inputClass} />
                         </div>
                         <div>
                           <label className={labelClass}>Company Signatory 2</label>
                           <div className="border border-gray-200 rounded-3xl p-3 bg-gray-50/50 overflow-hidden mb-3"><SignaturePad initialSignature={formData.company_signatory2_signature} onSignatureChange={(data: string | null) => setFormData({ ...formData, company_signatory2_signature: data || '' })} title="Signatory 2 Signature" /></div>
-                          <input type="text" placeholder="Name and Title" value={formData.company_signatory2_name_title} onChange={e => setFormData({...formData, company_signatory2_name_title: e.target.value})} className={inputClass} />
+                          <input type="text" placeholder="Name and Title" value={formData.company_signatory2_name_title} onChange={e => setFormData({ ...formData, company_signatory2_name_title: e.target.value })} className={inputClass} />
                         </div>
                       </div>
                     )}
 
                     <div className="mt-8 pt-6 border-t border-gray-100">
                       <h4 className="font-semibold text-gray-900 mb-6">Irrevocable Beneficiary Signatures (if applicable)</h4>
-                      
+
                       <div className="space-y-8">
                         {/* Irrevocable Ben 1 */}
                         <div className="p-5 bg-gray-50/50 rounded-2xl border border-gray-100">
@@ -1103,12 +1103,12 @@ export default function BeneficiaryChangeRequestPage() {
                             <div>
                               <label className={labelClass}>Beneficiary Signature</label>
                               <div className="border border-gray-200 rounded-3xl p-3 bg-white overflow-hidden mb-3"><SignaturePad initialSignature={formData.irrevocable_ben1_signature} onSignatureChange={(data: string | null) => setFormData({ ...formData, irrevocable_ben1_signature: data || '' })} title="Irrevocable Beneficiary 1 Signature" /></div>
-                              <input type="text" placeholder="Printed Name" value={formData.irrevocable_ben1_name} onChange={e => setFormData({...formData, irrevocable_ben1_name: e.target.value})} className={inputClass} />
+                              <input type="text" placeholder="Printed Name" value={formData.irrevocable_ben1_name} onChange={e => setFormData({ ...formData, irrevocable_ben1_name: e.target.value })} className={inputClass} />
                             </div>
                             <div>
                               <label className={labelClass}>Witness Signature</label>
                               <div className="border border-gray-200 rounded-3xl p-3 bg-white overflow-hidden mb-3"><SignaturePad initialSignature={formData.irrevocable_ben1_witness_signature} onSignatureChange={(data: string | null) => setFormData({ ...formData, irrevocable_ben1_witness_signature: data || '' })} title="Witness Signature" /></div>
-                              <input type="text" placeholder="Witness Name" value={formData.irrevocable_ben1_witness_name} onChange={e => setFormData({...formData, irrevocable_ben1_witness_name: e.target.value})} className={inputClass} />
+                              <input type="text" placeholder="Witness Name" value={formData.irrevocable_ben1_witness_name} onChange={e => setFormData({ ...formData, irrevocable_ben1_witness_name: e.target.value })} className={inputClass} />
                             </div>
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1124,12 +1124,12 @@ export default function BeneficiaryChangeRequestPage() {
                             <div>
                               <label className={labelClass}>Beneficiary Signature</label>
                               <div className="border border-gray-200 rounded-3xl p-3 bg-white overflow-hidden mb-3"><SignaturePad initialSignature={formData.irrevocable_ben2_signature} onSignatureChange={(data: string | null) => setFormData({ ...formData, irrevocable_ben2_signature: data || '' })} title="Irrevocable Beneficiary 2 Signature" /></div>
-                              <input type="text" placeholder="Printed Name" value={formData.irrevocable_ben2_name} onChange={e => setFormData({...formData, irrevocable_ben2_name: e.target.value})} className={inputClass} />
+                              <input type="text" placeholder="Printed Name" value={formData.irrevocable_ben2_name} onChange={e => setFormData({ ...formData, irrevocable_ben2_name: e.target.value })} className={inputClass} />
                             </div>
                             <div>
                               <label className={labelClass}>Witness Signature</label>
                               <div className="border border-gray-200 rounded-3xl p-3 bg-white overflow-hidden mb-3"><SignaturePad initialSignature={formData.witness2_signature} onSignatureChange={(data: string | null) => setFormData({ ...formData, witness2_signature: data || '' })} title="Witness Signature" /></div>
-                              <input type="text" placeholder="Witness Name" value={formData.witness2_name} onChange={e => setFormData({...formData, witness2_name: e.target.value})} className={inputClass} />
+                              <input type="text" placeholder="Witness Name" value={formData.witness2_name} onChange={e => setFormData({ ...formData, witness2_name: e.target.value })} className={inputClass} />
                             </div>
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1145,18 +1145,18 @@ export default function BeneficiaryChangeRequestPage() {
                         <h4 className="font-medium text-gray-900 text-sm">Would you like to receive personalized communication and product offers from Sun Life?</h4>
                       </div>
                       <div className="flex gap-2 bg-gray-100 p-1 rounded-full w-fit shrink-0">
-                        <button type="button" onClick={() => setFormData({...formData, wants_communication: true})} className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${formData.wants_communication ? 'bg-gray-900 text-white shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}>Yes</button>
-                        <button type="button" onClick={() => setFormData({...formData, wants_communication: false})} className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${!formData.wants_communication ? 'bg-gray-900 text-white shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}>No</button>
+                        <button type="button" onClick={() => setFormData({ ...formData, wants_communication: true })} className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${formData.wants_communication ? 'bg-gray-900 text-white shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}>Yes</button>
+                        <button type="button" onClick={() => setFormData({ ...formData, wants_communication: false })} className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${!formData.wants_communication ? 'bg-gray-900 text-white shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}>No</button>
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className={cardClass}>
                     <SectionHeader letter="E" title="For Company Use Only" badge="Sun Life staff use only" />
                     <div>
                       <textarea
                         value={formData.company_use_only_notes}
-                        onChange={e => setFormData({...formData, company_use_only_notes: e.target.value})}
+                        onChange={e => setFormData({ ...formData, company_use_only_notes: e.target.value })}
                         placeholder="Internal notes and company use details..."
                         className={`${inputClass} min-h-[100px] resize-y`}
                       />

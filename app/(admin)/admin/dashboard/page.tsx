@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { motion, useReducedMotion, type Variants } from 'framer-motion';
 import {
-  Users, ClipboardList, CalendarCheck, CalendarDays,
-  Building2, UsersRound, Megaphone, MessageSquare,
-  CircleHelp, Paintbrush, RefreshCw, Loader2, ArrowUpRight, Wallet,
-  Settings, UserPlus, FileArchive, LayoutList, FileText, RefreshCcw,
-  CheckCircle, UserCheck
+  Users, ArrowUpRight, Wallet, Settings, FileSignature, Users2,
+  ArrowLeftRight, CreditCard, Calculator, RotateCcw, ShieldCheck, Search,
+  RefreshCw, Loader2, Clock, Layers, ClipboardList, FileText, UserCheck,
+  Sunrise, Sun, Moon, FileStack, Radio, Boxes, Grid3x3
 } from 'lucide-react';
 import Link from 'next/link';
 import Header from "@/app/components/admin/AdminHeader";
@@ -14,7 +14,6 @@ import Sidebar from "@/app/components/admin/AdminSidebar";
 import { supabase } from "@/app/lib/supabase/client";
 import styles from "@/styles/admin/dashboard/page.module.css";
 import WelcomeModal from "@/components/shared/WelcomeModal";
-import WelcomeHero from "@/components/shared/WelcomeHero";
 
 type KpiData = {
   members: number;
@@ -30,81 +29,225 @@ type KpiData = {
   faqs: number;
 };
 
+type DayPeriod = 'morning' | 'afternoon' | 'evening';
+
+type CsrForm = {
+  id: string;
+  name: string;
+  icon: React.ElementType;
+  count: number;
+  href: string;
+  accent: string;
+  tint: string;
+};
+
+type CsrCategory = {
+  label: string;
+  forms: CsrForm[];
+};
+
+type Portal = {
+  name: string;
+  url: string;
+  manage: string;
+  mark?: string;
+  logo?: string;
+  logoDark?: string;
+  img?: string;
+};
+
+const containerVariants: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.045, delayChildren: 0.04 } },
+};
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.4, 0, 0.2, 1] } },
+};
+
+const itemVariantsReduced: Variants = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { duration: 0.2 } },
+};
+
+const getDomain = (url: string) => {
+  try {
+    return new URL(url).hostname.replace('www.', '');
+  } catch {
+    return url;
+  }
+};
+
+function HeroDecoration({ period }: { period: DayPeriod }) {
+  if (period === 'evening') {
+    return (
+      <svg className={styles.heroEveningStars} viewBox="0 0 420 200" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+        <g stroke="rgba(255,255,255,0.18)" strokeWidth="1">
+          <line x1="40" y1="140" x2="110" y2="90" />
+          <line x1="110" y1="90" x2="180" y2="120" />
+          <line x1="180" y1="120" x2="250" y2="60" />
+          <line x1="250" y1="60" x2="320" y2="100" />
+          <line x1="180" y1="120" x2="150" y2="170" />
+        </g>
+        <g fill="#FFFFFF">
+          <circle cx="40" cy="140" r="2.2" />
+          <circle cx="110" cy="90" r="1.8" className={styles.twinkle} />
+          <circle cx="180" cy="120" r="2.4" />
+          <circle cx="250" cy="60" r="2" className={styles.twinkle} />
+          <circle cx="320" cy="100" r="1.8" />
+          <circle cx="150" cy="170" r="1.6" className={styles.twinkle} />
+          <circle cx="80" cy="40" r="1.3" />
+          <circle cx="360" cy="40" r="1.4" className={styles.twinkle} />
+          <circle cx="300" cy="160" r="1.3" />
+          <circle cx="20" cy="60" r="1.1" className={styles.twinkle} />
+        </g>
+      </svg>
+    );
+  }
+  if (period === 'morning') {
+    return (
+      <svg className={styles.heroMorningGlow} viewBox="0 0 420 200" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+        <g stroke="#C9942B" strokeWidth="1" opacity="0.35">
+          <path d="M60 150 Q 200 40 380 70" />
+          <path d="M90 175 Q 220 95 405 45" />
+        </g>
+        <g fill="#E7B84B">
+          <circle cx="300" cy="90" r="1.5" />
+          <circle cx="360" cy="95" r="1.5" />
+          <circle cx="270" cy="60" r="1.2" />
+        </g>
+        <path d="M330 38 L334 53 L349 55 L334 57 L330 72 L326 57 L311 55 L326 53 Z" fill="#E7B84B" />
+      </svg>
+    );
+  }
+  return <div className={styles.heroDots} />;
+}
+
+function PortalMark({ portal }: { portal: Portal }) {
+  const [broken, setBroken] = useState(false);
+  const source = portal.logo || portal.img;
+
+  if (!source || broken) {
+    return <span className={styles.portalMark}>{portal.name.charAt(0).toUpperCase()}</span>;
+  }
+  return (
+    <img
+      src={source}
+      alt={portal.name}
+      className={portal.img ? styles.portalLogoLg : styles.portalLogo}
+      loading="lazy"
+      onError={() => setBroken(true)}
+    />
+  );
+}
+
 export default function DashboardOverviewPage() {
   const [showSplash, setShowSplash] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [adminId, setAdminId] = useState('');
   const [adminName, setAdminName] = useState('Administrator');
   const [greeting, setGreeting] = useState('Good Morning');
+  const [dayPeriod, setDayPeriod] = useState<DayPeriod>('morning');
   const [customPortals, setCustomPortals] = useState<any[]>([]);
+  const [currentDate, setCurrentDate] = useState('');
+  const [currentTime, setCurrentTime] = useState('');
 
-  const metrics = [
-    { id: "MEMBERS", title: "MEMBERS", linkText: "MANAGE", href: "/admin/members", icon: Users },
-    { id: "CPST", title: "CPST", linkText: "PROSPECTS", href: "/admin/cpst", icon: UserPlus },
-    { id: "ACR", title: "ACR", linkText: "SECTOR", href: "/admin/acr", icon: FileArchive },
-    { id: "CPC", title: "CPC", linkText: "SECTOR", href: "/admin/cpc", icon: Users },
-    { id: "FST", title: "FST", linkText: "SECTOR", href: "/admin/fst", icon: LayoutList },
-    { id: "MNGT", title: "MNGT", linkText: "SECTOR", href: "/admin/mngt", icon: LayoutList },
-    { id: "PPU", title: "PPU", linkText: "SECTOR", href: "/admin/ppu", icon: FileText },
-    { id: "BCR", title: "BCR", linkText: "SECTOR", href: "/admin/bcr", icon: FileText },
-    { id: "FUND_SWITCHING", title: "FUND SWITCHING", linkText: "SECTOR", href: "/admin/fund-switching", icon: RefreshCcw },
-    { id: "FUND_WITHDRAWAL", title: "FUND WITHDRAWAL", linkText: "SECTOR", href: "/admin/fund-withdrawal", icon: Wallet },
-    { id: "ACA", title: "ACA", linkText: "SECTOR", href: "/admin/aca", icon: CheckCircle },
-    { id: "REINSTATEMENT_SRO", title: "REINSTATEMENT SRO", linkText: "SECTOR", href: "/admin/reinstatement-sro", icon: RefreshCcw },
-    { id: "REINSTATEMENT_PDI", title: "REINSTATEMENT PDI", linkText: "SECTOR", href: "/admin/reinstatement-pdi", icon: RefreshCcw },
-    { id: "CSMV", title: "CSMV", linkText: "SECTOR", href: "/admin/csmv", icon: UserCheck }
+  const prefersReducedMotion = useReducedMotion();
+  const fadeVariants = prefersReducedMotion ? itemVariantsReduced : itemVariants;
+
+  const [kpis, setKpis] = useState<KpiData>({
+    members: 0, cpst: 0, acr: 0, cpc: 0, fst: 0, mngt: 0,
+    ppu: 0, attendance: 0, announcements: 0, designs: 0, faqs: 0
+  });
+
+  const csrCategories: CsrCategory[] = [
+    {
+      label: 'Advisor & Beneficiary',
+      forms: [
+        { id: 'ACR', name: 'Advisor Change Request', icon: FileSignature, count: kpis.acr, href: '/admin/acr', accent: '#6B8AFE', tint: 'rgba(107,138,254,0.12)' },
+        { id: 'BCR', name: 'Beneficiary Change Request', icon: Users2, count: 0, href: '/admin/bcr', accent: '#6B8AFE', tint: 'rgba(107,138,254,0.12)' },
+      ],
+    },
+    {
+      label: 'Fund Transactions',
+      forms: [
+        { id: 'FSR', name: 'Fund Switching Request', icon: ArrowLeftRight, count: 0, href: '/admin/fund-switching', accent: '#34A276', tint: 'rgba(52,162,118,0.12)' },
+        { id: 'FWR', name: 'Fund Withdrawal Request', icon: Wallet, count: 0, href: '/admin/fund-withdrawal', accent: '#34A276', tint: 'rgba(52,162,118,0.12)' },
+      ],
+    },
+    {
+      label: 'Billing & Arrangements',
+      forms: [
+        { id: 'ACA', name: 'Auto Charge Arrangement', icon: CreditCard, count: 0, href: '/admin/aca', accent: '#8B5CF6', tint: 'rgba(139,92,246,0.12)' },
+        { id: 'MDA', name: 'Modification / Debit Arrangement', icon: Calculator, count: kpis.mngt, href: '/admin/mngt', accent: '#8B5CF6', tint: 'rgba(139,92,246,0.12)' },
+      ],
+    },
+    {
+      label: 'Reinstatement',
+      forms: [
+        { id: 'SRO', name: 'Reinstatement (SRO)', icon: RotateCcw, count: 0, href: '/admin/sro', accent: '#E08A3C', tint: 'rgba(224,138,60,0.12)' },
+        { id: 'PDI', name: 'Reinstatement (PDI)', icon: ShieldCheck, count: 0, href: '/admin/pdi', accent: '#E08A3C', tint: 'rgba(224,138,60,0.12)' },
+      ],
+    },
+    {
+      label: 'Compliance & Verification',
+      forms: [
+        { id: 'CSMV', name: 'Client Servicing Monitoring Verification', icon: Search, count: 0, href: '/admin/csmv', accent: '#2AA7A0', tint: 'rgba(42,167,160,0.12)' },
+      ],
+    },
   ];
 
-  const getMetricCount = (id: string) => {
-    switch (id) {
-      case 'MEMBERS': return kpis.members;
-      case 'CPST': return kpis.cpst;
-      case 'ACR': return kpis.acr;
-      case 'CPC': return kpis.cpc;
-      case 'FST': return kpis.fst;
-      case 'MNGT': return kpis.mngt;
-      case 'PPU': return kpis.ppu;
-      default: return 0;
-    }
+  const totalRequests = kpis.acr + kpis.cpc + kpis.fst + kpis.mngt + kpis.ppu + kpis.cpst;
+
+  const statCards = [
+    { id: 'members', label: 'Total Members', value: kpis.members, icon: Users, href: '/admin/members' },
+    { id: 'requests', label: 'Total Requests', value: totalRequests, icon: ClipboardList, href: '/admin/requests' },
+    { id: 'attendance', label: 'Attendance Logs', value: kpis.attendance, icon: UserCheck, href: '/admin/attendance' },
+    { id: 'announcements', label: 'Announcements', value: kpis.announcements, icon: FileText, href: '/admin/announcements' },
+  ];
+
+  const periodIcons: Record<DayPeriod, any> = {
+    morning: Sunrise,
+    afternoon: Sun,
+    evening: Moon,
   };
+
+  const portals: Portal[] = [
+    { name: 'Sun Life Portal', mark: 'SL', url: 'https://www.sunlife.com.ph/en/', manage: '/admin/portals/sun-life' },
+    { name: 'Advisor Office', mark: 'AO', url: 'https://advisorhomeoffice.sunlife.com.ph/aho/index.html#/:', manage: '/admin/portals/advisor-office' },
+    { name: 'Google Sheets', logo: 'https://cdn.simpleicons.org/googlesheets/34A853', url: 'https://bit.ly/4f2fpLK', manage: '/admin/portals/google-sheets' },
+    { name: 'Task Tracker', img: '/Image/icon/TP.png', url: 'https://teampaduatracker.vercel.app/tasktracker', manage: '/admin/portals/task-tracker' },
+    { name: 'JotForm', logo: 'https://cdn.simpleicons.org/jotform/FF6100/FF8A3D', url: 'https://www.jotform.com/', manage: '/admin/portals/jotform' },
+    { name: 'JotForm Intern', logo: 'https://cdn.simpleicons.org/jotform/FF6100/FF8A3D', url: 'https://form.jotform.com/261829362405055', manage: '/admin/portals/jotform' },
+    { name: 'Microsoft Teams', logo: 'https://cdn.simpleicons.org/microsoftteams/6264A7/8A8DE0', url: 'https://teams.microsoft.com/', manage: '/admin/portals/microsoft-teams' },
+    { name: 'Canva', logo: 'https://cdn.simpleicons.org/canva/00C4CC/3FD9DF', url: 'https://www.canva.com/', manage: '/admin/portals/canva' },
+  ];
 
   useEffect(() => {
     try {
       const stored = localStorage.getItem('custom_external_portals');
-      if (stored) {
-        setCustomPortals(JSON.parse(stored));
-      }
+      if (stored) setCustomPortals(JSON.parse(stored));
     } catch (e) {
       console.error(e);
     }
   }, []);
 
-  const [kpis, setKpis] = useState<KpiData>({
-    members: 0,
-    cpst: 0,
-    acr: 0,
-    cpc: 0,
-    fst: 0,
-    mngt: 0,
-    ppu: 0,
-    attendance: 0,
-    announcements: 0,
-    designs: 0,
-    faqs: 0
-  });
-
-  const getPhGreeting = () => {
+  const getPhHour = () => {
     try {
       const options = { timeZone: 'Asia/Manila', hour: 'numeric', hour12: false } as const;
       const formatter = new Intl.DateTimeFormat('en-US', options);
-      const hour = parseInt(formatter.format(new Date()), 10);
-
-      if (hour >= 5 && hour < 12) return 'Good Morning';
-      if (hour >= 12 && hour < 18) return 'Good Afternoon';
-      return 'Good Evening';
+      return parseInt(formatter.format(new Date()), 10);
     } catch (err) {
-      return 'Welcome';
+      return new Date().getHours();
     }
+  };
+
+  const resolveGreetingAndPeriod = (): { greeting: string; period: DayPeriod } => {
+    const hour = getPhHour();
+    if (hour >= 5 && hour < 12) return { greeting: 'Good Morning', period: 'morning' };
+    if (hour >= 12 && hour < 18) return { greeting: 'Good Afternoon', period: 'afternoon' };
+    return { greeting: 'Good Evening', period: 'evening' };
   };
 
   const fetchDashboardData = async () => {
@@ -146,14 +289,35 @@ export default function DashboardOverviewPage() {
   };
 
   useEffect(() => {
-    setGreeting(getPhGreeting());
+    const { greeting, period } = resolveGreetingAndPeriod();
+    setGreeting(greeting);
+    setDayPeriod(period);
     fetchDashboardData();
 
-    const timer = setTimeout(() => {
-      setShowSplash(false);
-    }, 800);
-
+    const timer = setTimeout(() => setShowSplash(false), 700);
     return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    const updateClock = () => {
+      const now = new Date();
+      const dateFormatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Manila', weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'
+      });
+      const timeFormatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true
+      });
+      setCurrentDate(dateFormatter.format(now));
+      setCurrentTime(timeFormatter.format(now));
+
+      const { greeting, period } = resolveGreetingAndPeriod();
+      setGreeting(greeting);
+      setDayPeriod(period);
+    };
+
+    updateClock();
+    const interval = setInterval(updateClock, 1000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleRefresh = async () => {
@@ -162,468 +326,247 @@ export default function DashboardOverviewPage() {
     setTimeout(() => setIsRefreshing(false), 500);
   };
 
+  const PeriodIcon = periodIcons[dayPeriod];
+  const totalCsrForms = csrCategories.reduce((sum, cat) => sum + cat.forms.length, 0);
+  const totalPortals = portals.length + customPortals.length;
+
   return (
-    <div className={styles.text_0}>
+    <div className={styles.shell}>
       <WelcomeModal userName={adminName} role="Admin" />
+
       {showSplash && (
-        <div className={styles.table_1}>
-          <div className={styles.container_2}>
-            <div className={styles.container_3}>
-              <div className={styles.div_4} />
-              <div className={styles.div_5} />
-              <div className={styles.table_6} />
-              <svg viewBox="0 0 100 100" className={styles.div_7}>
-                <defs>
-                  <filter id="admin-splash-shadow" x="-10%" y="-10%" width="130%" height="130%">
-                    <feDropShadow dx="1.5" dy="2.5" stdDeviation="2" floodColor="#000000" floodOpacity="0.4" />
-                  </filter>
-                  <radialGradient id="admin-splash-globe-3d" cx="35%" cy="35%" r="65%">
-                    <stop offset="0%" stopColor="#FFECA0" /><stop offset="50%" stopColor="#F4C542" /><stop offset="90%" stopColor="#B28200" /><stop offset="100%" stopColor="#7C5B00" />
-                  </radialGradient>
-                  <linearGradient id="admin-splash-ray-metal" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#FFF2B2" /><stop offset="30%" stopColor="#F4C542" /><stop offset="70%" stopColor="#D89D00" /><stop offset="100%" stopColor="#966C00" />
-                  </linearGradient>
-                  <mask id="admin-splash-grid-mask">
-                    <rect x="0" y="0" width="100" height="100" fill="white" />
-                    <path d="M 10 52 Q 45 38 80 52" stroke="black" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-                    <path d="M 12 68 Q 45 54 78 68" stroke="black" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-                    <path d="M 26 27 Q 44 55 26 83" stroke="black" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-                    <path d="M 43 23 Q 60 55 43 87" stroke="black" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-                    <path d="M 60 27 Q 73 55 60 83" stroke="black" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-                  </mask>
-                </defs>
-                <path d="M 30 25 Q 31 15 34 13 Q 38 18 41 21 Q 43 11 47 9 Q 50 15 52 19 Q 57 10 61 9 Q 63 16 64 21 Q 70 13 75 13 Q 76 20 76 25 Q 83 19 87 20 Q 86 28 85 32 Q 93 29 96 32 Q 94 39 91 43 Q 99 42 101 46 Q 97 52 94 55 Q 101 56 101 61 Q 96 66 92 68 Q 98 71 96 77 Q 90 79 86 81 Q 90 85 87 91 Q 81 90 76 87 Q 78 95 73 98 Q 69 94 66 90 Q 66 97 60 99 Q 57 93 55 89" fill="url(#admin-splash-ray-metal)" filter="url(#admin-splash-shadow)" />
-                <circle cx="45" cy="56" r="31" fill="url(#admin-splash-globe-3d)" mask="url(#admin-splash-grid-mask)" filter="url(#admin-splash-shadow)" />
-                <path d="M 20 38 A 31 31 0 0 1 70 38 A 28 28 0 0 0 20 38 Z" fill="rgba(255,255,255,0.25)" mask="url(#admin-splash-grid-mask)" pointerEvents="none" />
-              </svg>
-            </div>
-            <div className={styles.div_8}>
-              <p className={styles.table_9}>Syncing admin dashboard...</p>
-            </div>
+        <div className={styles.splash}>
+          <div className={styles.splashRing}>
+            <div className={styles.splashSpin} />
+            <div className={styles.splashDot} />
           </div>
+          <p className={styles.splashLabel}>Syncing admin dashboard</p>
         </div>
       )}
 
       <Sidebar />
 
-      <div className={styles.container_10}>
+      <div className={styles.mainCol}>
         <Header />
 
-        <main className={styles.div_11}>
-          <WelcomeHero userName={adminName} role="Administrator" />
-
-          <div className={styles.div_23}>
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-primary/10 rounded-lg text-primary flex items-center justify-center">
-                <ArrowUpRight size={14} />
+        <motion.main className={styles.content} variants={containerVariants} initial="hidden" animate="show">
+          <motion.section variants={fadeVariants} className={styles.heroCard} data-period={dayPeriod}>
+            <HeroDecoration period={dayPeriod} />
+            <div className={styles.heroLeft}>
+              <span className={styles.greetingBadge}>
+                <PeriodIcon size={12} strokeWidth={1.8} />
+                {greeting}
+              </span>
+              <h1 className={styles.welcomeText}>
+                Welcome, <span className={styles.usernameHighlight}>{adminName}</span>
+              </h1>
+              <span className={styles.memberBadge}>Role Authorized · Administrator</span>
+            </div>
+            <div className={styles.heroRight}>
+              <div className={styles.dateDisplay}>{currentDate}</div>
+              <div className={styles.verticalDivider} />
+              <div className={styles.timeDisplay}>
+                <Clock size={13} strokeWidth={1.8} />
+                <span className={styles.timeText}>{currentTime}</span>
               </div>
-              <div>
-                <h2 className={styles.table_24}>External Portals</h2>
-                <p className={styles.text_25}>Quick access shortcuts to primary service domains and tools</p>
+              <button onClick={handleRefresh} className={styles.refreshButton} type="button" title="Refresh dashboard">
+                {isRefreshing ? <Loader2 size={15} className={styles.spinIcon} /> : <RefreshCw size={15} strokeWidth={1.8} />}
+              </button>
+            </div>
+          </motion.section>
+
+          <motion.div variants={fadeVariants} className={styles.statsGrid}>
+            {statCards.map((stat) => {
+              const Icon = stat.icon;
+              return (
+                <Link key={stat.id} href={stat.href} className={styles.statCard}>
+                  <div className={styles.statCardTop}>
+                    <div className={styles.statIconWrap}>
+                      <Icon size={16} strokeWidth={1.8} />
+                    </div>
+                    <ArrowUpRight size={13} className={styles.statArrow} />
+                  </div>
+                  <h3 className={styles.statValue}>{stat.value.toLocaleString()}</h3>
+                  <span className={styles.statLabel}>{stat.label}</span>
+                </Link>
+              );
+            })}
+          </motion.div>
+
+          <motion.div variants={fadeVariants} className={styles.sectionBlock}>
+            <div className={styles.sectionHeadRow}>
+              <div className={styles.sectionHeadLeft}>
+                <h2 className={styles.sectionTitle}>External Portals</h2>
+                <p className={styles.sectionSubtitle}>Quick access to primary service domains and tools</p>
               </div>
             </div>
-            <div className={styles.container_26}>
-              {/* Sun Life Portal */}
-              <div
-                onClick={() => window.open("https://www.sunlife.com.ph/en/", "_blank", "noopener,noreferrer")}
-                className={`${styles.card_27} group relative`}
-              >
-                <Link
-                  href="/admin/portals/sun-life"
-                  onClick={(e) => e.stopPropagation()}
-                  className="absolute top-2.5 right-2.5 p-1.5 rounded-full bg-card/85 backdrop-blur border border-border opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-[#F4C542]/20 hover:text-[#F4C542] hover:scale-110 z-10 flex items-center justify-center text-text-secondary cursor-pointer"
-                  title="Manage Sun Life Resources"
-                >
-                  <Settings size={13} />
-                </Link>
-                <svg viewBox="0 0 100 100" className={`${styles.table_28} group`}>
-                  <defs>
-                    <filter id="sl-shadow-1" x="-10%" y="-10%" width="130%" height="130%">
-                      <feDropShadow dx="1.5" dy="2.5" stdDeviation="2" floodColor="#000000" floodOpacity="0.4" />
-                    </filter>
-                    <radialGradient id="sl-globe-1" cx="35%" cy="35%" r="65%">
-                      <stop offset="0%" stopColor="#FFECA0" />
-                      <stop offset="50%" stopColor="#F4C542" />
-                      <stop offset="90%" stopColor="#B28200" />
-                      <stop offset="100%" stopColor="#7C5B00" />
-                    </radialGradient>
-                    <linearGradient id="sl-ray-1" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#FFF2B2" />
-                      <stop offset="30%" stopColor="#F4C542" />
-                      <stop offset="70%" stopColor="#D89D00" />
-                      <stop offset="100%" stopColor="#966C00" />
-                    </linearGradient>
-                    <mask id="sl-mask-1">
-                      <rect x="0" y="0" width="100" height="100" fill="white" />
-                      <path d="M 10 52 Q 45 38 80 52" stroke="black" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-                      <path d="M 12 68 Q 45 54 78 68" stroke="black" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-                      <path d="M 26 27 Q 44 55 26 83" stroke="black" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-                      <path d="M 43 23 Q 60 55 43 87" stroke="black" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-                      <path d="M 60 27 Q 73 55 60 83" stroke="black" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-                    </mask>
-                  </defs>
-                  <path d="M 30 25 Q 31 15 34 13 Q 38 18 41 21 Q 43 11 47 9 Q 50 15 52 19 Q 57 10 61 9 Q 63 16 64 21 Q 70 13 75 13 Q 76 20 76 25 Q 83 19 87 20 Q 86 28 85 32 Q 93 29 96 32 Q 94 39 91 43 Q 99 42 101 46 Q 97 52 94 55 Q 101 56 101 61 Q 96 66 92 68 Q 98 71 96 77 Q 90 79 86 81 Q 90 85 87 91 Q 81 90 76 87 Q 78 95 73 98 Q 69 94 66 90 Q 66 97 60 99 Q 57 93 55 89" fill="url(#sl-ray-1)" filter="url(#sl-shadow-1)" />
-                  <circle cx="45" cy="56" r="31" fill="url(#sl-globe-1)" mask="url(#sl-mask-1)" filter="url(#sl-shadow-1)" />
-                  <path d="M 20 38 A 31 31 0 0 1 70 38 A 28 28 0 0 0 20 38 Z" fill="rgba(255,255,255,0.22)" mask="url(#sl-mask-1)" pointerEvents="none" />
-                </svg>
-                <span className={`${styles.table_29} group`}>Sun Life Portal</span>
-              </div>
 
-              {/* Advisor Office */}
-              <div
-                onClick={() => window.open("https://advisorhomeoffice.sunlife.com.ph/aho/index.html#/:", "_blank", "noopener,noreferrer")}
-                className={`${styles.card_30} group relative`}
-              >
-                <Link
-                  href="/admin/portals/advisor-office"
-                  onClick={(e) => e.stopPropagation()}
-                  className="absolute top-2.5 right-2.5 p-1.5 rounded-full bg-card/85 backdrop-blur border border-border opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-[#F4C542]/20 hover:text-[#F4C542] hover:scale-110 z-10 flex items-center justify-center text-text-secondary cursor-pointer"
-                  title="Manage Advisor Office Resources"
+            <div className={styles.portalGrid}>
+              {portals.map((portal) => (
+                <div
+                  key={portal.name}
+                  onClick={() => window.open(portal.url, "_blank", "noopener,noreferrer")}
+                  className={styles.portalCard}
                 >
-                  <Settings size={13} />
-                </Link>
-                <svg viewBox="0 0 100 100" className={`${styles.table_31} group`}>
-                  <defs>
-                    <filter id="sl-shadow-2" x="-10%" y="-10%" width="130%" height="130%">
-                      <feDropShadow dx="1.5" dy="2.5" stdDeviation="2" floodColor="#000000" floodOpacity="0.4" />
-                    </filter>
-                    <radialGradient id="sl-globe-2" cx="35%" cy="35%" r="65%">
-                      <stop offset="0%" stopColor="#FFECA0" /><stop offset="50%" stopColor="#F4C542" /><stop offset="90%" stopColor="#B28200" /><stop offset="100%" stopColor="#7C5B00" />
-                    </radialGradient>
-                    <linearGradient id="sl-ray-2" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#FFF2B2" /><stop offset="30%" stopColor="#F4C542" /><stop offset="70%" stopColor="#D89D00" /><stop offset="100%" stopColor="#966C00" />
-                    </linearGradient>
-                    <mask id="sl-mask-2">
-                      <rect x="0" y="0" width="100" height="100" fill="white" />
-                      <path d="M 10 52 Q 45 38 80 52" stroke="black" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-                      <path d="M 12 68 Q 45 54 78 68" stroke="black" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-                      <path d="M 26 27 Q 44 55 26 83" stroke="black" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-                      <path d="M 43 23 Q 60 55 43 87" stroke="black" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-                      <path d="M 60 27 Q 73 55 60 83" stroke="black" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-                    </mask>
-                  </defs>
-                  <path d="M 30 25 Q 31 15 34 13 Q 38 18 41 21 Q 43 11 47 9 Q 50 15 52 19 Q 57 10 61 9 Q 63 16 64 21 Q 70 13 75 13 Q 76 20 76 25 Q 83 19 87 20 Q 86 28 85 32 Q 93 29 96 32 Q 94 39 91 43 Q 99 42 101 46 Q 97 52 94 55 Q 101 56 101 61 Q 96 66 92 68 Q 98 71 96 77 Q 90 79 86 81 Q 90 85 87 91 Q 81 90 76 87 Q 78 95 73 98 Q 69 94 66 90 Q 66 97 60 99 Q 57 93 55 89" fill="url(#sl-ray-2)" filter="url(#sl-shadow-2)" />
-                  <circle cx="45" cy="56" r="31" fill="url(#sl-globe-2)" mask="url(#sl-mask-2)" filter="url(#sl-shadow-2)" />
-                  <path d="M 20 38 A 31 31 0 0 1 70 38 A 28 28 0 0 0 20 38 Z" fill="rgba(255,255,255,0.22)" mask="url(#sl-mask-2)" pointerEvents="none" />
-                </svg>
-                <span className={`${styles.table_32} group`}>Advisor Office</span>
-              </div>
-
-              {/* Google Sheets */}
-              <div
-                onClick={() => window.open("https://bit.ly/4f2fpLK", "_blank", "noopener,noreferrer")}
-                className={`${styles.card_33} group relative`}
-              >
-                <Link
-                  href="/admin/portals/google-sheets"
-                  onClick={(e) => e.stopPropagation()}
-                  className="absolute top-2.5 right-2.5 p-1.5 rounded-full bg-card/85 backdrop-blur border border-border opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-[#F4C542]/20 hover:text-[#F4C542] hover:scale-110 z-10 flex items-center justify-center text-text-secondary cursor-pointer"
-                  title="Manage Google Sheets Resources"
-                >
-                  <Settings size={13} />
-                </Link>
-                <svg viewBox="0 0 100 100" className={`${styles.table_34} group`}>
-                  <defs>
-                    <filter id="excel-shadow-adm" x="-10%" y="-10%" width="130%" height="130%">
-                      <feDropShadow dx="1.5" dy="2.5" stdDeviation="2" floodColor="#000000" floodOpacity="0.4" />
-                    </filter>
-                    <linearGradient id="ex-bg-adm" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#1F9A55" /><stop offset="100%" stopColor="#0B4C28" />
-                    </linearGradient>
-                    <linearGradient id="ex-plate-adm" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" stopColor="#167C41" /><stop offset="100%" stopColor="#0D522A" />
-                    </linearGradient>
-                    <linearGradient id="ex-x-adm" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#FFFFFF" /><stop offset="100%" stopColor="#E0E0E0" />
-                    </linearGradient>
-                  </defs>
-                  <rect x="30" y="15" width="55" height="70" rx="14" fill="url(#ex-bg-adm)" filter="url(#excel-shadow-adm)" />
-                  <path d="M 44 15 L 85 56 L 85 15 Z" fill="rgba(255,255,255,0.08)" />
-                  <rect x="15" y="32" width="36" height="36" rx="8" fill="url(#ex-plate-adm)" filter="url(#excel-shadow-adm)" stroke="#1F9A55" strokeWidth="1" />
-                  <rect x="16" y="33" width="34" height="34" rx="7" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
-                  <path d="M24 41 L30 41 L33 50 L36 41 L42 41 L36 53 L42 65 L36 65 L33 56 L30 65 L24 65 L30 53 Z" fill="url(#ex-x-adm)" />
-                </svg>
-                <span className={`${styles.table_35} group`}>Google Sheets</span>
-              </div>
-
-              {/* Task Tracker */}
-              <div
-                onClick={() => window.open("https://teampaduatracker.vercel.app/tasktracker", "_blank", "noopener,noreferrer")}
-                className={`${styles.card_33} group flex flex-col items-center justify-center relative`}
-              >
-                <Link
-                  href="/admin/portals/task-tracker"
-                  onClick={(e) => e.stopPropagation()}
-                  className="absolute top-2.5 right-2.5 p-1.5 rounded-full bg-card/85 backdrop-blur border border-border opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-[#F4C542]/20 hover:text-[#F4C542] hover:scale-110 z-10 flex items-center justify-center text-text-secondary cursor-pointer"
-                  title="Manage Task Tracker Resources"
-                >
-                  <Settings size={13} />
-                </Link>
-                <img
-                  src="/Image/icon/TP.png"
-                  alt="Task Tracker"
-                  className="w-14 h-14 object-contain transition-transform duration-300 group-hover:scale-110"
-                />
-                <span className={`${styles.table_35} mt-3`}>
-                  Task Tracker
-                </span>
-              </div>
-
-              {/* JotForm */}
-              <div
-                onClick={() => window.open("https://www.jotform.com/", "_blank", "noopener,noreferrer")}
-                className={`${styles.card_36} group relative`}
-              >
-                <Link
-                  href="/admin/portals/jotform"
-                  onClick={(e) => e.stopPropagation()}
-                  className="absolute top-2.5 right-2.5 p-1.5 rounded-full bg-card/85 backdrop-blur border border-border opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-[#F4C542]/20 hover:text-[#F4C542] hover:scale-110 z-10 flex items-center justify-center text-text-secondary cursor-pointer"
-                  title="Manage JotForm Resources"
-                >
-                  <Settings size={13} />
-                </Link>
-                <svg viewBox="0 0 100 100" className={`${styles.table_37} group`}>
-                  <defs>
-                    <filter id="jot-shadow-adm" x="-10%" y="-10%" width="130%" height="130%">
-                      <feDropShadow dx="1" dy="2" stdDeviation="1.8" floodColor="#000000" floodOpacity="0.45" />
-                    </filter>
-                    <linearGradient id="jt-blue-adm" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" stopColor="#66B7FF" /><stop offset="30%" stopColor="#0087FF" /><stop offset="100%" stopColor="#004C99" />
-                    </linearGradient>
-                    <linearGradient id="jt-orange-adm" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" stopColor="#FF9455" /><stop offset="30%" stopColor="#FF6100" /><stop offset="100%" stopColor="#B23E00" />
-                    </linearGradient>
-                    <linearGradient id="jt-yellow-adm" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" stopColor="#FFD366" /><stop offset="30%" stopColor="#FFB700" /><stop offset="100%" stopColor="#B27A00" />
-                    </linearGradient>
-                    <linearGradient id="jt-dark-adm" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#1E3275" /><stop offset="100%" stopColor="#061138" />
-                    </linearGradient>
-                  </defs>
-                  <path d="M 12 62 C 12 60, 14 59, 16 61 L 39 84 C 41 86, 40 88, 38 88 L 16 88 C 14 88, 12 86, 12 84 Z" fill="url(#jt-dark-adm)" filter="url(#jot-shadow-adm)" />
-                  <g filter="url(#jot-shadow-adm)">
-                    <path d="M 52 13 C 58 19, 58 29, 52 35 L 34 53 C 28 59, 18 59, 12 53 C 6 47, 6 37, 12 31 L 30 13 C 36 7, 46 7, 52 13 Z" fill="url(#jt-blue-adm)" />
-                    <path d="M 48 16 C 52 20, 52 27, 48 31 L 34 45 C 32 47, 28 47, 26 45 C 24 43, 24 39, 26 37 L 40 23 C 42 21, 45 19, 48 16 Z" fill="rgba(255,255,255,0.25)" pointerEvents="none" />
-                  </g>
-                  <g filter="url(#jot-shadow-adm)">
-                    <path d="M 78 27 C 84 33, 84 43, 78 49 L 49 78 C 43 84, 33 84, 27 78 C 21 72, 21 62, 27 56 L 56 27 C 62 21, 72 21, 78 27 Z" fill="url(#jt-orange-adm)" />
-                    <path d="M 74 30 C 78 34, 78 41, 74 45 L 49 70 C 47 72, 43 72, 41 70 C 39 68, 39 64, 41 62 L 66 37 C 68 35, 71 33, 74 30 Z" fill="rgba(255,255,255,0.25)" pointerEvents="none" />
-                  </g>
-                  <g filter="url(#jot-shadow-adm)">
-                    <path d="M 83 53 C 89 59, 89 69, 83 75 L 69 89 C 63 95, 53 95, 47 89 C 41 83, 41 73, 47 67 L 61 53 C 67 47, 77 47, 83 53 Z" fill="url(#jt-yellow-adm)" />
-                    <path d="M 79 56 C 83 60, 83 67, 79 71 L 69 81 C 67 83, 63 83, 61 81 C 59 79, 59 75, 61 73 L 71 63 C 73 61, 76 59, 79 56 Z" fill="rgba(255,255,255,0.25)" pointerEvents="none" />
-                  </g>
-                </svg>
-                <span className={`${styles.table_38} group`}>JotForm</span>
-              </div>
-
-              {/* JotForm Intern */}
-              <div
-                onClick={() => window.open("https://form.jotform.com/261829362405055", "_blank", "noopener,noreferrer")}
-                className={`${styles.card_36} group relative`}
-              >
-                <Link
-                  href="/admin/portals/jotform"
-                  onClick={(e) => e.stopPropagation()}
-                  className="absolute top-2.5 right-2.5 p-1.5 rounded-full bg-card/85 backdrop-blur border border-border opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-[#F4C542]/20 hover:text-[#F4C542] hover:scale-110 z-10 flex items-center justify-center text-text-secondary cursor-pointer"
-                  title="Manage JotForm Resources"
-                >
-                  <Settings size={13} />
-                </Link>
-                <img
-                  src="/Image/icon/Form.png"
-                  alt="JotForm Intern"
-                  className="w-14 h-14 object-contain transition-transform duration-300 group-hover:scale-110"
-                />
-                <span className={`${styles.table_38} group`}>JotForm Intern</span>
-              </div>
-
-              {/* Google Drive */}
-              <div
-                onClick={() => window.open("https://drive.google.com/drive/folders/1ZLNJHFUFYDkVG9pQwMF2hio89j7vp04x?usp=sharing", "_blank", "noopener,noreferrer")}
-                className={`${styles.card_30} group relative`}
-              >
-                <Link
-                  href="/admin/portals/google-drive"
-                  onClick={(e) => e.stopPropagation()}
-                  className="absolute top-2.5 right-2.5 p-1.5 rounded-full bg-card/85 backdrop-blur border border-border opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-[#F4C542]/20 hover:text-[#F4C542] hover:scale-110 z-10 flex items-center justify-center text-text-secondary cursor-pointer"
-                  title="Manage Google Drive Resources"
-                >
-                  <Settings size={13} />
-                </Link>
-                <img
-                  src="/Image/icon/drive.png"
-                  alt="Google Drive"
-                  className="w-12 h-10 object-contain transition-transform duration-300 group-hover:scale-110"
-                />
-                <span className={`${styles.table_32} group`}>Google Drive</span>
-              </div>
-
-              {/* Microsoft Teams */}
-              <div
-                onClick={() => window.open("https://teams.microsoft.com/", "_blank", "noopener,noreferrer")}
-                className={`${styles.card_30} group relative`}
-              >
-                <Link
-                  href="/admin/portals/microsoft-teams"
-                  onClick={(e) => e.stopPropagation()}
-                  className="absolute top-2.5 right-2.5 p-1.5 rounded-full bg-card/85 backdrop-blur border border-border opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-[#F4C542]/20 hover:text-[#F4C542] hover:scale-110 z-10 flex items-center justify-center text-text-secondary cursor-pointer"
-                  title="Manage Microsoft Teams Resources"
-                >
-                  <Settings size={13} />
-                </Link>
-                <svg viewBox="0 0 100 100" className={`${styles.table_31} group`}>
-                  <defs>
-                    <filter id="teams-shadow-adm" x="-10%" y="-10%" width="130%" height="130%">
-                      <feDropShadow dx="1" dy="2" stdDeviation="1.8" floodColor="#000000" floodOpacity="0.4" />
-                    </filter>
-                    <linearGradient id="teams-bg-grad-adm" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#7B83EB" /><stop offset="100%" stopColor="#464EB8" />
-                    </linearGradient>
-                    <linearGradient id="teams-icon-grad-adm" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#5B64E2" /><stop offset="100%" stopColor="#3B429F" />
-                    </linearGradient>
-                  </defs>
-                  <rect x="25" y="20" width="55" height="55" rx="12" fill="url(#teams-bg-grad-adm)" filter="url(#teams-shadow-adm)" />
-                  <rect x="15" y="32" width="30" height="30" rx="8" fill="url(#teams-icon-grad-adm)" filter="url(#teams-shadow-adm)" />
-                  <text x="30" y="53" fill="white" fontSize="16" fontWeight="bold" fontFamily="sans-serif" textAnchor="middle">T</text>
-                  <circle cx="60" cy="38" r="8" fill="white" />
-                  <path d="M48 58 C48 51, 54 48, 60 48 C66 48, 72 51, 72 58 Z" fill="white" />
-                </svg>
-                <span className={`${styles.table_32} group`}>Microsoft Teams</span>
-              </div>
-
-              {/* Canva */}
-              <div
-                onClick={() => window.open("https://www.canva.com/", "_blank", "noopener,noreferrer")}
-                className={`${styles.card_39} group relative`}
-              >
-                <Link
-                  href="/admin/portals/canva"
-                  onClick={(e) => e.stopPropagation()}
-                  className="absolute top-2.5 right-2.5 p-1.5 rounded-full bg-card/85 backdrop-blur border border-border opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-[#F4C542]/20 hover:text-[#F4C542] hover:scale-110 z-10 flex items-center justify-center text-text-secondary cursor-pointer"
-                  title="Manage Canva Resources"
-                >
-                  <Settings size={13} />
-                </Link>
-                <svg viewBox="0 0 100 100" className={`${styles.table_40} group`}>
-                  <defs>
-                    <filter id="canva-shadow-adm" x="-10%" y="-10%" width="130%" height="130%">
-                      <feDropShadow dx="1" dy="2" stdDeviation="1.8" floodColor="#000000" floodOpacity="0.4" />
-                    </filter>
-                    <linearGradient id="canva-grad-adm" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#00C4CC" />
-                      <stop offset="50%" stopColor="#7D2AE8" />
-                      <stop offset="100%" stopColor="#FF4F9A" />
-                    </linearGradient>
-                  </defs>
-                  <circle cx="50" cy="50" r="40" fill="url(#canva-grad-adm)" filter="url(#canva-shadow-adm)" />
-                  <text x="50" y="56" fill="white" fontSize="16" fontWeight="bold" fontFamily="'Fredoka One', 'Comfortaa', 'Nunito', sans-serif" textAnchor="middle" letterSpacing="-0.5">Canva</text>
-                </svg>
-                <span className={`${styles.table_41} group`}>Canva</span>
-              </div>
-
-              {/* Zoom */}
-              <div
-                onClick={() => window.open("https://bit.ly/4wrEVBg", "_blank", "noopener,noreferrer")}
-                className={`${styles.card_30} group relative`}
-              >
-                <Link
-                  href="/admin/portals/zoom"
-                  onClick={(e) => e.stopPropagation()}
-                  className="absolute top-2.5 right-2.5 p-1.5 rounded-full bg-card/85 backdrop-blur border border-border opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-[#F4C542]/20 hover:text-[#F4C542] hover:scale-110 z-10 flex items-center justify-center text-text-secondary cursor-pointer"
-                  title="Manage Zoom Resources"
-                >
-                  <Settings size={13} />
-                </Link>
-                <svg viewBox="0 0 100 100" className={`${styles.table_31} group`}>
-                  <defs>
-                    <filter id="zoom-shadow-adm" x="-10%" y="-10%" width="130%" height="130%">
-                      <feDropShadow dx="1" dy="2" stdDeviation="1.8" floodColor="#000000" floodOpacity="0.4" />
-                    </filter>
-                    <linearGradient id="zoom-grad-adm" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#2D8CFF" />
-                      <stop offset="100%" stopColor="#0B5CFF" />
-                    </linearGradient>
-                  </defs>
-                  <circle cx="50" cy="50" r="40" fill="url(#zoom-grad-adm)" filter="url(#zoom-shadow-adm)" />
-                  <path d="M 33 42 C 33 40, 35 38, 37 38 L 57 38 C 59 38, 61 40, 61 42 L 61 58 C 61 60, 59 62, 57 62 L 37 62 C 35 62, 33 60, 33 58 Z M 63 45 L 75 37 L 75 63 L 63 55 Z" fill="white" />
-                </svg>
-                <span className={`${styles.table_32} group`}>Zoom</span>
-              </div>
+                  <Link href={portal.manage} onClick={(e) => e.stopPropagation()} className={styles.portalManage} title={`Manage ${portal.name}`}>
+                    <Settings size={12} strokeWidth={1.8} />
+                  </Link>
+                  <div className={styles.portalMarkWrap}>
+                    <PortalMark portal={portal} />
+                  </div>
+                  <div className={styles.portalTextWrap}>
+                    <span className={styles.portalName}>{portal.name}</span>
+                    <span className={styles.portalDomain}>{getDomain(portal.url)}</span>
+                  </div>
+                </div>
+              ))}
 
               {customPortals.map((portal, idx) => (
                 <div
                   key={`custom-portal-${idx}`}
                   onClick={() => window.open(portal.url, "_blank", "noopener,noreferrer")}
-                  className={`${styles.card_30} group flex flex-col items-center justify-center cursor-pointer`}
-                  style={{
-                    backgroundColor: 'var(--surface)',
-                    border: '1px solid var(--border)',
-                    boxShadow: 'var(--shadow-theme)',
-                    minHeight: '120px',
-                    borderRadius: '16px',
-                    padding: '1rem'
-                  }}
+                  className={styles.portalCard}
                 >
-                  {portal.iconUrl ? (
-                    <img
-                      src={portal.iconUrl}
-                      alt={portal.name}
-                      className="w-14 h-14 object-contain transition-transform duration-300 group-hover:scale-110"
-                    />
-                  ) : (
-                    <div
-                      className="w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold transition-transform duration-300 group-hover:scale-110"
-                      style={{
-                        backgroundColor: 'var(--surface-2)',
-                        border: '1px solid var(--border)',
-                        color: 'var(--text)'
-                      }}
-                    >
-                      {portal.name.charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                  <span className={`${styles.table_32} mt-3 text-center`}>{portal.name}</span>
+                  <div className={styles.portalMarkWrap}>
+                    <PortalMark portal={{ name: portal.name, url: portal.url, manage: '', logo: portal.iconUrl }} />
+                  </div>
+                  <div className={styles.portalTextWrap}>
+                    <span className={styles.portalName}>{portal.name}</span>
+                    <span className={styles.portalDomain}>{getDomain(portal.url)}</span>
+                  </div>
                 </div>
               ))}
             </div>
-          </div>
+          </motion.div>
 
-          <div className={styles.div_42}>
-            <div>
-              <h3 className={styles.table_43}>Workspace Metrics Overview</h3>
-              <p className={styles.text_44}>Live database statistics counters across workspace sectors and links to manage</p>
-            </div>
-            <div className={styles.container_45}>
-              {metrics.map((metric) => {
-                const Icon = metric.icon;
-                return (
-                  <Link key={metric.id} href={metric.href} className={`${styles.card_46} group`}>
-                    <div className={styles.text_47}>
-                      <span className={styles.table_48}>{metric.title}</span>
-                      <Icon size={14} className="group-hover:text-primary transition-colors" />
+          <motion.div variants={fadeVariants} className={styles.sectionBlock}>
+            <div className={styles.csrPanel}>
+              <FileStack className={styles.csrPanelGlyph} strokeWidth={1} />
+
+              <div className={styles.csrPanelInner}>
+                <div className={styles.sectionHeadRow}>
+                  <div className={styles.sectionHeadLeft}>
+                    <span className={styles.opsBadge}>
+                      <Layers size={11} strokeWidth={1.8} />
+                      Command Center
+                    </span>
+                    <h2 className={styles.sectionTitle}>Operations Overview</h2>
+                    <p className={styles.sectionSubtitle}>Client servicing, forms, and request analytics in one operational view</p>
+                  </div>
+                  <button onClick={handleRefresh} className={styles.opsRefreshBtn} type="button">
+                    {isRefreshing ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} strokeWidth={1.8} />}
+                    Refresh
+                  </button>
+                </div>
+
+                <div className={styles.statusStrip}>
+                  <div className={styles.statusItem}>
+                    <div className={styles.statusIconWrap}>
+                      <Boxes size={14} strokeWidth={1.8} />
                     </div>
-                    <div className={styles.container_50}>
-                      <h3 className={styles.table_51}>{getMetricCount(metric.id)}</h3>
-                      <span className={styles.text_52}>
-                        {metric.linkText} <ArrowUpRight size={10} />
+                    <div className={styles.statusTextWrap}>
+                      <span className={styles.statusValue}>{totalCsrForms}</span>
+                      <span className={styles.statusLabel}>Active Forms</span>
+                    </div>
+                  </div>
+                  <div className={styles.statusItem}>
+                    <div className={styles.statusIconWrap}>
+                      <Grid3x3 size={14} strokeWidth={1.8} />
+                    </div>
+                    <div className={styles.statusTextWrap}>
+                      <span className={styles.statusValue}>{csrCategories.length}</span>
+                      <span className={styles.statusLabel}>Categories</span>
+                    </div>
+                  </div>
+                  <div className={styles.statusItem}>
+                    <div className={styles.statusIconWrap}>
+                      <ClipboardList size={14} strokeWidth={1.8} />
+                    </div>
+                    <div className={styles.statusTextWrap}>
+                      <span className={styles.statusValue}>{totalRequests.toLocaleString()}</span>
+                      <span className={styles.statusLabel}>Pending Requests</span>
+                    </div>
+                  </div>
+                  <div className={styles.statusItem}>
+                    <div className={styles.statusIconWrap}>
+                      <Radio size={14} strokeWidth={1.8} />
+                    </div>
+                    <div className={styles.statusTextWrap}>
+                      <span className={styles.statusValue} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <span className={styles.liveDot} />
+                        Live
                       </span>
+                      <span className={styles.statusLabel}>Sync Status</span>
                     </div>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
+                  </div>
+                </div>
 
-          <footer className={styles.text_95}>
-            <div>TeamPadua Operations Control Terminal • 2026</div>
-            <div className={styles.container_96}>
-              <span>SLA: 99.99%</span>
-              <span>Secure Layer Online</span>
+                <div className={styles.opsDivider} style={{ marginTop: '1.5rem', marginBottom: '1.25rem' }} />
+
+                <div className={styles.csrHeadRow}>
+                  <h3 className={styles.csrTitle}>CSR Forms Center</h3>
+                  <p className={styles.csrSubtitle}>{totalCsrForms} client servicing request forms grouped by category, with live counts and quick access</p>
+                </div>
+
+                {csrCategories.map((category) => {
+                  const categoryTotal = category.forms.reduce((sum, f) => sum + f.count, 0);
+                  const accent = category.forms[0].accent;
+                  return (
+                    <div key={category.label} className={styles.categoryGroup}>
+                      <div className={styles.categoryHeadRow}>
+                        <span className={styles.categoryDot} style={{ background: accent }} />
+                        <span className={styles.categoryLabel}>{category.label}</span>
+                        <span className={styles.categoryCount}>{category.forms.length} form{category.forms.length > 1 ? 's' : ''}</span>
+                        <span className={styles.categoryLine} />
+                        <span className={styles.categoryBadge} style={{ color: accent, background: category.forms[0].tint }}>
+                          {categoryTotal} pending
+                        </span>
+                      </div>
+
+                      <div className={styles.csrGrid}>
+                        {category.forms.map((form) => {
+                          const Icon = form.icon;
+                          return (
+                            <Link
+                              key={form.id}
+                              href={form.href}
+                              className={styles.csrCard}
+                              style={{ borderTopColor: form.accent }}
+                            >
+                              <div className={styles.csrIconWrap} style={{ background: form.tint, color: form.accent }}>
+                                <Icon size={20} strokeWidth={1.6} />
+                              </div>
+                              <div className={styles.csrBody}>
+                                <div className={styles.csrTopRow}>
+                                  <span className={styles.csrCode}>{form.id}</span>
+                                  <span className={styles.csrCount}>{form.count}</span>
+                                </div>
+                                <p className={styles.csrName}>{form.name}</p>
+                                <span className={styles.csrAction} style={{ color: form.accent }}>
+                                  Open request
+                                  <ArrowUpRight size={12} className={styles.csrActionArrow} />
+                                </span>
+                              </div>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </footer>
-        </main>
+          </motion.div>
+
+          <motion.footer variants={fadeVariants} className={styles.footer}>
+            <span>TeamPadua Operations Control Terminal &bull; 2026</span>
+            <div className={styles.footerRight}>
+              <span className={styles.footerPill}><span className={styles.footerDot} />SLA 99.99%</span>
+              <span className={styles.footerPill}><span className={styles.footerDot} />Secure Layer Online</span>
+              <span className={styles.footerPill}><span className={styles.footerDot} />{totalPortals} Portals Linked</span>
+            </div>
+          </motion.footer>
+        </motion.main>
       </div>
     </div>
   );
