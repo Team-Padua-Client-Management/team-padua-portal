@@ -62,6 +62,67 @@ type KpiData = {
   faqs: number;
 };
 
+const mapDbTaskToUiTask = (t: any): TaskItem => {
+  let notes = '';
+  let category = 'Others';
+  let assigned_to = null;
+  let processed_by = null;
+
+  try {
+    if (t.description && t.description.trim().startsWith('{')) {
+      const parsed = JSON.parse(t.description);
+      notes = parsed.notes || '';
+      category = parsed.category || 'Others';
+      assigned_to = parsed.assigned_to || null;
+      processed_by = parsed.processed_by || null;
+    } else {
+      notes = t.description || '';
+    }
+  } catch (e) {
+    notes = t.description || '';
+  }
+
+  return {
+    id: t.id,
+    title: t.title || 'Untitled Task',
+    notes,
+    category,
+    status: t.status || 'Pending',
+    completed: t.status === 'Done',
+    assigned_to,
+    processed_by,
+    created_at: t.created_at,
+    updated_at: t.updated_at,
+  };
+};
+
+const formatUiTaskToDbUpdates = (updates: Partial<TaskItem>, currentTask?: TaskItem) => {
+  const dbUpdates: any = {};
+  
+  if (updates.title !== undefined) dbUpdates.title = updates.title;
+  if (updates.status !== undefined) dbUpdates.status = updates.status;
+  if (updates.priority !== undefined) dbUpdates.priority = updates.priority;
+  if (updates.updated_at !== undefined) dbUpdates.updated_at = updates.updated_at;
+
+  if (updates.completed !== undefined) {
+    dbUpdates.status = updates.completed ? 'Done' : (updates.status || (currentTask?.status === 'Done' ? 'Pending' : currentTask?.status) || 'Pending');
+  }
+
+  const mergedNotes = updates.notes !== undefined ? updates.notes : (currentTask?.notes || '');
+  const mergedCategory = updates.category !== undefined ? updates.category : (currentTask?.category || 'Others');
+  const mergedAssignedTo = updates.assigned_to !== undefined ? updates.assigned_to : (currentTask?.assigned_to || null);
+  const mergedProcessedBy = updates.processed_by !== undefined ? updates.processed_by : (currentTask?.processed_by || null);
+
+  dbUpdates.description = JSON.stringify({
+    notes: mergedNotes,
+    category: mergedCategory,
+    assigned_to: mergedAssignedTo,
+    processed_by: mergedProcessedBy
+  });
+
+  return dbUpdates;
+};
+
 const emptyActivityForm: Omit<ActivityEvent, 'id'> = {
   title: '',
   type: 'Client Meeting',
@@ -259,14 +320,14 @@ export default function DashboardOverviewPage() {
   });
 
   const portals: Portal[] = [
-    { name: 'Sun Life Portal', mark: 'SL', url: 'https://www.sunlife.com.ph/en/', manage: '/admin/portals/sun-life' },
-    { name: 'Advisor Office', mark: 'AO', url: 'https://advisorhomeoffice.sunlife.com.ph/aho/index.html#/:', manage: '/admin/portals/advisor-office' },
-    { name: 'Google Sheets', logo: 'https://cdn.simpleicons.org/googlesheets/34A853', url: 'https://bit.ly/4f2fpLK', manage: '/admin/portals/google-sheets' },
-    { name: 'Task Tracker', img: '/Image/icon/TP.png', url: 'https://teampaduatracker.vercel.app/tasktracker', manage: '/admin/portals/task-tracker' },
-    { name: 'JotForm', logo: 'https://cdn.simpleicons.org/jotform/FF6100/FF8A3D', url: 'https://www.jotform.com/', manage: '/admin/portals/jotform' },
-    { name: 'JotForm Intern', logo: 'https://cdn.simpleicons.org/jotform/FF6100/FF8A3D', url: 'https://form.jotform.com/261829362405055', manage: '/admin/portals/jotform' },
-    { name: 'Microsoft Teams', logo: 'https://cdn.simpleicons.org/microsoftteams/6264A7/8A8DE0', url: 'https://teams.microsoft.com/', manage: '/admin/portals/microsoft-teams' },
-    { name: 'Canva', logo: 'https://cdn.simpleicons.org/canva/00C4CC/3FD9DF', url: 'https://www.canva.com/', manage: '/admin/portals/canva' },
+    { name: 'Sun Life Portal', logo: '/images/logos/sunlife.svg', width: 26, url: 'https://www.sunlife.com.ph/en/', manage: '/admin/portals/sun-life' },
+    { name: 'Advisor Office', logo: '/images/logos/advisor_office.svg', width: 26, url: 'https://advisorhomeoffice.sunlife.com.ph/aho/index.html#/:', manage: '/admin/portals/advisor-office' },
+    { name: 'Google Sheets', logo: '/images/logos/google_sheets.svg', width: 22, url: 'https://bit.ly/4f2fpLK', manage: '/admin/portals/google-sheets' },
+    { name: 'Task Tracker', logo: '/images/logos/task_tracker.svg', width: 22, url: 'https://teampaduatracker.vercel.app/tasktracker', manage: '/admin/portals/task-tracker' },
+    { name: 'JotForm', logo: '/images/logos/jotform.svg', width: 22, url: 'https://www.jotform.com/', manage: '/admin/portals/jotform' },
+    { name: 'JotForm Intern', logo: '/images/logos/jotform_intern.svg', width: 24, url: 'https://form.jotform.com/261829362405055', manage: '/admin/portals/jotform' },
+    { name: 'Microsoft Teams', logo: '/images/logos/microsoft_teams.svg', width: 22, url: 'https://teams.microsoft.com/', manage: '/admin/portals/microsoft-teams' },
+    { name: 'Canva', logo: '/images/logos/canva.svg', width: 26, url: 'https://www.canva.com/', manage: '/admin/portals/canva' },
   ];
 
   useEffect(() => {
@@ -374,7 +435,8 @@ export default function DashboardOverviewPage() {
           .order('updated_at', { ascending: false });
 
         if (!tasksErr && tasksData) {
-          const filteredTasks = tasksData.filter(t => {
+          const mappedTasks = tasksData.map(mapDbTaskToUiTask);
+          const filteredTasks = mappedTasks.filter(t => {
             if (isAdmin) return true;
             if (t.assigned_to) {
               return userProfileIds.has(t.assigned_to);
@@ -382,19 +444,9 @@ export default function DashboardOverviewPage() {
             return t.user_id ? userProfileIds.has(t.user_id) : false;
           });
 
-          const formattedTasks: TaskItem[] = filteredTasks.map(t => ({
-            ...t,
-            notes: t.notes || '',
-            category: t.category || 'Others',
-            status: t.status || 'Pending',
-            completed: !!t.completed,
-            assigned_to: t.assigned_to || null,
-            processed_by: t.processed_by || null,
-          }));
-
-          setUserTasks(formattedTasks);
+          setUserTasks(filteredTasks);
           try {
-            localStorage.setItem('tp_cached_user_tasks', JSON.stringify(formattedTasks));
+            localStorage.setItem('tp_cached_user_tasks', JSON.stringify(filteredTasks));
           } catch (e) {
             console.error(e);
           }
@@ -446,6 +498,8 @@ export default function DashboardOverviewPage() {
   };
 
   const saveTaskField = async (taskId: string, updates: Partial<TaskItem>) => {
+    const currentTask = userTasks.find(t => t.id === taskId);
+
     setUserTasks(prev => {
       const next = prev.map(t => {
         if (t.id === taskId) {
@@ -458,10 +512,10 @@ export default function DashboardOverviewPage() {
     });
 
     try {
-      await supabase.from('tasks').update({
-        ...updates,
-        updated_at: new Date().toISOString()
-      }).eq('id', taskId);
+      const dbUpdates = formatUiTaskToDbUpdates(updates, currentTask);
+      dbUpdates.updated_at = new Date().toISOString();
+
+      await supabase.from('tasks').update(dbUpdates).eq('id', taskId);
     } catch (err) {
       console.error('Error auto-saving task:', err);
     }
@@ -483,31 +537,24 @@ export default function DashboardOverviewPage() {
     }
     if (!activeUserId) return;
 
-    const newTaskData = {
-      user_id: activeUserId,
+    const newDbTask = {
       title: 'Untitled Task',
-      notes: '',
-      category: 'Others',
+      description: JSON.stringify({
+        notes: '',
+        category: 'Others',
+        assigned_to: activeUserId,
+        processed_by: null
+      }),
       status: 'Pending',
-      completed: false,
-      assigned_to: activeUserId,
-      processed_by: null,
+      priority: 'High',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
 
     try {
-      const { data, error } = await supabase.from('tasks').insert([newTaskData]).select().single();
+      const { data, error } = await supabase.from('tasks').insert([newDbTask]).select().single();
       if (!error && data) {
-        const createdTask: TaskItem = {
-          ...data,
-          notes: data.notes || '',
-          category: data.category || 'Others',
-          status: data.status || 'Pending',
-          completed: !!data.completed,
-          assigned_to: data.assigned_to || null,
-          processed_by: data.processed_by || null,
-        };
+        const createdTask = mapDbTaskToUiTask(data);
         setUserTasks(prev => {
           const next = [createdTask, ...prev.filter(t => t.id !== createdTask.id)];
           saveTasksToCache(next);
@@ -516,7 +563,18 @@ export default function DashboardOverviewPage() {
         setSelectedTaskIdForModal(createdTask.id);
       } else {
         const localId = `task-${Date.now()}`;
-        const localTask: TaskItem = { id: localId, ...newTaskData };
+        const localTask: TaskItem = {
+          id: localId,
+          title: 'Untitled Task',
+          notes: '',
+          category: 'Others',
+          status: 'Pending',
+          completed: false,
+          assigned_to: activeUserId,
+          processed_by: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
         setUserTasks(prev => {
           const next = [localTask, ...prev];
           saveTasksToCache(next);

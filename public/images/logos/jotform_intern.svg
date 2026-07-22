@@ -1,0 +1,11 @@
+<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="15" y="15" width="70" height="70" rx="16" fill="#0EA5E9" />
+  <!-- Stylized white document/form and a pencil -->
+  <rect x="30" y="30" width="30" height="36" rx="4" fill="none" stroke="#FFFFFF" stroke-width="5" />
+  <line x1="38" y1="42" x2="52" y2="42" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" />
+  <line x1="38" y1="52" x2="48" y2="52" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" />
+  <path d="M 60 22 L 70 32 L 56 46 L 46 36 Z" fill="#F5B027" stroke="#FFFFFF" stroke-width="2" />
+  <!-- Intern Badge "I" -->
+  <circle cx="70" cy="70" r="16" fill="#FF6100" stroke="#FFFFFF" stroke-width="3" />
+  <text x="70" y="76" font-family="system-ui, sans-serif" font-weight="900" font-size="16" fill="#FFFFFF" text-anchor="middle">I</text>
+</svg>

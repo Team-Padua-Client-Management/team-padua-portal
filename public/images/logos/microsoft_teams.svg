@@ -1,0 +1,14 @@
+<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Teams Purple/Indigo Background -->
+  <rect x="15" y="15" width="70" height="70" rx="16" fill="#4B53BC" />
+  <!-- Two overlapping figures -->
+  <!-- Back figure (smaller) -->
+  <circle cx="62" cy="40" r="10" fill="#8B93E6" />
+  <path d="M48 68 C48 56 54 50 62 50 C70 50 76 56 76 68 H48 Z" fill="#8B93E6" />
+  <!-- Front figure (larger) with 'T' shield -->
+  <circle cx="38" cy="38" r="12" fill="#FFFFFF" />
+  <path d="M22 70 C22 56 29 48 38 48 C47 48 54 56 54 70 H22 Z" fill="#FFFFFF" />
+  <!-- Letter 'T' shield overlay -->
+  <rect x="18" y="44" width="22" height="22" rx="4" fill="#5059C9" stroke="#FFFFFF" stroke-width="2" />
+  <text x="29" y="61" font-family="system-ui, sans-serif" font-weight="900" font-size="16" fill="#FFFFFF" text-anchor="middle">T</text>
+</svg>

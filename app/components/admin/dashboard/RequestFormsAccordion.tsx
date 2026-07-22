@@ -286,7 +286,7 @@ export default function RequestFormsAccordion({ kpis }: RequestFormsAccordionPro
 
                     <div className={styles.flatFormRight}>
                       <span
-                        className={styles.flatFormCountPill}
+                        className={`${styles.flatFormCountPill} ${form.count > 0 ? styles.flatFormCountPillHasCount : ''}`}
                         title={`${form.count} pending requests`}
                       >
                         {form.count}
