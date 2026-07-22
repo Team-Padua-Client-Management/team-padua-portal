@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Plus, Search, Edit2, Trash2, X,
-  Upload, FileSpreadsheet, CheckCircle2, Target, Users, Star,
-  AlertCircle, Loader2, Eye, EyeOff, ImageIcon
+  Plus, Search, Edit2, Trash2, X, ChevronRight, ArrowLeft,
+  Upload, FileSpreadsheet, CheckCircle2, Target, Users,
+  AlertCircle, Eye, EyeOff, UserCheck
 } from 'lucide-react';
 import AdminHeader from '@/app/components/admin/AdminHeader';
 import AdminSidebar from '@/app/components/admin/AdminSidebar';
@@ -15,8 +15,18 @@ import ExportDropdown from '@/app/components/shared/ExportDropdown';
 import { ConfirmModal } from '@/app/components/ui/modals/ConfirmModal';
 import styles from "@/styles/admin/cpst/page.module.css";
 
+export interface AdvisorRecord {
+  id: string;
+  advisorCode: string;
+  advisorName: string;
+  email: string;
+  createdAt?: string;
+}
+
 export interface ClientManagementRecord {
   id: string;
+  advisorId?: string;
+  advisor?: AdvisorRecord;
   clientName: string;
   relationship: string;
   policyNumber: string;
@@ -47,16 +57,29 @@ interface CPSTClientProps {
 const formInputClass = "w-full px-3.5 py-2.5 border border-border rounded-2xl text-xs focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 bg-card text-foreground transition-all duration-200";
 const formLabelClass = "block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5";
 
+const DEFAULT_ADVISOR: AdvisorRecord = {
+  id: '1223fa43-e434-4445-9d9d-aac809f8226b',
+  advisorCode: 'ADV-001',
+  advisorName: 'Triwynn Evasco Branzuela',
+  email: 'triwynn@teampadua.ph'
+};
+
 export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }: CPSTClientProps) {
+  const [advisors, setAdvisors] = useState<AdvisorRecord[]>([]);
   const [clients, setClients] = useState<ClientManagementRecord[]>([]);
-  const [search, setSearch] = useState('');
+  const [selectedAdvisor, setSelectedAdvisor] = useState<AdvisorRecord | null>(null);
+
+  const [advisorSearch, setAdvisorSearch] = useState('');
+  const [clientSearch, setClientSearch] = useState('');
   const [productFilter, setProductFilter] = useState('ALL');
   const [sortBy, setSortBy] = useState('newest');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [activeModal, setActiveModal] = useState<'add' | 'edit' | 'import' | null>(null);
-  const [currentClient, setCurrentClient] = useState<Partial<ClientManagementRecord>>({});
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const [activeModal, setActiveModal] = useState<'add' | 'edit' | 'import' | null>(null);
+  const [currentClient, setCurrentClient] = useState<Partial<ClientManagementRecord>>({});
+
   const [clientToDelete, setClientToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -64,8 +87,10 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
   const [importMethod, setImportMethod] = useState<'file' | 'paste'>('file');
   const [pastedText, setPastedText] = useState('');
   const [importFile, setImportFile] = useState<File | null>(null);
+  const [importAdvisorId, setImportAdvisorId] = useState<string>('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
   const [importState, setImportState] = useState<{
     phase: 'idle' | 'reading' | 'password' | 'preview' | 'importing' | 'done' | 'error';
     fileName: string;
@@ -98,6 +123,250 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
 
   const resetImportState = () => {
     setImportState({ phase: 'idle', fileName: '', validation: null, totalRows: 0, importedCount: 0, updatedCount: 0, skippedCount: 0, skippedHeaders: 0, skippedEmpty: 0, skippedInvalid: 0, errorMessage: '' });
+  };
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const { data: advisorsData, error: advisorsErr } = await supabase
+        .from('advisors')
+        .select('*')
+        .order('advisor_name', { ascending: true });
+
+      const { data: clientsData, error: clientsErr } = await supabase
+        .from('cpst_clients')
+        .select('*, advisor:advisors(*)')
+        .order('created_at', { ascending: false });
+
+      console.log('ADVISORS', advisorsData);
+      console.log('CLIENTS', clientsData);
+      console.log('SELECTED ADVISOR', selectedAdvisor);
+
+      let loadedAdvisors: AdvisorRecord[] = [];
+
+      if (advisorsData && advisorsData.length > 0) {
+        loadedAdvisors = advisorsData.map((a: any) => ({
+          id: a.id,
+          advisorCode: a.advisor_code || '',
+          advisorName: a.advisor_name || '',
+          email: a.email || '',
+          createdAt: a.created_at || ''
+        }));
+      } else if (clientsData && clientsData.length > 0) {
+        const advisorMap = new Map<string, AdvisorRecord>();
+        clientsData.forEach((c: any) => {
+          const advId = c.advisor_id || (c.advisor ? c.advisor.id : null);
+          if (advId && !advisorMap.has(advId)) {
+            if (c.advisor) {
+              advisorMap.set(advId, {
+                id: c.advisor.id,
+                advisorCode: c.advisor.advisor_code || 'ADV-001',
+                advisorName: c.advisor.advisor_name || 'Triwynn Evasco Branzuela',
+                email: c.advisor.email || 'triwynn@teampadua.ph'
+              });
+            } else {
+              advisorMap.set(advId, {
+                id: advId,
+                advisorCode: 'ADV-001',
+                advisorName: 'Triwynn Evasco Branzuela',
+                email: 'triwynn@teampadua.ph'
+              });
+            }
+          }
+        });
+        loadedAdvisors = Array.from(advisorMap.values());
+      }
+
+      if (loadedAdvisors.length === 0) {
+        loadedAdvisors = [DEFAULT_ADVISOR];
+      }
+      setAdvisors(loadedAdvisors);
+
+      if (clientsErr || !clientsData) {
+        const triwynnId = loadedAdvisors[0]?.id || DEFAULT_ADVISOR.id;
+        setClients([
+          {
+            id: '00000000-0000-0000-0000-000000000001',
+            advisorId: triwynnId,
+            advisor: loadedAdvisors[0] || DEFAULT_ADVISOR,
+            clientName: 'Juan Dela Cruz',
+            relationship: 'Self',
+            policyNumber: 'POL-998877',
+            product: 'Sun Maxilink Prime',
+            approvalDate: '2025-01-15',
+            annualPremium: 45000,
+            mobileNumber: '+639171234567',
+            email: 'juan@example.com',
+            address: 'Makati City',
+            beneficiary: 'Maria Dela Cruz',
+            fundAllocation: '100% Equity',
+            modeOfPayment: 'Annual'
+          }
+        ]);
+      } else {
+        const mappedClients: ClientManagementRecord[] = clientsData.map((c: any) => ({
+          id: c.id,
+          advisorId: c.advisor_id || (c.advisor ? c.advisor.id : ''),
+          advisor: c.advisor ? {
+            id: c.advisor.id,
+            advisorCode: c.advisor.advisor_code,
+            advisorName: c.advisor.advisor_name,
+            email: c.advisor.email
+          } : undefined,
+          clientName: c.client_name || '',
+          relationship: c.relationship || '',
+          policyNumber: c.policy_number || '',
+          product: c.product || '',
+          approvalDate: c.approval_date || '',
+          annualPremium: Number(c.annual_premium || 0),
+          mobileNumber: c.mobile_number || '',
+          email: c.email || '',
+          address: c.address || '',
+          beneficiary: c.beneficiary || '',
+          fundAllocation: c.fund_allocation || '',
+          modeOfPayment: c.mode_of_payment || 'Annual',
+          birthdate: c.birthdate || '',
+          signatureData: c.signature_data || '',
+          created_at: c.created_at || ''
+        }));
+        setClients(mappedClients);
+      }
+    } catch (err) {
+      console.error('Error fetching CPST data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const advisorStatsMap = useMemo(() => {
+    const map = new Map<string, { totalClients: number; activePolicies: number; totalPremium: number }>();
+    advisors.forEach(a => {
+      map.set(a.id, { totalClients: 0, activePolicies: 0, totalPremium: 0 });
+    });
+
+    clients.forEach(c => {
+      if (c.advisorId && map.has(c.advisorId)) {
+        const stat = map.get(c.advisorId)!;
+        stat.totalClients += 1;
+        if (c.policyNumber) stat.activePolicies += 1;
+        stat.totalPremium += (c.annualPremium || 0);
+      }
+    });
+
+    return map;
+  }, [advisors, clients]);
+
+  const filteredAdvisors = useMemo(() => {
+    return advisors.filter(a => {
+      if (!advisorSearch.trim()) return true;
+      const s = advisorSearch.toLowerCase();
+      return a.advisorName.toLowerCase().includes(s) ||
+        a.advisorCode.toLowerCase().includes(s) ||
+        a.email.toLowerCase().includes(s);
+    });
+  }, [advisors, advisorSearch]);
+
+  const advisorClients = useMemo(() => {
+    if (!selectedAdvisor) return [];
+    return clients.filter(c => c.advisorId === selectedAdvisor.id);
+  }, [clients, selectedAdvisor]);
+
+  const filteredClients = useMemo(() => {
+    return advisorClients.filter(c => {
+      if (productFilter !== 'ALL' && c.product !== productFilter) return false;
+      if (clientSearch.trim()) {
+        const s = clientSearch.toLowerCase();
+        if (!c.clientName?.toLowerCase().includes(s) && !c.policyNumber?.toLowerCase().includes(s)) return false;
+      }
+      return true;
+    }).sort((a, b) => {
+      if (sortBy === 'newest') return new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime();
+      if (sortBy === 'oldest') return new Date(a.created_at || '').getTime() - new Date(b.created_at || '').getTime();
+      if (sortBy === 'name') return (a.clientName || '').localeCompare(b.clientName || '');
+      return 0;
+    });
+  }, [advisorClients, productFilter, clientSearch, sortBy]);
+
+  const isAllClientsSelected = filteredClients.length > 0 && selectedIds.length === filteredClients.length;
+
+  const totalClientsCount = clients.length;
+  const totalActivePoliciesCount = clients.filter(c => c.policyNumber).length;
+  const totalPremiumSum = clients.reduce((acc, curr) => acc + (curr.annualPremium || 0), 0);
+
+  const selectedAdvisorStats = useMemo(() => {
+    if (!selectedAdvisor) return { totalClients: 0, activePolicies: 0, totalPremium: 0, productsCount: 0 };
+    const list = advisorClients;
+    return {
+      totalClients: list.length,
+      activePolicies: list.filter(c => c.policyNumber).length,
+      totalPremium: list.reduce((acc, curr) => acc + (curr.annualPremium || 0), 0),
+      productsCount: Array.from(new Set(list.map(c => c.product).filter(Boolean))).length
+    };
+  }, [selectedAdvisor, advisorClients]);
+
+  const handleSaveClient = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentClient.clientName || !currentClient.advisorId) return;
+
+    try {
+      const payload = {
+        advisor_id: currentClient.advisorId,
+        client_name: currentClient.clientName,
+        relationship: currentClient.relationship || '',
+        policy_number: currentClient.policyNumber || '',
+        product: currentClient.product || '',
+        approval_date: currentClient.approvalDate || null,
+        annual_premium: currentClient.annualPremium || 0,
+        mobile_number: currentClient.mobileNumber || '',
+        email: currentClient.email || '',
+        address: currentClient.address || '',
+        beneficiary: currentClient.beneficiary || '',
+        fund_allocation: currentClient.fundAllocation || '',
+        mode_of_payment: currentClient.modeOfPayment || 'Annual',
+        birthdate: currentClient.birthdate || null,
+        signature_data: currentClient.signatureData || null,
+      };
+
+      if (currentClient.id) {
+        await supabase.from('cpst_clients').update(payload).eq('id', currentClient.id);
+      } else {
+        const newId = crypto.randomUUID();
+        await supabase.from('cpst_clients').insert([{ ...payload, id: newId }]);
+      }
+
+      setActiveModal(null);
+      fetchData();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const confirmDeleteClient = (id: string) => {
+    if (!canDelete) return;
+    setClientToDelete(id);
+  };
+
+  const handleDeleteClient = async () => {
+    if (!clientToDelete) return;
+    setIsDeleting(true);
+    try {
+      if (clientToDelete === 'bulk') {
+        await supabase.from('cpst_clients').delete().in('id', selectedIds);
+        setSelectedIds([]);
+      } else {
+        await supabase.from('cpst_clients').delete().eq('id', clientToDelete);
+      }
+      fetchData();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsDeleting(false);
+      setClientToDelete(null);
+    }
   };
 
   const parseDateFlexible = (raw: string): string | null => {
@@ -133,14 +402,14 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
         }
       }
 
-      if (matchCount >= 4) {
+      if (matchCount >= 3) {
         headerIndex = i;
         break;
       }
     }
 
     if (headerIndex === -1) {
-      throw new Error("Could not detect valid header row. Ensure the template contains at least 4 recognizable columns (e.g., Client name, Email address).");
+      throw new Error("Could not detect valid header row. Ensure template contains required client columns.");
     }
 
     const headerRow = rows[headerIndex] || [];
@@ -171,8 +440,6 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
       if (
         rowText.includes("report:") ||
         rowText.includes("date generated:") ||
-        rowText.includes("advisor code:") ||
-        rowText.includes("advisor name:") ||
         rowText.includes("data privacy act")
       ) {
         skippedHeaders++;
@@ -187,7 +454,6 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
       const mobileNumber = mobCol >= 0 ? String(row[mobCol] ?? '').trim() : '';
       const email = emailCol >= 0 ? String(row[emailCol] ?? '').trim() : '';
       const address = addCol >= 0 ? String(row[addCol] ?? '').trim() : '';
-
       const rawBday = bdayCol >= 0 ? String(row[bdayCol] ?? '').trim() : '';
       const birthdate = rawBday ? (parseDateFlexible(rawBday) || rawBday) : '';
 
@@ -203,13 +469,13 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
         email,
         address,
         birthdate,
-        policyNumber: null as any,
-        product: null as any,
-        approvalDate: null as any,
-        annualPremium: null as any,
-        beneficiary: null as any,
-        fundAllocation: null as any,
-        modeOfPayment: null as any
+        policyNumber: '',
+        product: '',
+        approvalDate: '',
+        annualPremium: 0,
+        beneficiary: '',
+        fundAllocation: '',
+        modeOfPayment: 'Annual'
       });
     }
 
@@ -257,7 +523,7 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
     fileName: string,
     parseStats?: { skippedHeaders: number; skippedEmpty: number; skippedInvalid: number }
   ) => {
-    if (validRows.length === 0) return;
+    if (validRows.length === 0 || !importAdvisorId) return;
     setImportState(prev => ({ ...prev, phase: 'importing', fileName }));
 
     const parseDate = (value: any) => {
@@ -268,8 +534,7 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
     };
 
     try {
-      const { data: existingClients, error: fetchError } = await supabase.from('cpst_clients').select('id, email, mobile_number, policy_number');
-      if (fetchError) throw fetchError;
+      const { data: existingClients } = await supabase.from('cpst_clients').select('id, email, mobile_number, policy_number');
 
       const recordsToUpsert: any[] = [];
       let importedCount = 0;
@@ -279,14 +544,12 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
       for (const record of validRows) {
         const existing = existingClients?.find(c =>
           (c.email && record.email && c.email.toLowerCase() === record.email.toLowerCase()) ||
-          (c.mobile_number && record.mobileNumber && c.mobile_number === record.mobileNumber) ||
-          (c.policy_number && record.policyNumber && c.policy_number === record.policyNumber && !record.policyNumber.startsWith('PENDING-'))
+          (c.mobile_number && record.mobileNumber && c.mobile_number === record.mobileNumber)
         );
 
         const existingInBatch = recordsToUpsert.find(c =>
           (c.email && record.email && c.email.toLowerCase() === record.email.toLowerCase()) ||
-          (c.mobile_number && record.mobileNumber && c.mobile_number === record.mobileNumber) ||
-          (c.policy_number && record.policyNumber && c.policy_number === record.policyNumber && !record.policyNumber.startsWith('PENDING-'))
+          (c.mobile_number && record.mobileNumber && c.mobile_number === record.mobileNumber)
         );
 
         if (existingInBatch) {
@@ -305,20 +568,20 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
 
         recordsToUpsert.push({
           id,
+          advisor_id: importAdvisorId,
           client_name: record.clientName,
-          relationship: record.relationship,
+          relationship: record.relationship || 'Self',
           policy_number: record.policyNumber || null,
           product: record.product || null,
           approval_date: parseDate(record.approvalDate),
           birthdate: parseDate((record as any).birthday || (record as any).birthdate),
-          annual_premium: record.annualPremium,
-          mobile_number: record.mobileNumber,
-          email: record.email,
-          address: record.address,
-          beneficiary: record.beneficiary,
-          fund_allocation: record.fundAllocation,
+          annual_premium: record.annualPremium || 0,
+          mobile_number: record.mobileNumber || '',
+          email: record.email || '',
+          address: record.address || '',
+          beneficiary: record.beneficiary || '',
+          fund_allocation: record.fundAllocation || '',
           mode_of_payment: record.modeOfPayment || 'Annual',
-          status: 'Prospect'
         });
       }
 
@@ -336,7 +599,7 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
         skippedEmpty: parseStats?.skippedEmpty || 0,
         skippedInvalid: parseStats?.skippedInvalid || 0
       }));
-      fetchClients();
+      fetchData();
     } catch (err) {
       setImportState(prev => ({
         ...prev,
@@ -368,13 +631,12 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
   };
 
   const handleFileSelected = async (file: File) => {
-    setImportState({
-      phase: 'reading',
-      fileName: file.name,
-      validation: null,
-      importedCount: 0,
-      errorMessage: ''
-    });
+    if (!importAdvisorId) {
+      setImportState({ phase: 'error', fileName: file.name, validation: null, importedCount: 0, errorMessage: 'Please select an Advisor before uploading.' });
+      return;
+    }
+
+    setImportState({ phase: 'reading', fileName: file.name, validation: null, importedCount: 0, errorMessage: '' });
 
     try {
       const XLSX = await import('xlsx');
@@ -384,9 +646,7 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
       if (buffer.byteLength >= 4) {
         const view = new DataView(buffer);
         const magic = view.getUint32(0, false);
-        if (magic === 0xD0CF11E0) {
-          isEncryptedMagic = true;
-        }
+        if (magic === 0xD0CF11E0) isEncryptedMagic = true;
       }
 
       if (isEncryptedMagic) {
@@ -406,86 +666,34 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
         errMsg.toLowerCase().includes('crypto') ||
         errMsg.toLowerCase().includes('unsupported file') ||
         errMsg.toLowerCase().includes('invalid signature') ||
-        errMsg.toLowerCase().includes('wrong password') ||
-        errMsg.toLowerCase().includes('non-whitespace before first tag');
+        errMsg.toLowerCase().includes('wrong password');
+
       if (isPasswordProtected) {
         setImportFile(file);
-        setImportState({
-          phase: 'password',
-          fileName: file.name,
-          validation: null,
-          importedCount: 0,
-          errorMessage: ''
-        });
+        setImportState({ phase: 'password', fileName: file.name, validation: null, importedCount: 0, errorMessage: '' });
       } else {
-        setImportState({
-          phase: 'error',
-          fileName: file.name,
-          validation: null,
-          importedCount: 0,
-          errorMessage: errMsg
-        });
+        setImportState({ phase: 'error', fileName: file.name, validation: null, importedCount: 0, errorMessage: errMsg });
       }
     }
   };
 
   const handlePasteImport = async (text: string) => {
-    setImportState({
-      phase: 'reading',
-      fileName: 'Pasted Grid Data',
-      validation: null,
-      importedCount: 0,
-      errorMessage: ''
-    });
+    if (!importAdvisorId) {
+      setImportState({ phase: 'error', fileName: 'Pasted Grid Data', validation: null, importedCount: 0, errorMessage: 'Please select an Advisor before importing.' });
+      return;
+    }
+
+    setImportState({ phase: 'reading', fileName: 'Pasted Grid Data', validation: null, importedCount: 0, errorMessage: '' });
 
     try {
-      if (!text.trim()) {
-        throw new Error("Pasted data is empty.");
-      }
-
+      if (!text.trim()) throw new Error("Pasted data is empty.");
       const rows = text.split(/\r?\n/).map(row => row.split('\t'));
-      if (rows.length < 2) {
-        throw new Error("No data found or insufficient rows.");
-      }
+      if (rows.length < 2) throw new Error("No data found or insufficient rows.");
 
       const { valid, invalid, stats } = parseClientRows(rows);
       await processAndImportClients(valid, 'Pasted Grid Data', stats);
     } catch (err) {
-      setImportState({
-        phase: 'error',
-        fileName: 'Pasted Grid Data',
-        validation: null,
-        importedCount: 0,
-        errorMessage: err instanceof Error ? err.message : String(err)
-      });
-    }
-  };
-
-  const handleConfirmImport = async () => {
-    if (!importState.validation || importState.validation.valid.length === 0) return;
-    setImportState(prev => ({ ...prev, phase: 'importing' }));
-
-    try {
-      const recordsToInsert = importState.validation.valid.map(record => ({
-        ...record,
-        id: crypto.randomUUID()
-      }));
-
-      const { error } = await supabase.from('cpst_clients').insert(recordsToInsert);
-      if (error) throw error;
-
-      setImportState(prev => ({
-        ...prev,
-        phase: 'done',
-        importedCount: recordsToInsert.length
-      }));
-      fetchClients();
-    } catch (err) {
-      setImportState(prev => ({
-        ...prev,
-        phase: 'error',
-        errorMessage: err instanceof Error ? err.message : String(err)
-      }));
+      setImportState({ phase: 'error', fileName: 'Pasted Grid Data', validation: null, importedCount: 0, errorMessage: err instanceof Error ? err.message : String(err) });
     }
   };
 
@@ -507,144 +715,33 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
     }
   };
 
-  const fetchClients = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.from('cpst_clients').select('*').order('created_at', { ascending: false });
-      if (error) {
-        setClients([
-          {
-            id: '00000000-0000-0000-0000-000000000001',
-            clientName: 'Juan Dela Cruz',
-            relationship: 'Self',
-            policyNumber: 'POL-998877',
-            product: 'Sun Maxilink Prime',
-            approvalDate: '2025-01-15',
-            annualPremium: 45000,
-            mobileNumber: '+639171234567',
-            email: 'juan@example.com',
-            address: 'Makati City',
-            beneficiary: 'Maria Dela Cruz',
-            fundAllocation: '100% Equity',
-            modeOfPayment: 'Annual'
-          }
-        ]);
-      } else {
-        const mappedClients: ClientManagementRecord[] = (data || []).map((c: any) => ({
-          id: c.id,
-          clientName: c.client_name || '',
-          relationship: c.relationship || '',
-          policyNumber: c.policy_number || '',
-          product: c.product || '',
-          approvalDate: c.approval_date || '',
-          annualPremium: c.annual_premium || 0,
-          mobileNumber: c.mobile_number || '',
-          email: c.email || '',
-          address: c.address || '',
-          beneficiary: c.beneficiary || '',
-          fundAllocation: c.fund_allocation || '',
-          modeOfPayment: c.mode_of_payment || 'Annual',
-          birthdate: c.birthdate || '',
-          signatureData: c.signature_data || '',
-          created_at: c.created_at || ''
-        }));
-        setClients(mappedClients);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchClients();
-  }, []);
-
-  const handleCreateClient = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const payload = {
-        clientName: currentClient.clientName || '',
-        relationship: currentClient.relationship || '',
-        policyNumber: currentClient.policyNumber || '',
-        product: currentClient.product || '',
-        approvalDate: currentClient.approvalDate || '',
-        annualPremium: currentClient.annualPremium || 0,
-        mobileNumber: currentClient.mobileNumber || '',
-        email: currentClient.email || '',
-        address: currentClient.address || '',
-        beneficiary: currentClient.beneficiary || '',
-        fundAllocation: currentClient.fundAllocation || '',
-        modeOfPayment: currentClient.modeOfPayment || 'Annual',
-        birthdate: currentClient.birthdate || '',
-        signatureData: currentClient.signatureData || null,
-      };
-
-      if (currentClient.id) {
-        await supabase.from('cpst_clients').update(payload).eq('id', currentClient.id);
-      } else {
-        const newId = crypto.randomUUID();
-        await supabase.from('cpst_clients').insert([{ ...payload, id: newId }]);
-      }
-      setActiveModal(null);
-      fetchClients();
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const confirmDeleteClient = (id: string) => {
-    if (!canDelete) return;
-    setClientToDelete(id);
-  };
-
-  const handleDeleteClient = async () => {
-    if (!clientToDelete) return;
-    setIsDeleting(true);
-    try {
-      if (clientToDelete === 'bulk') {
-        await supabase.from('cpst_clients').delete().in('id', selectedIds);
-        setSelectedIds([]);
-      } else {
-        await supabase.from('cpst_clients').delete().eq('id', clientToDelete);
-      }
-      fetchClients();
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsDeleting(false);
-      setClientToDelete(null);
-    }
-  };
-
   const exportToCSV = () => {
     if (!canExport || filteredClients.length === 0) return;
-    const headers = ['Client Name', 'Relationship', 'Policy Number', 'Product', 'Approval Date', 'Annual Premium', 'Mobile', 'Email', 'Address', 'Beneficiary', 'Fund Allocation', 'Mode of Payment'];
+    const headers = ['Client Name', 'Advisor', 'Relationship', 'Policy Number', 'Product', 'Approval Date', 'Annual Premium', 'Mobile', 'Email', 'Address', 'Beneficiary', 'Payment Mode'];
     const rows = filteredClients.map(c => [
-      c.clientName, c.relationship, c.policyNumber, c.product, c.approvalDate, c.annualPremium, c.mobileNumber, c.email, c.address, c.beneficiary, c.fundAllocation, c.modeOfPayment
+      c.clientName, c.advisor?.advisorName || selectedAdvisor?.advisorName || '', c.relationship, c.policyNumber, c.product, c.approvalDate, c.annualPremium, c.mobileNumber, c.email, c.address, c.beneficiary, c.modeOfPayment
     ]);
     const csvContent = [headers.join(','), ...rows.map(r => r.map(v => '"' + String(v || '') + '"').join(','))].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'client_management_export.csv';
+    link.download = `${selectedAdvisor ? selectedAdvisor.advisorName.toLowerCase().replace(/\s+/g, '_') : 'client'}_registry.csv`;
     link.click();
   };
 
   const handleExportPDF = () => {
     if (!canExport || filteredClients.length === 0) return;
-    const headers = ['Client Name', 'Relationship', 'Policy Number', 'Product', 'Approval Date', 'Premium', 'Mobile Number', 'Email', 'Beneficiary', 'Payment Mode'];
+    const headers = ['Client Name', 'Policy Number', 'Product', 'Approval Date', 'Premium', 'Mobile Number', 'Email', 'Beneficiary', 'Payment Mode'];
     const rows = filteredClients.map(c => [
-      c.clientName, c.relationship, c.policyNumber, c.product, c.approvalDate, `PHP ${c.annualPremium?.toLocaleString()}`, c.mobileNumber, c.email, c.beneficiary, c.modeOfPayment
+      c.clientName, c.policyNumber, c.product, c.approvalDate, `PHP ${c.annualPremium?.toLocaleString()}`, c.mobileNumber, c.email, c.beneficiary, c.modeOfPayment
     ]);
     exportToPDF({
-      title: 'Advisor Clients Registry',
-      description: 'Sun Life Financial - Official record of active clients, premiums, policy types, and financial products.',
+      title: `${selectedAdvisor ? selectedAdvisor.advisorName : 'Advisor'} - Client Registry`,
+      description: `Sun Life Financial - Official record of active clients assigned to ${selectedAdvisor?.advisorName || 'Advisor'}.`,
       headers,
       rows,
-      filename: `advisor_clients_list_${new Date().toISOString().slice(0, 10)}.pdf`,
+      filename: `${selectedAdvisor ? selectedAdvisor.advisorName.toLowerCase().replace(/\s+/g, '_') : 'advisor'}_clients_${new Date().toISOString().slice(0, 10)}.pdf`,
       stats: [
         { label: 'Total Clients', value: filteredClients.length },
         { label: 'Active Policies', value: filteredClients.filter(c => c.policyNumber).length },
@@ -655,7 +752,7 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
 
   const handleExport = (format: 'csv' | 'pdf' | 'word') => {
     if (!canExport || filteredClients.length === 0) return;
-    const headers = ['Client Name', 'Relationship', 'Policy Number', 'Product', 'Approval Date', 'Premium', 'Mobile Number', 'Email', 'Beneficiary', 'Payment Mode'];
+    const headers = ['Client Name', 'Policy Number', 'Product', 'Approval Date', 'Premium', 'Mobile Number', 'Email', 'Beneficiary', 'Payment Mode'];
 
     if (format === 'csv') {
       exportToCSV();
@@ -663,32 +760,16 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
       handleExportPDF();
     } else if (format === 'word') {
       const rows = filteredClients.map(c => [
-        c.clientName, c.relationship, c.policyNumber, c.product, c.approvalDate, `PHP ${c.annualPremium?.toLocaleString()}`, c.mobileNumber, c.email, c.beneficiary, c.modeOfPayment
+        c.clientName, c.policyNumber, c.product, c.approvalDate, `PHP ${c.annualPremium?.toLocaleString()}`, c.mobileNumber, c.email, c.beneficiary, c.modeOfPayment
       ]);
       exportToDOCS(
-        'Advisor Clients Registry',
+        `${selectedAdvisor ? selectedAdvisor.advisorName : 'Advisor'} - Client Registry`,
         headers,
         rows,
-        `advisor_clients_list_${new Date().toISOString().slice(0, 10)}.doc`
+        `${selectedAdvisor ? selectedAdvisor.advisorName.toLowerCase().replace(/\s+/g, '_') : 'advisor'}_clients_${new Date().toISOString().slice(0, 10)}.doc`
       );
     }
   };
-
-  const filteredClients = clients.filter(c => {
-    if (productFilter !== 'ALL' && c.product !== productFilter) return false;
-    if (search) {
-      const s = search.toLowerCase();
-      if (!c.clientName?.toLowerCase().includes(s) && !c.policyNumber?.toLowerCase().includes(s)) return false;
-    }
-    return true;
-  }).sort((a, b) => {
-    if (sortBy === 'newest') return new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime();
-    if (sortBy === 'oldest') return new Date(a.created_at || '').getTime() - new Date(b.created_at || '').getTime();
-    if (sortBy === 'name') return (a.clientName || '').localeCompare(b.clientName || '');
-    return 0;
-  });
-
-  const isAllSelected = filteredClients.length > 0 && selectedIds.length === filteredClients.length;
 
   return (
     <div className={styles.text_52}>
@@ -696,194 +777,346 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
       <div className={styles.container_53}>
         <AdminHeader onMenuClick={() => setSidebarOpen(true)} />
         <main className={styles.div_54}>
-          <div className={styles.container_55}>
-            <div>
-              <h1 className={styles.text_56}>Client Management Tracker</h1>
-              <p className={styles.table_57}>
-                Client Advisor Management System (CAMS) main registry.
-              </p>
-            </div>
-            <div className={styles.container_58}>
-              {canCreate && (
-                <button
-                  onClick={() => { setCurrentClient({}); setActiveModal('add'); }}
-                  className={styles.table_60}
-                >
-                  <Plus size={14} /> Add Client
-                </button>
+          <div className="flex flex-col space-y-2 border-b border-border/50 pb-5">
+            <div className="flex items-center gap-2 text-xs font-semibold text-text-secondary">
+              <span>Client Management Tracker</span>
+              <ChevronRight size={14} />
+              <button
+                onClick={() => setSelectedAdvisor(null)}
+                className={`hover:underline ${!selectedAdvisor ? 'text-primary font-bold' : 'text-text-secondary'}`}
+              >
+                Advisor Registry
+              </button>
+              {selectedAdvisor && (
+                <>
+                  <ChevronRight size={14} />
+                  <span className="text-primary font-bold">{selectedAdvisor.advisorName}</span>
+                </>
               )}
             </div>
-          </div>
 
-          <div className={styles.container_61}>
-            <div className={styles.container_62}>
-              {[
-                { label: 'TOTAL CLIENTS', count: clients.length, link: 'TOTAL', color: 'text-foreground', icon: Users, isYellowBorder: true },
-                { label: 'ACTIVE POLICIES', count: clients.filter(c => c.policyNumber).length, link: 'ACTIVE', color: 'text-green-600 dark:text-green-400', icon: CheckCircle2 },
-                { label: 'TOTAL PREMIUM', count: clients.reduce((acc, curr) => acc + (curr.annualPremium || 0), 0).toLocaleString(), link: 'PHP', color: 'text-[#A97800] dark:text-[#F4C542]', icon: Target },
-                { label: 'PRODUCTS IN USE', count: Array.from(new Set(clients.map(c => c.product).filter(Boolean))).length, link: 'PRODUCTS', color: 'text-blue-500 dark:text-blue-400', icon: Star },
-              ].map((stat, i) => {
-                const Icon = stat.icon;
-                return (
-                  <div
-                    key={i}
-                    className={`${styles.card_227} ${stat.isYellowBorder ? 'border-primary/40 ring-1 ring-[#F4C542]/10' : 'border-border'
-                      } flex flex-col justify-between`}
-                  >
-                    <div className={styles.table_63}>
-                      <span>{stat.label}</span>
-                      <Icon size={12} className={styles.text_64} />
-                    </div>
-                    <div className={styles.container_65}>
-                      <span className={styles.text_66}>{stat.count}</span>
-                      <span className={`${styles.table_228} ${stat.color}`}>{stat.link}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className={styles.card_67}>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
-                <div className={styles.container_68}>
-                  <FileSpreadsheet size={15} className={styles.text_69} />
-                  <h3 className={styles.table_70}>CAMS Batch Import</h3>
-                </div>
-                <p className={styles.text_71}>
-                  Upload Excel or CSV files to batch import clients.
+                <h1 className={styles.text_56}>
+                  {selectedAdvisor ? selectedAdvisor.advisorName : 'Advisor Registry'}
+                </h1>
+                <p className={styles.table_57}>
+                  {selectedAdvisor
+                    ? `Client Registry for Advisor Code: ${selectedAdvisor.advisorCode}`
+                    : 'Client Advisor Management System (CAMS) main registry.'}
                 </p>
               </div>
-              <button
-                onClick={() => setActiveModal('import')}
-                className={styles.table_72}
-              >
-                <Upload size={14} /> Upload Files
-              </button>
-            </div>
-          </div>
 
-          <div className={styles.card_73}>
-            <div className={styles.container_74}>
-              <Search className={styles.text_75} />
-              <input
-                type="text"
-                placeholder="Search client name, policy number..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className={styles.text_76}
-              />
-            </div>
-            <div className={styles.container_77}>
-              <select value={productFilter} onChange={e => setProductFilter(e.target.value)} className={styles.card_81}>
-                <option value="ALL">All Products</option>
-                {PRODUCTS.map(p => <option key={p} value={p}>{p}</option>)}
-              </select>
-              <select value={sortBy} onChange={e => setSortBy(e.target.value)} className={styles.card_84}>
-                <option value="newest">Newest First</option>
-                <option value="oldest">Oldest First</option>
-                <option value="name">Name A-Z</option>
-              </select>
-              {canExport && (
-                <ExportDropdown onExport={handleExport} />
-              )}
-              {selectedIds.length > 0 && (
+              <div className={styles.container_58}>
+                {selectedAdvisor && (
+                  <button
+                    onClick={() => setSelectedAdvisor(null)}
+                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-full border border-border text-xs font-bold hover:bg-surface-2 transition-all duration-200"
+                  >
+                    <ArrowLeft size={14} /> Back to Advisor Registry
+                  </button>
+                )}
+
+                {canCreate && selectedAdvisor && (
+                  <button
+                    onClick={() => {
+                      setCurrentClient({ advisorId: selectedAdvisor.id });
+                      setActiveModal('add');
+                    }}
+                    className={styles.table_60}
+                  >
+                    <Plus size={14} /> Add Client
+                  </button>
+                )}
+
                 <button
-                  onClick={() => setClientToDelete('bulk')}
-                  className="px-4 py-2 bg-red-500/10 text-red-500 rounded-full text-xs font-semibold hover:bg-red-500/20 active:scale-[0.97] transition-all duration-200 whitespace-nowrap"
+                  onClick={() => {
+                    setImportAdvisorId(selectedAdvisor?.id || advisors[0]?.id || '');
+                    setActiveModal('import');
+                  }}
+                  className={styles.table_72}
                 >
-                  Delete Selected ({selectedIds.length})
+                  <Upload size={14} /> Import File
                 </button>
-              )}
+              </div>
             </div>
           </div>
 
-          <div className={styles.card_85}>
-            <div className={styles.div_86}>
-              <table className={styles.text_87}>
-                <thead>
-                  <tr className={styles.table_88}>
-                    <th className={styles.text_89}>
-                      <input
-                        type="checkbox"
-                        checked={isAllSelected}
-                        onChange={(e) => {
-                          if (e.target.checked) setSelectedIds(filteredClients.map(c => c.id));
-                          else setSelectedIds([]);
-                        }}
-                        className="rounded border-border/50 bg-transparent text-primary focus:ring-primary focus:ring-offset-surface cursor-pointer"
-                      />
-                    </th>
-                    <th className={styles.text_93}>Client Name</th>
-                    <th className={styles.text_93}>Relationship</th>
-                    <th className={styles.text_93}>Policy Number</th>
-                    <th className={styles.text_93}>Product</th>
-                    <th className={styles.text_93}>Approval Date</th>
-                    <th className={styles.text_93}>Annual Premium</th>
-                    <th className={styles.text_93}>Mobile Number</th>
-                    <th className={styles.text_93}>Email</th>
-                    <th className={styles.text_93}>Address</th>
-                    <th className={styles.text_93}>Beneficiary</th>
-                    <th className={styles.text_93}>Fund Allocation</th>
-                    <th className={styles.text_93}>Mode of Payment</th>
-                    <th className={`${styles.text_93} text-right sticky right-0 bg-surface-2`}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody className={styles.div_96}>
-                  {loading ? (
-                    <tr><td colSpan={14} className="py-8 text-center text-text-secondary text-sm">Loading...</td></tr>
-                  ) : filteredClients.map((client, i) => (
-                    <tr key={client.id} className={`${styles.table_99} group border-b border-border/40 last:border-0`}>
-                      <td className={styles.text_100}>
-                        <div className="flex items-center gap-2">
+          {!selectedAdvisor ? (
+            <div className="space-y-6">
+              <div className={styles.container_61}>
+                <div className={styles.container_62}>
+                  {[
+                    { label: 'TOTAL ADVISORS', count: advisors.length, link: 'ADVISORS', color: 'text-foreground', icon: Users, isYellowBorder: true },
+                    { label: 'TOTAL CLIENTS', count: totalClientsCount, link: 'CLIENTS', color: 'text-blue-500 dark:text-blue-400', icon: UserCheck },
+                    { label: 'ACTIVE POLICIES', count: totalActivePoliciesCount, link: 'POLICIES', color: 'text-green-600 dark:text-green-400', icon: CheckCircle2 },
+                    { label: 'TOTAL PREMIUM', count: `₱${totalPremiumSum.toLocaleString()}`, link: 'PHP', color: 'text-[#A97800] dark:text-[#F4C542]', icon: Target },
+                  ].map((stat, i) => {
+                    const Icon = stat.icon;
+                    return (
+                      <div
+                        key={i}
+                        className={`${styles.card_227} ${stat.isYellowBorder ? 'border-primary/40 ring-1 ring-[#F4C542]/10' : 'border-border'} flex flex-col justify-between`}
+                      >
+                        <div className={styles.table_63}>
+                          <span>{stat.label}</span>
+                          <Icon size={12} className={styles.text_64} />
+                        </div>
+                        <div className={styles.container_65}>
+                          <span className={styles.text_66}>{stat.count}</span>
+                          <span className={`${styles.table_228} ${stat.color}`}>{stat.link}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className={styles.card_67}>
+                  <div>
+                    <div className={styles.container_68}>
+                      <FileSpreadsheet size={15} className={styles.text_69} />
+                      <h3 className={styles.table_70}>CAMS Batch Import</h3>
+                    </div>
+                    <p className={styles.text_71}>
+                      Upload Excel or CSV files to batch import clients under a selected advisor.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setImportAdvisorId(advisors[0]?.id || '');
+                      setActiveModal('import');
+                    }}
+                    className={styles.table_72}
+                  >
+                    <Upload size={14} /> Upload Files
+                  </button>
+                </div>
+              </div>
+
+              <div className={styles.card_73}>
+                <div className={styles.container_74}>
+                  <Search className={styles.text_75} />
+                  <input
+                    type="text"
+                    placeholder="Search advisors..."
+                    value={advisorSearch}
+                    onChange={e => setAdvisorSearch(e.target.value)}
+                    className={styles.text_76}
+                  />
+                </div>
+              </div>
+
+              <div className={styles.card_85}>
+                <div className={styles.div_86}>
+                  <table className={styles.text_87}>
+                    <thead>
+                      <tr className={styles.table_88}>
+                        <th className="py-3 px-4 text-left font-bold text-xs uppercase tracking-wider text-text-secondary">Advisor Name</th>
+                        <th className="py-3 px-4 text-left font-bold text-xs uppercase tracking-wider text-text-secondary">Advisor Code</th>
+                        <th className="py-3 px-4 text-left font-bold text-xs uppercase tracking-wider text-text-secondary">Email</th>
+                        <th className="py-3 px-4 text-center font-bold text-xs uppercase tracking-wider text-text-secondary">Total Clients</th>
+                        <th className="py-3 px-4 text-right font-bold text-xs uppercase tracking-wider text-text-secondary sticky right-0 bg-surface-2">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className={styles.div_96}>
+                      {loading ? (
+                        <tr><td colSpan={5} className="py-8 text-center text-text-secondary text-sm">Loading advisors...</td></tr>
+                      ) : filteredAdvisors.map(adv => {
+                        const stat = advisorStatsMap.get(adv.id) || { totalClients: 0, activePolicies: 0, totalPremium: 0 };
+                        return (
+                          <tr key={adv.id} className={`${styles.table_99} group border-b border-border/40 last:border-0 hover:bg-surface-2/40 transition-colors`}>
+                            <td className="py-3.5 px-4 font-bold text-text text-sm flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-full bg-primary/20 text-primary font-extrabold text-xs flex items-center justify-center">
+                                {adv.advisorName.charAt(0)}
+                              </div>
+                              <span>{adv.advisorName}</span>
+                            </td>
+                            <td className="py-3.5 px-4 text-xs font-mono font-semibold text-text-secondary">{adv.advisorCode}</td>
+                            <td className="py-3.5 px-4 text-xs text-text-secondary">{adv.email || '—'}</td>
+                            <td className="py-3.5 px-4 text-center text-sm font-bold font-mono text-text">{stat.totalClients}</td>
+                            <td className="py-3.5 px-4 text-right sticky right-0 bg-card group-hover:bg-surface-2/50 text-xs">
+                              <button
+                                onClick={() => setSelectedAdvisor(adv)}
+                                className="px-4 py-1.5 bg-primary text-black font-extrabold text-xs rounded-full hover:bg-primary/80 transition-all duration-200 shadow-sm cursor-pointer active:scale-95"
+                              >
+                                View Clients
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {!loading && filteredAdvisors.length === 0 && (
+                        <tr>
+                          <td colSpan={5} className="py-8 text-center text-text-secondary text-sm">No advisors found matching search criteria.</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="bg-card border border-primary/30 rounded-3xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-[#F4C542] to-[#e6b800] text-black font-black text-xl flex items-center justify-center shadow-md">
+                    {selectedAdvisor.advisorName.charAt(0)}
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-text">{selectedAdvisor.advisorName}</h2>
+                    <div className="flex items-center gap-3 text-xs text-text-secondary mt-1">
+                      <span className="bg-surface-2 px-3 py-1 rounded-full font-mono font-semibold border border-border">
+                        Advisor Code: {selectedAdvisor.advisorCode}
+                      </span>
+                      <span>{selectedAdvisor.email || 'No email registered'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 w-full md:w-auto">
+                  <div className="bg-surface-2/60 border border-border rounded-2xl p-3.5 text-center min-w-[110px]">
+                    <span className="block text-[10px] font-bold text-text-secondary uppercase">Total Clients</span>
+                    <span className="text-lg font-bold font-serif text-text mt-0.5 block">{selectedAdvisorStats.totalClients}</span>
+                  </div>
+                  <div className="bg-surface-2/60 border border-border rounded-2xl p-3.5 text-center min-w-[110px]">
+                    <span className="block text-[10px] font-bold text-text-secondary uppercase">Active Policies</span>
+                    <span className="text-lg font-bold font-serif text-green-600 dark:text-green-400 mt-0.5 block">{selectedAdvisorStats.activePolicies}</span>
+                  </div>
+                  <div className="bg-surface-2/60 border border-border rounded-2xl p-3.5 text-center min-w-[110px]">
+                    <span className="block text-[10px] font-bold text-text-secondary uppercase">Total Premium</span>
+                    <span className="text-lg font-bold font-serif text-[#A97800] dark:text-[#F4C542] mt-0.5 block">₱{selectedAdvisorStats.totalPremium.toLocaleString()}</span>
+                  </div>
+                  <div className="bg-surface-2/60 border border-border rounded-2xl p-3.5 text-center min-w-[110px]">
+                    <span className="block text-[10px] font-bold text-text-secondary uppercase">Products</span>
+                    <span className="text-lg font-bold font-serif text-blue-500 mt-0.5 block">{selectedAdvisorStats.productsCount}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className={styles.card_73}>
+                <div className={styles.container_74}>
+                  <Search className={styles.text_75} />
+                  <input
+                    type="text"
+                    placeholder="Search client name, policy number..."
+                    value={clientSearch}
+                    onChange={e => setClientSearch(e.target.value)}
+                    className={styles.text_76}
+                  />
+                </div>
+                <div className={styles.container_77}>
+                  <select value={productFilter} onChange={e => setProductFilter(e.target.value)} className={styles.card_81}>
+                    <option value="ALL">All Products</option>
+                    {PRODUCTS.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                  <select value={sortBy} onChange={e => setSortBy(e.target.value)} className={styles.card_84}>
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
+                    <option value="name">Name A-Z</option>
+                  </select>
+                  {canExport && (
+                    <ExportDropdown onExport={handleExport} />
+                  )}
+                  {selectedIds.length > 0 && (
+                    <button
+                      onClick={() => setClientToDelete('bulk')}
+                      className="px-4 py-2 bg-red-500/10 text-red-500 rounded-full text-xs font-semibold hover:bg-red-500/20 active:scale-[0.97] transition-all duration-200 whitespace-nowrap"
+                    >
+                      Delete Selected ({selectedIds.length})
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className={styles.card_85}>
+                <div className={styles.div_86}>
+                  <table className={styles.text_87}>
+                    <thead>
+                      <tr className={styles.table_88}>
+                        <th className={styles.text_89}>
                           <input
                             type="checkbox"
-                            checked={selectedIds.includes(client.id)}
+                            checked={isAllClientsSelected}
                             onChange={(e) => {
-                              if (e.target.checked) setSelectedIds([...selectedIds, client.id]);
-                              else setSelectedIds(selectedIds.filter(id => id !== client.id));
+                              if (e.target.checked) setSelectedIds(filteredClients.map(c => c.id));
+                              else setSelectedIds([]);
                             }}
                             className="rounded border-border/50 bg-transparent text-primary focus:ring-primary focus:ring-offset-surface cursor-pointer"
                           />
-                          {i + 1}
-                        </div>
-                      </td>
-                      <td className="py-2.5 px-3 font-semibold text-text text-xs">{client.clientName}</td>
-                      <td className={styles.text_107}>{client.relationship}</td>
-                      <td className={styles.text_107}>{client.policyNumber}</td>
-                      <td className={styles.text_107}>{client.product}</td>
-                      <td className={styles.text_107}>{client.approvalDate}</td>
-                      <td className={styles.text_107}>₱{client.annualPremium?.toLocaleString()}</td>
-                      <td className={styles.text_107}>{client.mobileNumber}</td>
-                      <td className={styles.text_107}>{client.email}</td>
-                      <td className={`${styles.text_107} max-w-[150px] truncate`} title={client.address}>{client.address}</td>
-                      <td className={styles.text_107}>{client.beneficiary}</td>
-                      <td className={styles.text_107}>{client.fundAllocation}</td>
-                      <td className={styles.text_107}>{client.modeOfPayment}</td>
-                      <td className="py-2 px-3 text-right sticky right-0 bg-card group-hover:bg-surface-2/50 text-xs">
-                        <div className="flex justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                          {canEdit && (
-                            <button onClick={() => { setCurrentClient(client); setActiveModal('edit'); }} className="p-2 text-muted hover:text-[#F4C542] transition-colors duration-200 bg-card border border-transparent hover:border-primary rounded-full shadow-sm" title="Edit">
-                              <Edit2 size={14} />
-                            </button>
-                          )}
-                          {canDelete && (
-                            <button onClick={() => confirmDeleteClient(client.id)} className="p-2 text-muted hover:text-red-500 transition-colors duration-200 bg-card border border-transparent hover:border-red-500 rounded-full shadow-sm" title="Delete">
-                              <Trash2 size={14} />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {!loading && filteredClients.length === 0 && (
-                    <tr>
-                      <td colSpan={14} className="py-8 text-center text-text-secondary text-sm">No clients found matching the search criteria.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                        </th>
+                        <th className={styles.text_93}>Client Name</th>
+                        <th className={styles.text_93}>Relationship</th>
+                        <th className={styles.text_93}>Policy Number</th>
+                        <th className={styles.text_93}>Product</th>
+                        <th className={styles.text_93}>Approval Date</th>
+                        <th className={styles.text_93}>Annual Premium</th>
+                        <th className={styles.text_93}>Mobile Number</th>
+                        <th className={styles.text_93}>Email</th>
+                        <th className={styles.text_93}>Address</th>
+                        <th className={styles.text_93}>Beneficiary</th>
+                        <th className={styles.text_93}>Fund Allocation</th>
+                        <th className={styles.text_93}>Mode of Payment</th>
+                        <th className={`${styles.text_93} text-right sticky right-0 bg-surface-2`}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className={styles.div_96}>
+                      {loading ? (
+                        <tr><td colSpan={14} className="py-8 text-center text-text-secondary text-sm">Loading clients...</td></tr>
+                      ) : filteredClients.map((client, i) => (
+                        <tr key={client.id} className={`${styles.table_99} group border-b border-border/40 last:border-0`}>
+                          <td className={styles.text_100}>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={selectedIds.includes(client.id)}
+                                onChange={(e) => {
+                                  if (e.target.checked) setSelectedIds([...selectedIds, client.id]);
+                                  else setSelectedIds(selectedIds.filter(id => id !== client.id));
+                                }}
+                                className="rounded border-border/50 bg-transparent text-primary focus:ring-primary focus:ring-offset-surface cursor-pointer"
+                              />
+                              {i + 1}
+                            </div>
+                          </td>
+                          <td className="py-2.5 px-3 font-semibold text-text text-xs">{client.clientName}</td>
+                          <td className={styles.text_107}>{client.relationship}</td>
+                          <td className={styles.text_107}>{client.policyNumber}</td>
+                          <td className={styles.text_107}>{client.product}</td>
+                          <td className={styles.text_107}>{client.approvalDate}</td>
+                          <td className={styles.text_107}>₱{client.annualPremium?.toLocaleString()}</td>
+                          <td className={styles.text_107}>{client.mobileNumber}</td>
+                          <td className={styles.text_107}>{client.email}</td>
+                          <td className={`${styles.text_107} max-w-[150px] truncate`} title={client.address}>{client.address}</td>
+                          <td className={styles.text_107}>{client.beneficiary}</td>
+                          <td className={styles.text_107}>{client.fundAllocation}</td>
+                          <td className={styles.text_107}>{client.modeOfPayment}</td>
+                          <td className="py-2 px-3 text-right sticky right-0 bg-card group-hover:bg-surface-2/50 text-xs">
+                            <div className="flex justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                              {canEdit && (
+                                <button onClick={() => { setCurrentClient(client); setActiveModal('edit'); }} className="p-2 text-muted hover:text-[#F4C542] transition-colors duration-200 bg-card border border-transparent hover:border-primary rounded-full shadow-sm" title="Edit">
+                                  <Edit2 size={14} />
+                                </button>
+                              )}
+                              {canDelete && (
+                                <button onClick={() => confirmDeleteClient(client.id)} className="p-2 text-muted hover:text-red-500 transition-colors duration-200 bg-card border border-transparent hover:border-red-500 rounded-full shadow-sm" title="Delete">
+                                  <Trash2 size={14} />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                      {!loading && filteredClients.length === 0 && (
+                        <tr>
+                          <td colSpan={14} className="py-8 text-center text-text-secondary text-sm">No clients assigned to this advisor matching search criteria.</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
         </main>
       </div>
 
@@ -901,7 +1134,24 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
             </div>
 
             <div className="p-6 overflow-y-auto flex-1 space-y-5">
-              <form id="cpst-form" onSubmit={handleCreateClient} className="space-y-4 text-left">
+              <form id="cpst-form" onSubmit={handleSaveClient} className="space-y-4 text-left">
+                <div>
+                  <label className={formLabelClass}>Advisor <span className="text-red-500">*</span></label>
+                  <select
+                    value={currentClient.advisorId || ''}
+                    onChange={e => setCurrentClient({ ...currentClient, advisorId: e.target.value })}
+                    required
+                    className={formInputClass}
+                  >
+                    <option value="">Select Advisor</option>
+                    {advisors.map(a => (
+                      <option key={a.id} value={a.id}>
+                        {a.advisorName} ({a.advisorCode})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 <div>
                   <label className={formLabelClass}>Client Name <span className="text-red-500">*</span></label>
                   <input type="text" value={currentClient.clientName || ''} onChange={e => setCurrentClient({ ...currentClient, clientName: e.target.value })} required className={formInputClass} placeholder="Full Name" />
@@ -1002,6 +1252,23 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
               </button>
             </div>
 
+            <div className="p-5 border-b border-border bg-slate-50/50 dark:bg-slate-900/20 text-left">
+              <label className={formLabelClass}>Import For Advisor <span className="text-red-500">*</span></label>
+              <select
+                value={importAdvisorId}
+                onChange={e => setImportAdvisorId(e.target.value)}
+                required
+                className={formInputClass}
+              >
+                <option value="">Select Advisor</option>
+                {advisors.map(a => (
+                  <option key={a.id} value={a.id}>
+                    {a.advisorName} ({a.advisorCode})
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {importState.phase === 'idle' && (
               <div className="flex border-b border-border bg-slate-50/50 dark:bg-slate-900/20 p-1.5 gap-1.5 shrink-0">
                 <button
@@ -1037,8 +1304,7 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
                     onDrop={handleDrop}
                   >
                     <div
-                      className={`w-full border-2 border-dashed rounded-3xl p-8 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 ${isDragging ? 'border-primary bg-primary/5 scale-[0.99]' : 'border-border hover:border-primary/55'
-                        }`}
+                      className={`w-full border-2 border-dashed rounded-3xl p-8 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 ${isDragging ? 'border-primary bg-primary/5 scale-[0.99]' : 'border-border hover:border-primary/55'}`}
                       onClick={() => {
                         const el = document.getElementById('file-upload-input');
                         if (el) el.click();
@@ -1072,7 +1338,7 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
                       <p className="font-semibold text-text mb-1">Bypass password locks easily:</p>
                       <ol className="list-decimal pl-4 space-y-1">
                         <li>Open the password-locked file locally in Excel.</li>
-                        <li>Select the client columns and rows (including the header row) and press <strong>Ctrl + C</strong>.</li>
+                        <li>Select client columns and rows and press <strong>Ctrl + C</strong>.</li>
                         <li>Paste (<strong>Ctrl + V</strong>) directly into the field below.</li>
                       </ol>
                     </div>
@@ -1085,7 +1351,7 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
                     <button
                       type="button"
                       onClick={() => handlePasteImport(pastedText)}
-                      disabled={!pastedText.trim()}
+                      disabled={!pastedText.trim() || !importAdvisorId}
                       className="w-full bg-primary text-black font-bold text-xs py-2.5 rounded-full border border-[#e0b53c] hover:bg-primary/80 active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Parse and Validate Paste
@@ -1167,100 +1433,6 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
               </div>
             )}
 
-            {importState.phase === 'preview' && importState.validation && (
-              <div className="flex-1 flex flex-col min-h-0 max-h-[70vh]">
-                <div className="p-5 border-b border-border bg-slate-50/50 dark:bg-slate-900/20 flex items-center justify-between shrink-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-text-secondary">File:</span>
-                    <span className="text-xs font-bold text-text truncate max-w-[200px]" title={importState.fileName}>{importState.fileName}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold bg-green-100 text-green-800 dark:bg-green-950/30 dark:text-green-400">
-                      {importState.validation.valid.length} Valid
-                    </span>
-                    {importState.validation.invalid.length > 0 && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold bg-red-100 text-red-800 dark:bg-red-950/30 dark:text-red-400">
-                        {importState.validation.invalid.length} Error{importState.validation.invalid.length > 1 ? 's' : ''}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="p-5 overflow-y-auto space-y-4 flex-1">
-                  {importState.validation.invalid.length > 0 && (
-                    <div className="space-y-2">
-                      <h4 className="text-xs font-bold text-red-500 uppercase tracking-wider">Validation Errors ({importState.validation.invalid.length})</h4>
-                      <div className="border border-red-200/60 dark:border-red-900/30 rounded-2xl bg-red-50/30 dark:bg-red-950/10 overflow-hidden divide-y divide-red-100 dark:divide-red-900/20">
-                        {importState.validation.invalid.map((inv, idx) => (
-                          <div key={idx} className="p-3.5 flex items-start gap-2.5 text-xs text-left">
-                            <AlertCircle className="text-red-500 shrink-0 mt-0.5" size={14} />
-                            <div>
-                              <span className="font-semibold text-text">Row {inv.rowNumber}: </span>
-                              <span className="text-text-secondary">{inv.reason}</span>
-                              {inv.rawData && (
-                                <div className="text-[10px] text-muted mt-1 font-mono truncate max-w-sm">
-                                  Data: {JSON.stringify(inv.rawData)}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="space-y-2">
-                    <h4 className="text-xs font-bold text-emerald-500 uppercase tracking-wider">Valid Client Records ({importState.validation.valid.length})</h4>
-                    <div className="border border-border rounded-2xl bg-card overflow-hidden">
-                      <div className="overflow-x-auto max-h-60">
-                        <table className="w-full text-left text-xs whitespace-nowrap">
-                          <thead className="bg-surface-2 text-text-secondary border-b border-border sticky top-0">
-                            <tr>
-                              <th className="py-2 px-3">Name</th>
-                              <th className="py-2 px-3">Policy Number</th>
-                              <th className="py-2 px-3">Product</th>
-                              <th className="py-2 px-3">Premium</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-border/60">
-                            {importState.validation.valid.map((val, idx) => (
-                              <tr key={idx} className="hover:bg-surface-2/40">
-                                <td className="py-2 px-3 font-medium text-text">{val.clientName}</td>
-                                <td className="py-2 px-3 text-text-secondary">{val.policyNumber}</td>
-                                <td className="py-2 px-3 text-text-secondary">{val.product}</td>
-                                <td className="py-2 px-3 text-text-secondary">₱{val.annualPremium?.toLocaleString()}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-5 border-t border-border bg-card shrink-0 flex gap-3">
-                  <button
-                    onClick={handleConfirmImport}
-                    disabled={importState.validation.valid.length === 0}
-                    className="flex-1 bg-gradient-to-r from-[#F4C542] to-[#e6b800] hover:from-[#e6b800] hover:to-[#c59d28] disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 text-black font-extrabold text-xs py-2.5 rounded-full transition-all duration-200 shadow-sm cursor-pointer disabled:cursor-not-allowed border border-[#F4C542]/30 disabled:border-transparent active:scale-[0.97]"
-                  >
-                    Confirm Import ({importState.validation.valid.length})
-                  </button>
-                  <button
-                    onClick={() => {
-                      resetImportState();
-                      setPastedText('');
-                      setPassword('');
-                      setImportFile(null);
-                    }}
-                    className="flex-1 bg-transparent border border-border text-text hover:bg-surface-2 text-xs font-semibold py-2.5 rounded-full transition-all duration-200 active:scale-[0.97]"
-                  >
-                    Reset File
-                  </button>
-                </div>
-              </div>
-            )}
-
             {importState.phase === 'importing' && (
               <div className="p-12 flex flex-col items-center justify-center space-y-4">
                 <div className="relative w-14 h-14 flex items-center justify-center">
@@ -1324,23 +1496,13 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
                   >
                     Try Again
                   </button>
-                  {importState.errorMessage.includes('password-protected') && (
-                    <button
-                      onClick={() => {
-                        resetImportState();
-                        setImportMethod('paste');
-                      }}
-                      className="flex-1 bg-primary text-black font-bold text-xs py-2.5 rounded-full border border-[#e0b53c] hover:bg-primary/80 active:scale-[0.97] transition-all duration-200"
-                    >
-                      Use Copy & Paste
-                    </button>
-                  )}
                 </div>
               </div>
             )}
           </div>
         </div>
       )}
+
       <ConfirmModal
         isOpen={!!clientToDelete}
         onClose={() => setClientToDelete(null)}

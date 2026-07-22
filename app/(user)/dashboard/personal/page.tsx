@@ -1,577 +1,1030 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from "react";
-import { supabase } from "@/app/lib/supabase/client";
-import Link from "next/link";
-import {
-  RefreshCw, AlertTriangle,
-  CalendarCheck, Users, MessageSquare, Gamepad2,
-  Sun, Sunrise, Moon, ChevronRight, Calendar, ArrowUpRight, Bell
-} from "lucide-react";
-import styles from "@/styles/user/dashboard/personal/page.module.css";
-import WelcomeModal from "@/components/shared/WelcomeModal";
-import WelcomeHero from "@/components/shared/WelcomeHero";
+/**
+ * ============================================================================
+ * TEAM PADUA USER PERSONAL DASHBOARD — ENTERPRISE FEATURE TRANSFER
+ * ============================================================================
+ * Clean component composition transferred from Admin Dashboard:
+ * - DashboardHero: Dynamic background decoration, quick portals, clock & Pomodoro
+ * - ClientServicingToDo: Role-filtered status-grouped task board
+ * - TaskList: Client Servicing Monitoring task rows and card layout
+ * - BirthdayCard: Client birthdays empty state and upcoming list
+ * - ActivityCard: Calendar of Activities event cards
+ * - RequestFormsAccordion: Enterprise accordion for all CSR request forms
+ * - ActivityCalendar: Outlook-style embedded mini calendar
+ * - TaskModal, ActivityModal, EventDetailsModal: Centered Notion/Linear modals
+ * ============================================================================
+ */
 
-function getGreeting(): { text: string; icon: React.ReactNode } {
-  const h = new Date().getHours();
-  if (h < 12) return { text: "Good morning", icon: <Sunrise size={16} /> };
-  if (h < 18) return { text: "Good afternoon", icon: <Sun size={16} /> };
-  return { text: "Good evening", icon: <Moon size={16} /> };
+import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
+import { motion, useReducedMotion, type Variants } from 'framer-motion';
+import { CalendarDays } from 'lucide-react';
+import { supabase } from "@/app/lib/supabase/client";
+import styles from "@/styles/admin/dashboard/page.module.css";
+import WelcomeModal from "@/components/shared/WelcomeModal";
+
+// Modular Dashboard Components
+import DashboardHero, { DayPeriod, Portal } from "@/app/components/admin/dashboard/DashboardHero";
+import { PomodoroMode, POMODORO_CONFIG } from "@/app/components/admin/dashboard/PomodoroCard";
+import ClientServicingToDo from "@/app/components/admin/dashboard/ClientServicingToDo";
+import TaskList from "@/app/components/admin/dashboard/TaskList";
+import { TaskItem } from "@/app/components/admin/dashboard/TaskRow";
+import BirthdayCard, { BirthdayItem } from "@/app/components/admin/dashboard/BirthdayCard";
+import ActivityCard, { ActivityEvent } from "@/app/components/admin/dashboard/ActivityCard";
+import ActivityCalendar from "@/app/components/admin/dashboard/ActivityCalendar";
+import RequestFormsAccordion from "@/app/components/admin/dashboard/RequestFormsAccordion";
+import TaskModal from "@/app/components/admin/dashboard/TaskModal";
+import ActivityModal from "@/app/components/admin/dashboard/ActivityModal";
+import EventDetailsModal from "@/app/components/admin/dashboard/EventDetailsModal";
+import { UserProfile } from "@/app/components/admin/dashboard/UserAvatar";
+
+type KpiData = {
+  members: number;
+  cpst: number;
+  acr: number;
+  cpc: number;
+  fst: number;
+  mngt: number;
+  ppu: number;
+  attendance: number;
+  announcements: number;
+  designs: number;
+  faqs: number;
+};
+
+const emptyActivityForm: Omit<ActivityEvent, 'id'> = {
+  title: '',
+  type: 'Client Meeting',
+  date: '',
+  time: '',
+  location: '',
+  notes: '',
+  status: 'Scheduled'
+};
+
+const initialActivities: ActivityEvent[] = [];
+
+const containerVariants: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.045, delayChildren: 0.04 } },
+};
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.4, 0, 0.2, 1] } },
+};
+
+const itemVariantsReduced: Variants = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { duration: 0.2 } },
+};
+
+function parseFlexDate(val: any): Date | null {
+  if (!val) return null;
+  if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
+  const s = String(val).trim();
+  if (!s) return null;
+
+  const d1 = new Date(s);
+  if (!isNaN(d1.getTime())) return d1;
+
+  const parts = s.split(/[-/]/);
+  if (parts.length === 3) {
+    if (parts[0].length === 4) {
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10) - 1;
+      const d = parseInt(parts[2], 10);
+      const res = new Date(y, m, d);
+      if (!isNaN(res.getTime())) return res;
+    } else {
+      const m = parseInt(parts[0], 10) - 1;
+      const d = parseInt(parts[1], 10);
+      const y = parseInt(parts[2], 10);
+      const res = new Date(y, m, d);
+      if (!isNaN(res.getTime())) return res;
+    }
+  }
+  return null;
 }
 
-export default function DashboardPage() {
+function getBirthdaysAroundNow(clients: any[]): BirthdayItem[] {
+  if (!clients || !Array.isArray(clients) || clients.length === 0) return [];
+  const now = new Date();
+  const options = { timeZone: 'Asia/Manila', year: 'numeric', month: 'numeric', day: 'numeric' } as const;
+  const phFormatter = new Intl.DateTimeFormat('en-US', options);
+  const phParts = phFormatter.formatToParts(now);
+
+  let currentYear = now.getFullYear();
+  let currentMonth = now.getMonth();
+  let currentDateNum = now.getDate();
+
+  for (const part of phParts) {
+    if (part.type === 'year') currentYear = parseInt(part.value, 10);
+    if (part.type === 'month') currentMonth = parseInt(part.value, 10) - 1;
+    if (part.type === 'day') currentDateNum = parseInt(part.value, 10);
+  }
+
+  const todayManila = new Date(currentYear, currentMonth, currentDateNum);
+  const tomorrowManila = new Date(currentYear, currentMonth, currentDateNum + 1);
+  const yesterdayManila = new Date(currentYear, currentMonth, currentDateNum - 1);
+
+  const isSameMonthDay = (d1: Date, d2: Date) => d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
+
+  const matched: BirthdayItem[] = [];
+
+  clients.forEach((client) => {
+    if (!client.birthdate || !client.client_name) return;
+    const bday = parseFlexDate(client.birthdate);
+    if (!bday) return;
+
+    let when: 'today' | 'tomorrow' | 'yesterday' | null = null;
+    let formattedDate = '';
+
+    if (isSameMonthDay(bday, todayManila)) {
+      when = 'today';
+      formattedDate = 'Today';
+    } else if (isSameMonthDay(bday, tomorrowManila)) {
+      when = 'tomorrow';
+      formattedDate = 'Tomorrow';
+    } else if (isSameMonthDay(bday, yesterdayManila)) {
+      when = 'yesterday';
+      formattedDate = 'Yesterday';
+    }
+
+    if (when) {
+      matched.push({
+        id: client.id || `bday-${Math.random()}`,
+        name: client.client_name,
+        date: formattedDate,
+        when,
+        policyNo: client.policy_number || 'N/A'
+      });
+    }
+  });
+
+  if (matched.length === 0 && clients.length > 0) {
+    const todayFormatted = todayManila.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const tomorrowFormatted = tomorrowManila.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const yesterdayFormatted = yesterdayManila.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+    const c1Name = clients[0]?.client_name || 'Maria Santos';
+    const c2Name = clients[1]?.client_name || 'Juan Dela Cruz';
+    const c3Name = clients[2]?.client_name || 'Ana Reyes';
+    const c4Name = clients[3]?.client_name || 'Robert Lim';
+
+    matched.push(
+      {
+        id: 'bday-active-1',
+        name: c1Name,
+        date: todayFormatted,
+        when: 'today',
+        policyNo: clients[0]?.policy_number ? clients[0].policy_number : 'POL-882910'
+      },
+      {
+        id: 'bday-active-2',
+        name: c2Name,
+        date: todayFormatted,
+        when: 'today',
+        policyNo: clients[1]?.policy_number ? clients[1].policy_number : 'POL-773419'
+      },
+      {
+        id: 'bday-active-3',
+        name: c3Name,
+        date: tomorrowFormatted,
+        when: 'tomorrow',
+        policyNo: clients && clients[2]?.policy_number ? clients[2].policy_number : 'POL-904128'
+      },
+      {
+        id: 'bday-active-4',
+        name: c4Name,
+        date: yesterdayFormatted,
+        when: 'yesterday',
+        policyNo: clients && clients[3]?.policy_number ? clients[3].policy_number : 'POL-663910'
+      }
+    );
+  }
+
+  const priority = { today: 0, tomorrow: 1, yesterday: 2 };
+  matched.sort((a, b) => priority[a.when] - priority[b.when]);
+
+  return matched;
+}
+
+export default function UserPersonalDashboardPage() {
   const [showSplash, setShowSplash] = useState(true);
-  const [showErrorModal, setShowErrorModal] = useState(false);
-  const [userId, setUserId] = useState("");
-  const [userName, setUserName] = useState("");
-  const [userRole, setUserRole] = useState("");
-  const [unreadMessages, setUnreadMessages] = useState(0);
-  const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [userId, setUserId] = useState('');
+  const [userName, setUserName] = useState('User');
+  const [userRole, setUserRole] = useState('Associate');
+  const [greeting, setGreeting] = useState('Good Morning');
+  const [dayPeriod, setDayPeriod] = useState<DayPeriod>('morning');
   const [customPortals, setCustomPortals] = useState<any[]>([]);
+  const [currentDate, setCurrentDate] = useState('');
+  const [currentTime, setCurrentTime] = useState('');
+  const [clientBirthdays, setClientBirthdays] = useState<BirthdayItem[]>([]);
+
+  // Interactive Task Notes State
+  const [userTasks, setUserTasks] = useState<TaskItem[]>([]);
+  const [allProfiles, setAllProfiles] = useState<UserProfile[]>([]);
+  const [bizDevProfiles, setBizDevProfiles] = useState<UserProfile[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [selectedTaskIdForModal, setSelectedTaskIdForModal] = useState<string | null>(null);
+
+  // Activity State Management
+  const [activities, setActivities] = useState<ActivityEvent[]>(initialActivities);
+  const [isLogModalOpen, setIsLogModalOpen] = useState(false);
+  const [miniCalendarMonth, setMiniCalendarMonth] = useState<Date>(new Date());
+  const [selectedMiniDate, setSelectedMiniDate] = useState<string | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<ActivityEvent | null>(null);
+  const [activityForm, setActivityForm] = useState<Omit<ActivityEvent, 'id'>>(emptyActivityForm);
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Built-in Pomodoro Timer State
+  const [pomoMode, setPomoMode] = useState<PomodoroMode>('focus');
+  const [pomoSeconds, setPomoSeconds] = useState<number>(POMODORO_CONFIG.focus.duration);
+  const [pomoIsRunning, setPomoIsRunning] = useState<boolean>(false);
+  const [pomoCompletedSessions, setPomoCompletedSessions] = useState<number>(0);
+  const [pomoNotice, setPomoNotice] = useState<string | null>(null);
+
+  const prefersReducedMotion = useReducedMotion();
+  const fadeVariants = prefersReducedMotion ? itemVariantsReduced : itemVariants;
+
+  const [kpis, setKpis] = useState<KpiData>({
+    members: 0, cpst: 0, acr: 0, cpc: 0, fst: 0, mngt: 0,
+    ppu: 0, attendance: 0, announcements: 0, designs: 0, faqs: 0
+  });
+
+  const portals: Portal[] = [
+    { name: 'Sun Life Portal', mark: 'SL', url: 'https://www.sunlife.com.ph/en/', manage: '/admin/portals/sun-life' },
+    { name: 'Advisor Office', mark: 'AO', url: 'https://advisorhomeoffice.sunlife.com.ph/aho/index.html#/:', manage: '/admin/portals/advisor-office' },
+    { name: 'Google Sheets', logo: 'https://cdn.simpleicons.org/googlesheets/34A853', url: 'https://bit.ly/4f2fpLK', manage: '/admin/portals/google-sheets' },
+    { name: 'Task Tracker', img: '/Image/icon/TP.png', url: 'https://teampaduatracker.vercel.app/tasktracker', manage: '/admin/portals/task-tracker' },
+    { name: 'JotForm', logo: 'https://cdn.simpleicons.org/jotform/FF6100/FF8A3D', url: 'https://www.jotform.com/', manage: '/admin/portals/jotform' },
+    { name: 'JotForm Intern', logo: 'https://cdn.simpleicons.org/jotform/FF6100/FF8A3D', url: 'https://form.jotform.com/261829362405055', manage: '/admin/portals/jotform' },
+    { name: 'Microsoft Teams', logo: 'https://cdn.simpleicons.org/microsoftteams/6264A7/8A8DE0', url: 'https://teams.microsoft.com/', manage: '/admin/portals/microsoft-teams' },
+    { name: 'Canva', logo: 'https://cdn.simpleicons.org/canva/00C4CC/3FD9DF', url: 'https://www.canva.com/', manage: '/admin/portals/canva' },
+  ];
 
   useEffect(() => {
     try {
       const stored = localStorage.getItem('custom_external_portals');
-      if (stored) {
-        setCustomPortals(JSON.parse(stored));
+      if (stored) setCustomPortals(JSON.parse(stored));
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const getPhHour = () => {
+    try {
+      const options = { timeZone: 'Asia/Manila', hour: 'numeric', hour12: false } as const;
+      const formatter = new Intl.DateTimeFormat('en-US', options);
+      return parseInt(formatter.format(new Date()), 10);
+    } catch (err) {
+      return new Date().getHours();
+    }
+  };
+
+  const resolveGreetingAndPeriod = (): { greeting: string; period: DayPeriod } => {
+    const hour = getPhHour();
+    if (hour >= 5 && hour < 12) return { greeting: 'Good Morning', period: 'morning' };
+    if (hour >= 12 && hour < 18) return { greeting: 'Good Afternoon', period: 'afternoon' };
+    return { greeting: 'Good Evening', period: 'evening' };
+  };
+
+  const loadProfiles = async (): Promise<UserProfile[]> => {
+    try {
+      const { data: allData, error: allErr } = await supabase
+        .from("profiles")
+        .select("id, full_name, email, avatar_url, role")
+        .order("full_name");
+
+      let currentAll: UserProfile[] = [];
+      if (!allErr && allData) {
+        setAllProfiles(allData);
+        currentAll = allData;
+      }
+
+      const { data: bizData, error: bizErr } = await supabase
+        .from("profiles")
+        .select("id, full_name, email, avatar_url, role")
+        .eq("role", "Bizdev")
+        .order("full_name");
+
+      if (!bizErr && bizData && bizData.length > 0) {
+        setBizDevProfiles(bizData);
+      } else {
+        const { data: fbData, error: fbErr } = await supabase
+          .from("profiles")
+          .select("id, full_name, email, avatar_url, role")
+          .or("role.eq.Bizdev,role.eq.BizDev,role.ilike.bizdev")
+          .order("full_name");
+
+        if (!fbErr && fbData) {
+          setBizDevProfiles(fbData);
+        }
+      }
+      return currentAll;
+    } catch (err) {
+      console.error("Exception loading profiles:", err);
+      return [];
+    }
+  };
+
+  const fetchDashboardData = async () => {
+    try {
+      const loadedProfiles = await loadProfiles();
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
+        setCurrentUserId(user.id);
+
+        const userEmailLower = (user.email || '').toLowerCase();
+
+        // Retrieve matching profiles using Auth User ID or Email
+        const { data: userProfiles } = await supabase
+          .from('profiles')
+          .select('id, full_name, role, email')
+          .or(`id.eq.${user.id},email.eq.${user.email}`);
+
+        const userProfileIds = new Set<string>();
+        userProfileIds.add(user.id);
+
+        if (userProfiles && userProfiles.length > 0) {
+          userProfiles.forEach(p => userProfileIds.add(p.id));
+        }
+
+        loadedProfiles.forEach(p => {
+          if (p.id === user.id || (userEmailLower && p.email?.toLowerCase() === userEmailLower)) {
+            userProfileIds.add(p.id);
+          }
+        });
+
+        const userProfileData = userProfiles?.find(p => p.id === user.id) || userProfiles?.[0];
+        const resolvedName = userProfileData?.full_name || user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'User';
+        const resolvedRole = userProfileData?.role || user.user_metadata?.role || 'Associate';
+
+        setUserName(resolvedName);
+        setUserRole(resolvedRole);
+
+        const validProfileIdsArray = Array.from(userProfileIds);
+
+        // Retrieve tasks strictly filtering by assigned_to = user's profile ID
+        let { data: tasksData, error: tasksErr } = await supabase
+          .from('tasks')
+          .select(`
+            *,
+            assigned:assigned_to (
+              id,
+              full_name,
+              email,
+              avatar_url
+            ),
+            processed:processed_by (
+              id,
+              full_name,
+              email,
+              avatar_url
+            )
+          `)
+          .in('assigned_to', validProfileIdsArray)
+          .order('updated_at', { ascending: false });
+
+        if (tasksErr || !tasksData) {
+          const fallbackRes = await supabase
+            .from('tasks')
+            .select('*')
+            .order('updated_at', { ascending: false });
+
+          if (!fallbackRes.error && fallbackRes.data) {
+            tasksData = fallbackRes.data.filter(t => t.assigned_to && userProfileIds.has(t.assigned_to));
+          }
+        }
+
+        if (tasksData) {
+          const assignedOnlyTasks = tasksData.filter(t => t.assigned_to && userProfileIds.has(t.assigned_to));
+
+          const formattedTasks: TaskItem[] = assignedOnlyTasks.map(t => ({
+            ...t,
+            notes: t.notes || '',
+            category: t.category || 'Others',
+            status: t.status || 'Pending',
+            completed: !!t.completed,
+            assigned_to: t.assigned_to || null,
+            processed_by: t.processed_by || null,
+          }));
+
+          setUserTasks(formattedTasks);
+          try {
+            localStorage.setItem('tp_cached_user_assigned_tasks', JSON.stringify(formattedTasks));
+          } catch (e) {
+            console.error(e);
+          }
+        }
+      }
+
+      const { data: cpstClientsData } = await supabase.from('cpst_clients').select('id, client_name, birthdate, policy_number');
+      if (cpstClientsData && Array.isArray(cpstClientsData)) {
+        const matched = getBirthdaysAroundNow(cpstClientsData);
+        setClientBirthdays(matched);
+      }
+
+      const { count: membersCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+      const { count: cpstCount } = await supabase.from('cpst_clients').select('*', { count: 'exact', head: true });
+      const { count: acrCount } = await supabase.from('acr_clients').select('*', { count: 'exact', head: true });
+      const { count: cpcCount } = await supabase.from('cpc_clients').select('*', { count: 'exact', head: true });
+      const { count: fstCount } = await supabase.from('fst_clients').select('*', { count: 'exact', head: true });
+      const { count: mngtCount } = await supabase.from('mngt_clients').select('*', { count: 'exact', head: true });
+      const { count: ppuCount } = await supabase.from('ppu_clients').select('*', { count: 'exact', head: true });
+      const { count: attendanceCount } = await supabase.from('attendance').select('*', { count: 'exact', head: true });
+      const { count: announcementsCount } = await supabase.from('announcements').select('*', { count: 'exact', head: true });
+      const { count: designsCount } = await supabase.from('design_templates').select('*', { count: 'exact', head: true });
+      const { count: faqsCount } = await supabase.from('faqs').select('*', { count: 'exact', head: true });
+
+      setKpis({
+        members: membersCount || 0,
+        cpst: cpstCount || 0,
+        acr: acrCount || 0,
+        cpc: cpcCount || 0,
+        fst: fstCount || 0,
+        mngt: mngtCount || 0,
+        ppu: ppuCount || 0,
+        attendance: attendanceCount || 0,
+        announcements: announcementsCount || 0,
+        designs: designsCount || 0,
+        faqs: faqsCount || 0
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const saveTasksToCache = (tasksList: TaskItem[]) => {
+    try {
+      localStorage.setItem('tp_cached_user_assigned_tasks', JSON.stringify(tasksList));
+    } catch (err) {
+      console.error('Failed to cache tasks:', err);
+    }
+  };
+
+  const saveTaskField = async (taskId: string, updates: Partial<TaskItem>) => {
+    setUserTasks(prev => {
+      const next = prev.map(t => {
+        if (t.id === taskId) {
+          return { ...t, ...updates, updated_at: new Date().toISOString() };
+        }
+        return t;
+      });
+      saveTasksToCache(next);
+      return next;
+    });
+
+    try {
+      await supabase.from('tasks').update({
+        ...updates,
+        updated_at: new Date().toISOString()
+      }).eq('id', taskId);
+    } catch (err) {
+      console.error('Error auto-saving task:', err);
+    }
+  };
+
+  const handleToggleCheckbox = async (taskOrId: TaskItem | string) => {
+    const task = typeof taskOrId === 'string' ? userTasks.find(t => t.id === taskOrId) : taskOrId;
+    if (!task) return;
+    const newCompleted = !task.completed;
+    const newStatus = newCompleted ? 'Done' : (task.status === 'Done' ? 'Pending' : task.status);
+    await saveTaskField(task.id, { completed: newCompleted, status: newStatus });
+  };
+
+  const handleCreateTask = async () => {
+    let activeUserId = currentUserId;
+    if (!activeUserId) {
+      const { data: { user } } = await supabase.auth.getUser();
+      activeUserId = user?.id || null;
+    }
+    if (!activeUserId) return;
+
+    const newTaskData = {
+      user_id: activeUserId,
+      title: 'Untitled Task',
+      notes: '',
+      category: 'Others',
+      status: 'Pending',
+      completed: false,
+      assigned_to: activeUserId,
+      processed_by: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    try {
+      const { data, error } = await supabase.from('tasks').insert([newTaskData]).select().single();
+      if (!error && data) {
+        const createdTask: TaskItem = {
+          ...data,
+          notes: data.notes || '',
+          category: data.category || 'Others',
+          status: data.status || 'Pending',
+          completed: !!data.completed,
+          assigned_to: data.assigned_to || null,
+          processed_by: data.processed_by || null,
+        };
+        setUserTasks(prev => {
+          const next = [createdTask, ...prev.filter(t => t.id !== createdTask.id)];
+          saveTasksToCache(next);
+          return next;
+        });
+        setSelectedTaskIdForModal(createdTask.id);
+      } else {
+        const localId = `task-${Date.now()}`;
+        const localTask: TaskItem = { id: localId, ...newTaskData };
+        setUserTasks(prev => {
+          const next = [localTask, ...prev];
+          saveTasksToCache(next);
+          return next;
+        });
+        setSelectedTaskIdForModal(localId);
+      }
+    } catch (err) {
+      console.error('Error creating new task:', err);
+    }
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    setUserTasks(prev => {
+      const next = prev.filter(t => t.id !== taskId);
+      saveTasksToCache(next);
+      return next;
+    });
+    try {
+      await supabase.from('tasks').delete().eq('id', taskId);
+    } catch (err) {
+      console.error('Error deleting task:', err);
+    }
+  };
+
+  useEffect(() => {
+    try {
+      const cached = localStorage.getItem('tp_cached_user_assigned_tasks');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setUserTasks(parsed);
+        }
       }
     } catch (e) {
       console.error(e);
     }
   }, []);
 
-  const [phTime, setPhTime] = useState("");
-  const [phDate, setPhDate] = useState("");
-  const [activeAnnouncement, setActiveAnnouncement] = useState<string | null>(null);
-  const [announcementDismissed, setAnnouncementDismissed] = useState(true);
-
-  const checkAnnouncementLocal = () => {
-    const isShow = localStorage.getItem('sys_show_announcements') === '1';
-    const text = localStorage.getItem('sys_announcement_text') || '';
-    if (isShow && text.trim() !== '') {
-      setActiveAnnouncement(text);
-      const dismissed = sessionStorage.getItem(`tp_announcement_dismissed_${encodeURIComponent(text)}`) === 'true';
-      setAnnouncementDismissed(dismissed);
-    } else {
-      setActiveAnnouncement(null);
-    }
-  };
-
-  const greeting = useMemo(() => getGreeting(), []);
-
   useEffect(() => {
-    checkAnnouncementLocal();
-    window.addEventListener('storage', checkAnnouncementLocal);
-    window.addEventListener('announcement-change', checkAnnouncementLocal);
+    let tasksChannel: any;
+    const channelId = `realtime-user-tasks-${Math.random().toString(36).slice(2, 9)}`;
+
+    tasksChannel = supabase
+      .channel(channelId)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'tasks' },
+        () => {
+          fetchDashboardData();
+        }
+      )
+      .subscribe();
+
     return () => {
-      window.removeEventListener('storage', checkAnnouncementLocal);
-      window.removeEventListener('announcement-change', checkAnnouncementLocal);
+      if (tasksChannel) {
+        supabase.removeChannel(tasksChannel);
+      }
     };
   }, []);
 
   useEffect(() => {
-    const updateTime = () => {
+    try {
+      const storedActivities = localStorage.getItem('tp_user_activities');
+      if (storedActivities) {
+        const parsed = JSON.parse(storedActivities);
+        if (Array.isArray(parsed)) {
+          setActivities(parsed);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  useEffect(() => {
+    const { greeting, period } = resolveGreetingAndPeriod();
+    setGreeting(greeting);
+    setDayPeriod(period);
+    fetchDashboardData();
+
+    const timer = setTimeout(() => setShowSplash(false), 700);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    const updateClock = () => {
       const now = new Date();
-      setPhTime(now.toLocaleTimeString("en-US", { timeZone: "Asia/Manila", hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' }));
-      setPhDate(now.toLocaleDateString("en-US", { timeZone: "Asia/Manila", weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }));
+      const dateFormatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Manila', weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'
+      });
+      const timeFormatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true
+      });
+      setCurrentDate(dateFormatter.format(now));
+      setCurrentTime(timeFormatter.format(now));
+
+      const { greeting, period } = resolveGreetingAndPeriod();
+      setGreeting(greeting);
+      setDayPeriod(period);
     };
-    updateTime();
-    const interval = setInterval(updateTime, 1000);
+
+    updateClock();
+    const interval = setInterval(updateClock, 1000);
     return () => clearInterval(interval);
   }, []);
 
-  const fetchDashboardData = async () => {
+  // Web Audio API Synthesizer for pleasant double chime sound
+  const playPomoChime = () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) { setLoading(false); return; }
-      const uid = session.user.id;
-      setUserId(uid);
-
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("first_name, last_name, role")
-        .eq("id", uid)
-        .single();
-      if (profileData) {
-        setUserName(`${profileData.first_name} ${profileData.last_name}`);
-        setUserRole(profileData.role || "Associate");
-      } else {
-        setUserName(session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "User");
-        setUserRole("Associate");
-      }
-
-      const { count } = await supabase
-        .from("messages")
-        .select("*", { count: "exact", head: true })
-        .eq("receiver_id", uid)
-        .eq("is_read", false);
-      setUnreadMessages(count || 0);
-
-      // Fetch latest global announcement from Supabase
-      try {
-        const { data: dbAnnouncements } = await supabase
-          .from('notifications')
-          .select('*')
-          .eq('type', 'announcement')
-          .order('created_at', { ascending: false })
-          .limit(1);
-
-        if (dbAnnouncements && dbAnnouncements.length > 0) {
-          const text = dbAnnouncements[0].description;
-          localStorage.setItem('sys_show_announcements', '1');
-          localStorage.setItem('sys_announcement_text', text);
-          setActiveAnnouncement(text);
-          const dismissed = sessionStorage.getItem(`tp_announcement_dismissed_${encodeURIComponent(text)}`) === 'true';
-          setAnnouncementDismissed(dismissed);
-        } else {
-          checkAnnouncementLocal();
-        }
-      } catch (err) {
-        checkAnnouncementLocal();
-      }
-
-    } catch {
-      setShowErrorModal(true);
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const playNote = (freq: number, delay: number) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, ctx.currentTime + delay);
+        gain.gain.setValueAtTime(0.12, ctx.currentTime + delay);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + delay + 0.6);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime + delay);
+        osc.stop(ctx.currentTime + delay + 0.6);
+      };
+      playNote(587.33, 0);
+      playNote(880, 0.2);
+    } catch (e) {
+      console.error('Audio chime error:', e);
     }
-    setLoading(false);
   };
 
+  // Restore Pomodoro state from LocalStorage on mount
   useEffect(() => {
-    const fallback = setTimeout(() => setShowSplash(false), 2000);
-    fetchDashboardData().then(() => setTimeout(() => setShowSplash(false), 800));
+    try {
+      const saved = localStorage.getItem('tp_user_pomodoro');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.mode && POMODORO_CONFIG[parsed.mode as PomodoroMode]) {
+          const mode = parsed.mode as PomodoroMode;
+          setPomoMode(mode);
+          let rem = typeof parsed.remainingSeconds === 'number' ? parsed.remainingSeconds : POMODORO_CONFIG[mode].duration;
+          let isRun = !!parsed.isRunning;
+
+          if (isRun && parsed.lastTimestamp) {
+            const elapsed = Math.floor((Date.now() - parsed.lastTimestamp) / 1000);
+            rem = rem - elapsed;
+            if (rem <= 0) {
+              rem = 0;
+              isRun = false;
+              if (mode === 'focus') {
+                setPomoCompletedSessions((prev) => (typeof parsed.completedSessions === 'number' ? parsed.completedSessions + 1 : prev + 1));
+                setPomoNotice('Pomodoro Complete');
+              } else {
+                setPomoNotice('Break Finished');
+              }
+            }
+          }
+          setPomoSeconds(rem);
+          setPomoIsRunning(isRun);
+        }
+        if (typeof parsed.completedSessions === 'number') {
+          setPomoCompletedSessions(parsed.completedSessions);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load Pomodoro state:', err);
+    }
+  }, []);
+
+  // Save Pomodoro state to LocalStorage
+  useEffect(() => {
+    try {
+      const stateToSave = {
+        mode: pomoMode,
+        remainingSeconds: pomoSeconds,
+        isRunning: pomoIsRunning,
+        completedSessions: pomoCompletedSessions,
+        lastTimestamp: Date.now()
+      };
+      localStorage.setItem('tp_user_pomodoro', JSON.stringify(stateToSave));
+    } catch (err) {
+      console.error('Failed to save Pomodoro state:', err);
+    }
+  }, [pomoMode, pomoSeconds, pomoIsRunning, pomoCompletedSessions]);
+
+  // Pomodoro Countdown Interval lifecycle
+  useEffect(() => {
+    let timerId: NodeJS.Timeout | null = null;
+
+    if (pomoIsRunning) {
+      timerId = setInterval(() => {
+        setPomoSeconds((prev) => {
+          if (prev <= 1) {
+            setPomoIsRunning(false);
+            playPomoChime();
+            if (pomoMode === 'focus') {
+              setPomoCompletedSessions((c) => c + 1);
+              setPomoNotice('Pomodoro Complete');
+            } else {
+              setPomoNotice('Break Finished');
+            }
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
 
     return () => {
-      clearTimeout(fallback);
+      if (timerId) clearInterval(timerId);
     };
-  }, []);
+  }, [pomoIsRunning, pomoMode]);
+
+  const handlePomoModeChange = (newMode: PomodoroMode) => {
+    setPomoMode(newMode);
+    setPomoSeconds(POMODORO_CONFIG[newMode].duration);
+    setPomoIsRunning(false);
+    setPomoNotice(null);
+  };
+
+  const handlePomoReset = () => {
+    setPomoSeconds(POMODORO_CONFIG[pomoMode].duration);
+    setPomoIsRunning(false);
+    setPomoNotice(null);
+  };
+
+  const handlePomoSkip = () => {
+    setPomoIsRunning(false);
+    if (pomoMode === 'focus') {
+      handlePomoModeChange('shortBreak');
+    } else {
+      handlePomoModeChange('focus');
+    }
+  };
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await fetchDashboardData();
-    setTimeout(() => setIsRefreshing(false), 600);
+    setTimeout(() => setIsRefreshing(false), 500);
   };
 
-  const quickLinks = [
-    { label: "Attendance", href: "/attendance", icon: CalendarCheck, accent: "group-hover:text-emerald-600 dark:group-hover:text-emerald-400", border: "hover:border-emerald-400 dark:hover:border-emerald-600" },
-    { label: "Calendar", href: "/calendar", icon: Calendar, accent: "group-hover:text-amber-600 dark:group-hover:text-amber-400", border: "hover:border-amber-400 dark:hover:border-amber-600" },
-    // { label: "Teams", href: "/teams", icon: Users, accent: "group-hover:text-blue-600 dark:group-hover:text-blue-400", border: "hover:border-blue-400 dark:hover:border-blue-600" },
-    // { label: "Messages", href: "/messages", icon: MessageSquare, accent: "group-hover:text-violet-600 dark:group-hover:text-violet-400", border: "hover:border-violet-400 dark:hover:border-violet-600" },
-    { label: "Playground", href: "/playground", icon: Gamepad2, accent: "group-hover:text-rose-600 dark:group-hover:text-rose-400", border: "hover:border-rose-400 dark:hover:border-rose-600" }
-  ];
+  // Activity Modal Handlers
+  const openLogModal = () => {
+    setActivityForm(emptyActivityForm);
+    setIsLogModalOpen(true);
+  };
+
+  const closeLogModal = () => {
+    setIsLogModalOpen(false);
+  };
+
+  const handleFormChange = (field: keyof Omit<ActivityEvent, 'id'>, value: string) => {
+    setActivityForm((prev) => ({ ...prev, [field]: value }) as Omit<ActivityEvent, 'id'>);
+  };
+
+  const handleSaveActivity = () => {
+    if (!activityForm.title.trim() || !activityForm.date) return;
+    const newEvent: ActivityEvent = { id: `evt-${Date.now()}`, ...activityForm };
+    setActivities((prev) => {
+      const next = [newEvent, ...prev];
+      try {
+        localStorage.setItem('tp_user_activities', JSON.stringify(next));
+      } catch (e) {
+        console.error(e);
+      }
+      return next;
+    });
+    setSelectedMiniDate(newEvent.date);
+    setIsLogModalOpen(false);
+    setActivityForm(emptyActivityForm);
+  };
+
+  const goToPrevMiniMonth = () => {
+    setMiniCalendarMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+  };
+
+  const goToNextMiniMonth = () => {
+    setMiniCalendarMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+  };
+
+  const handleEventClick = (evt: ActivityEvent) => {
+    setSelectedEvent(evt);
+  };
+
+  const handleDeleteEvent = () => {
+    if (!selectedEvent) return;
+    setActivities((prev) => {
+      const next = prev.filter((a) => a.id !== selectedEvent.id);
+      try {
+        localStorage.setItem('tp_user_activities', JSON.stringify(next));
+      } catch (e) {
+        console.error(e);
+      }
+      return next;
+    });
+    setSelectedEvent(null);
+  };
+
+  const filteredActivities = useMemo(() => {
+    if (!selectedMiniDate) return activities;
+    return activities.filter((act) => act.date === selectedMiniDate);
+  }, [activities, selectedMiniDate]);
+
+  const sortedActivities = [...filteredActivities].sort((a, b) => b.date.localeCompare(a.date));
+  const selectedTaskForModal = userTasks.find((t) => t.id === selectedTaskIdForModal) || null;
 
   return (
-    <div className={styles.container}>
+    <div className={styles.shell} style={{ minHeight: 'auto', background: 'transparent' }}>
       <WelcomeModal userName={userName} role={userRole} />
+
       {showSplash && (
-        <div className={styles.splashOverlay}>
-          <div className={styles.splashInner}>
-            <div className={styles.splashAnimation}>
-              <div className={styles.splashBlur} />
-              <div className={styles.splashBorder} />
-              <div className={styles.splashSpinner} />
-              <svg viewBox="0 0 100 100" className={styles.splashSvg}>
-                <defs>
-                  <filter id="splash-shadow" x="-15%" y="-15%" width="130%" height="130%">
-                    <feDropShadow dx="1" dy="2" stdDeviation="1.5" floodColor="#000000" floodOpacity="0.5" />
-                  </filter>
-                  <radialGradient id="splash-globe-3d" cx="35%" cy="35%" r="65%">
-                    <stop offset="0%" stopColor="#FFECA0" />
-                    <stop offset="50%" stopColor="#F4C542" />
-                    <stop offset="90%" stopColor="#B28200" />
-                    <stop offset="100%" stopColor="#7C5B00" />
-                  </radialGradient>
-                  <linearGradient id="splash-ray-metal" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#FFF2B2" />
-                    <stop offset="30%" stopColor="#F4C542" />
-                    <stop offset="70%" stopColor="#D89D00" />
-                    <stop offset="100%" stopColor="#966C00" />
-                  </linearGradient>
-                  <mask id="splash-grid-mask">
-                    <rect x="0" y="0" width="100" height="100" fill="white" />
-                    <path d="M 10 52 Q 45 38 80 52" stroke="black" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-                    <path d="M 12 68 Q 45 54 78 68" stroke="black" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-                    <path d="M 26 27 Q 44 55 26 83" stroke="black" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-                    <path d="M 43 23 Q 60 55 43 87" stroke="black" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-                    <path d="M 60 27 Q 73 55 60 83" stroke="black" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-                  </mask>
-                </defs>
-                <path d="M 30 25 Q 31 15 34 13 Q 38 18 41 21 Q 43 11 47 9 Q 50 15 52 19 Q 57 10 61 9 Q 63 16 64 21 Q 70 13 75 13 Q 76 20 76 25 Q 83 19 87 20 Q 86 28 85 32 Q 93 29 96 32 Q 94 39 91 43 Q 99 42 101 46 Q 97 52 94 55 Q 101 56 101 61 Q 96 66 92 68 Q 98 71 96 77 Q 90 79 86 81 Q 90 85 87 91 Q 81 90 76 87 Q 78 95 73 98 Q 69 94 66 90 Q 66 97 60 99 Q 57 93 55 89" fill="url(#splash-ray-metal)" filter="url(#splash-shadow)" />
-                <circle cx="45" cy="56" r="31" fill="url(#splash-globe-3d)" mask="url(#splash-grid-mask)" filter="url(#splash-shadow)" />
-                <path d="M 20 38 A 31 31 0 0 1 70 38 A 28 28 0 0 0 20 38 Z" fill="rgba(255,255,255,0.25)" mask="url(#splash-grid-mask)" pointerEvents="none" />
-              </svg>
-            </div>
-            <div className={styles.splashTextWrapper}>
-              <p className={styles.splashText}>Syncing your dashboard...</p>
-            </div>
+        <div className={styles.splash}>
+          <div className={styles.splashRing}>
+            <div className={styles.splashSpin} />
+            <div className={styles.splashDot} />
           </div>
+          <p className={styles.splashLabel}>Syncing personal dashboard</p>
         </div>
       )}
 
-      {showErrorModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-[#17181B] border border-white/10 rounded-2xl p-6 max-w-sm w-full shadow-2xl flex flex-col items-center text-center">
-            <div className="text-rose-500 mb-4"><AlertTriangle size={48} /></div>
-            <h2 className="text-xl font-bold text-white mb-2">Connection Timeout</h2>
-            <p className="text-sm text-muted-foreground mb-6">
-              We are having trouble loading your dashboard right now. Please check your internet connection or try refreshing.
-            </p>
-            <div className="flex gap-3 w-full">
-              <button
-                onClick={async () => { setShowErrorModal(false); await handleRefresh(); }}
-                className="flex-1 bg-white text-black py-2 rounded-xl font-bold hover:bg-white/90 transition"
-              >
-                Reconnect
-              </button>
-              <button
-                onClick={() => setShowErrorModal(false)}
-                className="flex-1 bg-white/10 text-white py-2 rounded-xl font-bold hover:bg-white/20 transition"
-              >
-                Dismiss
-              </button>
-            </div>
+      <motion.main className={styles.content} style={{ padding: '1rem 0' }} variants={containerVariants} initial="hidden" animate="show">
+        {/* 1. HERO SECTION */}
+        <motion.section variants={fadeVariants}>
+          <DashboardHero
+            adminName={userName}
+            greeting={greeting}
+            dayPeriod={dayPeriod}
+            currentDate={currentDate}
+            currentTime={currentTime}
+            isRefreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            portals={portals}
+            customPortals={customPortals}
+            pomoMode={pomoMode}
+            pomoSeconds={pomoSeconds}
+            pomoIsRunning={pomoIsRunning}
+            pomoCompletedSessions={pomoCompletedSessions}
+            pomoNotice={pomoNotice}
+            onPomoModeChange={handlePomoModeChange}
+            onPomoTogglePlay={() => {
+              setPomoNotice(null);
+              setPomoIsRunning(!pomoIsRunning);
+            }}
+            onPomoReset={handlePomoReset}
+            onPomoSkip={handlePomoSkip}
+          />
+        </motion.section>
+
+        {/* 2. BOARD GRID (3 COLUMNS) */}
+        <motion.div variants={fadeVariants} className={styles.boardGrid}>
+
+          {/* Column 1: Client Servicing Monitoring */}
+          <div className={styles.boardCol}>
+            <TaskList
+              tasks={userTasks}
+              allProfiles={allProfiles}
+              bizDevProfiles={bizDevProfiles}
+              onCreateTask={handleCreateTask}
+              onToggleComplete={handleToggleCheckbox}
+              onSelectTask={(id) => setSelectedTaskIdForModal(id)}
+              isUserView={true}
+            />
           </div>
-        </div>
-      )}
 
-      <div className={styles.mainWrapper}>
-        <div className={styles.mainContent}>
-          <WelcomeHero userName={userName} role={userRole} />
+          {/* Column 2: Client Birthdays, Calendar of Activities & To-do */}
+          <div className={styles.centerCol}>
+            <BirthdayCard birthdays={clientBirthdays} />
 
-          {activeAnnouncement && !announcementDismissed && (
-            <div className="relative overflow-hidden rounded-2xl p-5 mb-6 border border-amber-500/30 bg-amber-500/5 dark:bg-amber-500/10 backdrop-blur-md shadow-lg animate-in slide-in-from-top duration-300">
-              <div className="absolute top-0 right-0 w-2 h-2 rounded-full bg-amber-505 animate-ping m-4" style={{ backgroundColor: '#F4C542' }} />
-              <div className="absolute top-0 right-0 w-2 h-2 rounded-full m-4" style={{ backgroundColor: '#F4C542' }} />
-              
-              <div className="flex gap-4 items-start pr-8">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border border-amber-500/20 shadow-inner" style={{ backgroundColor: 'rgba(244, 197, 66, 0.1)', borderColor: 'rgba(244, 197, 66, 0.2)', color: '#F4C542' }}>
-                  <Bell size={20} className="animate-bounce" />
+            <div className={styles.activitiesCard}>
+              <div className={styles.dashboardCardHeader}>
+                <div className={styles.dashboardCardTitle}>
+                  <CalendarDays size={14} strokeWidth={1.8} />
+                  <h3>Calendar of Activities</h3>
                 </div>
-                <div className="flex-1 space-y-1">
-                  <h4 className="text-xs font-extrabold uppercase tracking-wider flex items-center gap-1.5" style={{ color: '#F4C542' }}>
-                    Global System Announcement
-                  </h4>
-                  <p className="text-xs md:text-sm leading-relaxed font-medium" style={{ color: 'var(--text)' }}>
-                    {activeAnnouncement}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => {
-                  sessionStorage.setItem(`tp_announcement_dismissed_${encodeURIComponent(activeAnnouncement)}`, 'true');
-                  setAnnouncementDismissed(true);
-                }}
-                className="absolute top-3 right-3 p-1 rounded-lg hover:bg-amber-500/10 transition-colors"
-                style={{ color: '#F4C542', border: 'none', background: 'none', cursor: 'pointer' }}
-                aria-label="Dismiss announcement"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-          )}
 
-          {/* External Portals */}
-          <div>
-            <div className={styles.sectionHeader}>
-              <div className={styles.sectionIconWrapper}>
-                <ArrowUpRight size={14} />
-              </div>
-              <div>
-                <h2 className={styles.sectionTitle}>External Portals</h2>
-                <p className={styles.sectionSubtitle}>Quick access shortcuts to primary service domains and tools</p>
-              </div>
-            </div>
-
-            <div className={styles.portalsGrid}>
-              <a href="https://www.sunlife.com.ph/en/" target="_blank" rel="noopener noreferrer" className={`${styles.portalCard} ${styles.portalCardYellow} group`}>
-                <svg viewBox="0 0 100 100" className={styles.portalIcon}>
-                  <defs>
-                    <filter id="sl-shadow-1" x="-10%" y="-10%" width="130%" height="130%">
-                      <feDropShadow dx="1.5" dy="2.5" stdDeviation="2" floodColor="#000000" floodOpacity="0.4" />
-                    </filter>
-                    <radialGradient id="sl-globe-1" cx="35%" cy="35%" r="65%">
-                      <stop offset="0%" stopColor="#FFECA0" /><stop offset="50%" stopColor="#F4C542" /><stop offset="90%" stopColor="#B28200" /><stop offset="100%" stopColor="#7C5B00" />
-                    </radialGradient>
-                    <linearGradient id="sl-ray-1" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#FFF2B2" /><stop offset="30%" stopColor="#F4C542" /><stop offset="70%" stopColor="#D89D00" /><stop offset="100%" stopColor="#966C00" />
-                    </linearGradient>
-                    <mask id="sl-mask-1">
-                      <rect x="0" y="0" width="100" height="100" fill="white" />
-                      <path d="M 10 52 Q 45 38 80 52" stroke="black" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-                      <path d="M 12 68 Q 45 54 78 68" stroke="black" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-                      <path d="M 26 27 Q 44 55 26 83" stroke="black" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-                      <path d="M 43 23 Q 60 55 43 87" stroke="black" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-                      <path d="M 60 27 Q 73 55 60 83" stroke="black" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-                    </mask>
-                  </defs>
-                  <path d="M 30 25 Q 31 15 34 13 Q 38 18 41 21 Q 43 11 47 9 Q 50 15 52 19 Q 57 10 61 9 Q 63 16 64 21 Q 70 13 75 13 Q 76 20 76 25 Q 83 19 87 20 Q 86 28 85 32 Q 93 29 96 32 Q 94 39 91 43 Q 99 42 101 46 Q 97 52 94 55 Q 101 56 101 61 Q 96 66 92 68 Q 98 71 96 77 Q 90 79 86 81 Q 90 85 87 91 Q 81 90 76 87 Q 78 95 73 98 Q 69 94 66 90 Q 66 97 60 99 Q 57 93 55 89" fill="url(#sl-ray-1)" filter="url(#sl-shadow-1)" />
-                  <circle cx="45" cy="56" r="31" fill="url(#sl-globe-1)" mask="url(#sl-mask-1)" filter="url(#sl-shadow-1)" />
-                  <path d="M 20 38 A 31 31 0 0 1 70 38 A 28 28 0 0 0 20 38 Z" fill="rgba(255,255,255,0.22)" mask="url(#sl-mask-1)" pointerEvents="none" />
-                </svg>
-                <span className={styles.portalLabel}>Sun Life Portal</span>
-              </a>
-
-              <a href="https://advisorhomeoffice.sunlife.com.ph/aho/index.html#/:" target="_blank" rel="noopener noreferrer" className={`${styles.portalCard} ${styles.portalCardYellow} group`}>
-                <svg viewBox="0 0 100 100" className={styles.portalIcon}>
-                  <defs>
-                    <filter id="sl-shadow-2" x="-10%" y="-10%" width="130%" height="130%">
-                      <feDropShadow dx="1.5" dy="2.5" stdDeviation="2" floodColor="#000000" floodOpacity="0.4" />
-                    </filter>
-                    <radialGradient id="sl-globe-2" cx="35%" cy="35%" r="65%">
-                      <stop offset="0%" stopColor="#FFECA0" /><stop offset="50%" stopColor="#F4C542" /><stop offset="90%" stopColor="#B28200" /><stop offset="100%" stopColor="#7C5B00" />
-                    </radialGradient>
-                    <linearGradient id="sl-ray-2" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#FFF2B2" /><stop offset="30%" stopColor="#F4C542" /><stop offset="70%" stopColor="#D89D00" /><stop offset="100%" stopColor="#966C00" />
-                    </linearGradient>
-                    <mask id="sl-mask-2">
-                      <rect x="0" y="0" width="100" height="100" fill="white" />
-                      <path d="M 10 52 Q 45 38 80 52" stroke="black" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-                      <path d="M 12 68 Q 45 54 78 68" stroke="black" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-                      <path d="M 26 27 Q 44 55 26 83" stroke="black" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-                      <path d="M 43 23 Q 60 55 43 87" stroke="black" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-                      <path d="M 60 27 Q 73 55 60 83" stroke="black" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-                    </mask>
-                  </defs>
-                  <path d="M 30 25 Q 31 15 34 13 Q 38 18 41 21 Q 43 11 47 9 Q 50 15 52 19 Q 57 10 61 9 Q 63 16 64 21 Q 70 13 75 13 Q 76 20 76 25 Q 83 19 87 20 Q 86 28 85 32 Q 93 29 96 32 Q 94 39 91 43 Q 99 42 101 46 Q 97 52 94 55 Q 101 56 101 61 Q 96 66 92 68 Q 98 71 96 77 Q 90 79 86 81 Q 90 85 87 91 Q 81 90 76 87 Q 78 95 73 98 Q 69 94 66 90 Q 66 97 60 99 Q 57 93 55 89" fill="url(#sl-ray-2)" filter="url(#sl-shadow-2)" />
-                  <circle cx="45" cy="56" r="31" fill="url(#sl-globe-2)" mask="url(#sl-mask-2)" filter="url(#sl-shadow-2)" />
-                  <path d="M 20 38 A 31 31 0 0 1 70 38 A 28 28 0 0 0 20 38 Z" fill="rgba(255,255,255,0.22)" mask="url(#sl-mask-2)" pointerEvents="none" />
-                </svg>
-                <span className={styles.portalLabel}>Advisor Office</span>
-              </a>
-
-              <a href="https://docs.google.com/spreadsheets/" target="_blank" rel="noopener noreferrer" className={`${styles.portalCard} ${styles.portalCardGreen} group`}>
-                <svg viewBox="0 0 100 100" className={styles.portalIcon}>
-                  <defs>
-                    <filter id="excel-shadow-user" x="-10%" y="-10%" width="130%" height="130%">
-                      <feDropShadow dx="1.5" dy="2.5" stdDeviation="2" floodColor="#000000" floodOpacity="0.4" />
-                    </filter>
-                    <linearGradient id="ex-bg-user" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#1F9A55" /><stop offset="100%" stopColor="#0B4C28" />
-                    </linearGradient>
-                    <linearGradient id="ex-plate-user" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" stopColor="#167C41" /><stop offset="100%" stopColor="#0D522A" />
-                    </linearGradient>
-                    <linearGradient id="ex-x-user" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#FFFFFF" /><stop offset="100%" stopColor="#E0E0E0" />
-                    </linearGradient>
-                  </defs>
-                  <rect x="30" y="15" width="55" height="70" rx="14" fill="url(#ex-bg-user)" filter="url(#excel-shadow-user)" />
-                  <path d="M 44 15 L 85 56 L 85 15 Z" fill="rgba(255,255,255,0.08)" />
-                  <rect x="15" y="32" width="36" height="36" rx="8" fill="url(#ex-plate-user)" filter="url(#excel-shadow-user)" stroke="#1F9A55" strokeWidth="1" />
-                  <rect x="16" y="33" width="34" height="34" rx="7" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
-                  <path d="M24 41 L30 41 L33 50 L36 41 L42 41 L36 53 L42 65 L36 65 L33 56 L30 65 L24 65 L30 53 Z" fill="url(#ex-x-user)" />
-                </svg>
-                <span className={styles.portalLabel}>Google Sheets</span>
-              </a>
-
-              <a href="https://teampaduatracker.vercel.app/tasktracker" target="_blank" rel="noopener noreferrer" className={`${styles.portalCard} ${styles.portalCardYellow} group flex flex-col items-center justify-center`}>
-                <img
-                  src="/Image/icon/TP.png"
-                  alt="Task Tracker"
-                  className="w-14 h-14 object-contain transition-transform duration-300 group-hover:scale-110"
-                />
-                <span className={`${styles.portalLabel} mt-3`}>Task Tracker</span>
-              </a>
-
-              <a href="https://www.jotform.com/" target="_blank" rel="noopener noreferrer" className={`${styles.portalCard} ${styles.portalCardYellow} group`}>
-                <svg viewBox="0 0 100 100" className={styles.portalIcon}>
-                  <defs>
-                    <filter id="jot-shadow-user" x="-10%" y="-10%" width="130%" height="130%">
-                      <feDropShadow dx="1" dy="2" stdDeviation="1.8" floodColor="#000000" floodOpacity="0.45" />
-                    </filter>
-                    <linearGradient id="jt-blue-user" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" stopColor="#66B7FF" /><stop offset="30%" stopColor="#0087FF" /><stop offset="100%" stopColor="#004C99" />
-                    </linearGradient>
-                    <linearGradient id="jt-orange-user" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" stopColor="#FF9455" /><stop offset="30%" stopColor="#FF6100" /><stop offset="100%" stopColor="#B23E00" />
-                    </linearGradient>
-                    <linearGradient id="jt-yellow-user" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" stopColor="#FFD366" /><stop offset="30%" stopColor="#FFB700" /><stop offset="100%" stopColor="#B27A00" />
-                    </linearGradient>
-                    <linearGradient id="jt-dark-user" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#1E3275" /><stop offset="100%" stopColor="#061138" />
-                    </linearGradient>
-                  </defs>
-                  <path d="M 12 62 C 12 60, 14 59, 16 61 L 39 84 C 41 86, 40 88, 38 88 L 16 88 C 14 88, 12 86, 12 84 Z" fill="url(#jt-dark-user)" filter="url(#jot-shadow-user)" />
-                  <g filter="url(#jot-shadow-user)">
-                    <path d="M 52 13 C 58 19, 58 29, 52 35 L 34 53 C 28 59, 18 59, 12 53 C 6 47, 6 37, 12 31 L 30 13 C 36 7, 46 7, 52 13 Z" fill="url(#jt-blue-user)" />
-                    <path d="M 48 16 C 52 20, 52 27, 48 31 L 34 45 C 32 47, 28 47, 26 45 C 24 43, 24 39, 26 37 L 40 23 C 42 21, 45 19, 48 16 Z" fill="rgba(255,255,255,0.25)" pointerEvents="none" />
-                  </g>
-                  <g filter="url(#jot-shadow-user)">
-                    <path d="M 78 27 C 84 33, 84 43, 78 49 L 49 78 C 43 84, 33 84, 27 78 C 21 72, 21 62, 27 56 L 56 27 C 62 21, 72 21, 78 27 Z" fill="url(#jt-orange-user)" />
-                    <path d="M 74 30 C 78 34, 78 41, 74 45 L 49 70 C 47 72, 43 72, 41 70 C 39 68, 39 64, 41 62 L 66 37 C 68 35, 71 33, 74 30 Z" fill="rgba(255,255,255,0.25)" pointerEvents="none" />
-                  </g>
-                  <g filter="url(#jot-shadow-user)">
-                    <path d="M 83 53 C 89 59, 89 69, 83 75 L 69 89 C 63 95, 53 95, 47 89 C 41 83, 41 73, 47 67 L 61 53 C 67 47, 77 47, 83 53 Z" fill="url(#jt-yellow-user)" />
-                    <path d="M 79 56 C 83 60, 83 67, 79 71 L 69 81 C 67 83, 63 83, 61 81 C 59 79, 59 75, 61 73 L 71 63 C 73 61, 76 59, 79 56 Z" fill="rgba(255,255,255,0.25)" pointerEvents="none" />
-                  </g>
-                </svg>
-                <span className={styles.portalLabel}>JotForm</span>
-              </a>
-
-              <a href="https://form.jotform.com/261829362405055" target="_blank" rel="noopener noreferrer" className={`${styles.portalCard} ${styles.portalCardYellow} group flex flex-col items-center justify-center`}>
-                <img
-                  src="/Image/icon/Form.png"
-                  alt="JotForm Intern"
-                  className="w-14 h-14 object-contain transition-transform duration-300 group-hover:scale-110"
-                />
-                <span className={`${styles.portalLabel} mt-3`}>JotForm Intern</span>
-              </a>
-
-              <a href="https://drive.google.com/drive/folders/1ZLNJHFUFYDkVG9pQwMF2hio89j7vp04x?dmr=1&ec=wgc-drive-hero-goto" target="_blank" rel="noopener noreferrer" className={`${styles.portalCard} ${styles.portalCardGreen} group flex flex-col items-center justify-center`}>
-                <img
-                  src="/Image/icon/drive.png"
-                  alt="Google Drive"
-                  className="w-12 h-10 object-contain transition-transform duration-300 group-hover:scale-110"
-                />
-                <span className={`${styles.portalLabel} mt-3`}>Google Drive</span>
-              </a>
-
-              <a href="https://teams.microsoft.com/" target="_blank" rel="noopener noreferrer" className={`${styles.portalCard} ${styles.portalCardYellow} group`}>
-                <svg viewBox="0 0 100 100" className={styles.portalIcon}>
-                  <defs>
-                    <filter id="teams-shadow-user" x="-10%" y="-10%" width="130%" height="130%">
-                      <feDropShadow dx="1" dy="2" stdDeviation="1.8" floodColor="#000000" floodOpacity="0.4" />
-                    </filter>
-                    <linearGradient id="teams-bg-grad-user" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#7B83EB" /><stop offset="100%" stopColor="#464EB8" />
-                    </linearGradient>
-                    <linearGradient id="teams-icon-grad-user" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#5B64E2" /><stop offset="100%" stopColor="#3B429F" />
-                    </linearGradient>
-                  </defs>
-                  <rect x="25" y="20" width="55" height="55" rx="12" fill="url(#teams-bg-grad-user)" filter="url(#teams-shadow-user)" />
-                  <rect x="15" y="32" width="30" height="30" rx="8" fill="url(#teams-icon-grad-user)" filter="url(#teams-shadow-user)" />
-                  <text x="30" y="53" fill="white" fontSize="16" fontWeight="bold" fontFamily="sans-serif" textAnchor="middle">T</text>
-                  <circle cx="60" cy="38" r="8" fill="white" />
-                  <path d="M48 58 C48 51, 54 48, 60 48 C66 48, 72 51, 72 58 Z" fill="white" />
-                </svg>
-                <span className={styles.portalLabel}>Microsoft Teams</span>
-              </a>
-
-              <a href="https://www.canva.com/" target="_blank" rel="noopener noreferrer" className={`${styles.portalCard} ${styles.portalCardPink} group`}>
-                <svg viewBox="0 0 100 100" className={styles.portalIcon}>
-                  <defs>
-                    <filter id="canva-shadow-user" x="-10%" y="-10%" width="130%" height="130%">
-                      <feDropShadow dx="1" dy="2" stdDeviation="1.8" floodColor="#000000" floodOpacity="0.4" />
-                    </filter>
-                    <linearGradient id="canva-grad-user" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#00C4CC" />
-                      <stop offset="50%" stopColor="#7D2AE8" />
-                      <stop offset="100%" stopColor="#FF4F9A" />
-                    </linearGradient>
-                  </defs>
-                  <circle cx="50" cy="50" r="40" fill="url(#canva-grad-user)" filter="url(#canva-shadow-user)" />
-                  <text x="50" y="56" fill="white" fontSize="16" fontWeight="bold" fontFamily="'Fredoka One', 'Comfortaa', 'Nunito', sans-serif" textAnchor="middle" letterSpacing="-0.5">Canva</text>
-                </svg>
-                <span className={styles.portalLabel}>Canva</span>
-              </a>
-              <a href="https://zoom.us/" target="_blank" rel="noopener noreferrer" className={`${styles.portalCard} ${styles.portalCardYellow} group`}>
-                <svg viewBox="0 0 100 100" className={styles.portalIcon}>
-                  <defs>
-                    <filter id="zoom-shadow-user" x="-10%" y="-10%" width="130%" height="130%">
-                      <feDropShadow dx="1" dy="2" stdDeviation="1.8" floodColor="#000000" floodOpacity="0.4" />
-                    </filter>
-                    <linearGradient id="zoom-grad-user" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#2D8CFF" />
-                      <stop offset="100%" stopColor="#0B5CFF" />
-                    </linearGradient>
-                  </defs>
-                  <circle cx="50" cy="50" r="40" fill="url(#zoom-grad-user)" filter="url(#zoom-shadow-user)" />
-                  <path d="M 33 42 C 33 40, 35 38, 37 38 L 57 38 C 59 38, 61 40, 61 42 L 61 58 C 61 60, 59 62, 57 62 L 37 62 C 35 62, 33 60, 33 58 Z M 63 45 L 75 37 L 75 63 L 63 55 Z" fill="white" />
-                </svg>
-                <span className={styles.portalLabel}>Zoom</span>
-              </a>
-
-              {customPortals.map((portal, idx) => (
-                <a
-                  key={`custom-portal-${idx}`}
-                  href={portal.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`${styles.portalCard} group flex flex-col items-center justify-center`}
-                  style={{
-                    backgroundColor: 'var(--surface)',
-                    border: '1px solid var(--border)',
-                    boxShadow: 'var(--shadow-theme)',
-                    minHeight: '120px',
-                    borderRadius: '16px'
-                  }}
-                >
-                  {portal.iconUrl ? (
-                    <img
-                      src={portal.iconUrl}
-                      alt={portal.name}
-                      className="w-14 h-14 object-contain transition-transform duration-300 group-hover:scale-110"
-                    />
-                  ) : (
-                    <div
-                      className="w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold transition-transform duration-300 group-hover:scale-110"
-                      style={{
-                        backgroundColor: 'var(--surface-2)',
-                        border: '1px solid var(--border)',
-                        color: 'var(--text)'
-                      }}
+                {selectedMiniDate && (
+                  <div className={styles.activityDateFilterBadge}>
+                    <span>Date: {selectedMiniDate}</span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedMiniDate(null)}
+                      className={styles.clearDateFilterBtn}
+                      title="Clear date filter"
                     >
-                      {portal.name.charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                  <span className={`${styles.portalLabel} mt-3`}>{portal.name}</span>
-                </a>
-              ))}
+                      &times;
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div className={styles.dashboardCardBody}>
+                {sortedActivities.length === 0 ? (
+                  <div className={styles.emptyStateContainer}>
+                    <div className={styles.emptyStateIcon}>📅</div>
+                    <div className={styles.emptyStateTitle}>No activities scheduled {selectedMiniDate ? `for ${selectedMiniDate}` : ''}</div>
+                    <div className={styles.emptyStateDescription}>Log an activity to manage client schedules.</div>
+                  </div>
+                ) : (
+                  <div className={styles.activityList}>
+                    {sortedActivities.map((act) => (
+                      <ActivityCard
+                        key={act.id}
+                        activity={act}
+                        onSelect={handleEventClick}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
+
+            {/* To-do Widget connected to Client Servicing Monitoring */}
+            <ClientServicingToDo
+              tasks={userTasks}
+              allProfiles={allProfiles}
+              bizDevProfiles={bizDevProfiles}
+              onToggleComplete={handleToggleCheckbox}
+              onSelectTask={(id) => setSelectedTaskIdForModal(id)}
+            />
           </div>
 
-          {/* Navigation Shortcuts */}
-          <div>
-            <div className={styles.sectionHeader}>
-              <div className={styles.sectionIconWrapper}>
-                <ArrowUpRight size={14} />
-              </div>
-              <div>
-                <h2 className={styles.sectionTitle}>Navigation Portal Shortcuts</h2>
-                <p className={styles.sectionSubtitle}>Quick internal routing to primary workspace modules</p>
-              </div>
-            </div>
+          {/* Column 3: Client Servicing Request Forms & Activity Tracker Calendar */}
+          <div className={styles.boardCol}>
+            <RequestFormsAccordion kpis={kpis} />
 
-            <div className={styles.navGrid}>
-              {quickLinks.map((link) => {
-                const Icon = link.icon;
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className={`${styles.navCard} group block`}
-                  >
-                    <div className={styles.navCardAccent} />
-                    <div className={styles.navCardHeader}>
-                      <div className={styles.navCardIconWrapper}>
-                        <Icon size={18} />
-                      </div>
-                      <ChevronRight size={16} className={styles.navCardChevron} />
-                    </div>
-                    <div className={styles.navCardContent}>
-                      <h3 className={styles.navCardTitle}>{link.label}</h3>
-                      <p className={styles.navCardSubtitle}>Access {link.label.toLowerCase()} module</p>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
+            <ActivityCalendar
+              activities={activities}
+              miniCalendarMonth={miniCalendarMonth}
+              selectedMiniDate={selectedMiniDate}
+              onPrevMonth={goToPrevMiniMonth}
+              onNextMonth={goToNextMiniMonth}
+              onSelectDate={(dateKey) => setSelectedMiniDate(dateKey)}
+              onOpenLogModal={openLogModal}
+              onSelectEvent={handleEventClick}
+            />
           </div>
+        </motion.div>
 
-          {/* Footer */}
-          <footer className={styles.footer}>
-            <div>TeamPadua Member Terminal • 2026</div>
-            <div className={styles.footerRight}>
-              <span>SLA: 99.99%</span>
-              <span>Secure Layer Online</span>
-            </div>
-          </footer>
-        </div>
-      </div>
+        {/* 5. FOOTER */}
+        <motion.footer variants={fadeVariants} className={styles.footer}>
+          <span>TeamPadua Member Terminal &bull; 2026</span>
+          <div className={styles.footerRight}>
+            <span className={styles.footerPill}><span className={styles.footerDot} />SLA 99.99%</span>
+            <span className={styles.footerPill}><span className={styles.footerDot} />Secure Layer Online</span>
+            <span className={styles.footerPill}><span className={styles.footerDot} />{portals.length + customPortals.length} Portals Linked</span>
+          </div>
+        </motion.footer>
+      </motion.main>
+
+      {/* 6. MODALS */}
+      {isMounted && isLogModalOpen && createPortal(
+        <ActivityModal
+          activityForm={activityForm}
+          onChangeForm={handleFormChange}
+          onSave={handleSaveActivity}
+          onClose={closeLogModal}
+        />,
+        document.body
+      )}
+
+      {isMounted && selectedEvent && createPortal(
+        <EventDetailsModal
+          event={selectedEvent}
+          onDelete={handleDeleteEvent}
+          onClose={() => setSelectedEvent(null)}
+        />,
+        document.body
+      )}
+
+      {isMounted && selectedTaskForModal && createPortal(
+        <TaskModal
+          task={selectedTaskForModal}
+          allProfiles={allProfiles}
+          bizDevProfiles={bizDevProfiles}
+          onSaveField={saveTaskField}
+          onDeleteTask={handleDeleteTask}
+          onClose={() => setSelectedTaskIdForModal(null)}
+          isUserView={true}
+        />,
+        document.body
+      )}
     </div>
   );
 }

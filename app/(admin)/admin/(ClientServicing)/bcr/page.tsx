@@ -2,16 +2,21 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-  Plus, Search, Edit2, Trash2, X, Download, AlertCircle, Loader2, Save, CheckCircle2, FileText, Inbox
+  Plus, Search, Edit2, Trash2, X, Download, AlertCircle, Loader2, Save, CheckCircle2, FileText, Inbox, ArrowLeft
 } from 'lucide-react';
 import Header from '@/app/components/admin/AdminHeader';
 import Sidebar from '@/app/components/admin/AdminSidebar';
 import { supabase } from "@/app/lib/supabase/client";
 import styles from "@/styles/admin/cpst/page.module.css";
-import SignaturePad from '@/app/components/ui/SignaturePad';
-import ClientSelector from '@/app/components/shared/ClientSelector';
+import dynamic from 'next/dynamic';
 
 import { generateBeneficiaryChangeRequestPdfFromTemplate } from '@/app/lib/pdf/generateBeneficiaryChangeRequestPdfFromTemplate';
+import { bcrFormConfig } from '@/app/components/bcr-engine/bcrConfig';
+
+const BcrPdfViewer = dynamic(
+  () => import('@/app/components/bcr-engine/BcrPdfViewer'),
+  { ssr: false }
+);
 
 const TABLE_NAME = 'beneficiary_change_requests';
 
@@ -152,9 +157,7 @@ const defaultRecord: Omit<BcrRecord, 'id' | 'client_id' | 'created_at'> = {
   planholder_first_name: '',
   planholder_mi: '',
   company_name: '',
-
   change_type: '',
-
   beneficiary1_name: '',
   beneficiary1_sex: '',
   beneficiary1_birthdate: '',
@@ -166,7 +169,6 @@ const defaultRecord: Omit<BcrRecord, 'id' | 'client_id' | 'created_at'> = {
   beneficiary1_designation: '',
   beneficiary1_phone: '',
   beneficiary1_address: '',
-
   beneficiary2_name: '',
   beneficiary2_sex: '',
   beneficiary2_birthdate: '',
@@ -178,10 +180,8 @@ const defaultRecord: Omit<BcrRecord, 'id' | 'client_id' | 'created_at'> = {
   beneficiary2_designation: '',
   beneficiary2_phone: '',
   beneficiary2_address: '',
-
   remove_beneficiary1_name: '',
   remove_beneficiary2_name: '',
-
   change_original_name: '',
   check_name: false,
   change_new_name: '',
@@ -206,7 +206,6 @@ const defaultRecord: Omit<BcrRecord, 'id' | 'client_id' | 'created_at'> = {
   change_phone: '',
   check_address: false,
   change_address: '',
-
   check_company_name: false,
   change_company_name: '',
   check_company_relationship: false,
@@ -220,12 +219,10 @@ const defaultRecord: Omit<BcrRecord, 'id' | 'client_id' | 'created_at'> = {
   change_company_phone: '',
   check_company_address: false,
   change_company_address: '',
-
-  compliance_type: 'none',
+  compliance_type: '',
   compliance_resident_country: '',
   compliance_citizen_country: '',
   compliance_legally_reside_country: '',
-
   place_of_signing: '',
   date_of_signing: new Date().toISOString().split('T')[0],
   planholder_signature: '',
@@ -236,96 +233,33 @@ const defaultRecord: Omit<BcrRecord, 'id' | 'client_id' | 'created_at'> = {
   company_signatory2_name_title: '',
   witness_signature: '',
   witness_name: '',
-
   irrevocable_ben1_signature: '',
   irrevocable_ben1_name: '',
   irrevocable_ben1_witness_signature: '',
   irrevocable_ben1_witness_name: '',
   irrevocable_ben1_place: '',
-  irrevocable_ben1_date: new Date().toISOString().split('T')[0],
-
+  irrevocable_ben1_date: '',
   irrevocable_ben2_signature: '',
   irrevocable_ben2_name: '',
   witness2_signature: '',
   witness2_name: '',
   irrevocable_ben2_place: '',
-  irrevocable_ben2_date: new Date().toISOString().split('T')[0],
-
-  wants_communication: true,
-
+  irrevocable_ben2_date: '',
+  wants_communication: false,
   company_use_only_notes: '',
 };
 
-const inputClass = "w-full px-4 py-2.5 border border-gray-200 rounded-2xl text-sm text-gray-900 placeholder:text-gray-400 bg-white focus:outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-400 transition-all duration-200";
-const inputDisabledClass = "w-full px-4 py-2.5 border border-gray-100 rounded-2xl text-sm bg-gray-50 text-gray-500 cursor-not-allowed";
-const labelClass = "block text-sm font-medium text-gray-600 mb-1.5";
-const cardClass = "bg-white p-6 rounded-[28px] border border-gray-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)]";
-
-function SectionHeader({ letter, title, badge }: { letter: string; title: string; badge?: string }) {
-  return (
-    <div className="flex items-center justify-between mb-5">
-      <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-full bg-gray-900 text-white flex items-center justify-center text-sm font-semibold shrink-0">
-          {letter}
-        </div>
-        <h3 className="text-base font-semibold text-gray-900">{title}</h3>
-      </div>
-      {badge && (
-        <span className="text-xs font-medium text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
-          {badge}
-        </span>
-      )}
-    </div>
-  );
-}
-
 function PrimaryButton({
-  children, onClick, type = 'button', disabled, loading, className = '', form,
+  children, onClick, type = 'button', disabled, loading, className = '',
 }: {
-  children: React.ReactNode; onClick?: () => void; type?: 'button' | 'submit'; disabled?: boolean; loading?: boolean; className?: string; form?: string;
+  children: React.ReactNode; onClick?: () => void; type?: 'button' | 'submit'; disabled?: boolean; loading?: boolean; className?: string;
 }) {
   return (
     <button
       type={type}
-      form={form}
       onClick={onClick}
       disabled={disabled || loading}
-      className={`px-5 py-2.5 bg-gray-900 text-white rounded-full hover:bg-gray-800 active:scale-[0.97] font-medium text-sm flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 shadow-sm ${className}`}
-    >
-      {loading && <Loader2 size={16} className="animate-spin" />}
-      {children}
-    </button>
-  );
-}
-
-function SecondaryButton({
-  children, onClick, disabled, className = '',
-}: {
-  children: React.ReactNode; onClick?: () => void; disabled?: boolean; className?: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={`px-5 py-2.5 text-gray-700 bg-white border border-gray-200 rounded-full hover:bg-gray-50 active:scale-[0.97] font-medium text-sm transition-all duration-200 disabled:opacity-50 ${className}`}
-    >
-      {children}
-    </button>
-  );
-}
-
-function DangerButton({
-  children, onClick, disabled, loading,
-}: {
-  children: React.ReactNode; onClick?: () => void; disabled?: boolean; loading?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled || loading}
-      className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-full hover:bg-red-700 active:scale-[0.97] font-medium text-sm flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-60"
+      className={`px-5 py-2.5 bg-slate-900 text-white rounded-full hover:bg-slate-800 active:scale-[0.97] font-medium text-sm flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 shadow-sm ${className}`}
     >
       {loading && <Loader2 size={16} className="animate-spin" />}
       {children}
@@ -354,20 +288,6 @@ function IconButton({
   );
 }
 
-function Modal({
-  children, onClose, maxWidth = 'max-w-4xl', z = 'z-50',
-}: {
-  children: React.ReactNode; onClose?: () => void; maxWidth?: string; z?: string;
-}) {
-  return (
-    <div className={`fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center p-4 ${z} animate-[fadeIn_0.18s_ease-out]`}>
-      <div className={`bg-white rounded-[32px] w-full ${maxWidth} max-h-[90vh] overflow-hidden shadow-2xl flex flex-col animate-[scaleIn_0.2s_ease-out]`}>
-        {children}
-      </div>
-    </div>
-  );
-}
-
 function StatusBadge({ status }: { status: string }) {
   const normalized = (status || '').toLowerCase();
   const tone =
@@ -389,7 +309,7 @@ export default function BeneficiaryChangeRequestPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<BcrRecord | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [recordToDelete, setRecordToDelete] = useState<string | null>(null);
@@ -409,6 +329,19 @@ export default function BeneficiaryChangeRequestPage() {
     policy_number: string | null;
   } | null>(null);
 
+  const getClientNameParts = (fullName: string | undefined | null) => {
+    if (!fullName) return { last: '', first: '', mi: '' };
+    if (fullName.includes(',')) {
+      const [lastPart, restPart] = fullName.split(',').map(s => s.trim());
+      const restWords = restPart ? restPart.split(/\s+/) : [];
+      return { last: lastPart, first: restWords[0] || '', mi: restWords[1] ? restWords[1].charAt(0) : '' };
+    } else {
+      const words = fullName.trim().split(/\s+/);
+      if (words.length === 1) return { last: '', first: words[0], mi: '' };
+      return { last: words[words.length - 1], first: words[0], mi: words[1] ? words[1].charAt(0) : '' };
+    }
+  };
+
   useEffect(() => {
     if (!formData.client_id) {
       setSelectedClientDetails(null);
@@ -424,9 +357,16 @@ export default function BeneficiaryChangeRequestPage() {
         if (err) throw err;
         setSelectedClientDetails(data);
 
-        if (!formData.plan_numbers && data.policy_number) {
-          setFormData(prev => ({ ...prev, plan_numbers: data.policy_number || '' }));
-        }
+        const nameParts = getClientNameParts(data.client_name);
+
+        setFormData(prev => ({
+          ...prev,
+          plan_numbers: prev.plan_numbers || data.policy_number || '',
+          planholder_last_name: prev.planholder_last_name || nameParts.last,
+          planholder_first_name: prev.planholder_first_name || nameParts.first,
+          planholder_mi: prev.planholder_mi || nameParts.mi,
+          planholder_printed_name: prev.planholder_printed_name || data.client_name,
+        }));
       } catch (err: any) {
         console.error('Error fetching client details:', err);
       }
@@ -446,7 +386,7 @@ export default function BeneficiaryChangeRequestPage() {
         .order('created_at', { ascending: false });
 
       if (err) {
-        if (err.code === '42P01') {
+        if (err.code === '42P01' || err.code === 'PGRST200') {
           setRecords([]);
           return;
         }
@@ -455,7 +395,9 @@ export default function BeneficiaryChangeRequestPage() {
       setRecords(data || []);
     } catch (err: any) {
       console.error('Error fetching records:', err);
-      setError(err.message || 'Failed to fetch records');
+      if (!err.message?.includes('does not exist')) {
+        setError(err.message || 'Failed to fetch records');
+      }
     } finally {
       setLoading(false);
     }
@@ -465,14 +407,38 @@ export default function BeneficiaryChangeRequestPage() {
     fetchRecords();
   }, []);
 
-  const handleClientSelect = (clientId: string) => {
+  const handleClientSelect = async (clientId: string) => {
     setFormData(prev => ({ ...prev, client_id: clientId }));
+    try {
+      const { data, error: err } = await supabase
+        .from('cpst_clients')
+        .select('client_name, birthdate, policy_number')
+        .eq('id', clientId)
+        .single();
+      if (!err && data) {
+        setSelectedClientDetails(data);
+        const nameParts = getClientNameParts(data.client_name);
+        setFormData(prev => ({
+          ...prev,
+          plan_numbers: data.policy_number || prev.plan_numbers,
+          planholder_last_name: nameParts.last || prev.planholder_last_name,
+          planholder_first_name: nameParts.first || prev.planholder_first_name,
+          planholder_mi: nameParts.mi || prev.planholder_mi,
+          planholder_printed_name: data.client_name || prev.planholder_printed_name,
+        }));
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const handleOpenModal = (record?: BcrRecord) => {
+  const handleOpenEditor = (record?: BcrRecord) => {
     if (record) {
       setEditingRecord(record);
-      setFormData({ ...record, status: record.status || 'Pending' });
+      setFormData({
+        ...record,
+        status: record.status || 'Pending'
+      });
       if (record.client) {
         setSelectedClientDetails({
           client_name: record.client.client_name,
@@ -488,13 +454,12 @@ export default function BeneficiaryChangeRequestPage() {
       });
       setSelectedClientDetails(null);
     }
-    setIsModalOpen(true);
+    setIsEditorOpen(true);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSaveDraftFromEngine = async (engineValues: Record<string, any>) => {
     if (!formData.client_id) {
-      setError("Please select a client.");
+      setError("Please select a client record before saving draft.");
       return;
     }
 
@@ -502,7 +467,7 @@ export default function BeneficiaryChangeRequestPage() {
       setIsSubmitting(true);
       setError("");
 
-      const payload: any = { ...formData };
+      const payload: any = { ...formData, ...engineValues };
       if (!payload.date_of_signing) payload.date_of_signing = null;
       if (!payload.beneficiary1_birthdate) payload.beneficiary1_birthdate = null;
       if (!payload.beneficiary2_birthdate) payload.beneficiary2_birthdate = null;
@@ -517,24 +482,56 @@ export default function BeneficiaryChangeRequestPage() {
           .eq('id', editingRecord.id);
 
         if (updateError) throw updateError;
-        setSuccess("Record updated successfully");
+        setSuccess("Beneficiary Change Request draft saved successfully.");
       } else {
-        const { error: insertError } = await supabase
+        const { data: newRecord, error: insertError } = await supabase
           .from(TABLE_NAME)
-          .insert([payload]);
+          .insert([payload])
+          .select()
+          .single();
 
         if (insertError) throw insertError;
-        setSuccess("Record created successfully");
+        if (newRecord) setEditingRecord(newRecord);
+        setSuccess("New Beneficiary Change Request created.");
       }
 
-      setIsModalOpen(false);
       fetchRecords();
       setTimeout(() => setSuccess(""), 3000);
     } catch (err: any) {
       console.error(err);
-      setError(err.message || 'Failed to save record');
+      setError(err.message || 'Failed to save record draft');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleExportPdfFromEngine = async (engineValues: Record<string, any>) => {
+    try {
+      setIsGeneratingPdf(true);
+      setError("");
+
+      const fullRecord = { ...formData, ...engineValues } as BcrRecord;
+      const pdfBytes = await generateBeneficiaryChangeRequestPdfFromTemplate(fullRecord);
+
+      const blob = new Blob([pdfBytes as any], { type: 'application/pdf' });
+      const downloadUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      const formattedDate = new Date().toISOString().split('T')[0];
+      const planStr = fullRecord.plan_numbers ? `_${fullRecord.plan_numbers}` : '';
+      a.download = `Beneficiary_Change_Request${planStr}_${formattedDate}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(downloadUrl);
+
+      setSuccess("Filled Beneficiary Change Request PDF exported successfully!");
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err: any) {
+      console.error('Error generating BCR PDF:', err);
+      setError(err.message || 'Failed to export PDF.');
+    } finally {
+      setIsGeneratingPdf(false);
     }
   };
 
@@ -552,7 +549,7 @@ export default function BeneficiaryChangeRequestPage() {
       a.href = downloadUrl;
       const formattedDate = new Date().toISOString().split('T')[0];
       const planStr = record.plan_numbers ? `_${record.plan_numbers}` : '';
-      a.download = `BeneficiaryChange${planStr}_${formattedDate}.pdf`;
+      a.download = `Beneficiary_Change_Request${planStr}_${formattedDate}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -598,14 +595,62 @@ export default function BeneficiaryChangeRequestPage() {
     (r.plan_numbers || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // ══════════════════════════════════════════════════════════════════════════
+  // RENDER SIMPLE PDF CANVAS EDITOR WHEN EDITOR IS OPEN
+  // ══════════════════════════════════════════════════════════════════════════
+  if (isEditorOpen) {
+    return (
+      <div className="relative w-screen h-screen overflow-hidden bg-slate-950">
+        {error && (
+          <div className="fixed top-16 right-6 z-[200] max-w-sm animate-[slideInRight_0.2s_ease-out]">
+            <div className="bg-white border border-red-100 rounded-2xl p-4 flex items-center gap-3 shadow-2xl">
+              <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center shrink-0">
+                <AlertCircle className="text-red-500" size={16} />
+              </div>
+              <p className="text-red-700 text-xs flex-1 font-medium">{error}</p>
+              <button onClick={() => setError("")} className="text-gray-300 hover:text-gray-500">
+                <X size={16} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {success && (
+          <div className="fixed top-16 right-6 z-[200] max-w-sm animate-[slideInRight_0.2s_ease-out]">
+            <div className="bg-white border border-emerald-100 rounded-2xl p-4 flex items-center gap-3 shadow-2xl">
+              <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center shrink-0">
+                <CheckCircle2 className="text-emerald-500" size={16} />
+              </div>
+              <p className="text-emerald-700 text-xs flex-1 font-semibold">{success}</p>
+            </div>
+          </div>
+        )}
+
+        <BcrPdfViewer
+          config={bcrFormConfig}
+          initialValues={formData}
+          clientId={formData.client_id}
+          selectedClientDetails={selectedClientDetails}
+          status={formData.status}
+          onBack={() => {
+            setIsEditorOpen(false);
+            fetchRecords();
+          }}
+          onClientSelect={handleClientSelect}
+          onSaveDraft={handleSaveDraftFromEngine}
+          onExportPdf={handleExportPdfFromEngine}
+          isSubmitting={isSubmitting}
+          isGeneratingPdf={isGeneratingPdf}
+        />
+      </div>
+    );
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // MAIN BCR DASHBOARD & CRUD TABLE
+  // ══════════════════════════════════════════════════════════════════════════
   return (
     <div className={styles.text_52}>
-      <style jsx global>{`
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes scaleIn { from { opacity: 0; transform: scale(0.96) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-        @keyframes slideInRight { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: translateX(0); } }
-      `}</style>
-
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <div className={styles.container_53}>
@@ -617,9 +662,9 @@ export default function BeneficiaryChangeRequestPage() {
               <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Beneficiary Change Request</h1>
               <p className="text-sm text-gray-500 mt-0.5">Manage and generate official BCR PDF forms.</p>
             </div>
-            <PrimaryButton onClick={() => handleOpenModal()} className="pl-4 pr-5">
+            <PrimaryButton onClick={() => handleOpenEditor()} className="pl-4 pr-5">
               <Plus size={16} />
-              New Request
+              New BCR Form Editor
             </PrimaryButton>
           </div>
 
@@ -727,7 +772,7 @@ export default function BeneficiaryChangeRequestPage() {
                             >
                               {isGeneratingPdf && generatingPdfId === record.id ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
                             </IconButton>
-                            <IconButton onClick={() => handleOpenModal(record)} title="Edit">
+                            <IconButton onClick={() => handleOpenEditor(record)} title="Open in BCR Canvas Editor">
                               <Edit2 size={16} />
                             </IconButton>
                             <IconButton onClick={() => handleDeleteClick(record.id)} title="Delete" tone="red">
@@ -745,472 +790,31 @@ export default function BeneficiaryChangeRequestPage() {
         </main>
       </div>
 
-      {isModalOpen && (
-        <Modal onClose={() => setIsModalOpen(false)}>
-          <div className="px-7 py-5 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center">
-                <FileText className="text-amber-500" size={18} />
-              </div>
-              <h2 className="text-xl font-bold text-gray-900 tracking-tight">
-                {editingRecord ? 'Edit Beneficiary Change Request' : 'New Beneficiary Change Request'}
-              </h2>
-            </div>
-            <button
-              onClick={() => setIsModalOpen(false)}
-              className="p-2.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors duration-200"
-            >
-              <X size={20} />
-            </button>
-          </div>
-
-          <div className="p-7 overflow-y-auto bg-gray-50/60 flex-1">
-            <form id="bcrForm" onSubmit={handleSubmit} className="space-y-6">
-              <div className={cardClass}>
-                <h3 className="text-base font-semibold text-gray-900 mb-4">Select Client</h3>
-                <ClientSelector
-                  onChange={handleClientSelect}
-                  value={formData.client_id}
-                />
-              </div>
-
-              {formData.client_id && (
-                <>
-                  <div className={cardClass}>
-                    <SectionHeader letter="A" title="General Information" />
-                    <div className="space-y-4">
-                      <div className="flex gap-6 mb-4">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input type="radio" checked={formData.planholder_type === 'individual'} onChange={() => setFormData({ ...formData, planholder_type: 'individual' })} className="accent-gray-900" />
-                          <span className="text-sm">Individual Planholder</span>
-                        </label>
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input type="radio" checked={formData.planholder_type === 'company'} onChange={() => setFormData({ ...formData, planholder_type: 'company' })} className="accent-gray-900" />
-                          <span className="text-sm">Company/Business</span>
-                        </label>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className={labelClass}>Plan Number(s)</label>
-                          <input type="text" value={formData.plan_numbers} onChange={e => setFormData({ ...formData, plan_numbers: e.target.value })} className={inputClass} />
-                        </div>
-                      </div>
-
-                      {formData.planholder_type === 'individual' ? (
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div>
-                            <label className={labelClass}>Last Name</label>
-                            <input type="text" value={formData.planholder_last_name} onChange={e => setFormData({ ...formData, planholder_last_name: e.target.value })} className={inputClass} />
-                          </div>
-                          <div>
-                            <label className={labelClass}>First Name</label>
-                            <input type="text" value={formData.planholder_first_name} onChange={e => setFormData({ ...formData, planholder_first_name: e.target.value })} className={inputClass} />
-                          </div>
-                          <div>
-                            <label className={labelClass}>M.I.</label>
-                            <input type="text" value={formData.planholder_mi} onChange={e => setFormData({ ...formData, planholder_mi: e.target.value })} className={inputClass} />
-                          </div>
-                        </div>
-                      ) : (
-                        <div>
-                          <label className={labelClass}>Company/Business Name</label>
-                          <input type="text" value={formData.company_name} onChange={e => setFormData({ ...formData, company_name: e.target.value })} className={inputClass} />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className={cardClass}>
-                    <SectionHeader letter="B" title="Beneficiary Change Details" />
-                    <div className="flex gap-6 mb-6">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input type="radio" checked={formData.change_type === 'add'} onChange={() => setFormData({ ...formData, change_type: 'add' })} className="accent-gray-900" />
-                        <span className="text-sm font-medium">Add Beneficiary(ies)</span>
-                      </label>
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input type="radio" checked={formData.change_type === 'remove'} onChange={() => setFormData({ ...formData, change_type: 'remove' })} className="accent-gray-900" />
-                        <span className="text-sm font-medium">Remove Beneficiary(ies)</span>
-                      </label>
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input type="radio" checked={formData.change_type === 'change'} onChange={() => setFormData({ ...formData, change_type: 'change' })} className="accent-gray-900" />
-                        <span className="text-sm font-medium">Change of Information</span>
-                      </label>
-                    </div>
-
-                    {formData.change_type === 'add' && (
-                      <div className="space-y-6">
-                        <div className="p-4 bg-gray-50/50 rounded-2xl border border-gray-100">
-                          <h4 className="font-semibold text-gray-900 mb-4">Beneficiary 1</h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                            <div><label className={labelClass}>Name</label><input type="text" value={formData.beneficiary1_name} onChange={e => setFormData({ ...formData, beneficiary1_name: e.target.value })} className={inputClass} /></div>
-                            <div>
-                              <label className={labelClass}>Sex (at birth)</label>
-                              <div className="flex gap-4">
-                                <label className="flex items-center gap-2"><input type="radio" checked={formData.beneficiary1_sex === 'Male'} onChange={() => setFormData({ ...formData, beneficiary1_sex: 'Male' })} /> <span className="text-sm">Male</span></label>
-                                <label className="flex items-center gap-2"><input type="radio" checked={formData.beneficiary1_sex === 'Female'} onChange={() => setFormData({ ...formData, beneficiary1_sex: 'Female' })} /> <span className="text-sm">Female</span></label>
-                              </div>
-                            </div>
-                            <div><label className={labelClass}>Birthdate</label><input type="date" value={formData.beneficiary1_birthdate} onChange={e => setFormData({ ...formData, beneficiary1_birthdate: e.target.value })} className={inputClass} /></div>
-                            <div><label className={labelClass}>Country of Birth</label><input type="text" value={formData.beneficiary1_country_birth} onChange={e => setFormData({ ...formData, beneficiary1_country_birth: e.target.value })} className={inputClass} /></div>
-                            <div><label className={labelClass}>Citizenships</label><input type="text" value={formData.beneficiary1_citizenships} onChange={e => setFormData({ ...formData, beneficiary1_citizenships: e.target.value })} className={inputClass} /></div>
-
-                            <div>
-                              <label className={labelClass}>Relationship</label>
-                              <div className="flex flex-wrap gap-3">
-                                {['Father', 'Mother', 'Employer', 'Others'].map(rel => (
-                                  <label key={rel} className="flex items-center gap-2"><input type="radio" checked={formData.beneficiary1_relationship === rel} onChange={() => setFormData({ ...formData, beneficiary1_relationship: rel as any })} /> <span className="text-sm">{rel}</span></label>
-                                ))}
-                              </div>
-                              {formData.beneficiary1_relationship === 'Others' && <input type="text" placeholder="Specify" value={formData.beneficiary1_relationship_others} onChange={e => setFormData({ ...formData, beneficiary1_relationship_others: e.target.value })} className={`mt-2 ${inputClass}`} />}
-                            </div>
-
-                            <div>
-                              <label className={labelClass}>Beneficiary Type & Designation</label>
-                              <div className="flex gap-4">
-                                <select value={formData.beneficiary1_type} onChange={e => setFormData({ ...formData, beneficiary1_type: e.target.value as any })} className={inputClass}>
-                                  <option value="">Type...</option><option value="Primary">Primary</option><option value="Contingent">Contingent</option>
-                                </select>
-                                <select value={formData.beneficiary1_designation} onChange={e => setFormData({ ...formData, beneficiary1_designation: e.target.value as any })} className={inputClass}>
-                                  <option value="">Designation...</option><option value="Revocable">Revocable</option><option value="Irrevocable">Irrevocable</option>
-                                </select>
-                              </div>
-                            </div>
-                            <div><label className={labelClass}>Phone</label><input type="text" value={formData.beneficiary1_phone} onChange={e => setFormData({ ...formData, beneficiary1_phone: e.target.value })} className={inputClass} /></div>
-                            <div className="col-span-full"><label className={labelClass}>Address</label><input type="text" value={formData.beneficiary1_address} onChange={e => setFormData({ ...formData, beneficiary1_address: e.target.value })} className={inputClass} /></div>
-                          </div>
-                        </div>
-
-                        <div className="p-4 bg-gray-50/50 rounded-2xl border border-gray-100">
-                          <h4 className="font-semibold text-gray-900 mb-4">Beneficiary 2 (Optional)</h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div><label className={labelClass}>Name</label><input type="text" value={formData.beneficiary2_name} onChange={e => setFormData({ ...formData, beneficiary2_name: e.target.value })} className={inputClass} /></div>
-                            <div>
-                              <label className={labelClass}>Sex (at birth)</label>
-                              <div className="flex gap-4">
-                                <label className="flex items-center gap-2"><input type="radio" checked={formData.beneficiary2_sex === 'Male'} onChange={() => setFormData({ ...formData, beneficiary2_sex: 'Male' })} /> <span className="text-sm">Male</span></label>
-                                <label className="flex items-center gap-2"><input type="radio" checked={formData.beneficiary2_sex === 'Female'} onChange={() => setFormData({ ...formData, beneficiary2_sex: 'Female' })} /> <span className="text-sm">Female</span></label>
-                              </div>
-                            </div>
-                            <div><label className={labelClass}>Birthdate</label><input type="date" value={formData.beneficiary2_birthdate} onChange={e => setFormData({ ...formData, beneficiary2_birthdate: e.target.value })} className={inputClass} /></div>
-                            <div><label className={labelClass}>Country of Birth</label><input type="text" value={formData.beneficiary2_country_birth} onChange={e => setFormData({ ...formData, beneficiary2_country_birth: e.target.value })} className={inputClass} /></div>
-                            <div><label className={labelClass}>Citizenships</label><input type="text" value={formData.beneficiary2_citizenships} onChange={e => setFormData({ ...formData, beneficiary2_citizenships: e.target.value })} className={inputClass} /></div>
-
-                            <div>
-                              <label className={labelClass}>Relationship</label>
-                              <div className="flex flex-wrap gap-3">
-                                {['Father', 'Mother', 'Employer', 'Others'].map(rel => (
-                                  <label key={rel} className="flex items-center gap-2"><input type="radio" checked={formData.beneficiary2_relationship === rel} onChange={() => setFormData({ ...formData, beneficiary2_relationship: rel as any })} /> <span className="text-sm">{rel}</span></label>
-                                ))}
-                              </div>
-                              {formData.beneficiary2_relationship === 'Others' && <input type="text" placeholder="Specify" value={formData.beneficiary2_relationship_others} onChange={e => setFormData({ ...formData, beneficiary2_relationship_others: e.target.value })} className={`mt-2 ${inputClass}`} />}
-                            </div>
-
-                            <div>
-                              <label className={labelClass}>Beneficiary Type & Designation</label>
-                              <div className="flex gap-4">
-                                <select value={formData.beneficiary2_type} onChange={e => setFormData({ ...formData, beneficiary2_type: e.target.value as any })} className={inputClass}>
-                                  <option value="">Type...</option><option value="Primary">Primary</option><option value="Contingent">Contingent</option>
-                                </select>
-                                <select value={formData.beneficiary2_designation} onChange={e => setFormData({ ...formData, beneficiary2_designation: e.target.value as any })} className={inputClass}>
-                                  <option value="">Designation...</option><option value="Revocable">Revocable</option><option value="Irrevocable">Irrevocable</option>
-                                </select>
-                              </div>
-                            </div>
-                            <div><label className={labelClass}>Phone</label><input type="text" value={formData.beneficiary2_phone} onChange={e => setFormData({ ...formData, beneficiary2_phone: e.target.value })} className={inputClass} /></div>
-                            <div className="col-span-full"><label className={labelClass}>Address</label><input type="text" value={formData.beneficiary2_address} onChange={e => setFormData({ ...formData, beneficiary2_address: e.target.value })} className={inputClass} /></div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {formData.change_type === 'remove' && (
-                      <div className="space-y-4">
-                        <div><label className={labelClass}>Name of Beneficiary 1 to Remove</label><input type="text" value={formData.remove_beneficiary1_name} onChange={e => setFormData({ ...formData, remove_beneficiary1_name: e.target.value })} className={inputClass} /></div>
-                        <div><label className={labelClass}>Name of Beneficiary 2 to Remove (Optional)</label><input type="text" value={formData.remove_beneficiary2_name} onChange={e => setFormData({ ...formData, remove_beneficiary2_name: e.target.value })} className={inputClass} /></div>
-                      </div>
-                    )}
-
-                    {formData.change_type === 'change' && (
-                      <div className="space-y-4">
-                        <div><label className={labelClass}>Original Beneficiary Name</label><input type="text" value={formData.change_original_name} onChange={e => setFormData({ ...formData, change_original_name: e.target.value })} className={inputClass} /></div>
-                        <p className="text-sm text-gray-500 my-2">Check the fields you want to update and provide the new values:</p>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="flex gap-2 items-center"><input type="checkbox" checked={formData.check_name} onChange={e => setFormData({ ...formData, check_name: e.target.checked })} /> <input type="text" placeholder="New Name" value={formData.change_new_name} onChange={e => setFormData({ ...formData, change_new_name: e.target.value })} disabled={!formData.check_name} className={formData.check_name ? inputClass : inputDisabledClass} /></div>
-
-                          <div className="flex gap-2 items-center"><input type="checkbox" checked={formData.check_new_other_legal_names} onChange={e => setFormData({ ...formData, check_new_other_legal_names: e.target.checked })} /> <input type="text" placeholder="New Other Legal Names" value={formData.change_new_other_legal_names} onChange={e => setFormData({ ...formData, change_new_other_legal_names: e.target.value })} disabled={!formData.check_new_other_legal_names} className={formData.check_new_other_legal_names ? inputClass : inputDisabledClass} /></div>
-
-                          <div className="flex gap-2 items-center">
-                            <input type="checkbox" checked={formData.check_sex} onChange={e => setFormData({ ...formData, check_sex: e.target.checked })} />
-                            <div className={`flex items-center gap-4 px-4 py-2 border rounded-2xl flex-1 ${formData.check_sex ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
-                              <span className="text-sm text-gray-500 min-w-[40px]">Sex:</span>
-                              <label className="flex items-center gap-2"><input type="radio" checked={formData.change_sex === 'Male'} onChange={() => setFormData({ ...formData, change_sex: 'Male' })} disabled={!formData.check_sex} /> <span className="text-sm">Male</span></label>
-                              <label className="flex items-center gap-2"><input type="radio" checked={formData.change_sex === 'Female'} onChange={() => setFormData({ ...formData, change_sex: 'Female' })} disabled={!formData.check_sex} /> <span className="text-sm">Female</span></label>
-                            </div>
-                          </div>
-
-                          <div className="flex gap-2 items-center"><input type="checkbox" checked={formData.check_birthdate} onChange={e => setFormData({ ...formData, check_birthdate: e.target.checked })} /> <input type="date" value={formData.change_birthdate} onChange={e => setFormData({ ...formData, change_birthdate: e.target.value })} disabled={!formData.check_birthdate} className={formData.check_birthdate ? inputClass : inputDisabledClass} /></div>
-
-                          <div className="flex gap-2 items-center"><input type="checkbox" checked={formData.check_country_birth} onChange={e => setFormData({ ...formData, check_country_birth: e.target.checked })} /> <input type="text" placeholder="Country of Birth" value={formData.change_country_birth} onChange={e => setFormData({ ...formData, change_country_birth: e.target.value })} disabled={!formData.check_country_birth} className={formData.check_country_birth ? inputClass : inputDisabledClass} /></div>
-
-                          <div className="flex gap-2 items-center"><input type="checkbox" checked={formData.check_citizenships} onChange={e => setFormData({ ...formData, check_citizenships: e.target.checked })} /> <input type="text" placeholder="Citizenships" value={formData.change_citizenships} onChange={e => setFormData({ ...formData, change_citizenships: e.target.value })} disabled={!formData.check_citizenships} className={formData.check_citizenships ? inputClass : inputDisabledClass} /></div>
-
-                          <div className="flex gap-2 items-start col-span-full">
-                            <input type="checkbox" className="mt-3" checked={formData.check_relationship} onChange={e => setFormData({ ...formData, check_relationship: e.target.checked })} />
-                            <div className={`flex flex-col gap-2 p-3 border rounded-2xl flex-1 ${formData.check_relationship ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
-                              <span className="text-sm text-gray-500">Relationship:</span>
-                              <div className="flex flex-wrap gap-4">
-                                {['Father', 'Mother', 'Employer', 'Others'].map(rel => (
-                                  <label key={rel} className="flex items-center gap-2"><input type="radio" checked={formData.change_relationship === rel} onChange={() => setFormData({ ...formData, change_relationship: rel as any })} disabled={!formData.check_relationship} /> <span className="text-sm">{rel}</span></label>
-                                ))}
-                              </div>
-                              {formData.check_relationship && formData.change_relationship === 'Others' && (
-                                <input type="text" placeholder="Specify Others" value={formData.change_relationship_others} onChange={e => setFormData({ ...formData, change_relationship_others: e.target.value })} className={inputClass} />
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="flex gap-2 items-center">
-                            <input type="checkbox" checked={formData.check_beneficiary_type} onChange={e => setFormData({ ...formData, check_beneficiary_type: e.target.checked })} />
-                            <div className={`flex items-center gap-4 px-4 py-2 border rounded-2xl flex-1 ${formData.check_beneficiary_type ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
-                              <span className="text-sm text-gray-500 min-w-[40px]">Type:</span>
-                              <label className="flex items-center gap-2"><input type="radio" checked={formData.change_beneficiary_type === 'Primary'} onChange={() => setFormData({ ...formData, change_beneficiary_type: 'Primary' })} disabled={!formData.check_beneficiary_type} /> <span className="text-sm">Primary</span></label>
-                              <label className="flex items-center gap-2"><input type="radio" checked={formData.change_beneficiary_type === 'Contingent'} onChange={() => setFormData({ ...formData, change_beneficiary_type: 'Contingent' })} disabled={!formData.check_beneficiary_type} /> <span className="text-sm">Contingent</span></label>
-                            </div>
-                          </div>
-
-                          <div className="flex gap-2 items-center">
-                            <input type="checkbox" checked={formData.check_designation} onChange={e => setFormData({ ...formData, check_designation: e.target.checked })} />
-                            <div className={`flex items-center gap-4 px-4 py-2 border rounded-2xl flex-1 ${formData.check_designation ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
-                              <span className="text-sm text-gray-500 min-w-[50px]">Designation:</span>
-                              <label className="flex items-center gap-2"><input type="radio" checked={formData.change_designation === 'Revocable'} onChange={() => setFormData({ ...formData, change_designation: 'Revocable' })} disabled={!formData.check_designation} /> <span className="text-sm">Revocable</span></label>
-                              <label className="flex items-center gap-2"><input type="radio" checked={formData.change_designation === 'Irrevocable'} onChange={() => setFormData({ ...formData, change_designation: 'Irrevocable' })} disabled={!formData.check_designation} /> <span className="text-sm">Irrevocable</span></label>
-                            </div>
-                          </div>
-
-                          <div className="flex gap-2 items-center"><input type="checkbox" checked={formData.check_phone} onChange={e => setFormData({ ...formData, check_phone: e.target.checked })} /> <input type="text" placeholder="New Phone" value={formData.change_phone} onChange={e => setFormData({ ...formData, change_phone: e.target.value })} disabled={!formData.check_phone} className={formData.check_phone ? inputClass : inputDisabledClass} /></div>
-                          <div className="flex gap-2 items-center col-span-full"><input type="checkbox" checked={formData.check_address} onChange={e => setFormData({ ...formData, check_address: e.target.checked })} /> <input type="text" placeholder="New Address" value={formData.change_address} onChange={e => setFormData({ ...formData, change_address: e.target.value })} disabled={!formData.check_address} className={formData.check_address ? inputClass : inputDisabledClass} /></div>
-                        </div>
-
-                        {formData.planholder_type === 'company' && (
-                          <div className="mt-8">
-                            <h4 className="font-semibold text-gray-900 mb-4 border-t border-gray-100 pt-4">For Company/Business Planholder</h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div className="flex gap-2 items-center col-span-full"><input type="checkbox" checked={formData.check_company_name} onChange={e => setFormData({ ...formData, check_company_name: e.target.checked })} /> <input type="text" placeholder="Company/Business Name" value={formData.change_company_name} onChange={e => setFormData({ ...formData, change_company_name: e.target.value })} disabled={!formData.check_company_name} className={formData.check_company_name ? inputClass : inputDisabledClass} /></div>
-
-                              <div className="flex gap-2 items-start col-span-full">
-                                <input type="checkbox" className="mt-3" checked={formData.check_company_relationship} onChange={e => setFormData({ ...formData, check_company_relationship: e.target.checked })} />
-                                <div className={`flex flex-col gap-2 p-3 border rounded-2xl flex-1 ${formData.check_company_relationship ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
-                                  <span className="text-sm text-gray-500">Relationship to Life Insured:</span>
-                                  <div className="flex flex-wrap gap-4">
-                                    {['Employer', 'Others'].map(rel => (
-                                      <label key={rel} className="flex items-center gap-2"><input type="radio" checked={formData.change_company_relationship === rel} onChange={() => setFormData({ ...formData, change_company_relationship: rel as any })} disabled={!formData.check_company_relationship} /> <span className="text-sm">{rel}</span></label>
-                                    ))}
-                                  </div>
-                                  {formData.check_company_relationship && formData.change_company_relationship === 'Others' && (
-                                    <input type="text" placeholder="Specify Others" value={formData.change_company_relationship_others} onChange={e => setFormData({ ...formData, change_company_relationship_others: e.target.value })} className={inputClass} />
-                                  )}
-                                </div>
-                              </div>
-
-                              <div className="flex gap-2 items-center"><input type="checkbox" checked={formData.check_company_country_inc} onChange={e => setFormData({ ...formData, check_company_country_inc: e.target.checked })} /> <input type="text" placeholder="Country of Incorporation" value={formData.change_company_country_inc} onChange={e => setFormData({ ...formData, change_company_country_inc: e.target.value })} disabled={!formData.check_company_country_inc} className={formData.check_company_country_inc ? inputClass : inputDisabledClass} /></div>
-
-                              <div className="flex gap-2 items-center">
-                                <input type="checkbox" checked={formData.check_company_designation} onChange={e => setFormData({ ...formData, check_company_designation: e.target.checked })} />
-                                <div className={`flex items-center gap-4 px-4 py-2 border rounded-2xl flex-1 ${formData.check_company_designation ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
-                                  <span className="text-sm text-gray-500 min-w-[50px]">Designation:</span>
-                                  <label className="flex items-center gap-2"><input type="radio" checked={formData.change_company_company_designation === 'Revocable'} onChange={() => setFormData({ ...formData, change_company_company_designation: 'Revocable' })} disabled={!formData.check_company_designation} /> <span className="text-sm">Revocable</span></label>
-                                  <label className="flex items-center gap-2"><input type="radio" checked={formData.change_company_company_designation === 'Irrevocable'} onChange={() => setFormData({ ...formData, change_company_company_designation: 'Irrevocable' })} disabled={!formData.check_company_designation} /> <span className="text-sm">Irrevocable</span></label>
-                                </div>
-                              </div>
-
-                              <div className="flex gap-2 items-center"><input type="checkbox" checked={formData.check_company_phone} onChange={e => setFormData({ ...formData, check_company_phone: e.target.checked })} /> <input type="text" placeholder="Business Phone" value={formData.change_company_phone} onChange={e => setFormData({ ...formData, change_company_phone: e.target.value })} disabled={!formData.check_company_phone} className={formData.check_company_phone ? inputClass : inputDisabledClass} /></div>
-                              <div className="flex gap-2 items-center col-span-full"><input type="checkbox" checked={formData.check_company_address} onChange={e => setFormData({ ...formData, check_company_address: e.target.checked })} /> <input type="text" placeholder="Business Address" value={formData.change_company_address} onChange={e => setFormData({ ...formData, change_company_address: e.target.value })} disabled={!formData.check_company_address} className={formData.check_company_address ? inputClass : inputDisabledClass} /></div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className={cardClass}>
-                    <SectionHeader letter="C" title="Compliance" />
-                    <div className="space-y-4">
-                      <label className="flex items-center gap-3">
-                        <input type="radio" checked={formData.compliance_type === 'resident'} onChange={() => setFormData({ ...formData, compliance_type: 'resident' })} />
-                        <span className="text-sm">I am a citizen/national and legal resident of</span>
-                        <input type="text" value={formData.compliance_resident_country} onChange={e => setFormData({ ...formData, compliance_resident_country: e.target.value })} disabled={formData.compliance_type !== 'resident'} className={`w-40 px-3 py-1 text-sm border rounded-lg ${formData.compliance_type === 'resident' ? 'bg-white' : 'bg-gray-100'}`} />
-                      </label>
-                      <label className="flex items-center gap-3">
-                        <input type="radio" checked={formData.compliance_type === 'citizen'} onChange={() => setFormData({ ...formData, compliance_type: 'citizen' })} />
-                        <span className="text-sm">I am a citizen/national of</span>
-                        <input type="text" value={formData.compliance_citizen_country} onChange={e => setFormData({ ...formData, compliance_citizen_country: e.target.value })} disabled={formData.compliance_type !== 'citizen'} className={`w-32 px-3 py-1 text-sm border rounded-lg ${formData.compliance_type === 'citizen' ? 'bg-white' : 'bg-gray-100'}`} />
-                        <span className="text-sm">but I legally reside in</span>
-                        <input type="text" value={formData.compliance_legally_reside_country} onChange={e => setFormData({ ...formData, compliance_legally_reside_country: e.target.value })} disabled={formData.compliance_type !== 'citizen'} className={`w-32 px-3 py-1 text-sm border rounded-lg ${formData.compliance_type === 'citizen' ? 'bg-white' : 'bg-gray-100'}`} />
-                      </label>
-                      <label className="flex items-center gap-3">
-                        <input type="radio" checked={formData.compliance_type === 'none'} onChange={() => setFormData({ ...formData, compliance_type: 'none' })} />
-                        <span className="text-sm">None</span>
-                      </label>
-                    </div>
-                  </div>
-
-                  <div className={cardClass}>
-                    <SectionHeader letter="D" title="Signatures" />
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                      <div><label className={labelClass}>Place of Signing</label><input type="text" value={formData.place_of_signing} onChange={e => setFormData({ ...formData, place_of_signing: e.target.value })} className={inputClass} /></div>
-                      <div><label className={labelClass}>Date of Signing</label><input type="date" value={formData.date_of_signing} onChange={e => setFormData({ ...formData, date_of_signing: e.target.value })} className={inputClass} /></div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
-                      <div>
-                        <label className={labelClass}>Planholder Signature</label>
-                        <div className="border border-gray-200 rounded-3xl p-3 bg-gray-50/50 overflow-hidden mb-3"><SignaturePad initialSignature={formData.planholder_signature} onSignatureChange={(data: string | null) => setFormData({ ...formData, planholder_signature: data || '' })} title="Planholder Signature" /></div>
-                        <input type="text" placeholder="Printed Name" value={formData.planholder_printed_name} onChange={e => setFormData({ ...formData, planholder_printed_name: e.target.value })} className={inputClass} />
-                      </div>
-                      <div>
-                        <label className={labelClass}>Witness Signature</label>
-                        <div className="border border-gray-200 rounded-3xl p-3 bg-gray-50/50 overflow-hidden mb-3"><SignaturePad initialSignature={formData.witness_signature} onSignatureChange={(data: string | null) => setFormData({ ...formData, witness_signature: data || '' })} title="Witness Signature" /></div>
-                        <input type="text" placeholder="Witness Name" value={formData.witness_name} onChange={e => setFormData({ ...formData, witness_name: e.target.value })} className={inputClass} />
-                      </div>
-                    </div>
-
-                    {formData.planholder_type === 'company' && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
-                        <div>
-                          <label className={labelClass}>Company Signatory 1</label>
-                          <div className="border border-gray-200 rounded-3xl p-3 bg-gray-50/50 overflow-hidden mb-3"><SignaturePad initialSignature={formData.company_signatory1_signature} onSignatureChange={(data: string | null) => setFormData({ ...formData, company_signatory1_signature: data || '' })} title="Signatory 1 Signature" /></div>
-                          <input type="text" placeholder="Name" value={formData.company_signatory1_name} onChange={e => setFormData({ ...formData, company_signatory1_name: e.target.value })} className={inputClass} />
-                        </div>
-                        <div>
-                          <label className={labelClass}>Company Signatory 2</label>
-                          <div className="border border-gray-200 rounded-3xl p-3 bg-gray-50/50 overflow-hidden mb-3"><SignaturePad initialSignature={formData.company_signatory2_signature} onSignatureChange={(data: string | null) => setFormData({ ...formData, company_signatory2_signature: data || '' })} title="Signatory 2 Signature" /></div>
-                          <input type="text" placeholder="Name and Title" value={formData.company_signatory2_name_title} onChange={e => setFormData({ ...formData, company_signatory2_name_title: e.target.value })} className={inputClass} />
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="mt-8 pt-6 border-t border-gray-100">
-                      <h4 className="font-semibold text-gray-900 mb-6">Irrevocable Beneficiary Signatures (if applicable)</h4>
-
-                      <div className="space-y-8">
-                        {/* Irrevocable Ben 1 */}
-                        <div className="p-5 bg-gray-50/50 rounded-2xl border border-gray-100">
-                          <h5 className="font-medium text-sm text-gray-600 mb-4">Irrevocable Beneficiary #1</h5>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-4">
-                            <div>
-                              <label className={labelClass}>Beneficiary Signature</label>
-                              <div className="border border-gray-200 rounded-3xl p-3 bg-white overflow-hidden mb-3"><SignaturePad initialSignature={formData.irrevocable_ben1_signature} onSignatureChange={(data: string | null) => setFormData({ ...formData, irrevocable_ben1_signature: data || '' })} title="Irrevocable Beneficiary 1 Signature" /></div>
-                              <input type="text" placeholder="Printed Name" value={formData.irrevocable_ben1_name} onChange={e => setFormData({ ...formData, irrevocable_ben1_name: e.target.value })} className={inputClass} />
-                            </div>
-                            <div>
-                              <label className={labelClass}>Witness Signature</label>
-                              <div className="border border-gray-200 rounded-3xl p-3 bg-white overflow-hidden mb-3"><SignaturePad initialSignature={formData.irrevocable_ben1_witness_signature} onSignatureChange={(data: string | null) => setFormData({ ...formData, irrevocable_ben1_witness_signature: data || '' })} title="Witness Signature" /></div>
-                              <input type="text" placeholder="Witness Name" value={formData.irrevocable_ben1_witness_name} onChange={e => setFormData({ ...formData, irrevocable_ben1_witness_name: e.target.value })} className={inputClass} />
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div><label className={labelClass}>Place of Signing</label><input type="text" value={formData.irrevocable_ben1_place} onChange={e => setFormData({ ...formData, irrevocable_ben1_place: e.target.value })} className={inputClass} /></div>
-                            <div><label className={labelClass}>Date of Signing</label><input type="date" value={formData.irrevocable_ben1_date} onChange={e => setFormData({ ...formData, irrevocable_ben1_date: e.target.value })} className={inputClass} /></div>
-                          </div>
-                        </div>
-
-                        {/* Irrevocable Ben 2 */}
-                        <div className="p-5 bg-gray-50/50 rounded-2xl border border-gray-100">
-                          <h5 className="font-medium text-sm text-gray-600 mb-4">Irrevocable Beneficiary #2</h5>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-4">
-                            <div>
-                              <label className={labelClass}>Beneficiary Signature</label>
-                              <div className="border border-gray-200 rounded-3xl p-3 bg-white overflow-hidden mb-3"><SignaturePad initialSignature={formData.irrevocable_ben2_signature} onSignatureChange={(data: string | null) => setFormData({ ...formData, irrevocable_ben2_signature: data || '' })} title="Irrevocable Beneficiary 2 Signature" /></div>
-                              <input type="text" placeholder="Printed Name" value={formData.irrevocable_ben2_name} onChange={e => setFormData({ ...formData, irrevocable_ben2_name: e.target.value })} className={inputClass} />
-                            </div>
-                            <div>
-                              <label className={labelClass}>Witness Signature</label>
-                              <div className="border border-gray-200 rounded-3xl p-3 bg-white overflow-hidden mb-3"><SignaturePad initialSignature={formData.witness2_signature} onSignatureChange={(data: string | null) => setFormData({ ...formData, witness2_signature: data || '' })} title="Witness Signature" /></div>
-                              <input type="text" placeholder="Witness Name" value={formData.witness2_name} onChange={e => setFormData({ ...formData, witness2_name: e.target.value })} className={inputClass} />
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div><label className={labelClass}>Place of Signing</label><input type="text" value={formData.irrevocable_ben2_place} onChange={e => setFormData({ ...formData, irrevocable_ben2_place: e.target.value })} className={inputClass} /></div>
-                            <div><label className={labelClass}>Date of Signing</label><input type="date" value={formData.irrevocable_ben2_date} onChange={e => setFormData({ ...formData, irrevocable_ben2_date: e.target.value })} className={inputClass} /></div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="mt-8 pt-6 border-t border-gray-100 flex items-center justify-between">
-                      <div>
-                        <h4 className="font-medium text-gray-900 text-sm">Would you like to receive personalized communication and product offers from Sun Life?</h4>
-                      </div>
-                      <div className="flex gap-2 bg-gray-100 p-1 rounded-full w-fit shrink-0">
-                        <button type="button" onClick={() => setFormData({ ...formData, wants_communication: true })} className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${formData.wants_communication ? 'bg-gray-900 text-white shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}>Yes</button>
-                        <button type="button" onClick={() => setFormData({ ...formData, wants_communication: false })} className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${!formData.wants_communication ? 'bg-gray-900 text-white shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}>No</button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className={cardClass}>
-                    <SectionHeader letter="E" title="For Company Use Only" badge="Sun Life staff use only" />
-                    <div>
-                      <textarea
-                        value={formData.company_use_only_notes}
-                        onChange={e => setFormData({ ...formData, company_use_only_notes: e.target.value })}
-                        placeholder="Internal notes and company use details..."
-                        className={`${inputClass} min-h-[100px] resize-y`}
-                      />
-                    </div>
-                  </div>
-                </>
-              )}
-            </form>
-          </div>
-
-          <div className="px-7 py-5 border-t border-gray-100 bg-white flex justify-end gap-3 shrink-0">
-            <SecondaryButton onClick={() => setIsModalOpen(false)}>
-              Cancel
-            </SecondaryButton>
-            <PrimaryButton form="bcrForm" type="submit" disabled={!formData.client_id} loading={isSubmitting}>
-              {!isSubmitting && <Save size={16} />}
-              Save Request
-            </PrimaryButton>
-          </div>
-        </Modal>
-      )}
-
+      {/* Delete Confirmation Modal */}
       {isDeleteModalOpen && (
-        <Modal onClose={() => setIsDeleteModalOpen(false)} maxWidth="max-w-sm" z="z-[60]">
-          <div className="p-7 text-center">
-            <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
-              <Trash2 className="text-red-500" size={22} />
+        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-gray-100 text-center space-y-4">
+            <div className="w-12 h-12 rounded-full bg-red-50 text-red-600 flex items-center justify-center mx-auto">
+              <Trash2 size={24} />
             </div>
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Delete request?</h3>
-            <p className="text-sm text-gray-500 mb-6 leading-relaxed">
-              This request will be permanently removed. This action cannot be undone.
-            </p>
-            <div className="flex gap-3">
-              <SecondaryButton onClick={() => { setIsDeleteModalOpen(false); setRecordToDelete(null); }} disabled={isDeleting} className="flex-1">
+            <h3 className="font-bold text-lg text-gray-900">Delete Request?</h3>
+            <p className="text-xs text-gray-500">This action cannot be undone. Are you sure you want to delete this record?</p>
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="flex-1 py-2.5 text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+              >
                 Cancel
-              </SecondaryButton>
-              <DangerButton onClick={confirmDelete} disabled={isDeleting} loading={isDeleting}>
-                {isDeleting ? 'Deleting...' : 'Delete'}
-              </DangerButton>
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={isDeleting}
+                className="flex-1 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-full transition-colors flex items-center justify-center gap-2"
+              >
+                {isDeleting && <Loader2 size={16} className="animate-spin" />}
+                Delete
+              </button>
             </div>
-          </div>
-        </Modal>
-      )}
-
-      {isGeneratingPdf && (
-        <div className="fixed inset-0 bg-gray-900/30 backdrop-blur-sm flex items-center justify-center p-4 z-[70] animate-[fadeIn_0.15s_ease-out]">
-          <div className="bg-white rounded-[32px] w-full max-w-xs shadow-2xl p-8 flex flex-col items-center text-center animate-[scaleIn_0.2s_ease-out]">
-            <div className="relative w-16 h-16 flex items-center justify-center mb-4">
-              <div className="absolute inset-0 rounded-full border-4 border-amber-100" />
-              <div className="absolute inset-0 rounded-full border-4 border-amber-400 border-t-transparent animate-spin" />
-              <FileText className="text-amber-500" size={20} />
-            </div>
-            <h3 className="text-base font-semibold text-gray-900 mb-1">Generating PDF</h3>
-            <p className="text-sm text-gray-500">Please wait a moment...</p>
           </div>
         </div>
       )}

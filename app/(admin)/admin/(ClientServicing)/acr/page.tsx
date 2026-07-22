@@ -2,15 +2,20 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-  Plus, Search, Edit2, Trash2, X, Download, AlertCircle, Loader2, Save, CheckCircle2, FileText, Inbox
+  Plus, Search, Edit2, Trash2, X, Download, AlertCircle, Loader2, Save, CheckCircle2, FileText, Inbox, ArrowLeft
 } from 'lucide-react';
 import Header from '@/app/components/admin/AdminHeader';
 import Sidebar from '@/app/components/admin/AdminSidebar';
 import { supabase } from "@/app/lib/supabase/client";
 import styles from "@/styles/admin/cpst/page.module.css";
-import SignaturePad from '@/app/components/ui/SignaturePad';
-import ClientSelector from '@/app/components/shared/ClientSelector';
+import dynamic from 'next/dynamic';
 import { generateAdvisorChangeRequestPdfFromTemplate } from '@/app/lib/pdf/generateAdvisorChangeRequestPdfFromTemplate';
+import { acrFormConfig } from './acrConfig';
+
+const PdfViewerEngine = dynamic(
+  () => import('@/app/components/pdf-engine/PdfViewerEngine'),
+  { ssr: false }
+);
 
 const TABLE_NAME = 'advisor_change_requests';
 
@@ -78,75 +83,17 @@ const defaultRecord: Omit<FormRecord, 'id' | 'client_id' | 'created_at'> = {
   time_received: '',
 };
 
-const inputDisabledClass = "w-full px-3 py-2 border border-gray-200 text-sm bg-[#fffef5] text-gray-700 cursor-not-allowed";
-
-function PdfSectionHeader({ letter, title }: { letter: string; title: string }) {
-  return (
-    <div className="flex items-center gap-0 bg-gray-900 text-white">
-      <div className="w-10 h-8 flex items-center justify-center text-sm font-bold border-r border-gray-600 shrink-0">
-        {letter}
-      </div>
-      <div className="px-3 py-1.5 text-sm font-semibold">{title}</div>
-    </div>
-  );
-}
-
-function FieldCell({ label, children, className = '' }: { label?: string; children: React.ReactNode; className?: string }) {
-  return (
-    <div className={`border border-gray-300 p-2 ${className}`}>
-      {label && <div className="text-xs text-gray-500 mb-1">{label}</div>}
-      {children}
-    </div>
-  );
-}
-
 function PrimaryButton({
-  children, onClick, type = 'button', disabled, loading, className = '', form,
+  children, onClick, type = 'button', disabled, loading, className = '',
 }: {
-  children: React.ReactNode; onClick?: () => void; type?: 'button' | 'submit'; disabled?: boolean; loading?: boolean; className?: string; form?: string;
+  children: React.ReactNode; onClick?: () => void; type?: 'button' | 'submit'; disabled?: boolean; loading?: boolean; className?: string;
 }) {
   return (
     <button
       type={type}
-      form={form}
       onClick={onClick}
       disabled={disabled || loading}
-      className={`px-5 py-2.5 bg-gray-900 text-white rounded-full hover:bg-gray-800 active:scale-[0.97] font-medium text-sm flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 shadow-sm ${className}`}
-    >
-      {loading && <Loader2 size={16} className="animate-spin" />}
-      {children}
-    </button>
-  );
-}
-
-function SecondaryButton({
-  children, onClick, disabled, className = '',
-}: {
-  children: React.ReactNode; onClick?: () => void; disabled?: boolean; className?: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={`px-5 py-2.5 text-gray-700 bg-white border border-gray-200 rounded-full hover:bg-gray-50 active:scale-[0.97] font-medium text-sm transition-all duration-200 disabled:opacity-50 ${className}`}
-    >
-      {children}
-    </button>
-  );
-}
-
-function DangerButton({
-  children, onClick, disabled, loading,
-}: {
-  children: React.ReactNode; onClick?: () => void; disabled?: boolean; loading?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled || loading}
-      className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-full hover:bg-red-700 active:scale-[0.97] font-medium text-sm flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-60"
+      className={`px-5 py-2.5 bg-slate-900 text-white rounded-full hover:bg-slate-800 active:scale-[0.97] font-medium text-sm flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 shadow-sm ${className}`}
     >
       {loading && <Loader2 size={16} className="animate-spin" />}
       {children}
@@ -175,20 +122,6 @@ function IconButton({
   );
 }
 
-function Modal({
-  children, onClose, maxWidth = 'max-w-4xl', z = 'z-50',
-}: {
-  children: React.ReactNode; onClose?: () => void; maxWidth?: string; z?: string;
-}) {
-  return (
-    <div className={`fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center p-4 ${z} animate-[fadeIn_0.18s_ease-out]`}>
-      <div className={`bg-white rounded-[32px] w-full ${maxWidth} max-h-[90vh] overflow-hidden shadow-2xl flex flex-col animate-[scaleIn_0.2s_ease-out]`}>
-        {children}
-      </div>
-    </div>
-  );
-}
-
 function StatusBadge({ status }: { status: string }) {
   const normalized = (status || '').toLowerCase();
   const tone =
@@ -210,7 +143,7 @@ export default function AdvisorChangeRequestPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<FormRecord | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [recordToDelete, setRecordToDelete] = useState<string | null>(null);
@@ -318,6 +251,7 @@ export default function AdvisorChangeRequestPage() {
         .eq('id', clientId)
         .single();
       if (!error && data) {
+        setSelectedClientDetails(data);
         setFormData(prev => ({
           ...prev,
           policy_numbers: data.policy_number || prev.policy_numbers,
@@ -329,7 +263,7 @@ export default function AdvisorChangeRequestPage() {
     }
   };
 
-  const handleOpenModal = (record?: FormRecord) => {
+  const handleOpenEditor = (record?: FormRecord) => {
     if (record) {
       setEditingRecord(record);
       setFormData({
@@ -376,13 +310,44 @@ export default function AdvisorChangeRequestPage() {
       });
       setSelectedClientDetails(null);
     }
-    setIsModalOpen(true);
+    setIsEditorOpen(true);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const mapEngineValuesToFormRecord = (engineValues: Record<string, any>): Omit<FormRecord, 'id' | 'created_at'> => {
+    return {
+      client_id: formData.client_id,
+      company_name: engineValues.company_name || 'Sun Life of Canada (Philippines), Inc.',
+      designation: engineValues.designation || '',
+      request_type: engineValues.request_type || '',
+      policy_numbers: engineValues.policy_numbers || '',
+      account_individual_life: !!engineValues.account_individual_life,
+      account_group_life: !!engineValues.account_group_life,
+      account_mutual_fund: !!engineValues.account_mutual_fund,
+      account_pre_need: !!engineValues.account_pre_need,
+      reference_policy_number: engineValues.reference_policy_number || '',
+      reason_type: engineValues.reason_type || '',
+      reason_details: engineValues.reason_details || '',
+      new_advisor_last_name: engineValues.new_advisor_last_name || '',
+      new_advisor_first_name: engineValues.new_advisor_first_name || '',
+      new_advisor_middle_name: engineValues.new_advisor_middle_name || '',
+      place_of_signing: engineValues.place_of_signing || '',
+      date_of_signing: engineValues.date_of_signing || new Date().toISOString().split('T')[0],
+      policy_owner_signature: engineValues.policy_owner_signature || '',
+      new_advisor_signature: engineValues.new_advisor_signature || '',
+      code_number: engineValues.code_number || '',
+      nbo_iso: engineValues.nbo_iso || '',
+      wants_communication: !!engineValues.wants_communication,
+      received_by_staff: engineValues.received_by_staff || '',
+      receiving_department: engineValues.receiving_department || '',
+      date_received: engineValues.date_received || '',
+      time_received: engineValues.time_received || '',
+      status: engineValues.status || 'Pending',
+    };
+  };
+
+  const handleSaveDraftFromEngine = async (engineValues: Record<string, any>) => {
     if (!formData.client_id) {
-      setError("Please select a client.");
+      setError("Please select a client record in the left panel before saving.");
       return;
     }
 
@@ -390,7 +355,7 @@ export default function AdvisorChangeRequestPage() {
       setIsSubmitting(true);
       setError("");
 
-      const payload: any = { ...formData };
+      const payload: any = mapEngineValuesToFormRecord(engineValues);
       if (!payload.date_received) payload.date_received = null;
       if (!payload.date_of_signing) payload.date_of_signing = null;
 
@@ -401,17 +366,19 @@ export default function AdvisorChangeRequestPage() {
           .eq('id', editingRecord.id);
 
         if (updateError) throw updateError;
-        setSuccess("Record updated successfully");
+        setSuccess("Advisor Change Request saved successfully.");
       } else {
-        const { error: insertError } = await supabase
+        const { data: newRecord, error: insertError } = await supabase
           .from(TABLE_NAME)
-          .insert([payload]);
+          .insert([payload])
+          .select()
+          .single();
 
         if (insertError) throw insertError;
-        setSuccess("Record created successfully");
+        if (newRecord) setEditingRecord(newRecord);
+        setSuccess("New Advisor Change Request created.");
       }
 
-      setIsModalOpen(false);
       fetchRecords();
       setTimeout(() => setSuccess(""), 3000);
     } catch (err: any) {
@@ -420,6 +387,38 @@ export default function AdvisorChangeRequestPage() {
       setError(details ? `${message} - ${details}` : message);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleExportPdfFromEngine = async (engineValues: Record<string, any>) => {
+    try {
+      setIsGeneratingPdf(true);
+      setError("");
+
+      const formRec = mapEngineValuesToFormRecord(engineValues) as FormRecord;
+      const ownerName = getClientNameParts(selectedClientDetails?.client_name);
+      const ownerDob = selectedClientDetails?.birthdate || '';
+
+      const pdfBytes = await generateAdvisorChangeRequestPdfFromTemplate(formRec, ownerName, ownerDob);
+
+      const blob = new Blob([pdfBytes as any], { type: 'application/pdf' });
+      const downloadUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      const formattedDate = new Date().toISOString().split('T')[0];
+      a.download = `Advisor_Change_Request_${selectedClientDetails?.client_name || 'Record'}_${formattedDate}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(downloadUrl);
+
+      setSuccess("Filled Sun Life PDF exported successfully!");
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err: any) {
+      console.error('Error generating PDF from engine:', err);
+      setError(err.message || 'Failed to export PDF.');
+    } finally {
+      setIsGeneratingPdf(false);
     }
   };
 
@@ -448,7 +447,7 @@ export default function AdvisorChangeRequestPage() {
       setTimeout(() => setSuccess(""), 3000);
     } catch (err: any) {
       console.error('Error generating PDF:', err);
-      setError(err.message || 'Failed to generate PDF. Please check that the template file exists in /public/forms/.');
+      setError(err.message || 'Failed to generate PDF. Please check that template exists.');
     } finally {
       setIsGeneratingPdf(false);
       setGeneratingPdfId(null);
@@ -482,11 +481,114 @@ export default function AdvisorChangeRequestPage() {
   const clientNameParts = getClientNameParts(selectedClientDetails?.client_name);
   const clientDob = selectedClientDetails?.birthdate || '';
 
+  // Construct initial engine values map
+  const engineInitialValues = {
+    client_last_name: clientNameParts.last,
+    client_first_name: clientNameParts.first,
+    client_middle_name: clientNameParts.middle,
+    client_dob: clientDob,
+    client_full_name_pg2: selectedClientDetails?.client_name
+      ? `${clientNameParts.last}, ${clientNameParts.first} ${clientNameParts.middle}`.trim()
+      : '',
+    company_name: formData.company_name,
+    designation: formData.designation,
+    request_type: formData.request_type,
+    policy_numbers: formData.policy_numbers,
+    account_individual_life: formData.account_individual_life,
+    account_group_life: formData.account_group_life,
+    account_mutual_fund: formData.account_mutual_fund,
+    account_pre_need: formData.account_pre_need,
+    reference_policy_number: formData.reference_policy_number,
+    reason_type: formData.reason_type,
+    reason_details: formData.reason_details,
+    new_advisor_last_name: formData.new_advisor_last_name,
+    new_advisor_first_name: formData.new_advisor_first_name,
+    new_advisor_middle_name: formData.new_advisor_middle_name,
+    place_of_signing: formData.place_of_signing,
+    date_of_signing: formData.date_of_signing,
+    policy_owner_signature: formData.policy_owner_signature,
+    new_advisor_signature: formData.new_advisor_signature,
+    code_number: formData.code_number,
+    nbo_iso: formData.nbo_iso,
+    wants_communication: formData.wants_communication,
+    received_by_staff: formData.received_by_staff,
+    receiving_department: formData.receiving_department,
+    date_received: formData.date_received,
+    time_received: formData.time_received,
+    status: formData.status,
+  };
+
   const filteredRecords = records.filter(r =>
     (r.client?.client_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
     (r.request_type || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // ══════════════════════════════════════════════════════════════════════════
+  // RENDER FULL-SCREEN PDF FORM EDITOR WHEN EDITOR IS OPEN
+  // ══════════════════════════════════════════════════════════════════════════
+  if (isEditorOpen) {
+    return (
+      <div className="relative w-screen h-screen overflow-hidden bg-slate-950">
+        {/* Floating Top Back Button */}
+        <button
+          onClick={() => {
+            setIsEditorOpen(false);
+            fetchRecords();
+          }}
+          className="fixed top-3 left-4 z-[100] px-3.5 py-1.5 bg-slate-900/90 hover:bg-slate-800 border border-slate-700 text-slate-200 hover:text-white rounded-full text-xs font-semibold flex items-center gap-1.5 backdrop-blur-md shadow-lg transition-all"
+        >
+          <ArrowLeft size={14} />
+          Back to ACR List
+        </button>
+
+        {error && (
+          <div className="fixed top-16 right-6 z-[200] max-w-sm animate-[slideInRight_0.2s_ease-out]">
+            <div className="bg-white border border-red-100 rounded-2xl p-4 flex items-center gap-3 shadow-2xl">
+              <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center shrink-0">
+                <AlertCircle className="text-red-500" size={16} />
+              </div>
+              <p className="text-red-700 text-xs flex-1 font-medium">{error}</p>
+              <button onClick={() => setError("")} className="text-gray-300 hover:text-gray-500">
+                <X size={16} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {success && (
+          <div className="fixed top-16 right-6 z-[200] max-w-sm animate-[slideInRight_0.2s_ease-out]">
+            <div className="bg-white border border-emerald-100 rounded-2xl p-4 flex items-center gap-3 shadow-2xl">
+              <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center shrink-0">
+                <CheckCircle2 className="text-emerald-500" size={16} />
+              </div>
+              <p className="text-emerald-700 text-xs flex-1 font-semibold">{success}</p>
+            </div>
+          </div>
+        )}
+
+        <PdfViewerEngine
+          config={acrFormConfig}
+          initialValues={engineInitialValues}
+          clientId={formData.client_id}
+          selectedClientDetails={selectedClientDetails}
+          status={formData.status}
+          onBack={() => {
+            setIsEditorOpen(false);
+            fetchRecords();
+          }}
+          onClientSelect={handleClientSelect}
+          onSaveDraft={handleSaveDraftFromEngine}
+          onExportPdf={handleExportPdfFromEngine}
+          isSubmitting={isSubmitting}
+          isGeneratingPdf={isGeneratingPdf}
+        />
+      </div>
+    );
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // MAIN ACR DASHBOARD & CRUD TABLE
+  // ══════════════════════════════════════════════════════════════════════════
   return (
     <div className={styles.text_52}>
       <style jsx global>{`
@@ -504,11 +606,11 @@ export default function AdvisorChangeRequestPage() {
           <div className="flex justify-between items-center mb-6">
             <div>
               <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Advisor Change Request</h1>
-              <p className="text-sm text-gray-500 mt-0.5">Manage and generate Sun Life advisor change request forms.</p>
+              <p className="text-sm text-gray-500 mt-0.5">Manage and generate Sun Life advisor change request forms using interactive PDF Editor.</p>
             </div>
-            <PrimaryButton onClick={() => handleOpenModal()} className="pl-4 pr-5">
+            <PrimaryButton onClick={() => handleOpenEditor()} className="pl-4 pr-5">
               <Plus size={16} />
-              New Request
+              New Interactive Request
             </PrimaryButton>
           </div>
 
@@ -519,12 +621,13 @@ export default function AdvisorChangeRequestPage() {
                   <AlertCircle className="text-red-500" size={16} />
                 </div>
                 <p className="text-red-700 text-sm flex-1">{error}</p>
-                <button onClick={() => setError("")} className="text-gray-300 hover:text-gray-500 transition-colors">
+                <button onClick={() => setError("")} className="text-gray-300 hover:text-gray-500">
                   <X size={16} />
                 </button>
               </div>
             </div>
           )}
+
           {success && (
             <div className="fixed top-6 right-6 z-[100] max-w-sm animate-[slideInRight_0.2s_ease-out]">
               <div className="bg-white border border-emerald-100 rounded-2xl p-4 flex items-center gap-3 shadow-lg">
@@ -591,7 +694,7 @@ export default function AdvisorChangeRequestPage() {
                       <tr key={record.id} className="hover:bg-gray-50/60 transition-colors duration-150">
                         <td className="px-6 py-4 font-medium text-gray-900">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center text-xs font-semibold shrink-0">
+                            <div className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs font-semibold shrink-0">
                               {(record.client?.client_name || '?').charAt(0).toUpperCase()}
                             </div>
                             {record.client?.client_name || 'Unknown'}
@@ -611,12 +714,12 @@ export default function AdvisorChangeRequestPage() {
                             <IconButton
                               onClick={() => handleDownloadPdf(record)}
                               disabled={isGeneratingPdf}
-                              title="Download PDF"
+                              title="Download Exported PDF"
                               tone="blue"
                             >
                               {isGeneratingPdf && generatingPdfId === record.id ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
                             </IconButton>
-                            <IconButton onClick={() => handleOpenModal(record)} title="Edit">
+                            <IconButton onClick={() => handleOpenEditor(record)} title="Open in PDF Form Editor">
                               <Edit2 size={16} />
                             </IconButton>
                             <IconButton onClick={() => handleDeleteClick(record.id)} title="Delete" tone="red">
@@ -634,447 +737,31 @@ export default function AdvisorChangeRequestPage() {
         </main>
       </div>
 
-      {isModalOpen && (
-        <Modal onClose={() => setIsModalOpen(false)} maxWidth="max-w-5xl">
-          <div className="flex items-center justify-between shrink-0" style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)' }}>
-            <div className="flex items-center gap-0">
-              <div className="w-1.5 h-16 bg-[#F2AF00]" />
-              <div className="px-5 py-3">
-                <p className="text-xs font-semibold text-[#F2AF00] tracking-widest uppercase mb-0.5">Sun Life of Canada (Philippines), Inc.</p>
-                <h2 className="text-lg font-bold text-white tracking-tight">
-                  {editingRecord ? 'Edit — Advisor Change Request' : 'New Advisor Change Request'}
-                </h2>
-              </div>
-            </div>
-            <button
-              onClick={() => setIsModalOpen(false)}
-              className="mr-4 p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-full transition-colors duration-200"
-            >
-              <X size={20} />
-            </button>
-          </div>
-
-          <div className="px-6 py-4 bg-gray-50 border-b border-gray-200 shrink-0">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Select Client</p>
-            <ClientSelector
-              onChange={handleClientSelect}
-              value={formData.client_id}
-            />
-          </div>
-
-          <div className="overflow-y-auto flex-1" style={{ background: '#f8f8f6' }}>
-            <form id="acrForm" onSubmit={handleSubmit}>
-              {formData.client_id && (
-                <div className="max-w-4xl mx-auto p-6 space-y-0">
-                  <div className="flex items-stretch border border-gray-300 bg-white">
-                    <div className="flex-1 bg-[#F2AF00] px-6 py-4 flex items-center">
-                      <h1 className="text-2xl font-bold text-gray-900">Advisor Change Request</h1>
-                    </div>
-                    <div className="px-6 py-4 flex items-center justify-center border-l border-gray-300 bg-white">
-                      <div className="text-right">
-                        <div className="text-2xl font-black tracking-tight text-gray-900">Sun Life</div>
-                        <div className="text-[10px] text-gray-500 font-medium">of Canada (Philippines), Inc.</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="border border-t-0 border-gray-300 bg-white px-5 py-3 text-xs text-gray-600 leading-relaxed">
-                    In this form <em>&quot;you&quot;</em> and <em>&quot;your&quot;</em> refer to the policy owner/plan holder/investor/company&apos;s authorized representative accomplishing this form, while <em>we, us, our,</em> and <em>the Company</em> refer to Sun Life of Canada (Philippines), Inc., Sun Life Financial Plans, Inc., or Sun Life Asset Management Co., Inc., which are members of the Sun Life group of companies.
-                  </div>
-                  <div className="border border-t-0 border-gray-300 bg-[#fffdf0] px-5 py-3 text-xs text-gray-700">
-                    <span className="font-bold">IMPORTANT NOTES:</span> Write legibly using <strong>capital letters</strong>. Write N/A if question is not applicable. Mark the box(es) with an &quot;X&quot; to indicate your choice(s) then sign the form only when completely filled out.
-                  </div>
-
-                  <div className="border border-t-0 border-gray-300">
-                    <PdfSectionHeader letter="A" title="General Information" />
-
-                    <div className="px-3 py-2 text-xs text-gray-700 border-b border-gray-200 bg-white">
-                      <span className="font-semibold">A1.</span> Policy Owner/Policy Holder (for Group Insurance)/Plan Holder/Investor
-                      <span className="ml-4 text-gray-400">For Individual Account only</span>
-                    </div>
-
-                    <div className="grid grid-cols-4 border-b border-gray-200">
-                      <FieldCell label="Last Name" className="col-span-1 border-r">
-                        <input type="text" value={clientNameParts.last} disabled className={inputDisabledClass + " border-0 p-0 bg-transparent text-gray-800"} />
-                      </FieldCell>
-                      <FieldCell label="First Name" className="col-span-1 border-r">
-                        <input type="text" value={clientNameParts.first} disabled className={inputDisabledClass + " border-0 p-0 bg-transparent text-gray-800"} />
-                      </FieldCell>
-                      <FieldCell label="Middle Name" className="col-span-1 border-r">
-                        <input type="text" value={clientNameParts.middle} disabled className={inputDisabledClass + " border-0 p-0 bg-transparent text-gray-800"} />
-                      </FieldCell>
-                      <FieldCell className="col-span-1">
-                        <div className="text-xs text-gray-500 mb-1">Date of Birth <span className="text-gray-400">(e.g. 09-JAN-2020)</span></div>
-                        <input type="date" value={clientDob} disabled className={inputDisabledClass + " border-0 p-0 bg-transparent text-gray-800"} />
-                      </FieldCell>
-                    </div>
-
-                    <div className="px-3 py-1.5 text-xs text-gray-600 border-b border-gray-200 bg-white">
-                      <span className="font-semibold">A2.</span> Company Name &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Designation
-                    </div>
-                    <div className="grid grid-cols-3">
-                      <FieldCell className="col-span-2 border-r">
-                        <input
-                          type="text"
-                          value={formData.company_name}
-                          onChange={e => setFormData({ ...formData, company_name: e.target.value })}
-                          className="w-full border-0 p-0 text-sm text-gray-900 bg-transparent focus:outline-none"
-                        />
-                      </FieldCell>
-                      <FieldCell className="col-span-1">
-                        <input
-                          type="text"
-                          value={formData.designation}
-                          onChange={e => setFormData({ ...formData, designation: e.target.value })}
-                          className="w-full border-0 p-0 text-sm text-gray-900 bg-transparent focus:outline-none"
-                        />
-                      </FieldCell>
-                    </div>
-                    <div className="px-3 py-1.5 text-[10px] text-gray-400 bg-gray-50 border-t border-gray-200">Names and date of birth are auto-filled from the selected client record.</div>
-                  </div>
-
-                  <div className="border border-t-0 border-gray-300">
-                    <PdfSectionHeader letter="B" title="Request Details (choose one below)" />
-
-                    <div className={`border-b border-gray-200 px-4 py-3 transition-colors ${ formData.request_type === 'specific_policy' ? 'bg-amber-50' : 'bg-white' }`}>
-                      <label className="flex items-start gap-3 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="request_type"
-                          checked={formData.request_type === 'specific_policy'}
-                          onChange={() => setFormData({ ...formData, request_type: 'specific_policy', account_individual_life: false, account_group_life: false, account_mutual_fund: false, account_pre_need: false, reference_policy_number: '' })}
-                          className="mt-0.5 accent-gray-900"
-                        />
-                        <div className="text-xs text-gray-800 flex-1">
-                          <span className="font-bold">B.1</span> <strong>Request a particular policy/plan/account number(s) only.</strong><br />
-                          <span className="text-gray-600">Specify below the policy/plan/account number(s) to be transferred <em>(incorrect policy/plan/account number(s) will not be processed)</em>:</span>
-                        </div>
-                      </label>
-                      {formData.request_type === 'specific_policy' && (
-                        <div className="mt-3 ml-6">
-                          <textarea
-                            placeholder="Policy/Plan/Account Number(s)"
-                            value={formData.policy_numbers}
-                            onChange={e => setFormData({ ...formData, policy_numbers: e.target.value })}
-                            className="w-full border border-gray-300 p-2 text-sm text-gray-900 bg-white focus:outline-none focus:border-amber-400 resize-none"
-                            rows={4}
-                          />
-                        </div>
-                      )}
-                    </div>
-
-                    <div className={`px-4 py-3 transition-colors ${ formData.request_type === 'all_accounts' ? 'bg-amber-50' : 'bg-white' }`}>
-                      <label className="flex items-start gap-3 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="request_type"
-                          checked={formData.request_type === 'all_accounts'}
-                          onChange={() => setFormData({ ...formData, request_type: 'all_accounts', policy_numbers: '' })}
-                          className="mt-0.5 accent-gray-900"
-                        />
-                        <div className="text-xs text-gray-800">
-                          <span className="font-bold">B.2</span> Request will apply to <strong>ALL</strong> existing client&apos;s account as of date of request <em>(select the applicable type of account to be transferred)</em>:
-                        </div>
-                      </label>
-                      {formData.request_type === 'all_accounts' && (
-                        <div className="ml-6 mt-3 space-y-3">
-                          <div className="space-y-2">
-                            {[
-                              { key: 'account_individual_life' as const, label: 'All Individual Life Insurance Policies' },
-                              { key: 'account_group_life' as const, label: 'All Group Life Insurance Contracts (for Policyholder of Group Insurance)' },
-                              { key: 'account_mutual_fund' as const, label: 'All Mutual Fund Accounts' },
-                              { key: 'account_pre_need' as const, label: 'All Pre-Need Plans' },
-                            ].map(({ key, label }) => (
-                              <label key={key} className="flex items-center gap-2.5 cursor-pointer text-xs text-gray-700">
-                                <span className="w-4 h-4 border border-gray-400 flex items-center justify-center bg-white shrink-0">
-                                  {formData[key] && <span className="text-gray-900 font-bold text-xs">✕</span>}
-                                </span>
-                                <input type="checkbox" checked={formData[key]} onChange={e => setFormData({ ...formData, [key]: e.target.checked })} className="sr-only" />
-                                {label}
-                              </label>
-                            ))}
-                          </div>
-                          <div className="flex items-center gap-2 text-xs text-gray-700">
-                            <span>For our reference, specify at least <strong>one</strong> policy/plan/account number:</span>
-                            <input
-                              type="text"
-                              value={formData.reference_policy_number}
-                              onChange={e => setFormData({ ...formData, reference_policy_number: e.target.value })}
-                              className="flex-1 border-b border-gray-400 pb-0.5 text-sm text-gray-900 bg-transparent focus:outline-none focus:border-amber-500"
-                            />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="border border-t-0 border-gray-300">
-                    <PdfSectionHeader letter="C" title="Reason for Change" />
-                    <div className="px-4 py-3 bg-white space-y-3">
-                      <label className="flex items-center gap-3 cursor-pointer">
-                        <span className={`w-4 h-4 border flex items-center justify-center shrink-0 ${ formData.reason_type === 'no_advisor' ? 'border-gray-600 bg-white' : 'border-gray-400 bg-white' }`}>
-                          {formData.reason_type === 'no_advisor' && <span className="text-gray-900 font-bold text-xs">✕</span>}
-                        </span>
-                        <input type="radio" name="reason_type" checked={formData.reason_type === 'no_advisor'} onChange={() => setFormData({ ...formData, reason_type: 'no_advisor', reason_details: '' })} className="sr-only" />
-                        <span className="text-xs text-gray-800">You have no Advisor</span>
-                      </label>
-                      <label className="flex items-start gap-3 cursor-pointer">
-                        <span className={`w-4 h-4 border flex items-center justify-center shrink-0 mt-0.5 ${ formData.reason_type === 'prefer_another' ? 'border-gray-600 bg-white' : 'border-gray-400 bg-white' }`}>
-                          {formData.reason_type === 'prefer_another' && <span className="text-gray-900 font-bold text-xs">✕</span>}
-                        </span>
-                        <input type="radio" name="reason_type" checked={formData.reason_type === 'prefer_another'} onChange={() => setFormData({ ...formData, reason_type: 'prefer_another' })} className="sr-only" />
-                        <div className="flex-1">
-                          <span className="text-xs text-gray-800">You prefer another Advisor <em>(provide reason below)</em></span>
-                          {formData.reason_type === 'prefer_another' && (
-                            <textarea
-                              value={formData.reason_details}
-                              onChange={e => setFormData({ ...formData, reason_details: e.target.value })}
-                              className="mt-2 w-full border border-gray-300 p-2 text-sm text-gray-900 bg-white focus:outline-none focus:border-amber-400 resize-none"
-                              rows={4}
-                              placeholder="Please provide details..."
-                            />
-                          )}
-                          {formData.reason_type !== 'prefer_another' && (
-                            <div className="mt-2 h-20 border border-gray-200 bg-gray-50" />
-                          )}
-                        </div>
-                      </label>
-                    </div>
-                  </div>
-
-                  <div className="border border-t-0 border-gray-300 bg-white px-4 py-1.5 flex items-center justify-between">
-                    <span className="text-[10px] text-gray-400">SACR.04.24</span>
-                    <span className="text-[10px] text-gray-400">Page 1 of 2</span>
-                  </div>
-
-                  <div className="mt-6 border border-gray-300">
-                    <PdfSectionHeader letter="D" title="New Advisor Information" />
-                    <div className="px-3 py-2 text-xs text-gray-700 border-b border-gray-200 bg-white font-semibold">New Advisor&apos;s Full Name</div>
-                    <div className="grid grid-cols-3">
-                      <FieldCell label="Last Name" className="border-r border-b border-gray-200">
-                        <input type="text" value={formData.new_advisor_last_name} onChange={e => setFormData({ ...formData, new_advisor_last_name: e.target.value })} className="w-full border-0 p-0 text-sm text-gray-900 bg-transparent focus:outline-none" />
-                      </FieldCell>
-                      <FieldCell label="First Name" className="border-r border-b border-gray-200">
-                        <input type="text" value={formData.new_advisor_first_name} onChange={e => setFormData({ ...formData, new_advisor_first_name: e.target.value })} className="w-full border-0 p-0 text-sm text-gray-900 bg-transparent focus:outline-none" />
-                      </FieldCell>
-                      <FieldCell label="Middle Name" className="border-b border-gray-200">
-                        <input type="text" value={formData.new_advisor_middle_name} onChange={e => setFormData({ ...formData, new_advisor_middle_name: e.target.value })} className="w-full border-0 p-0 text-sm text-gray-900 bg-transparent focus:outline-none" />
-                      </FieldCell>
-                    </div>
-                  </div>
-
-                  <div className="border border-t-0 border-gray-300">
-                    <PdfSectionHeader letter="E" title="Signatures" />
-                    <div className="px-4 py-3 bg-white text-xs text-gray-600 leading-relaxed border-b border-gray-200">
-                      <p className="font-semibold text-gray-800 mb-1">By signing below, you confirm your understanding and agreement to the following:</p>
-                      <p className="mb-0.5">a. All services relating to your account(s) as indicated in this form shall be coursed through your new servicing advisor.</p>
-                      <p className="mb-0.5">b. You will inform us within 30 calendar days of any change in your circumstances, including but not limited to citizenship, and submit the applicable document accordingly.</p>
-                      <p className="mb-0.5">c. You acknowledge the Company&apos;s statutory responsibility to provide your information, including but not limited to local or foreign tax status, to the appropriate authority.</p>
-                      <p className="mb-0.5">d. You acknowledge that the Company, its employees, duly authorized representatives, related companies, third party service providers and vendors, shall process and share your and your insured&apos;s information, with any person or organization to (i) service this account, (ii) process claims and enforce the contract, and (iii) pursue its legitimate and lawful rights and interests and other purposes allowed under privacy laws and regulations.</p>
-                      <p className="mb-0.5">e. Your personal data shall be retained throughout the existence of your account(s) and/or until expiration of the retention limit set by laws and regulations from account closure. You certify that you have read, understood and agree with the declarations and authorizations above, including Sun Life&apos;s privacy policy found in https://online.sunlife.com.ph/privacy.</p>
-                      <p>f. Your rights include the right to be informed, access your data, rectify errors, object to processing, and file a complaint. Should you have any concerns, you may get in touch with our Data Protection Officer at privacyconcern@sunlife.com.</p>
-                    </div>
-
-                    <div className="px-3 py-2 text-xs text-gray-700 border-b border-gray-200 bg-white">
-                      <span className="font-semibold">E.1</span> Complete Name of Policy Owner/Policy Holder (for Group Insurance)/Plan Holder/Investor
-                    </div>
-                    <div className="grid grid-cols-3 border-b border-gray-200">
-                      <FieldCell label="Last Name" className="border-r">
-                        <input type="text" value={clientNameParts.last} disabled className={inputDisabledClass + " border-0 p-0 bg-transparent"} />
-                      </FieldCell>
-                      <FieldCell label="First Name" className="border-r">
-                        <input type="text" value={clientNameParts.first} disabled className={inputDisabledClass + " border-0 p-0 bg-transparent"} />
-                      </FieldCell>
-                      <FieldCell label="Middle Name">
-                        <input type="text" value={clientNameParts.middle} disabled className={inputDisabledClass + " border-0 p-0 bg-transparent"} />
-                      </FieldCell>
-                    </div>
-                    <div className="grid grid-cols-2 border-b border-gray-200">
-                      <FieldCell label="Place of Signing" className="border-r">
-                        <input type="text" value={formData.place_of_signing} onChange={e => setFormData({ ...formData, place_of_signing: e.target.value })} className="w-full border-0 p-0 text-sm text-gray-900 bg-transparent focus:outline-none" />
-                      </FieldCell>
-                      <FieldCell>
-                        <div className="text-xs text-gray-500 mb-1">Date of Signing <span className="text-gray-400">(e.g. 01-JAN-2019)</span></div>
-                        <input type="date" value={formData.date_of_signing} onChange={e => setFormData({ ...formData, date_of_signing: e.target.value })} className="w-full border-0 p-0 text-sm text-gray-900 bg-transparent focus:outline-none" />
-                      </FieldCell>
-                    </div>
-
-                    <div className="px-3 py-2 text-xs font-semibold text-gray-700 border-b border-gray-200 bg-white">E.2 Accepted:</div>
-                    <FieldCell label="Signature of Policy Owner/Policy Holder (for Group Insurance)/Plan Holder/Investor" className="border-b border-gray-200">
-                      <div className="border border-gray-200 rounded-sm overflow-hidden bg-white">
-                        <SignaturePad
-                          initialSignature={formData.policy_owner_signature}
-                          onSignatureChange={(data: string | null) => setFormData({ ...formData, policy_owner_signature: data || '' })}
-                          title="Policy Owner Signature"
-                        />
-                      </div>
-                    </FieldCell>
-                    <div className="grid grid-cols-3 border-b border-gray-200">
-                      <FieldCell label="Signature of New Advisor" className="col-span-1 border-r">
-                        <div className="border border-gray-200 rounded-sm overflow-hidden bg-white">
-                          <SignaturePad
-                            initialSignature={formData.new_advisor_signature}
-                            onSignatureChange={(data: string | null) => setFormData({ ...formData, new_advisor_signature: data || '' })}
-                            title="New Advisor Signature"
-                          />
-                        </div>
-                      </FieldCell>
-                      <FieldCell label="Code Number" className="col-span-1 border-r">
-                        <input type="text" value={formData.code_number} onChange={e => setFormData({ ...formData, code_number: e.target.value })} className="w-full border-0 p-0 text-sm text-gray-900 bg-transparent focus:outline-none" />
-                      </FieldCell>
-                      <FieldCell label="NBO/ISO">
-                        <input type="text" value={formData.nbo_iso} onChange={e => setFormData({ ...formData, nbo_iso: e.target.value })} className="w-full border-0 p-0 text-sm text-gray-900 bg-transparent focus:outline-none" />
-                      </FieldCell>
-                    </div>
-
-                    <div className="border-b border-gray-200" style={{ background: '#1a1a1a' }}>
-                      <p className="px-4 py-2 text-xs text-white">
-                        <strong>Let us serve you better!</strong> Updating made easier. You may now update your contact information via the Client Portal or Mobile App.
-                      </p>
-                    </div>
-                    <div className="grid grid-cols-2 border-b border-gray-200">
-                      <div className="border-r border-gray-200 px-4 py-3">
-                        <p className="text-xs font-bold text-gray-900 mb-2">Option 1: Via Client Portal (www.sunlife.com.ph)</p>
-                        <ol className="list-decimal pl-4 space-y-1 text-xs text-gray-600">
-                          <li>Visit sunlife.com.ph and click on the Sign In button.</li>
-                          <li>Click Settings and select edit Contract Details/Mailing Address</li>
-                          <li>Update relevant details then click Save.</li>
-                        </ol>
-                      </div>
-                      <div className="px-4 py-3">
-                        <p className="text-xs font-bold text-gray-900 mb-2">Option 2: Via Mobile App</p>
-                        <p className="text-xs text-gray-600 italic mb-2">Download the Sun Life PH App at App/Play Store</p>
-                        <ol className="list-decimal pl-4 space-y-1 text-xs text-gray-600">
-                          <li>Login to your Sun Life PH Mobile App</li>
-                          <li>Click Service Request and click Personal Details/Update Mailing Address</li>
-                          <li>Click Edit button on your Mobile, International, Home, Business No., or Email Address</li>
-                          <li>Update then click Save.</li>
-                        </ol>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="border border-t-0 border-gray-300 bg-white px-4 py-3">
-                    <p className="text-xs text-gray-800 mb-3">
-                      <strong>F.2</strong> Would you like to receive personalized communication and product offers from Sun Life of Canada (Philippines), Inc. (SLOCPI); Sun Life Financial Plans, Inc. (SLFPI); Sun Life Asset Management Company, Inc. (SLAMCI); and other members of the Sun Life group that may help with your financial needs?
-                    </p>
-                    <div className="flex items-center gap-6">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <span className={`w-4 h-4 border flex items-center justify-center shrink-0 ${ formData.wants_communication === true ? 'border-gray-700' : 'border-gray-400' }`}>
-                          {formData.wants_communication === true && <span className="text-gray-900 font-bold text-xs">✕</span>}
-                        </span>
-                        <input type="radio" name="wants_comm" checked={formData.wants_communication === true} onChange={() => setFormData({ ...formData, wants_communication: true })} className="sr-only" />
-                        <span className="text-xs font-medium text-gray-700">Yes</span>
-                      </label>
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <span className={`w-4 h-4 border flex items-center justify-center shrink-0 ${ formData.wants_communication === false ? 'border-gray-700' : 'border-gray-400' }`}>
-                          {formData.wants_communication === false && <span className="text-gray-900 font-bold text-xs">✕</span>}
-                        </span>
-                        <input type="radio" name="wants_comm" checked={formData.wants_communication === false} onChange={() => setFormData({ ...formData, wants_communication: false })} className="sr-only" />
-                        <span className="text-xs font-medium text-gray-700">No</span>
-                      </label>
-                    </div>
-                  </div>
-
-                  <div className="border border-t-0 border-gray-300">
-                    <PdfSectionHeader letter="G" title="For Office Use Only" />
-                    <div className="border border-gray-200 m-2">
-                      <div className="grid grid-cols-3 border-b border-gray-200">
-                        <div className="border-r border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 flex items-center">Requirements received by</div>
-                        <FieldCell label="Complete Name of Staff" className="border-r">
-                          <input type="text" value={formData.received_by_staff} onChange={e => setFormData({ ...formData, received_by_staff: e.target.value })} className="w-full border-0 p-0 text-sm text-gray-900 bg-transparent focus:outline-none" />
-                        </FieldCell>
-                        <FieldCell label="Receiving Department/Office">
-                          <input type="text" value={formData.receiving_department} onChange={e => setFormData({ ...formData, receiving_department: e.target.value })} className="w-full border-0 p-0 text-sm text-gray-900 bg-transparent focus:outline-none" />
-                        </FieldCell>
-                      </div>
-                      <div className="grid grid-cols-3">
-                        <div className="border-r border-gray-200 px-3 py-2">
-                          <div className="text-xs font-semibold text-gray-600">Date Received</div>
-                          <div className="text-[10px] text-gray-400">(e.g. 01-JAN-2019)</div>
-                        </div>
-                        <FieldCell label="Date" className="border-r">
-                          <input type="date" value={formData.date_received} onChange={e => setFormData({ ...formData, date_received: e.target.value })} className="w-full border-0 p-0 text-sm text-gray-900 bg-transparent focus:outline-none" />
-                        </FieldCell>
-                        <FieldCell label="Time Received">
-                          <input type="time" value={formData.time_received} onChange={e => setFormData({ ...formData, time_received: e.target.value })} className="w-full border-0 p-0 text-sm text-gray-900 bg-transparent focus:outline-none" />
-                        </FieldCell>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="border border-t-0 border-gray-300 bg-white px-4 py-1.5 flex items-center justify-between">
-                    <span className="text-[10px] text-gray-400">SACR.04.24</span>
-                    <span className="text-[10px] text-gray-400">Page 2 of 2</span>
-                  </div>
-                </div>
-              )}
-
-              {!formData.client_id && (
-                <div className="flex flex-col items-center justify-center py-16 text-gray-400">
-                  <FileText size={36} className="mb-3 opacity-30" />
-                  <p className="text-sm">Select a client above to fill out the form</p>
-                </div>
-              )}
-            </form>
-          </div>
-
-          <div className="px-6 py-4 border-t border-gray-200 bg-white flex justify-end gap-3 shrink-0">
-            <SecondaryButton onClick={() => setIsModalOpen(false)}>
-              Cancel
-            </SecondaryButton>
-            <PrimaryButton
-              form="acrForm"
-              type="submit"
-              disabled={!formData.client_id}
-              loading={isSubmitting}
-            >
-              {!isSubmitting && <Save size={16} />}
-              Save Request
-            </PrimaryButton>
-          </div>
-        </Modal>
-      )}
-
+      {/* Delete Confirmation Modal */}
       {isDeleteModalOpen && (
-        <Modal onClose={() => setIsDeleteModalOpen(false)} maxWidth="max-w-sm" z="z-[60]">
-          <div className="p-7 text-center">
-            <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
-              <Trash2 className="text-red-500" size={22} />
+        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-gray-100 text-center space-y-4">
+            <div className="w-12 h-12 rounded-full bg-red-50 text-red-600 flex items-center justify-center mx-auto">
+              <Trash2 size={24} />
             </div>
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Delete request?</h3>
-            <p className="text-sm text-gray-500 mb-6 leading-relaxed">
-              This advisor change request will be permanently removed. This action cannot be undone.
-            </p>
-            <div className="flex gap-3">
-              <SecondaryButton
-                onClick={() => {
-                  setIsDeleteModalOpen(false);
-                  setRecordToDelete(null);
-                }}
-                disabled={isDeleting}
-                className="flex-1"
+            <h3 className="font-bold text-lg text-gray-900">Delete Request?</h3>
+            <p className="text-xs text-gray-500">This action cannot be undone. Are you sure you want to delete this record?</p>
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="flex-1 py-2.5 text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
               >
                 Cancel
-              </SecondaryButton>
-              <DangerButton onClick={confirmDelete} disabled={isDeleting} loading={isDeleting}>
-                {isDeleting ? 'Deleting...' : 'Delete'}
-              </DangerButton>
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={isDeleting}
+                className="flex-1 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-full transition-colors flex items-center justify-center gap-2"
+              >
+                {isDeleting && <Loader2 size={16} className="animate-spin" />}
+                Delete
+              </button>
             </div>
-          </div>
-        </Modal>
-      )}
-
-      {isGeneratingPdf && (
-        <div className="fixed inset-0 bg-gray-900/30 backdrop-blur-sm flex items-center justify-center p-4 z-[70] animate-[fadeIn_0.15s_ease-out]">
-          <div className="bg-white rounded-[32px] w-full max-w-xs shadow-2xl p-8 flex flex-col items-center text-center animate-[scaleIn_0.2s_ease-out]">
-            <div className="relative w-16 h-16 flex items-center justify-center mb-4">
-              <div className="absolute inset-0 rounded-full border-4 border-amber-100" />
-              <div className="absolute inset-0 rounded-full border-4 border-amber-400 border-t-transparent animate-spin" />
-              <FileText className="text-amber-500" size={20} />
-            </div>
-            <h3 className="text-base font-semibold text-gray-900 mb-1">Generating PDF</h3>
-            <p className="text-sm text-gray-500">Please wait a moment...</p>
           </div>
         </div>
       )}
