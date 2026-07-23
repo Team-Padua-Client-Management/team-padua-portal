@@ -76,11 +76,17 @@ export default function ResetPasswordPage() {
     }
 
     setLoading(true);
-    const { error: resetError } = await supabase.auth.updateUser({ password });
+    const formData = new FormData();
+    formData.append("password", password);
+    formData.append("confirmPassword", confirmPassword);
+
+    const { ResetPasswordAction } = await import("../../action/auth");
+    const result = await ResetPasswordAction(formData);
+    
     setLoading(false);
 
-    if (resetError) {
-      setError(resetError.message);
+    if (result.error) {
+      setError(result.error);
     } else {
       setSuccess(true);
     }

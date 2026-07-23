@@ -109,10 +109,13 @@ export default function DashboardHero({
               href={portal.url}
               target="_blank"
               rel="noopener noreferrer"
-              className={styles.heroPortalCircle}
+              className={styles.heroPortalCard}
               title={portal.name}
             >
-              <PortalMark portal={portal} />
+              <div className={styles.heroPortalIconWrapper}>
+                <PortalMark portal={portal} />
+              </div>
+              <span className={styles.heroPortalName}>{portal.name}</span>
             </Link>
           ))}
           {customPortals.map((portal, idx) => (
@@ -121,10 +124,13 @@ export default function DashboardHero({
               href={portal.url}
               target="_blank"
               rel="noopener noreferrer"
-              className={styles.heroPortalCircle}
+              className={styles.heroPortalCard}
               title={portal.name}
             >
-              <PortalMark portal={{ name: portal.name, url: portal.url, manage: '', logo: portal.iconUrl }} />
+              <div className={styles.heroPortalIconWrapper}>
+                <PortalMark portal={{ name: portal.name, url: portal.url, manage: '', logo: portal.iconUrl }} />
+              </div>
+              <span className={styles.heroPortalName}>{portal.name}</span>
             </Link>
           ))}
         </div>

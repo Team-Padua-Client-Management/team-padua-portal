@@ -34,7 +34,7 @@ export async function updateSession(request: NextRequest) {
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         getAll() {
@@ -108,14 +108,16 @@ export async function updateSession(request: NextRequest) {
   if (!user && (isAdminPage || isUserPage)) {
     const url = request.nextUrl.clone();
     url.pathname = "/auth/login";
+    url.searchParams.set("next", pathname);
     return NextResponse.redirect(url);
   }
 
   // Guard B: Authenticated but missing a profile record
   if (user && !role && (isAdminPage || isUserPage)) {
+    await supabase.auth.signOut();
     const url = request.nextUrl.clone();
-    // Pwede mo rin itong gawing "/unauthorized" kung may ganoon kang route
-    url.pathname = "/auth/login"; 
+    url.pathname = "/auth/login";
+    url.searchParams.set("error", "profile_not_found");
     return NextResponse.redirect(url);
   }
 

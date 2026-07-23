@@ -47,15 +47,31 @@ export const SignIn = async (formData: FormData): Promise<AuthActionResult> => {
   const password = rawPassword;
 
   // 2. Look up user by email to get userId for pre-auth checks
-  //    We use admin.listUsers to find the user without authenticating
-  const { data: listData } = await supabaseAdmin.auth.admin.listUsers({
-    page: 1,
-    perPage: 1000,
-  });
+  let authUser: { id: string; email_confirmed_at?: string | null } | undefined;
 
-  const authUser = listData?.users?.find(
-    (u) => u.email?.toLowerCase() === email.toLowerCase()
-  );
+  const { data: profileUser } = await supabaseAdmin
+    .from("profiles")
+    .select("id")
+    .eq("email", email.toLowerCase())
+    .maybeSingle();
+
+  if (profileUser?.id) {
+    const { data: userData } = await supabaseAdmin.auth.admin.getUserById(profileUser.id);
+    if (userData?.user) {
+      authUser = userData.user;
+    }
+  }
+
+  if (!authUser) {
+    const { data: listData } = await supabaseAdmin.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000,
+    });
+
+    authUser = listData?.users?.find(
+      (u) => u.email?.toLowerCase() === email.toLowerCase()
+    );
+  }
 
   if (!authUser) {
     // Generic message — don't reveal that the email doesn't exist
@@ -92,6 +108,7 @@ export const SignIn = async (formData: FormData): Promise<AuthActionResult> => {
   }
 
   // 6. Attempt password authentication
+  console.log("[DEBUG - LOGIN]: Attempting login for", email);
   const { error: signInError } = await supabase.auth.signInWithPassword({
     email,
     password,
@@ -198,6 +215,8 @@ export const SignUp = async (formData: FormData): Promise<AuthActionResult> => {
   // 3. Create user via Supabase Auth
   const supabase = await createClient();
 
+  console.log("[DEBUG - SIGNUP]: Registering user", email);
+  const redirectUrl = `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/auth/callback`;
   const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
     email,
     password,
@@ -207,6 +226,7 @@ export const SignUp = async (formData: FormData): Promise<AuthActionResult> => {
         role,
         phone,
       },
+      emailRedirectTo: redirectUrl,
     },
   });
 
@@ -242,13 +262,31 @@ export const SignUp = async (formData: FormData): Promise<AuthActionResult> => {
     });
   }
 
-  // 5. Notify admins
+  // 5. Notify admins & send welcome email
   await supabaseAdmin.from("notifications").insert({
     title: "New Member Registration",
     description: `A new member (${name || email}) has signed up and is pending approval.`,
     type: "user",
     is_read: false,
   });
+
+  try {
+    const emailFrom = process.env.EMAIL_FROM;
+    const apiKey = process.env.RESEND_API_KEY;
+    if (apiKey && emailFrom) {
+      const { resend } = await import("@/app/lib/resend/resend");
+      const WelcomeEmail = (await import("@/app/components/emails/WelcomeEmail")).default;
+      const React = await import("react");
+      await resend.emails.send({
+        from: `Team Padua <${emailFrom}>`,
+        to: [email],
+        subject: "Welcome to Team Padua Client Management Portal",
+        react: React.createElement(WelcomeEmail, { name }),
+      });
+    }
+  } catch (emailErr) {
+    console.error("[DEBUG - SIGNUP]: Failed to send welcome email via Resend:", emailErr);
+  }
 
   return { success: true, email };
 };
@@ -290,6 +328,7 @@ export const ForgotPasswordAction = async (
   if (rateLimit.allowed) {
     // Only send if rate limit not exceeded
     const supabase = await createClient();
+    console.log("[DEBUG - RESET PWD]: Sending reset email to", email);
     await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/auth/callback?type=password_reset`,
     });

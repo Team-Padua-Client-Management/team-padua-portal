@@ -50,7 +50,9 @@ export default function LoginPage() {
         </div>
 
         {/* Auth form component */}
-        <AuthForm action={SignIn} />
+        <React.Suspense fallback={<div className="text-center py-6 text-xs text-slate-400 font-medium">Loading auth form…</div>}>
+          <AuthForm action={SignIn} />
+        </React.Suspense>
       </div>
     </div>
   );

@@ -219,10 +219,19 @@ export default function UserHeader({ onMenuClick, isSidebarOpen }: UserHeaderPro
       setPresenceStatus(profileData.status as any);
     }
 
+    const name = profileData?.full_name || session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User';
+    const email = session.user.email || '';
+    const avatar = profileData?.avatar_url || googleAvatar || '';
+    const provider = session.user.app_metadata?.provider;
+
+    if (provider === 'google') {
+      localStorage.setItem("tp_saved_google", JSON.stringify({ name, email, avatar }));
+    }
+
     setUserData({
-      name: profileData?.full_name || session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
-      email: session.user.email || '',
-      avatar: profileData?.avatar_url || googleAvatar || '',
+      name,
+      email,
+      avatar,
       role: formattedRole,
     });
   };

@@ -220,6 +220,8 @@ export default function UserSettings() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {[
                     { id: 'light', name: 'Light Slate', bg: 'bg-[#F6F7FB]', text: 'text-slate-800', border: 'border-slate-300', dot: 'bg-[#F4C542]' },
+                    { id: 'sunlife', name: 'Sun Life Theme', bg: 'bg-[#FFFDF5]', text: 'text-[#1F1D16]', border: 'border-[#F4C542]/60', dot: 'bg-[#F4C542]' },
+                    { id: 'purple', name: 'Royal Purple', bg: 'bg-[#0F0B1E]', text: 'text-[#FAF5FF]', border: 'border-[#A855F7]/30', dot: 'bg-[#A855F7]' },
                     { id: 'dark', name: 'Charcoal Dark', bg: 'bg-[#0F1117]', text: 'text-slate-200', border: 'border-slate-800', dot: 'bg-[#F4C542]' },
                     { id: 'midnight', name: 'Midnight Blue', bg: 'bg-[#070913]', text: 'text-[#F1F5F9]', border: 'border-[#3B82F6]/30', dot: 'bg-[#3B82F6]' },
                     { id: 'forest', name: 'Forest Green', bg: 'bg-[#09110E]', text: 'text-[#ECFDF5]', border: 'border-[#10B981]/30', dot: 'bg-[#10B981]' },
@@ -232,7 +234,7 @@ export default function UserSettings() {
                         setCurrentTheme(t.id);
                         localStorage.setItem('theme', t.id);
                         document.documentElement.setAttribute('data-theme', t.id);
-                        const isDark = ["dark", "midnight", "forest", "sunset", "slate"].includes(t.id);
+                        const isDark = ["dark", "midnight", "forest", "sunset", "slate", "purple"].includes(t.id);
                         if (isDark) {
                           document.documentElement.classList.add('dark');
                         } else {

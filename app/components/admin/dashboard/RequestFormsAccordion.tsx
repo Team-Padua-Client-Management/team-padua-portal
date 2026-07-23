@@ -109,17 +109,6 @@ export default function RequestFormsAccordion({ kpis }: RequestFormsAccordionPro
       tint: 'rgba(16, 185, 129, 0.12)'
     },
     {
-      id: 'FST',
-      name: 'Fund Switching Tool',
-      category: 'Funds & Investments',
-      description: 'Calculate unit allocations and portfolio rebalancing projections before submission.',
-      sla: 'Instant calculation',
-      count: kpis.fst || 0,
-      href: '/admin/fst',
-      accent: '#14B8A6',
-      tint: 'rgba(20, 184, 166, 0.12)'
-    },
-    {
       id: 'ACA',
       name: 'Auto Charge Arrangement',
       category: 'Billing & Reinstatement',
@@ -129,17 +118,6 @@ export default function RequestFormsAccordion({ kpis }: RequestFormsAccordionPro
       href: '/admin/aca',
       accent: '#7C3AED',
       tint: 'rgba(124, 58, 237, 0.12)'
-    },
-    {
-      id: 'MDA',
-      name: 'Modification / Debit Arrangement',
-      category: 'Billing & Reinstatement',
-      description: 'Modify payment schedules, direct bank debit mandates, or premium payment frequencies.',
-      sla: '24-48 hrs turnaround',
-      count: kpis.mngt || 0,
-      href: '/admin/mngt',
-      accent: '#8B5CF6',
-      tint: 'rgba(139, 92, 246, 0.12)'
     },
     {
       id: 'SRO',
@@ -162,17 +140,6 @@ export default function RequestFormsAccordion({ kpis }: RequestFormsAccordionPro
       href: '/admin/reinstatement-pdi',
       accent: '#EA580C',
       tint: 'rgba(234, 88, 12, 0.12)'
-    },
-    {
-      id: 'PPU',
-      name: 'Policy Premium Update',
-      category: 'Billing & Reinstatement',
-      description: 'Adjust policy premium amounts, payment terms, or top-up lump sum contributions.',
-      sla: '24 hrs turnaround',
-      count: kpis.ppu || 0,
-      href: '/admin/ppu',
-      accent: '#C9962E',
-      tint: 'rgba(201, 150, 46, 0.12)'
     },
     {
       id: 'CSMV',

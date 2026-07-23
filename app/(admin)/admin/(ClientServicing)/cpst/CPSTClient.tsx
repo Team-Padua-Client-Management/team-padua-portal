@@ -1,10 +1,214 @@
+
+//     "Yes. Based on your Excel export screenshot, your current parseClientRows() only extracts:
+
+// ✅ Client Name
+// ✅ Mobile Number
+// ✅ Email
+// ✅ Address
+// ✅ Birthdate
+
+// and intentionally sets:
+
+// policyNumber: '',
+// product: '',
+// approvalDate: '',
+// beneficiary: '',
+// fundAllocation: '',
+
+// That's why your table shows:
+
+// ₱0
+// Policy Number = blank
+// Product = blank
+// Approval Date = blank
+// Beneficiary = blank
+// Fund Allocation = blank
+// Add these column mappings
+
+// Inside parseClientRows(), after:
+
+// const bdayCol = findCol(['date of birth', 'birthday', 'dob']);
+
+// add:
+
+// const policyCol = findCol([
+//   'policy number',
+//   'policy no',
+//   'policy #'
+// ]);
+
+// const productCol = findCol([
+//   'policy name',
+//   'product',
+//   'plan name'
+// ]);
+
+// const approvalCol = findCol([
+//   'issue date',
+//   'approval date',
+//   'policy date'
+// ]);
+
+// const beneficiaryCol = findCol([
+//   'beneficiary'
+// ]);
+
+// const fundAllocationCol = findCol([
+//   'fund allocation',
+//   'allocation',
+//   'fund'
+// ]);
+// Extract values
+
+// Replace:
+
+// const clientName = nameCol >= 0 ? String(row[nameCol] ?? '').trim() : '';
+// const mobileNumber = mobCol >= 0 ? String(row[mobCol] ?? '').trim() : '';
+// const email = emailCol >= 0 ? String(row[emailCol] ?? '').trim() : '';
+// const address = addCol >= 0 ? String(row[addCol] ?? '').trim() : '';
+
+// with:
+
+// const clientName = nameCol >= 0
+//   ? String(row[nameCol] ?? '').trim()
+//   : '';
+
+// const mobileNumber = mobCol >= 0
+//   ? String(row[mobCol] ?? '').trim()
+//   : '';
+
+// const email = emailCol >= 0
+//   ? String(row[emailCol] ?? '').trim()
+//   : '';
+
+// const address = addCol >= 0
+//   ? String(row[addCol] ?? '').trim()
+//   : '';
+
+// const policyNumber = policyCol >= 0
+//   ? String(row[policyCol] ?? '').trim()
+//   : '';
+
+// const product = productCol >= 0
+//   ? String(row[productCol] ?? '').trim()
+//   : '';
+
+// const approvalDate =
+//   approvalCol >= 0
+//     ? parseDateFlexible(String(row[approvalCol] ?? '').trim()) || ''
+//     : '';
+
+// const beneficiary =
+//   beneficiaryCol >= 0
+//     ? String(row[beneficiaryCol] ?? '').trim()
+//     : '';
+
+// const fundAllocation =
+//   fundAllocationCol >= 0
+//     ? String(row[fundAllocationCol] ?? '').trim()
+//     : '';
+// Update valid.push()
+
+// Replace:
+
+// valid.push({
+//   clientName,
+//   mobileNumber,
+//   email,
+//   address,
+//   birthdate,
+//   policyNumber: '',
+//   product: '',
+//   approvalDate: '',
+//   annualPremium: 0,
+//   beneficiary: '',
+//   fundAllocation: '',
+//   modeOfPayment: 'Annual'
+// });
+
+// with:
+
+// valid.push({
+//   clientName,
+//   mobileNumber,
+//   email,
+//   address,
+//   birthdate,
+
+//   policyNumber,
+//   product,
+//   approvalDate,
+
+//   annualPremium: 0,
+
+//   beneficiary,
+//   fundAllocation,
+
+//   modeOfPayment: 'Annual'
+// });
+// Important
+
+// Your Excel screenshot contains:
+
+// Excel Column	CPST Field
+// Policy number	policyNumber
+// Policy name	product
+// Issue date	approvalDate
+// Policy owner	clientName
+// Insured	optional
+// Face amount	can map to another field later
+
+// The file does NOT contain:
+
+// Mobile Number
+// Email
+// Address
+// Beneficiary
+// Fund Allocation
+
+// So if you're importing directly from the Sun Life Policy List export, only these fields can be auto-filled:
+
+// clientName
+// policyNumber
+// product
+// approvalDate
+
+// while:
+
+// mobileNumber
+// email
+// address
+// beneficiary
+// fundAllocation
+
+// must come from another spreadsheet/database source.
+
+// For the exact Sun Life export shown in your screenshot, I'd actually recommend enhancing parseClientRows() to detect two templates automatically:
+
+// Client Master List Template
+// Client Name
+// Email
+// Mobile
+// Address
+// DOB
+// Sun Life Policy List Export
+// Policy Number
+// Policy Owner
+// Issue Date
+// Policy Name
+// Face Amount
+
+// and merge/update existing CPST records instead of treating them as the same file structure. That would be the cleanest solution for CAMS. 🚀"
+
+
+
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   Plus, Search, Edit2, Trash2, X, ChevronRight, ArrowLeft,
   Upload, FileSpreadsheet, CheckCircle2, Target, Users,
-  AlertCircle, Eye, EyeOff, UserCheck
+  AlertCircle, Eye, EyeOff, UserCheck, UserPlus, Briefcase, Mail
 } from 'lucide-react';
 import AdminHeader from '@/app/components/admin/AdminHeader';
 import AdminSidebar from '@/app/components/admin/AdminSidebar';
@@ -60,8 +264,8 @@ const formLabelClass = "block text-xs font-bold text-muted-foreground uppercase 
 const DEFAULT_ADVISOR: AdvisorRecord = {
   id: '1223fa43-e434-4445-9d9d-aac809f8226b',
   advisorCode: 'ADV-001',
-  advisorName: 'Triwynn Evasco Branzuela',
-  email: 'triwynn@teampadua.ph'
+  advisorName: 'Daniel Padua',
+  email: 'daniel.a.padua@sunlife.com.ph'
 };
 
 export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }: CPSTClientProps) {
@@ -77,11 +281,15 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const [activeModal, setActiveModal] = useState<'add' | 'edit' | 'import' | null>(null);
+  const [activeModal, setActiveModal] = useState<'add' | 'edit' | 'import' | 'addAdvisor' | 'editAdvisor' | null>(null);
   const [currentClient, setCurrentClient] = useState<Partial<ClientManagementRecord>>({});
+  const [currentAdvisor, setCurrentAdvisor] = useState<Partial<AdvisorRecord>>({});
 
   const [clientToDelete, setClientToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const [advisorToDelete, setAdvisorToDelete] = useState<string | null>(null);
+  const [isDeletingAdvisor, setIsDeletingAdvisor] = useState(false);
 
   const [isDragging, setIsDragging] = useState(false);
   const [importMethod, setImportMethod] = useState<'file' | 'paste'>('file');
@@ -161,15 +369,15 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
               advisorMap.set(advId, {
                 id: c.advisor.id,
                 advisorCode: c.advisor.advisor_code || 'ADV-001',
-                advisorName: c.advisor.advisor_name || 'Triwynn Evasco Branzuela',
-                email: c.advisor.email || 'triwynn@teampadua.ph'
+                advisorName: c.advisor.advisor_name || 'Daniel Padua',
+                email: c.advisor.email || 'daniel.a.padua@sunlife.com.ph'
               });
             } else {
               advisorMap.set(advId, {
                 id: advId,
                 advisorCode: 'ADV-001',
-                advisorName: 'Triwynn Evasco Branzuela',
-                email: 'triwynn@teampadua.ph'
+                advisorName: 'Daniel Padua',
+                email: 'daniel.a.padua@sunlife.com.ph'
               });
             }
           }
@@ -369,6 +577,48 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
     }
   };
 
+  const handleSaveAdvisor = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentAdvisor.advisorName || !currentAdvisor.advisorCode) return;
+
+    try {
+      const payload = {
+        advisor_code: currentAdvisor.advisorCode.trim(),
+        advisor_name: currentAdvisor.advisorName.trim(),
+        email: currentAdvisor.email?.trim() || '',
+      };
+
+      if (currentAdvisor.id) {
+        await supabase.from('advisors').update(payload).eq('id', currentAdvisor.id);
+      } else {
+        const newId = crypto.randomUUID();
+        await supabase.from('advisors').insert([{ ...payload, id: newId }]);
+      }
+
+      setActiveModal(null);
+      fetchData();
+    } catch (err) {
+      console.error('Error saving advisor:', err);
+    }
+  };
+
+  const handleDeleteAdvisor = async () => {
+    if (!advisorToDelete) return;
+    setIsDeletingAdvisor(true);
+    try {
+      await supabase.from('advisors').delete().eq('id', advisorToDelete);
+      if (selectedAdvisor?.id === advisorToDelete) {
+        setSelectedAdvisor(null);
+      }
+      fetchData();
+    } catch (err) {
+      console.error('Error deleting advisor:', err);
+    } finally {
+      setIsDeletingAdvisor(false);
+      setAdvisorToDelete(null);
+    }
+  };
+
   const parseDateFlexible = (raw: string): string | null => {
     if (!raw) return null;
     const trimmed = raw.trim();
@@ -421,6 +671,14 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
     const mobCol = findCol(['contact number', 'mobile', 'phone', 'contact']);
     const addCol = findCol(['location', 'address']);
     const bdayCol = findCol(['date of birth', 'birthday', 'dob']);
+    const ageCol = findCol(['age']);
+    const policyCol = findCol(['policy number', 'policy#', 'policy no', 'policy #']);
+    const productCol = findCol(['product', 'plan', 'policy name', 'plan name']);
+    const approvalCol = findCol(['date of approval', 'approval date', 'date_of_approval', 'issue date', 'policy date']);
+    const beneficiaryCol = findCol(['beneficiary']);
+    const fundAllocationCol = findCol(['fund allocation', 'allocation', 'fund']);
+    const paymentModeCol = findCol(['mode of payment']);
+    const premiumCol = findCol(['annual premium', 'premium']);
 
     const valid: Partial<ClientManagementRecord>[] = [];
     const invalid: { rowNumber: number; reason: string; rawData: any }[] = [];
@@ -456,6 +714,19 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
       const address = addCol >= 0 ? String(row[addCol] ?? '').trim() : '';
       const rawBday = bdayCol >= 0 ? String(row[bdayCol] ?? '').trim() : '';
       const birthdate = rawBday ? (parseDateFlexible(rawBday) || rawBday) : '';
+      const policyNumber = policyCol >= 0 ? String(row[policyCol] ?? '').trim() : '';
+      const product = productCol >= 0 ? String(row[productCol] ?? '').trim() : '';
+      const approvalDate = approvalCol >= 0
+        ? parseDateFlexible(String(row[approvalCol] ?? '').trim()) || ''
+        : '';
+      const beneficiary = beneficiaryCol >= 0 ? String(row[beneficiaryCol] ?? '').trim() : '';
+      const fundAllocation = fundAllocationCol >= 0 ? String(row[fundAllocationCol] ?? '').trim() : '';
+      const modeOfPayment = paymentModeCol >= 0
+        ? String(row[paymentModeCol] ?? '').trim()
+        : 'Annual';
+      const annualPremium = premiumCol >= 0
+        ? parseFloat(String(row[premiumCol] ?? '').replace(/[^0-9.]/g, '')) || 0
+        : 0;
 
       if (!clientName) {
         skippedInvalid++;
@@ -469,13 +740,13 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
         email,
         address,
         birthdate,
-        policyNumber: '',
-        product: '',
-        approvalDate: '',
-        annualPremium: 0,
-        beneficiary: '',
-        fundAllocation: '',
-        modeOfPayment: 'Annual'
+        policyNumber,
+        product,
+        approvalDate,
+        annualPremium,
+        beneficiary,
+        fundAllocation,
+        modeOfPayment
       });
     }
 
@@ -817,6 +1088,18 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
                   </button>
                 )}
 
+                {canCreate && (
+                  <button
+                    onClick={() => {
+                      setCurrentAdvisor({});
+                      setActiveModal('addAdvisor');
+                    }}
+                    className="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-black font-extrabold px-5 py-2.5 rounded-full text-xs transition-all duration-200 shadow-md hover:shadow-lg cursor-pointer active:scale-[0.97]"
+                  >
+                    <UserPlus size={14} /> Add Advisor
+                  </button>
+                )}
+
                 {canCreate && selectedAdvisor && (
                   <button
                     onClick={() => {
@@ -893,17 +1176,28 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
                 </div>
               </div>
 
-              <div className={styles.card_73}>
-                <div className={styles.container_74}>
-                  <Search className={styles.text_75} />
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-card border border-border p-4 rounded-3xl shadow-sm">
+                <div className="relative flex-1 w-full">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-text-secondary" />
                   <input
                     type="text"
-                    placeholder="Search advisors..."
+                    placeholder="Search advisor by name, code, or email..."
                     value={advisorSearch}
                     onChange={e => setAdvisorSearch(e.target.value)}
-                    className={styles.text_76}
+                    className="w-full bg-card border border-border rounded-full h-11 pl-10 pr-4 text-sm text-text transition duration-200 focus:outline-none focus:border-[#F4C542] focus:ring-4 focus:ring-[#F4C542]/10"
                   />
                 </div>
+                {canCreate && (
+                  <button
+                    onClick={() => {
+                      setCurrentAdvisor({});
+                      setActiveModal('addAdvisor');
+                    }}
+                    className="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-black font-extrabold px-5 py-2.5 rounded-full text-xs transition-all duration-200 shadow-md hover:shadow-lg cursor-pointer whitespace-nowrap active:scale-[0.97]"
+                  >
+                    <UserPlus size={14} /> Add Advisor
+                  </button>
+                )}
               </div>
 
               <div className={styles.card_85}>
@@ -911,43 +1205,82 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
                   <table className={styles.text_87}>
                     <thead>
                       <tr className={styles.table_88}>
-                        <th className="py-3 px-4 text-left font-bold text-xs uppercase tracking-wider text-text-secondary">Advisor Name</th>
-                        <th className="py-3 px-4 text-left font-bold text-xs uppercase tracking-wider text-text-secondary">Advisor Code</th>
-                        <th className="py-3 px-4 text-left font-bold text-xs uppercase tracking-wider text-text-secondary">Email</th>
-                        <th className="py-3 px-4 text-center font-bold text-xs uppercase tracking-wider text-text-secondary">Total Clients</th>
-                        <th className="py-3 px-4 text-right font-bold text-xs uppercase tracking-wider text-text-secondary sticky right-0 bg-surface-2">Actions</th>
+                        <th className="py-3.5 px-4 text-left font-bold text-xs uppercase tracking-wider text-text-secondary">Advisor Details</th>
+                        <th className="py-3.5 px-4 text-left font-bold text-xs uppercase tracking-wider text-text-secondary">Advisor Code</th>
+                        <th className="py-3.5 px-4 text-left font-bold text-xs uppercase tracking-wider text-text-secondary">Email</th>
+                        <th className="py-3.5 px-4 text-center font-bold text-xs uppercase tracking-wider text-text-secondary">Total Clients</th>
+                        <th className="py-3.5 px-4 text-center font-bold text-xs uppercase tracking-wider text-text-secondary">Active Policies</th>
+                        <th className="py-3.5 px-4 text-right font-bold text-xs uppercase tracking-wider text-text-secondary">Total Premium</th>
+                        <th className="py-3.5 px-4 text-right font-bold text-xs uppercase tracking-wider text-text-secondary sticky right-0 bg-surface-2">Actions</th>
                       </tr>
                     </thead>
                     <tbody className={styles.div_96}>
                       {loading ? (
-                        <tr><td colSpan={5} className="py-8 text-center text-text-secondary text-sm">Loading advisors...</td></tr>
+                        <tr><td colSpan={7} className="py-8 text-center text-text-secondary text-sm">Loading advisors...</td></tr>
                       ) : filteredAdvisors.map(adv => {
                         const stat = advisorStatsMap.get(adv.id) || { totalClients: 0, activePolicies: 0, totalPremium: 0 };
                         return (
-                          <tr key={adv.id} className={`${styles.table_99} group border-b border-border/40 last:border-0 hover:bg-surface-2/40 transition-colors`}>
-                            <td className="py-3.5 px-4 font-bold text-text text-sm flex items-center gap-2">
-                              <div className="w-8 h-8 rounded-full bg-primary/20 text-primary font-extrabold text-xs flex items-center justify-center">
+                          <tr key={adv.id} className="group border-b border-border/40 last:border-0 hover:bg-surface-2/40 transition-colors">
+                            <td className="py-3.5 px-4 font-bold text-text text-sm flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-primary/30 to-primary/10 text-primary font-black text-xs flex items-center justify-center border border-primary/20 shadow-sm shrink-0">
                                 {adv.advisorName.charAt(0)}
                               </div>
-                              <span>{adv.advisorName}</span>
+                              <div>
+                                <div className="font-bold text-text">{adv.advisorName}</div>
+                                <div className="text-[11px] text-text-secondary font-normal md:hidden">{adv.advisorCode}</div>
+                              </div>
                             </td>
-                            <td className="py-3.5 px-4 text-xs font-mono font-semibold text-text-secondary">{adv.advisorCode}</td>
+                            <td className="py-3.5 px-4 text-xs font-mono font-semibold text-text-secondary">
+                              <span className="bg-surface-2 px-2.5 py-1 rounded-md border border-border/60">{adv.advisorCode}</span>
+                            </td>
                             <td className="py-3.5 px-4 text-xs text-text-secondary">{adv.email || '—'}</td>
-                            <td className="py-3.5 px-4 text-center text-sm font-bold font-mono text-text">{stat.totalClients}</td>
+                            <td className="py-3.5 px-4 text-center text-sm font-bold font-mono text-text">
+                              <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-bold">{stat.totalClients}</span>
+                            </td>
+                            <td className="py-3.5 px-4 text-center text-xs font-bold text-green-600 dark:text-green-400">
+                              {stat.activePolicies}
+                            </td>
+                            <td className="py-3.5 px-4 text-right text-xs font-bold text-[#A97800] dark:text-[#F4C542]">
+                              ₱{stat.totalPremium.toLocaleString()}
+                            </td>
                             <td className="py-3.5 px-4 text-right sticky right-0 bg-card group-hover:bg-surface-2/50 text-xs">
-                              <button
-                                onClick={() => setSelectedAdvisor(adv)}
-                                className="px-4 py-1.5 bg-primary text-black font-extrabold text-xs rounded-full hover:bg-primary/80 transition-all duration-200 shadow-sm cursor-pointer active:scale-95"
-                              >
-                                View Clients
-                              </button>
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  onClick={() => setSelectedAdvisor(adv)}
+                                  className="px-3.5 py-1.5 bg-primary text-black font-extrabold text-xs rounded-full hover:bg-primary/80 transition-all duration-200 shadow-sm cursor-pointer active:scale-95 flex items-center gap-1"
+                                >
+                                  <span>View Clients</span>
+                                  <ChevronRight size={12} />
+                                </button>
+                                {canEdit && (
+                                  <button
+                                    onClick={() => {
+                                      setCurrentAdvisor(adv);
+                                      setActiveModal('editAdvisor');
+                                    }}
+                                    className="p-2 text-muted hover:text-[#F4C542] transition-colors rounded-full hover:bg-surface-2 border border-transparent hover:border-border"
+                                    title="Edit Advisor"
+                                  >
+                                    <Edit2 size={14} />
+                                  </button>
+                                )}
+                                {canDelete && (
+                                  <button
+                                    onClick={() => setAdvisorToDelete(adv.id)}
+                                    className="p-2 text-muted hover:text-red-500 transition-colors rounded-full hover:bg-red-500/10 border border-transparent hover:border-red-500/20"
+                                    title="Delete Advisor"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         );
                       })}
                       {!loading && filteredAdvisors.length === 0 && (
                         <tr>
-                          <td colSpan={5} className="py-8 text-center text-text-secondary text-sm">No advisors found matching search criteria.</td>
+                          <td colSpan={7} className="py-8 text-center text-text-secondary text-sm">No advisors found matching search criteria.</td>
                         </tr>
                       )}
                     </tbody>
@@ -959,7 +1292,7 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
             <div className="space-y-6">
               <div className="bg-card border border-primary/30 rounded-3xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-[#F4C542] to-[#e6b800] text-black font-black text-xl flex items-center justify-center shadow-md">
+                  <div className="w-14 h-14 rounded-full bg-linear-to-tr from-[#F4C542] to-[#e6b800] text-black font-black text-xl flex items-center justify-center shadow-md">
                     {selectedAdvisor.advisorName.charAt(0)}
                   </div>
                   <div>
@@ -1218,7 +1551,7 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
             </div>
 
             <div className="flex gap-3 p-6 border-t border-border bg-card shrink-0">
-              <button type="submit" form="cpst-form" className="flex-1 bg-gradient-to-r from-[#F4C542] to-[#e6b800] hover:from-[#e6b800] hover:to-[#c59d28] text-black font-extrabold text-sm py-2.5 rounded-full transition-all duration-200 cursor-pointer border border-[#F4C542]/30 shadow-sm active:scale-[0.97]">
+              <button type="submit" form="cpst-form" className="flex-1 bg-linear-to-r from-[#F4C542] to-[#e6b800] hover:from-[#e6b800] hover:to-[#c59d28] text-black font-extrabold text-sm py-2.5 rounded-full transition-all duration-200 cursor-pointer border border-[#F4C542]/30 shadow-sm active:scale-[0.97]">
                 Confirm Save
               </button>
               <button type="button" onClick={() => setActiveModal(null)} className="flex-1 bg-transparent border border-border text-text hover:bg-surface-2 text-xs font-semibold py-2.5 rounded-full transition-all duration-200 cursor-pointer active:scale-[0.97]">
@@ -1512,6 +1845,93 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
         confirmText="Delete Client"
         variant="danger"
         isLoading={isDeleting}
+      />
+
+      {(activeModal === 'addAdvisor' || activeModal === 'editAdvisor') && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-card border border-border w-full max-w-md rounded-[28px] shadow-2xl relative flex flex-col overflow-hidden animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between p-6 border-b border-border bg-surface-2 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-primary/20 text-primary flex items-center justify-center font-bold">
+                  <UserPlus size={20} />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-text">
+                    {activeModal === 'editAdvisor' ? 'Edit Advisor Details' : 'Add New Advisor'}
+                  </h2>
+                  <p className="text-xs text-text-secondary">Register financial advisor into CAMS portal.</p>
+                </div>
+              </div>
+              <button onClick={() => setActiveModal(null)} className="p-2 text-muted hover:text-text hover:bg-surface-2 rounded-full transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveAdvisor} className="p-6 space-y-4 text-left">
+              <div>
+                <label className={formLabelClass}>Advisor Name <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  required
+                  value={currentAdvisor.advisorName || ''}
+                  onChange={e => setCurrentAdvisor({ ...currentAdvisor, advisorName: e.target.value })}
+                  className={formInputClass}
+                  placeholder="e.g. Daniel Padua"
+                />
+              </div>
+
+              <div>
+                <label className={formLabelClass}>Advisor Code <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  required
+                  value={currentAdvisor.advisorCode || ''}
+                  onChange={e => setCurrentAdvisor({ ...currentAdvisor, advisorCode: e.target.value })}
+                  className={`${formInputClass} font-mono`}
+                  placeholder="e.g. ADV-001"
+                />
+              </div>
+
+              <div>
+                <label className={formLabelClass}>Email Address</label>
+                <input
+                  type="email"
+                  value={currentAdvisor.email || ''}
+                  onChange={e => setCurrentAdvisor({ ...currentAdvisor, email: e.target.value })}
+                  className={formInputClass}
+                  placeholder="advisor@sunlife.com.ph"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4 border-t border-border/50">
+                <button
+                  type="submit"
+                  className="flex-1 bg-gradient-to-r from-[#F4C542] to-[#e6b800] hover:from-[#e6b800] hover:to-[#c59d28] text-black font-extrabold text-xs py-3 rounded-full transition-all duration-200 cursor-pointer shadow-md active:scale-[0.97]"
+                >
+                  {activeModal === 'editAdvisor' ? 'Save Changes' : 'Create Advisor'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveModal(null)}
+                  className="flex-1 bg-transparent border border-border text-text hover:bg-surface-2 text-xs font-semibold py-3 rounded-full transition-all duration-200 cursor-pointer active:scale-[0.97]"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <ConfirmModal
+        isOpen={!!advisorToDelete}
+        onClose={() => setAdvisorToDelete(null)}
+        onConfirm={handleDeleteAdvisor}
+        title="Delete Advisor Record"
+        message="Are you sure you want to delete this advisor? This action will remove the advisor record from the CAMS registry."
+        confirmText="Delete Advisor"
+        variant="danger"
+        isLoading={isDeletingAdvisor}
       />
     </div>
   );

@@ -17,9 +17,10 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
+import Link from 'next/link';
 import { createPortal } from 'react-dom';
 import { motion, useReducedMotion, type Variants } from 'framer-motion';
-import { CalendarDays } from 'lucide-react';
+import { CalendarDays, ExternalLink } from 'lucide-react';
 import { supabase } from "@/app/lib/supabase/client";
 import styles from "@/styles/admin/dashboard/page.module.css";
 import WelcomeModal from "@/components/shared/WelcomeModal";
@@ -214,11 +215,20 @@ function getBirthdaysAroundNow(clients: any[]): BirthdayItem[] {
     }
 
     if (when) {
+      let age: number | undefined;
+      if (bday) {
+        const birthYear = bday.getFullYear();
+        if (birthYear > 1900 && birthYear <= currentYear) {
+          age = currentYear - birthYear;
+        }
+      }
+
       matched.push({
         id: client.id || `bday-${Math.random()}`,
         name: client.client_name,
         date: formattedDate,
         when,
+        age,
         policyNo: client.policy_number || 'N/A'
       });
     }
@@ -240,6 +250,7 @@ function getBirthdaysAroundNow(clients: any[]): BirthdayItem[] {
         name: c1Name,
         date: todayFormatted,
         when: 'today',
+        age: 32,
         policyNo: clients[0]?.policy_number ? clients[0].policy_number : 'POL-882910'
       },
       {
@@ -247,6 +258,7 @@ function getBirthdaysAroundNow(clients: any[]): BirthdayItem[] {
         name: c2Name,
         date: todayFormatted,
         when: 'today',
+        age: 28,
         policyNo: clients[1]?.policy_number ? clients[1].policy_number : 'POL-773419'
       },
       {
@@ -254,6 +266,7 @@ function getBirthdaysAroundNow(clients: any[]): BirthdayItem[] {
         name: c3Name,
         date: tomorrowFormatted,
         when: 'tomorrow',
+        age: 35,
         policyNo: clients && clients[2]?.policy_number ? clients[2].policy_number : 'POL-904128'
       },
       {
@@ -261,6 +274,7 @@ function getBirthdaysAroundNow(clients: any[]): BirthdayItem[] {
         name: c4Name,
         date: yesterdayFormatted,
         when: 'yesterday',
+        age: 41,
         policyNo: clients && clients[3]?.policy_number ? clients[3].policy_number : 'POL-663910'
       }
     );
@@ -544,7 +558,7 @@ export default function UserPersonalDashboardPage() {
         notes: '',
         category: 'Others',
         assigned_to: activeUserId,
-        processed_by: null
+        processed_by: activeUserId
       }),
       status: 'Pending',
       priority: 'High',
@@ -572,7 +586,7 @@ export default function UserPersonalDashboardPage() {
           status: 'Pending',
           completed: false,
           assigned_to: activeUserId,
-          processed_by: null,
+          processed_by: activeUserId,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         };
@@ -637,7 +651,33 @@ export default function UserPersonalDashboardPage() {
     };
   }, []);
 
-  useEffect(() => {
+  const fetchActivities = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('calendar_events')
+        .select('*')
+        .order('event_date', { ascending: true });
+
+      if (!error && data && data.length > 0) {
+        const mapped: ActivityEvent[] = data.map((c: any) => ({
+          id: String(c.id),
+          title: c.title || 'Untitled Activity',
+          type: c.category || 'Client Meeting',
+          date: c.event_date || new Date().toISOString().split('T')[0],
+          time: c.start_time || '',
+          location: c.location_name || '',
+          notes: c.description || '',
+          status: 'Scheduled'
+        }));
+        setActivities(mapped);
+        localStorage.setItem('tp_user_activities', JSON.stringify(mapped));
+        localStorage.setItem('tp_calendar_events', JSON.stringify(data));
+        return;
+      }
+    } catch (err) {
+      console.error('Error fetching calendar_events:', err);
+    }
+
     try {
       const storedActivities = localStorage.getItem('tp_user_activities');
       if (storedActivities) {
@@ -649,6 +689,27 @@ export default function UserPersonalDashboardPage() {
     } catch (e) {
       console.error(e);
     }
+  };
+
+  useEffect(() => {
+    fetchActivities();
+
+    const channel = supabase
+      .channel(`user-activities-sync-${Math.random().toString(36).substring(2, 9)}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'calendar_events' }, () => {
+        fetchActivities();
+      })
+      .subscribe();
+
+    const handleLocalSync = () => {
+      fetchActivities();
+    };
+    window.addEventListener('tp_calendar_events_updated', handleLocalSync);
+
+    return () => {
+      supabase.removeChannel(channel);
+      window.removeEventListener('tp_calendar_events_updated', handleLocalSync);
+    };
   }, []);
 
   useEffect(() => {
@@ -832,9 +893,11 @@ export default function UserPersonalDashboardPage() {
     setActivityForm((prev) => ({ ...prev, [field]: value }) as Omit<ActivityEvent, 'id'>);
   };
 
-  const handleSaveActivity = () => {
+  const handleSaveActivity = async () => {
     if (!activityForm.title.trim() || !activityForm.date) return;
-    const newEvent: ActivityEvent = { id: `evt-${Date.now()}`, ...activityForm };
+    const tempId = `evt-${Date.now()}`;
+    const newEvent: ActivityEvent = { id: tempId, ...activityForm };
+
     setActivities((prev) => {
       const next = [newEvent, ...prev];
       try {
@@ -847,6 +910,39 @@ export default function UserPersonalDashboardPage() {
     setSelectedMiniDate(newEvent.date);
     setIsLogModalOpen(false);
     setActivityForm(emptyActivityForm);
+
+    try {
+      const payload = {
+        title: activityForm.title,
+        category: activityForm.type || 'Client Meeting',
+        event_date: activityForm.date,
+        end_date: activityForm.date,
+        start_time: activityForm.time || '',
+        location_name: activityForm.location || '',
+        description: activityForm.notes || '',
+        module_source: 'manual'
+      };
+
+      const { data, error } = await supabase.from('calendar_events').insert([payload]).select().single();
+      if (!error && data) {
+        const realEvent: ActivityEvent = {
+          id: String(data.id),
+          title: data.title || activityForm.title,
+          type: data.category || activityForm.type,
+          date: data.event_date || activityForm.date,
+          time: data.start_time || activityForm.time,
+          location: data.location_name || activityForm.location,
+          notes: data.description || activityForm.notes,
+          status: 'Scheduled'
+        };
+        setActivities((prev) => prev.map(a => (a.id === tempId ? realEvent : a)));
+      }
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('tp_calendar_events_updated'));
+      }
+    } catch (err) {
+      console.error('Error auto-saving activity:', err);
+    }
   };
 
   const goToPrevMiniMonth = () => {
@@ -861,10 +957,11 @@ export default function UserPersonalDashboardPage() {
     setSelectedEvent(evt);
   };
 
-  const handleDeleteEvent = () => {
+  const handleDeleteEvent = async () => {
     if (!selectedEvent) return;
+    const targetId = selectedEvent.id;
     setActivities((prev) => {
-      const next = prev.filter((a) => a.id !== selectedEvent.id);
+      const next = prev.filter((a) => a.id !== targetId);
       try {
         localStorage.setItem('tp_user_activities', JSON.stringify(next));
       } catch (e) {
@@ -873,6 +970,15 @@ export default function UserPersonalDashboardPage() {
       return next;
     });
     setSelectedEvent(null);
+
+    try {
+      await supabase.from('calendar_events').delete().eq('id', targetId);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('tp_calendar_events_updated'));
+      }
+    } catch (err) {
+      console.error('Error deleting activity:', err);
+    }
   };
 
   const filteredActivities = useMemo(() => {
@@ -882,6 +988,11 @@ export default function UserPersonalDashboardPage() {
 
   const sortedActivities = [...filteredActivities].sort((a, b) => b.date.localeCompare(a.date));
   const selectedTaskForModal = userTasks.find((t) => t.id === selectedTaskIdForModal) || null;
+
+  const currentUserProfile = useMemo(() => {
+    if (!currentUserId) return null;
+    return allProfiles.find((p) => p.id === currentUserId) || null;
+  }, [allProfiles, currentUserId]);
 
   return (
     <div className={styles.shell} style={{ minHeight: 'auto', background: 'transparent' }}>
@@ -952,19 +1063,25 @@ export default function UserPersonalDashboardPage() {
                   <h3>Calendar of Activities</h3>
                 </div>
 
-                {selectedMiniDate && (
-                  <div className={styles.activityDateFilterBadge}>
-                    <span>Date: {selectedMiniDate}</span>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedMiniDate(null)}
-                      className={styles.clearDateFilterBtn}
-                      title="Clear date filter"
-                    >
-                      &times;
-                    </button>
-                  </div>
-                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {selectedMiniDate && (
+                    <div className={styles.activityDateFilterBadge}>
+                      <span>Date: {selectedMiniDate}</span>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedMiniDate(null)}
+                        className={styles.clearDateFilterBtn}
+                        title="Clear date filter"
+                      >
+                        &times;
+                      </button>
+                    </div>
+                  )}
+                  <Link href="/calendar" className={styles.trackerLink} style={{ opacity: 0.85 }}>
+                    <ExternalLink size={12} strokeWidth={2} />
+                    Full Calendar
+                  </Link>
+                </div>
               </div>
               <div className={styles.dashboardCardBody}>
                 {sortedActivities.length === 0 ? (
@@ -997,10 +1114,8 @@ export default function UserPersonalDashboardPage() {
             />
           </div>
 
-          {/* Column 3: Client Servicing Request Forms & Activity Tracker Calendar */}
+          {/* Column 3: Activity Tracker Calendar & Client Servicing Request Forms */}
           <div className={styles.boardCol}>
-            <RequestFormsAccordion kpis={kpis} />
-
             <ActivityCalendar
               activities={activities}
               miniCalendarMonth={miniCalendarMonth}
@@ -1010,7 +1125,10 @@ export default function UserPersonalDashboardPage() {
               onSelectDate={(dateKey) => setSelectedMiniDate(dateKey)}
               onOpenLogModal={openLogModal}
               onSelectEvent={handleEventClick}
+              calendarUrl="/calendar"
             />
+
+            <RequestFormsAccordion kpis={kpis} />
           </div>
         </motion.div>
 
@@ -1050,6 +1168,7 @@ export default function UserPersonalDashboardPage() {
           task={selectedTaskForModal}
           allProfiles={allProfiles}
           bizDevProfiles={bizDevProfiles}
+          currentUserProfile={currentUserProfile}
           onSaveField={saveTaskField}
           onDeleteTask={handleDeleteTask}
           onClose={() => setSelectedTaskIdForModal(null)}

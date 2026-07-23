@@ -20,6 +20,39 @@ export type TaskItem = {
   updated_at?: string;
 };
 
+export const TASK_CATEGORIES = [
+  'ACR - Advisor Change Request',
+  'BCR - Beneficiary Change Request',
+  'CPC - Client Policy Change',
+  'CPST - Client Policy Status Tracking',
+  'FSR - Fund Switching Request',
+  'FWR - Fund Withdrawal Request',
+  'ACA - Auto Charge Arrangement',
+  'SRO - Reinstatement (SRO)',
+  'PDI - Reinstatement (PDI)',
+  'CSMV - Client Servicing Monitoring Verification',
+  'Others'
+];
+
+export function normalizeCategory(cat?: string | null): string {
+  if (!cat) return 'Others';
+  const c = cat.trim().toUpperCase();
+
+  if (c === 'ACR' || c.startsWith('ACR -') || c.startsWith('ACA - ADVISOR')) return 'ACR - Advisor Change Request';
+  if (c === 'BCR' || c.startsWith('BCR -')) return 'BCR - Beneficiary Change Request';
+  if (c === 'CPC' || c.startsWith('CPC -')) return 'CPC - Client Policy Change';
+  if (c === 'CPST' || c.startsWith('CPST -')) return 'CPST - Client Policy Status Tracking';
+  if (c === 'FSR' || c === 'FST' || c.startsWith('FSR -')) return 'FSR - Fund Switching Request';
+  if (c === 'FWR' || c === 'PPU' || c.startsWith('FWR -')) return 'FWR - Fund Withdrawal Request';
+  if (c === 'ACA' || c.startsWith('ACA - AUTO')) return 'ACA - Auto Charge Arrangement';
+  if (c === 'SRO' || c.startsWith('SRO -')) return 'SRO - Reinstatement (SRO)';
+  if (c === 'PDI' || c.startsWith('PDI -')) return 'PDI - Reinstatement (PDI)';
+  if (c === 'CSMV' || c === 'UID' || c.startsWith('CSMV -')) return 'CSMV - Client Servicing Monitoring Verification';
+  if (c === 'PLT') return 'CPC - Client Policy Change';
+
+  return cat.trim();
+}
+
 interface TaskRowProps {
   task: TaskItem;
   assignedProfile: UserProfile | null;
@@ -82,18 +115,17 @@ export default function TaskRow({
   const userName = activeProfile ? (activeProfile.full_name || activeProfile.email) : 'Unassigned';
   const processedName = processedProfile ? (processedProfile.full_name || processedProfile.email) : null;
   const timestampText = formatFormattedTime(task.updated_at);
-  const priority = task.priority || (task.status === 'Done' ? 'Normal' : 'High');
 
   return (
     <div
-      className={`${styles.taskListRow} group transition-all duration-200 hover:shadow-md hover:border-l-6 cursor-pointer`}
+      className="flex items-center justify-between gap-3 p-3 sm:p-3.5 bg-surface hover:bg-surface-2/70 border border-border/60 rounded-2xl transition-all duration-200 hover:shadow-md cursor-pointer group my-1.5"
       style={{ borderLeft: `4px solid ${statusColor}` }}
       onClick={() => onSelectTask(task.id)}
     >
       {/* Checkbox on left */}
       <button
         type="button"
-        className={styles.noteCheckboxBtn}
+        className="p-1 rounded-md text-text-tertiary hover:text-amber-500 hover:bg-amber-500/10 transition-colors shrink-0 cursor-pointer"
         onClick={(e) => {
           e.stopPropagation();
           onToggleComplete(task);
@@ -101,60 +133,56 @@ export default function TaskRow({
         aria-label="Toggle completion"
       >
         {task.completed ? (
-          <CheckSquare size={18} className={styles.checkedIcon} />
+          <CheckSquare size={18} className="text-amber-500" />
         ) : (
-          <Square size={18} className={styles.uncheckedIcon} />
+          <Square size={18} className="text-text-tertiary" />
         )}
       </button>
 
       {/* Main info column */}
-      <div className={styles.taskRowMainCol}>
-        <div className={styles.taskRowTitleLine}>
-          <span className={`${styles.noteTitleText} ${task.completed ? styles.noteCompletedTitle : ''}`}>
+      <div className="flex-1 min-w-0 space-y-1">
+        {/* Row 1: Title & Category */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className={`font-bold text-xs sm:text-sm text-text leading-tight ${task.completed ? 'line-through text-text-tertiary' : ''}`}>
             {task.title || 'Untitled Task'}
           </span>
           {task.category && (
-            <span className={styles.noteCategoryBadge}>{task.category}</span>
-          )}
-          {priority && (
-            <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold uppercase tracking-wider ${
-              priority === 'Urgent' ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/20' :
-              priority === 'High' ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20' :
-              'bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20'
-            }`}>
-              {priority}
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20 whitespace-nowrap">
+              {normalizeCategory(task.category)}
             </span>
           )}
         </div>
 
-        <div className={styles.taskRowUserLine}>
+        {/* Row 2: User information & timestamp */}
+        <div className="flex items-center gap-1.5 text-[11px] text-text-secondary flex-wrap">
           <UserAvatar
             profile={activeProfile}
-            size={20}
+            size={18}
             showTooltip
           />
-          <span className={styles.taskRowUserName}>{userName}</span>
+          <span className="font-semibold text-text truncate max-w-[140px] sm:max-w-[200px]">{userName}</span>
           {processedName && processedName !== userName && (
             <>
-              <span className="text-[10px] text-muted-foreground ml-1">/ Processed by:</span>
-              <UserAvatar profile={processedProfile} size={18} showTooltip />
-              <span className={styles.taskRowUserName}>{processedName}</span>
+              <span className="text-text-tertiary text-[10px] mx-0.5">•</span>
+              <span className="text-[11px] text-text-tertiary font-medium">Processed by:</span>
+              <UserAvatar profile={processedProfile} size={16} showTooltip />
+              <span className="font-semibold text-text truncate max-w-[140px] sm:max-w-[200px]">{processedName}</span>
             </>
           )}
-          <span className={styles.taskRowDot}>&bull;</span>
-          <span className={styles.taskRowTimeText}>{timestampText}</span>
+          <span className="text-text-tertiary text-[10px] mx-0.5">•</span>
+          <span className="text-[11px] text-text-tertiary font-medium whitespace-nowrap">{timestampText}</span>
         </div>
       </div>
 
       {/* Right controls */}
-      <div className={styles.taskRowRightCol}>
+      <div className="flex items-center gap-2 shrink-0 ml-2">
         <StatusBadge status={task.status} size="sm" />
         {task.notes && task.notes.trim().length > 0 && (
-          <span title="Has notes" className={styles.taskRowNotesIcon}>
-            <FileText size={13} />
+          <span title="Has notes" className="p-1 text-text-tertiary hover:text-text">
+            <FileText size={14} />
           </span>
         )}
-        <ChevronRight size={15} className={`${styles.rowChevron} transition-transform group-hover:translate-x-0.5`} />
+        <ChevronRight size={15} className="text-text-tertiary transition-transform group-hover:translate-x-0.5 shrink-0" />
       </div>
     </div>
   );

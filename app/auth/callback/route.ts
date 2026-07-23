@@ -17,6 +17,9 @@ export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
   const type = requestUrl.searchParams.get("type");
+  const next = requestUrl.searchParams.get("next");
+
+  console.log("[DEBUG - CALLBACK]: Hit callback route", { code: !!code, type, next });
 
   if (!code) {
     return NextResponse.redirect(`${requestUrl.origin}/auth/login`);
@@ -40,21 +43,65 @@ export async function GET(request: Request) {
     );
   }
 
-  // ─── Email Verification Callback ──────────────────────────────────────────
+  // ─── Email Verification / OAuth Callback ──────────────────────────────────
   if (user) {
-    // Log the email verification event
+    const provider = user.app_metadata?.provider;
+    const isOAuth = provider && provider !== "email";
+
+    console.log("[DEBUG - CALLBACK]: Successfully verified session for user", user.email, "Provider:", provider);
+
+    // Log the authentication security event with accurate provider
     await logSecurityEvent({
       userId: user.id,
-      eventType: "email_verified",
-      metadata: { email: user.email },
+      eventType: isOAuth ? "oauth_login" : "email_verified",
+      metadata: { email: user.email, provider: provider || "email" },
     });
 
     // Check current account status
-    const { data: profile } = await supabaseAdmin
+    let { data: profile } = await supabaseAdmin
       .from("profiles")
       .select("status, role")
       .eq("id", user.id)
-      .single();
+      .maybeSingle();
+
+    if (!profile) {
+      const fullName =
+        user.user_metadata?.full_name ||
+        user.user_metadata?.name ||
+        user.email?.split("@")[0] ||
+        "User";
+      const avatarUrl =
+        user.user_metadata?.avatar_url || user.user_metadata?.picture || "";
+
+      const { data: newProfile } = await supabaseAdmin
+        .from("profiles")
+        .upsert(
+          {
+            id: user.id,
+            full_name: fullName,
+            email: user.email,
+            avatar_url: avatarUrl,
+            role: "Member",
+            status: "Pending",
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "id" }
+        )
+        .select("status, role")
+        .maybeSingle();
+
+      profile = newProfile || { status: "Pending", role: "Member" };
+      
+      // Notify admins about the new registration
+      if (!profile || profile.status === "Pending") {
+        await supabaseAdmin.from("notifications").insert({
+          title: "New Member Registration (Google)",
+          description: `A new member (${fullName || user.email}) signed up via Google and is pending approval.`,
+          type: "user",
+          is_read: false,
+        });
+      }
+    }
 
     const accountStatus = profile?.status?.toLowerCase();
     const role = profile?.role;
@@ -76,7 +123,11 @@ export async function GET(request: Request) {
       );
     }
 
-    // Active account — redirect to appropriate dashboard
+    // Active account — redirect to appropriate destination or dashboard
+    if (next && next.startsWith("/")) {
+      return NextResponse.redirect(`${requestUrl.origin}${next}`);
+    }
+
     if (role === "Admin") {
       return NextResponse.redirect(`${requestUrl.origin}/admin/dashboard`);
     }

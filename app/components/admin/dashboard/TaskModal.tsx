@@ -9,14 +9,13 @@ import {
   Calendar,
   AlertCircle
 } from 'lucide-react';
-import { TaskItem, formatRelativeTime } from './TaskRow';
+import { TaskItem, formatRelativeTime, TASK_CATEGORIES, normalizeCategory } from './TaskRow';
 import UserAvatar, { UserProfile } from './UserAvatar';
 import UserPickerSelect from './UserPickerSelect';
 import StatusBadge, { getTaskStatusMeta, getStatusColorHex } from './StatusBadge';
 import { formatDisplayDate } from './ActivityCard';
 import styles from '@/styles/admin/dashboard/page.module.css';
 
-const TASK_CATEGORIES = ['ACR', 'BCR', 'FSR', 'PPU', 'CPC', 'UID', 'PLT', 'CPST', 'Others'];
 const TASK_STATUSES = ['Pending', 'In Progress', 'Acknowledged', 'On Hold', 'Done', 'Cancelled'];
 const TASK_PRIORITIES = ['Normal', 'High', 'Urgent'];
 
@@ -24,6 +23,7 @@ interface TaskModalProps {
   task: TaskItem;
   allProfiles: UserProfile[];
   bizDevProfiles: UserProfile[];
+  currentUserProfile?: UserProfile | null;
   onSaveField: (taskId: string, updates: Partial<TaskItem>) => void;
   onDeleteTask: (taskId: string) => void;
   onClose: () => void;
@@ -34,6 +34,7 @@ export default function TaskModal({
   task,
   allProfiles,
   bizDevProfiles,
+  currentUserProfile,
   onSaveField,
   onDeleteTask,
   onClose,
@@ -46,7 +47,7 @@ export default function TaskModal({
     return allProfiles.find((p) => p.id === id) || bizDevProfiles.find((p) => p.id === id) || null;
   };
 
-  const processedAuthor = findProfileById(task.processed_by);
+  const processedAuthor = findProfileById(task.processed_by) || currentUserProfile || null;
   const assignedAuthor = findProfileById(task.assigned_to);
   const activeNoteAuthor = processedAuthor || assignedAuthor;
   const currentStatusColor = getStatusColorHex(task.status);
@@ -149,7 +150,7 @@ export default function TaskModal({
               <label className={styles.formFieldLabel}>Category</label>
               <select
                 className={styles.formSelect}
-                value={task.category}
+                value={normalizeCategory(task.category)}
                 onChange={(e) => onSaveField(task.id, { category: e.target.value })}
               >
                 {TASK_CATEGORIES.map((cat) => (<option key={cat} value={cat}>{cat}</option>))}
@@ -171,12 +172,20 @@ export default function TaskModal({
           {/* Assignee & Processed By Row */}
           {!isUserView ? (
             <div className={styles.modalTwoCol}>
-              <UserPickerSelect
-                label="Processed By"
-                value={task.processed_by}
-                profiles={bizDevProfiles}
-                onChange={(val) => onSaveField(task.id, { processed_by: val })}
-              />
+              <div className={styles.userPickerContainer}>
+                <label className={styles.formFieldLabel}>Processed By</label>
+                <div className={styles.fixedUserTrigger}>
+                  <div className={styles.userPickerBadge}>
+                    <UserAvatar profile={processedAuthor} size={20} />
+                    <span className={styles.userPickerName}>
+                      {processedAuthor?.full_name || processedAuthor?.email || 'Admin'}
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-semibold text-muted-foreground px-1.5 py-0.5 rounded bg-muted border border-border">
+                    {processedAuthor?.role || 'Admin'}
+                  </span>
+                </div>
+              </div>
 
               <UserPickerSelect
                 label="Assigned To"

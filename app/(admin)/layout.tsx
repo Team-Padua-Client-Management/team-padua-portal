@@ -52,7 +52,7 @@ const handleThemeChange = (e: any) => {
     };
   }, []);
 
-  const isDarkTheme = ["dark", "midnight", "forest", "sunset", "slate"].includes(theme);
+  const isDarkTheme = ["dark", "midnight", "forest", "sunset", "slate", "purple"].includes(theme);
 
   return (
     <div className={isDarkTheme ? "dark" : ""} data-theme={theme}>

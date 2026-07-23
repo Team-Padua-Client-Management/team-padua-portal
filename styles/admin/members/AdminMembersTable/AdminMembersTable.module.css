@@ -1,163 +1,178 @@
 @reference "../../../globals/globals.css";
 
 /* ======================================================
-   AdminMembersTable.module.css
-   Style definitions for: app/(admin)/admin/members/AdminMembersTable/AdminMembersTable.module.css
-====================================================== */
+   ADMIN MEMBERS TABLE - MODULE STYLES
+   ====================================================== */
 
-/* ======================================================
-   Structural Layout Components
-   Main grid and layout flex wraps
-====================================================== */
-.div_23 {
-  @apply w-10 h-10 rounded-full object-cover shrink-0 border border-border;
-}
-.text_24 {
-  @apply w-10 h-10 rounded-full bg-[#FFF7D6] dark:bg-[#2E2818] text-black dark:text-[#F4C542] font-semibold flex items-center justify-center text-sm shrink-0;
-}
-.div_2 {
-  @apply w-full md:max-w-md;
+.tableWrapper {
+  @apply space-y-4;
 }
 
-
-/* ======================================================
-   Interactive Actions & Cards
-   Visual control elements and cards
-====================================================== */
-.card_3 {
-  @apply w-full text-xs px-3 py-2 bg-card border border-border rounded-lg focus:outline-none focus:border-[#F4C542] placeholder-muted-foreground/50 text-foreground transition h-9 shadow-2xs;
+/* Toolbar & Filters */
+.filterBar {
+  @apply flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-card/90 dark:bg-card/50 backdrop-blur-sm border border-border/80 rounded-2xl shadow-xs;
 }
 
-.container_4 {
+.searchGroup {
+  @apply relative flex-1 min-w-[240px] max-w-md;
+}
+
+.searchIcon {
+  @apply absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none;
+}
+
+.searchInput {
+  @apply w-full pl-9 pr-8 py-2 text-xs bg-background border border-border/90 rounded-xl focus:outline-none focus:border-[#F4C542] focus:ring-2 focus:ring-[#F4C542]/20 text-foreground placeholder:text-muted-foreground/60 transition shadow-2xs h-9;
+}
+
+.clearSearchBtn {
+  @apply absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5 rounded-md hover:bg-muted/60 transition;
+}
+
+.filtersGroup {
   @apply flex flex-wrap items-center gap-2 w-full md:w-auto;
 }
 
-.card_5 {
-  @apply text-xs border border-border rounded-lg px-3 py-1.5 bg-card text-foreground focus:outline-none focus:border-[#F4C542] h-9 cursor-pointer;
+.filterSelect {
+  @apply text-xs border border-border/90 rounded-xl px-3 py-1.5 bg-background text-foreground focus:outline-none focus:border-[#F4C542] focus:ring-2 focus:ring-[#F4C542]/20 h-9 cursor-pointer transition shadow-2xs font-medium;
 }
 
-.card_6 {
-  @apply text-xs border border-border rounded-lg px-3 py-1.5 bg-card text-foreground focus:outline-none focus:border-[#F4C542] h-9 cursor-pointer;
+.filterResetBtn {
+  @apply text-xs font-semibold text-muted-foreground hover:text-foreground px-2.5 py-1.5 rounded-xl hover:bg-muted/60 transition flex items-center gap-1.5 h-9 cursor-pointer;
 }
 
-.card_7 {
-  @apply text-xs border border-border rounded-lg px-3 py-1.5 bg-card text-foreground focus:outline-none focus:border-[#F4C542] h-9 cursor-pointer;
+/* Table Container */
+.tableCard {
+  @apply border border-border/80 rounded-2xl overflow-hidden bg-card/90 dark:bg-card/40 backdrop-blur-sm shadow-xs;
 }
 
-.card_8 {
-  @apply border border-border rounded-xl overflow-hidden bg-card shadow-2xs;
-}
-
-.div_9 {
+.tableScrollArea {
   @apply overflow-x-auto;
 }
 
-
-/* ======================================================
-   Typography & Label Aesthetics
-   Font weights, leading scales, and text colors
-====================================================== */
-.text_10 {
+.table {
   @apply w-full text-left border-collapse text-xs;
 }
 
-.table_11 {
-  @apply bg-muted/30 border-b border-border font-medium text-muted-foreground uppercase text-[10px] tracking-wider;
+.tableHead {
+  @apply bg-muted/40 dark:bg-muted/20 border-b border-border/80 font-bold text-muted-foreground uppercase text-[10px] tracking-wider;
 }
 
-.div_12 {
-  @apply p-4;
+.th {
+  @apply py-3.5 px-4 font-bold;
 }
 
-.div_13 {
-  @apply p-4;
+.thRight {
+  @apply py-3.5 px-4 text-right font-bold;
 }
 
-.div_14 {
-  @apply p-4;
+.tableBody {
+  @apply divide-y divide-border/60 text-foreground;
 }
 
-.div_15 {
-  @apply p-4;
+.tr {
+  @apply hover:bg-muted/30 dark:hover:bg-muted/20 transition-colors duration-150;
 }
 
-.div_16 {
-  @apply p-4;
+.td {
+  @apply py-3.5 px-4 align-middle;
 }
 
-.text_17 {
-  @apply p-4 text-right;
+.tdRight {
+  @apply py-3.5 px-4 align-middle text-right;
 }
 
-.card_18 {
-  @apply divide-y divide-border text-foreground bg-card;
-}
-
-.text_19 {
-  @apply p-8 text-center text-muted-foreground font-normal;
-}
-
-.table_20 {
-  @apply hover:bg-muted/30 transition;
-}
-
-.div_21 {
-  @apply p-4;
-}
-
-.container_22 {
+/* Member Column Components */
+.memberFlex {
   @apply flex items-center gap-3 cursor-pointer;
 }
 
-
-.div_25 {
-  @apply min-w-0;
+.avatarWrap {
+  @apply relative flex items-center justify-center shrink-0;
 }
 
-.table_26 {
-  @apply font-medium text-foreground hover:underline block truncate text-sm;
+.avatarImg {
+  @apply w-9 h-9 rounded-full object-cover shrink-0 border border-border/80 shadow-2xs;
 }
 
-.table_27 {
-  @apply block text-[11px] text-muted-foreground truncate mt-0.5;
+.presenceIndicator {
+  @apply absolute bottom-0 right-0 w-2.5 h-2.5 border-2 border-background rounded-full;
 }
 
-.table_28 {
-  @apply p-4 font-mono text-muted-foreground tracking-tight;
+.memberMeta {
+  @apply min-w-0 flex-1;
 }
 
-.div_29 {
-  @apply p-4;
+.memberName {
+  @apply font-semibold text-foreground transition-colors block truncate text-xs lg:text-sm;
 }
 
-.card_30 {
-  @apply bg-transparent border-none text-xs text-foreground p-0 pr-6 focus:ring-0 focus:outline-none cursor-pointer font-medium ;
+.memberFlex:hover .memberName {
+  @apply text-[#8a6b10] dark:text-[#F4C542];
 }
 
-.div_31 {
-  @apply p-4;
+.memberEmail {
+  @apply block text-[11px] text-muted-foreground truncate mt-0.5 font-mono opacity-85;
 }
 
-.card_32 {
-  @apply bg-transparent border-none text-xs text-foreground p-0 pr-6 focus:ring-0 focus:outline-none cursor-pointer font-medium;
+.presenceTag {
+  @apply inline-flex items-center gap-1 text-[9.5px] font-bold mt-0.5 capitalize;
 }
 
-.div_33 {
-  @apply p-4;
+/* Select Badges in Table */
+.roleSelect {
+  @apply bg-background/80 border border-border/80 text-xs text-foreground px-2.5 py-1 rounded-xl focus:ring-1 focus:ring-[#F4C542] focus:outline-none cursor-pointer font-semibold shadow-2xs transition;
 }
 
-.text_34 {
-  @apply p-4 text-right;
+.deptSelect {
+  @apply bg-background/80 border border-border/80 text-xs text-foreground px-2.5 py-1 rounded-xl focus:ring-1 focus:ring-[#F4C542] focus:outline-none cursor-pointer font-semibold shadow-2xs transition;
 }
 
-.card_35 {
-  @apply text-foreground hover:text-foreground/80 text-[11px] font-medium border border-border rounded-md px-3 py-1 bg-card hover:bg-muted transition shadow-2xs;
+/* Status Badges */
+.statusBadge {
+  @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-tight;
 }
 
-.text_36 {
-  @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold;
+.statusDot {
+  @apply w-1.5 h-1.5 rounded-full shrink-0;
 }
 
-.div_37 {
-  @apply w-1 h-1 rounded-full;
+/* Client Servicing Permissions Cell */
+.permissionsCell {
+  @apply flex flex-col gap-1 items-start max-w-[170px];
+}
+
+.permissionChipsGroup {
+  @apply flex flex-wrap gap-1 text-[9.5px] font-bold;
+}
+
+.permissionChip {
+  @apply px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20;
+}
+
+.editPermissionsBtn {
+  @apply text-[11px] text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-bold inline-flex items-center gap-1 mt-0.5 transition hover:underline cursor-pointer;
+}
+
+/* Actions */
+.viewProfileBtn {
+  @apply text-foreground hover:text-foreground text-[11px] font-semibold border border-border/90 rounded-xl px-3 py-1.5 bg-background hover:bg-muted/70 transition shadow-2xs inline-flex items-center gap-1 cursor-pointer;
+}
+
+/* Empty State */
+.emptyStateTd {
+  @apply py-12 px-4 text-center text-muted-foreground font-medium;
+}
+
+.emptyStateWrap {
+  @apply flex flex-col items-center justify-center gap-2 max-w-sm mx-auto;
+}
+
+.emptyStateIcon {
+  @apply text-2xl opacity-60;
+}
+
+/* Pagination / Results count footer */
+.tableFooter {
+  @apply flex items-center justify-between px-4 py-3 border-t border-border/80 text-xs text-muted-foreground bg-muted/20;
 }

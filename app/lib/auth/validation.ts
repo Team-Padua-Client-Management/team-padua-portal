@@ -42,10 +42,6 @@ export function getPasswordChecks(value: string): PasswordCheckItem[] {
   return [
     { label: "At least 8 characters", valid: value.length >= AUTH_CONSTANTS.PASSWORD_MIN_LENGTH },
     { label: "At most 128 characters", valid: value.length <= AUTH_CONSTANTS.PASSWORD_MAX_LENGTH },
-    { label: "One uppercase letter", valid: /[A-Z]/.test(value) },
-    { label: "One lowercase letter", valid: /[a-z]/.test(value) },
-    { label: "One number", valid: /\d/.test(value) },
-    { label: "One special character", valid: /[^A-Za-z0-9]/.test(value) },
   ];
 }
 
@@ -62,22 +58,6 @@ export function validatePassword(raw: unknown): ValidationResult {
 
   if (password.length > AUTH_CONSTANTS.PASSWORD_MAX_LENGTH) {
     return { valid: false, error: `Password must be at most ${AUTH_CONSTANTS.PASSWORD_MAX_LENGTH} characters.` };
-  }
-
-  if (!/[A-Z]/.test(password)) {
-    return { valid: false, error: "Password must contain at least one uppercase letter." };
-  }
-
-  if (!/[a-z]/.test(password)) {
-    return { valid: false, error: "Password must contain at least one lowercase letter." };
-  }
-
-  if (!/\d/.test(password)) {
-    return { valid: false, error: "Password must contain at least one number." };
-  }
-
-  if (!/[^A-Za-z0-9]/.test(password)) {
-    return { valid: false, error: "Password must contain at least one special character." };
   }
 
   return { valid: true, value: password };

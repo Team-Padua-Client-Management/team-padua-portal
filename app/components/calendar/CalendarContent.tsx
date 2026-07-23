@@ -398,6 +398,28 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
     showToast('Category deleted.');
   };
 
+  const syncActivitiesToLocalStorage = useCallback((eventList: CalendarEvent[]) => {
+    try {
+      localStorage.setItem('tp_calendar_events', JSON.stringify(eventList));
+      const mappedActivities = eventList.map(ev => ({
+        id: String(ev.id),
+        title: ev.title || 'Untitled Activity',
+        type: ev.category || 'Client Meeting',
+        date: ev.event_date || new Date().toISOString().split('T')[0],
+        time: ev.start_time || '',
+        location: ev.location_name || '',
+        notes: ev.description || '',
+        status: 'Scheduled'
+      }));
+      localStorage.setItem('tp_user_activities', JSON.stringify(mappedActivities));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('tp_calendar_events_updated'));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
   const fetchEvents = useCallback(async () => {
     setLoading(true);
     try {
@@ -406,19 +428,21 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
         .select('*')
         .order('event_date', { ascending: true });
       if (error) throw error;
-      setEvents(data && data.length ? data : DEFAULT_EVENTS);
+      const loadedEvents = data && data.length ? data : DEFAULT_EVENTS;
+      setEvents(loadedEvents);
+      syncActivitiesToLocalStorage(loadedEvents);
     } catch {
       const saved = typeof window !== 'undefined' ? localStorage.getItem('tp_calendar_events') : null;
       if (saved) {
         setEvents(JSON.parse(saved));
       } else {
         setEvents(DEFAULT_EVENTS);
-        localStorage.setItem('tp_calendar_events', JSON.stringify(DEFAULT_EVENTS));
+        syncActivitiesToLocalStorage(DEFAULT_EVENTS);
       }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [syncActivitiesToLocalStorage]);
 
   useEffect(() => {
     fetchEvents();
@@ -488,7 +512,7 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
 
   const persistLocal = (list: CalendarEvent[]) => {
     setEvents(list);
-    localStorage.setItem('tp_calendar_events', JSON.stringify(list));
+    syncActivitiesToLocalStorage(list);
   };
 
   const handleSubmitEvent = async (e: React.FormEvent) => {

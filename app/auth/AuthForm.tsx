@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useTransition, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { Eye, EyeOff, Lock, Mail, AlertCircle, CheckCircle2, X, Users, User, Shield, Phone, ChevronDown, ArrowRight, Sparkles } from "lucide-react";
 import { supabase } from "@/app/lib/supabase/client";
 import { SignIn, SignUp } from "../action/auth";
@@ -18,29 +19,19 @@ type SavedGoogle = { name: string; email: string; avatar: string } | null;
 
 const getPasswordChecks = (value: string) => [
   { label: "At least 8 characters", valid: value.length >= 8 },
-  { label: "One uppercase letter", valid: /[A-Z]/.test(value) },
-  { label: "One lowercase letter", valid: /[a-z]/.test(value) },
-  { label: "One number", valid: /\d/.test(value) },
-  { label: "One special character", valid: /[^A-Za-z0-9]/.test(value) },
 ];
 
 const getPasswordStrength = (value: string) => {
-  const checks = getPasswordChecks(value);
-  const score = checks.filter((check) => check.valid).length;
-
   if (!value) {
-    return { score, label: "Start typing", percent: 0, barClass: "bg-slate-200", textClass: "text-slate-400" };
+    return { score: 0, label: "Start typing", percent: 0, barClass: "bg-slate-200", textClass: "text-slate-400" };
   }
-  if (score <= 2) {
-    return { score, label: "Weak", percent: 25, barClass: "bg-rose-500", textClass: "text-rose-600" };
+  if (value.length < 8) {
+    return { score: 1, label: "Weak", percent: 33, barClass: "bg-rose-500", textClass: "text-rose-600" };
   }
-  if (score === 3) {
-    return { score, label: "Fair", percent: 50, barClass: "bg-orange-500", textClass: "text-orange-600" };
+  if (value.length < 12) {
+    return { score: 2, label: "Good", percent: 66, barClass: "bg-amber-500", textClass: "text-amber-600" };
   }
-  if (score === 4) {
-    return { score, label: "Good", percent: 75, barClass: "bg-amber-500", textClass: "text-amber-600" };
-  }
-  return { score, label: "Strong", percent: 100, barClass: "bg-emerald-500", textClass: "text-emerald-600" };
+  return { score: 3, label: "Strong", percent: 100, barClass: "bg-emerald-500", textClass: "text-emerald-600" };
 };
 
 const GoogleIcon = () => (
@@ -127,10 +118,12 @@ function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
     if (!email) { setError("Enter your email address."); return; }
     setLoading(true);
     setError("");
-    const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/reset-password`,
-    });
-    if (err) setError(err.message);
+    const formData = new FormData();
+    formData.append("email", email);
+    const { ForgotPasswordAction } = await import("../action/auth");
+    const result = await ForgotPasswordAction(formData);
+    
+    if (result.error) setError(result.error);
     else setSent(true);
     setLoading(false);
   };
@@ -191,6 +184,11 @@ function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
 }
 
 export const AuthForm = ({ action }: AuthFormProps) => {
+  const searchParams = useSearchParams();
+  const urlMessage = searchParams.get("message");
+  const urlError = searchParams.get("error");
+  const nextParam = searchParams.get("next");
+
   const [isPending, startTransition] = useTransition();
 
   const [isLogin, setIsLogin] = useState(true);
@@ -200,11 +198,13 @@ export const AuthForm = ({ action }: AuthFormProps) => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [role, setRole] = useState("Financial Advisor");
   const [phone, setPhone] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [passwordFeedback, setPasswordFeedback] = useState<string | null>(null);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [showForgot, setShowForgot] = useState(false);
@@ -217,7 +217,23 @@ export const AuthForm = ({ action }: AuthFormProps) => {
     if (savedEmail) { setEmail(savedEmail); setRememberMe(true); }
     const savedG = localStorage.getItem(SAVED_GOOGLE_KEY);
     if (savedG) { try { setSavedGoogle(JSON.parse(savedG)); } catch {} }
-  }, []);
+
+    if (urlMessage === "email_verified_pending") {
+      setInfoMessage("Email verified! Your account registration is pending admin approval.");
+    } else if (urlMessage) {
+      setInfoMessage(urlMessage);
+    }
+
+    if (urlError === "auth_failed") {
+      setError("Authentication failed. Please try logging in again.");
+    } else if (urlError === "account_blocked") {
+      setError("Your account is currently pending approval, suspended, or disabled.");
+    } else if (urlError === "profile_not_found") {
+      setError("Account profile not found. Please log in again or contact support.");
+    } else if (urlError) {
+      setError(urlError);
+    }
+  }, [urlMessage, urlError]);
 
   const passwordChecks = getPasswordChecks(password);
   const passwordIsValid = passwordChecks.every((check) => check.valid);
@@ -231,7 +247,7 @@ export const AuthForm = ({ action }: AuthFormProps) => {
 
   const canSubmit = email.length > 0 && password.length > 0 && (isLogin
     ? true
-    : name.trim().length > 0 && passwordIsValid && confirmPassword.length > 0 && confirmPasswordState?.valid);
+    : name.trim().length > 0 && passwordIsValid && confirmPassword.length > 0 && confirmPasswordState?.valid && termsAccepted);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -239,6 +255,10 @@ export const AuthForm = ({ action }: AuthFormProps) => {
     setPasswordFeedback(null);
 
     if (!isLogin) {
+      if (!termsAccepted) {
+        setError("You must accept the Terms and Conditions to register.");
+        return;
+      }
       if (!passwordIsValid) {
         setPasswordFeedback("Password must meet all requirements.");
         return;
@@ -255,6 +275,7 @@ export const AuthForm = ({ action }: AuthFormProps) => {
 
     const formData = new FormData(e.currentTarget);
     formData.append("role", role); // explicitly add select dropdown state
+    formData.append("termsAccepted", termsAccepted ? "true" : "false");
 
     startTransition(async () => {
       const activeAction = isLogin ? SignIn : SignUp;
@@ -279,25 +300,16 @@ export const AuthForm = ({ action }: AuthFormProps) => {
   const signInWithGoogle = async () => {
     setGoogleLoading(true);
     setError(null);
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
+    const redirectTarget = `${siteUrl}/auth/callback${nextParam ? `?next=${encodeURIComponent(nextParam)}` : ''}`;
     const { error: err } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: redirectTarget,
         queryParams: { prompt: "select_account" },
       },
     });
     if (err) { setError(err.message); setGoogleLoading(false); return; }
-
-    supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_IN" && session?.user) {
-        const u = session.user;
-        localStorage.setItem(SAVED_GOOGLE_KEY, JSON.stringify({
-          name: u.user_metadata?.full_name || u.user_metadata?.name || "",
-          email: u.email || "",
-          avatar: u.user_metadata?.avatar_url || "",
-        }));
-      }
-    });
   };
 
   const clearSavedGoogle = (e: React.MouseEvent) => {
@@ -337,6 +349,13 @@ export const AuthForm = ({ action }: AuthFormProps) => {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4 w-full">
+        {infoMessage && (
+          <div className="flex items-center gap-3 bg-amber-50 dark:bg-amber-950/30 border-2 border-amber-200 dark:border-amber-900/60 rounded-2xl px-4 py-3 animate-in slide-in-from-top-2">
+            <CheckCircle2 className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+            <p className="text-xs text-amber-900 dark:text-amber-200 font-semibold flex-1">{infoMessage}</p>
+          </div>
+        )}
+
         {error && (
           <div className="flex items-center gap-3 bg-rose-50 dark:bg-rose-950/20 border-2 border-rose-100 dark:border-rose-900/50 rounded-2xl px-4 py-3 animate-in slide-in-from-top-2">
             <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
@@ -456,6 +475,22 @@ export const AuthForm = ({ action }: AuthFormProps) => {
           <div className={`flex items-center gap-2 text-[10px] ${confirmPasswordState.valid ? "text-emerald-600" : "text-rose-500"}`}>
             {confirmPasswordState.valid ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
             <span className="font-semibold">{confirmPasswordState.message}</span>
+          </div>
+        )}
+
+        {!isLogin && (
+          <div className="flex items-center gap-2.5 pt-1 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              id="termsAccepted"
+              name="termsAcceptedCheckbox"
+              checked={termsAccepted}
+              onChange={(e) => setTermsAccepted(e.target.checked)}
+              className="w-4 h-4 rounded border-slate-300 text-[#FFC72C] focus:ring-[#FFC72C] cursor-pointer"
+            />
+            <label htmlFor="termsAccepted" className="text-xs text-slate-600 dark:text-slate-400 font-medium cursor-pointer">
+              I agree to the <a href="/terms" target="_blank" rel="noreferrer" className="text-[#A3843B] dark:text-[#FFC72C] font-bold hover:underline">Terms and Conditions</a>
+            </label>
           </div>
         )}
 

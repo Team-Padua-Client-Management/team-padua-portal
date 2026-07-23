@@ -8,6 +8,7 @@ export interface BirthdayItem {
   name: string;
   date: string; // e.g. "Jul 22"
   when: 'today' | 'yesterday' | 'tomorrow';
+  age?: number;
   policyNo?: string;
   advisor?: string;
 }
@@ -29,9 +30,6 @@ export default function BirthdayCard({ birthdays = [] }: BirthdayCardProps) {
           </div>
           <div className={styles.dashboardCardTitle}>
             <h3>Client Birthdays</h3>
-            <span className={styles.headerSubtitle}>
-              Today, Yesterday & Tomorrow
-            </span>
           </div>
         </div>
 
@@ -42,11 +40,6 @@ export default function BirthdayCard({ birthdays = [] }: BirthdayCardProps) {
               {todayCount} Today!
             </span>
           )}
-
-          <Link href="/admin/cpst" className={styles.birthdayCenterHeaderBtn} title="Go to CPST Birthday Center">
-            <span>CPST Birthday Center</span>
-            <ArrowUpRight size={13} />
-          </Link>
         </div>
       </div>
 
@@ -88,12 +81,14 @@ export default function BirthdayCard({ birthdays = [] }: BirthdayCardProps) {
                   <div className={styles.birthdayInfoGroup}>
                     <div className={styles.birthdayNameRow}>
                       <span className={styles.birthdayName}>{item.name}</span>
-                      {item.policyNo && (
-                        <span className={styles.birthdayPolicyTag}>#{item.policyNo}</span>
+                      {item.age !== undefined && item.age > 0 && (
+                        <span className={styles.birthdayAgeBadge}>
+                          Turning {item.age}
+                        </span>
                       )}
                     </div>
                     <span className={styles.birthdayDateMeta}>
-                      {item.date}
+                      {item.date} {item.age !== undefined && item.age > 0 ? `• ${item.age} yrs old` : ''} {item.policyNo ? `• ${item.policyNo}` : ''}
                     </span>
                   </div>
 

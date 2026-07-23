@@ -14,7 +14,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from "@/styles/admin/members/AdminMembersTable/AdminMembersTable.module.css";
-import { X } from "lucide-react";
+import { Search, X, Shield, ExternalLink, RotateCcw, Check, CheckSquare, Square } from "lucide-react";
 import ProfileAvatar from "@/components/shared/ProfileAvatar";
 import { supabase } from "@/app/lib/supabase/client";
 
@@ -81,6 +81,9 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
   const [statusFilter, setStatusFilter] = useState("All");
   const router = useRouter();
 
+  // Verification State
+  const [isVerifying, setIsVerifying] = useState(false);
+
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -126,15 +129,56 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
   const roles = ["Admin", "Advisor", "Bizdev", "Member"];
   const departments = ["ASA", "BSA", "CSA", "DSA"];
 
-  // Helper function to extract First Name & Surname Initials
-  const getInitials = (fullName: string) => {
-    const parts = fullName.trim().split(/\s+/);
-    if (parts.length === 0) return "?";
-    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  const hasActiveFilters = search !== "" || roleFilter !== "All" || deptFilter !== "All" || statusFilter !== "All";
 
-    const firstInitial = parts[0].charAt(0).toUpperCase();
-    const surnameInitial = parts[parts.length - 1].charAt(0).toUpperCase();
-    return `${firstInitial}${surnameInitial}`;
+  const handleResetFilters = () => {
+    setSearch("");
+    setRoleFilter("All");
+    setDeptFilter("All");
+    setStatusFilter("All");
+  };
+
+  const handleVerifyAllEmails = async () => {
+    if (!confirm("Are you sure you want to verify emails and activate ALL pending members?")) return;
+    setIsVerifying(true);
+    try {
+      const res = await fetch("/api/admin/members/verify-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ verifyAll: true })
+      });
+      if (res.ok) {
+        alert("All pending emails have been verified. Page will reload to reflect changes.");
+        window.location.reload();
+      } else {
+        const err = await res.json();
+        alert("Error: " + err.error);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const handleVerifyEmail = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm("Verify email and activate this member?")) return;
+    try {
+      const res = await fetch("/api/admin/members/verify-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id })
+      });
+      if (res.ok) {
+        setUsers(prev => prev.map(u => u.id === id ? { ...u, status: "Active", presence_status: "Online" } : u));
+      } else {
+        const err = await res.json();
+        alert("Error: " + err.error);
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const saveUser = async (user: User) => {
@@ -238,6 +282,24 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
     }));
   };
 
+  const toggleAllModulePermissions = (moduleName: ClientServicingModule) => {
+    setTempPermissions(prev => {
+      const currentMod = prev[moduleName];
+      const allChecked = Object.values(currentMod).every(Boolean);
+      const nextVal = !allChecked;
+      return {
+        ...prev,
+        [moduleName]: {
+          view: nextVal,
+          create: nextVal,
+          edit: nextVal,
+          delete: nextVal,
+          export: nextVal
+        }
+      };
+    });
+  };
+
   const filteredUsers = useMemo(() => {
     return users.filter(u => {
       const matchesSearch = u.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -251,82 +313,121 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
   }, [users, search, roleFilter, deptFilter, statusFilter]);
 
   return (
-    <div className={styles.div_0}>
-      <div className={styles.container_1}>
-        <div className={styles.div_2}>
+    <div className={styles.tableWrapper}>
+      {/* Toolbar & Filter Options */}
+      <div className={styles.filterBar}>
+        <div className={styles.searchGroup}>
+          <Search size={14} className={styles.searchIcon} />
           <input
             type="text"
-            placeholder="Search members..."
+            placeholder="Search members by name, email, or ID..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className={styles.card_3}
+            className={styles.searchInput}
           />
+          {search && (
+            <button type="button" onClick={() => setSearch("")} className={styles.clearSearchBtn} title="Clear search">
+              <X size={13} />
+            </button>
+          )}
         </div>
-        <div className={styles.container_4}>
+
+        <div className={styles.filtersGroup}>
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
-            className={styles.card_5}
+            className={styles.filterSelect}
           >
-            <option value="All">All Roles</option>
+            <option value="All">All Roles ({roles.length})</option>
             {roles.map(r => <option key={r} value={r}>{r}</option>)}
           </select>
+
           <select
             value={deptFilter}
             onChange={(e) => setDeptFilter(e.target.value)}
-            className={styles.card_6}
+            className={styles.filterSelect}
           >
-            <option value="All">All Departments</option>
+            <option value="All">All Departments ({departments.length})</option>
             {departments.map(d => <option key={d} value={d}>{d}</option>)}
           </select>
+
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className={styles.card_7}
+            className={styles.filterSelect}
           >
-            <option value="All">All Status</option>
+            <option value="All">All Statuses</option>
             <option value="Active">Active</option>
             <option value="Pending">Pending</option>
             <option value="Disabled">Disabled</option>
           </select>
+
+          {hasActiveFilters && (
+            <button type="button" onClick={handleResetFilters} className={styles.filterResetBtn}>
+              <RotateCcw size={12} />
+              Reset
+            </button>
+          )}
+
+          {users.filter(u => u.status?.toLowerCase() === "pending").length > 0 && (
+            <button
+              type="button"
+              onClick={handleVerifyAllEmails}
+              disabled={isVerifying}
+              className="ml-auto bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] uppercase tracking-wide font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all shadow-sm disabled:opacity-50"
+            >
+              <Check size={13} strokeWidth={2.5} />
+              {isVerifying ? "Verifying..." : "Verify All Pending"}
+            </button>
+          )}
         </div>
       </div>
 
-      <div className={styles.card_8}>
-        <div className={styles.div_9}>
-          <table className={styles.text_10}>
+      {/* Main Members Table */}
+      <div className={styles.tableCard}>
+        <div className={styles.tableScrollArea}>
+          <table className={styles.table}>
             <thead>
-              <tr className={styles.table_11}>
-                <th className={styles.div_12}>Member</th>
-                <th className={styles.div_14}>Role</th>
-                <th className={styles.div_15}>Department</th>
-                <th className={styles.div_16}>Status</th>
-                <th className={styles.div_16}>Client Servicing</th>
-                <th className={styles.text_17}>Actions</th>
+              <tr className={styles.tableHead}>
+                <th className={styles.th}>Member Info</th>
+                <th className={styles.th}>Role</th>
+                <th className={styles.th}>Department</th>
+                <th className={styles.th}>Status</th>
+                <th className={styles.th}>Client Servicing Access</th>
+                <th className={styles.thRight}>Actions</th>
               </tr>
             </thead>
-            <tbody className={styles.card_18}>
+            <tbody className={styles.tableBody}>
               {filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className={styles.text_19}>No database profiles mapped to parameters.</td>
+                  <td colSpan={6} className={styles.emptyStateTd}>
+                    <div className={styles.emptyStateWrap}>
+                      <span className={styles.emptyStateIcon}>👥</span>
+                      <p>No member profiles match the selected filters.</p>
+                      {hasActiveFilters && (
+                        <button type="button" onClick={handleResetFilters} className="text-xs text-[#F4C542] hover:underline font-semibold mt-1">
+                          Clear search and filters
+                        </button>
+                      )}
+                    </div>
+                  </td>
                 </tr>
               ) : (
                 filteredUsers.map((u) => (
-                  <tr key={u.id} className={styles.table_20}>
-                    <td className={styles.div_21}>
-                      <div className={styles.container_22} onClick={() => router.push(`/admin/users/${u.id}`)}>
-
-                        {/* Avatar Wrap logic that manages automatic fallbacks */}
-                        <div className="relative flex items-center justify-center shrink-0">
+                  <tr key={u.id} className={styles.tr}>
+                    {/* Member Column */}
+                    <td className={styles.td}>
+                      <div className={styles.memberFlex} onClick={() => router.push(`/admin/users/${u.id}`)}>
+                        <div className={styles.avatarWrap}>
                           <ProfileAvatar
                             avatarUrl={u.avatar}
                             name={u.name}
                             size={36}
-                            className={styles.div_23}
+                            className={styles.avatarImg}
                           />
                           {u.presence_status && (
                             <span
-                              className={`absolute bottom-0 right-0 w-3 h-3 border-2 border-background rounded-full ${u.presence_status.toLowerCase() === "online"
+                              className={`${styles.presenceIndicator} ${u.presence_status.toLowerCase() === "online"
                                   ? "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.6)]"
                                   : u.presence_status.toLowerCase() === "pending"
                                     ? "bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.6)]"
@@ -334,57 +435,67 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
                                       ? "bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.6)]"
                                       : "bg-gray-400"
                                 }`}
-                              title={u.presence_status}
+                              title={`Status: ${u.presence_status}`}
                             />
                           )}
                         </div>
 
-                        <div className={styles.div_25}>
-                          <span className={styles.table_26}>{u.name}</span>
-                          <span className={styles.table_27}>{u.email}</span>
-                          <span className={`text-[9px] font-bold mt-0.5 capitalize ${u.presence_status?.toLowerCase() === "online"
-                              ? "text-emerald-600 dark:text-emerald-400"
-                              : u.presence_status?.toLowerCase() === "pending"
-                                ? "text-amber-600 dark:text-amber-400"
-                                : u.presence_status?.toLowerCase() === "busy"
-                                  ? "text-red-600 dark:text-red-400"
-                                  : "text-gray-500 dark:text-gray-400"
-                            }`}>● {u.presence_status}</span>
+                        <div className={styles.memberMeta}>
+                          <span className={styles.memberName}>{u.name}</span>
+                          <span className={styles.memberEmail}>{u.email}</span>
+                          {u.presence_status && (
+                            <span className={`${styles.presenceTag} ${u.presence_status.toLowerCase() === "online"
+                                ? "text-emerald-600 dark:text-emerald-400"
+                                : u.presence_status.toLowerCase() === "pending"
+                                  ? "text-amber-600 dark:text-amber-400"
+                                  : u.presence_status.toLowerCase() === "busy"
+                                    ? "text-red-600 dark:text-red-400"
+                                    : "text-gray-500 dark:text-gray-400"
+                              }`}>
+                              ● {u.presence_status}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </td>
-                    <td className={styles.div_29}>
+
+                    {/* Role Column */}
+                    <td className={styles.td}>
                       <select
                         value={u.role}
                         onChange={(e) => handleUpdateUser(u.id, "role", e.target.value)}
-                        className={styles.card_30}
+                        className={styles.roleSelect}
                       >
                         {roles.map(r => <option key={r} value={r}>{r}</option>)}
                       </select>
                     </td>
-                    <td className={styles.div_31}>
+
+                    {/* Department Column */}
+                    <td className={styles.td}>
                       <select
                         value={u.department}
                         onChange={(e) => handleUpdateUser(u.id, "department", e.target.value)}
-                        className={styles.card_32}
+                        className={styles.deptSelect}
                       >
                         <option value="">None</option>
                         {departments.map(d => <option key={d} value={d}>{d}</option>)}
                       </select>
                     </td>
-                    <td className={styles.div_33}>
+
+                    {/* Status Column */}
+                    <td className={styles.td}>
                       {(() => {
                         const s = u.status?.toLowerCase();
                         const isGreen = s === "active" || s === "online";
                         const isYellow = s === "pending";
                         const isRed = s === "disabled" || s === "busy";
                         const badgeBg = isGreen
-                          ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-200 dark:ring-emerald-800/50"
+                          ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60"
                           : isYellow
-                            ? "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 ring-1 ring-amber-200 dark:ring-amber-800/50"
+                            ? "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60"
                             : isRed
-                              ? "bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 ring-1 ring-red-200 dark:ring-red-800/50"
-                              : "bg-gray-100 dark:bg-gray-800/30 text-gray-600 dark:text-gray-400 ring-1 ring-gray-200 dark:ring-gray-700/50";
+                              ? "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800/60"
+                              : "bg-gray-100 dark:bg-gray-800/40 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700/60";
                         const dotBg = isGreen
                           ? "bg-emerald-500 shadow-[0_0_4px_rgba(16,185,129,0.5)]"
                           : isYellow
@@ -393,38 +504,58 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
                               ? "bg-red-500 shadow-[0_0_4px_rgba(239,68,68,0.5)]"
                               : "bg-gray-400";
                         return (
-                          <span className={`${styles.text_36} ${badgeBg}`}>
-                            <span className={`${styles.div_37} ${dotBg}`} />
+                          <span className={`${styles.statusBadge} ${badgeBg}`}>
+                            <span className={`${styles.statusDot} ${dotBg}`} />
                             {u.status}
                           </span>
                         );
                       })()}
                     </td>
-                    <td className={styles.div_33}>
-                      <div className="flex flex-col gap-1 items-start">
-                        <div className="flex flex-wrap max-w-[150px] gap-1 text-[10px] text-muted-foreground font-semibold">
-                          {u.client_servicing_permissions?.cpst?.view && <span className="text-emerald-500">☑ CPST</span>}
-                          {u.client_servicing_permissions?.acr?.view && <span className="text-emerald-500">☑ ACR</span>}
-                          {u.client_servicing_permissions?.fst?.view && <span className="text-emerald-500">☑ FST</span>}
-                          {u.client_servicing_permissions?.cpc?.view && <span className="text-emerald-500">☑ CPC</span>}
-                          {u.client_servicing_permissions?.ppu?.view && <span className="text-emerald-500">☑ PPU</span>}
-                          {u.client_servicing_permissions?.mngt?.view && <span className="text-emerald-500">☑ MNGT</span>}
+
+                    {/* Client Servicing Permissions Column */}
+                    <td className={styles.td}>
+                      <div className={styles.permissionsCell}>
+                        <div className={styles.permissionChipsGroup}>
+                          {u.client_servicing_permissions?.cpst?.view && <span className={styles.permissionChip}>CPST</span>}
+                          {u.client_servicing_permissions?.acr?.view && <span className={styles.permissionChip}>ACR</span>}
+                          {u.client_servicing_permissions?.fst?.view && <span className={styles.permissionChip}>FST</span>}
+                          {u.client_servicing_permissions?.cpc?.view && <span className={styles.permissionChip}>CPC</span>}
+                          {u.client_servicing_permissions?.ppu?.view && <span className={styles.permissionChip}>PPU</span>}
+                          {u.client_servicing_permissions?.mngt?.view && <span className={styles.permissionChip}>MNGT</span>}
                         </div>
                         <button
+                          type="button"
                           onClick={() => openModal(u)}
-                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 font-semibold mt-1"
+                          className={styles.editPermissionsBtn}
                         >
-                          Edit Permissions →
+                          <Shield size={12} />
+                          Manage Access →
                         </button>
                       </div>
                     </td>
-                    <td className={styles.text_34}>
-                      <button
-                        onClick={() => router.push(`/admin/users/${u.id}`)}
-                        className={styles.card_35}
-                      >
-                        View Profile
-                      </button>
+
+                    {/* Actions Column */}
+                    <td className={styles.tdRight}>
+                      <div className="flex items-center justify-end gap-2">
+                        {u.status?.toLowerCase() === "pending" && (
+                          <button
+                            type="button"
+                            onClick={(e) => handleVerifyEmail(u.id, e)}
+                            className="px-3 py-1.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-semibold rounded-lg text-[10px] uppercase tracking-wider flex items-center gap-1 hover:bg-emerald-200 dark:hover:bg-emerald-800/40 transition-all border border-emerald-200 dark:border-emerald-800/60"
+                            title="Verify Email & Activate"
+                          >
+                            <Check size={11} strokeWidth={2.5} /> Verify
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => router.push(`/admin/users/${u.id}`)}
+                          className={styles.viewProfileBtn}
+                        >
+                          <span>View Profile</span>
+                          <ExternalLink size={11} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -432,20 +563,32 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
             </tbody>
           </table>
         </div>
+
+        {/* Table Footer with total count */}
+        <div className={styles.tableFooter}>
+          <span>Showing {filteredUsers.length} of {users.length} total members</span>
+          {hasActiveFilters && <span>Filters active</span>}
+        </div>
       </div>
 
-      {/* Modal Section */}
+      {/* Permissions Modal Section */}
       {isModalOpen && selectedUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-200">
           <div className="bg-white dark:bg-[#121318] border border-slate-200 dark:border-zinc-800/80 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150">
             <div className="flex justify-between items-center p-6 border-b border-slate-100 dark:border-zinc-800/80 bg-slate-50/50 dark:bg-zinc-900/30">
-              <div>
-                <h3 className="text-base font-bold text-slate-800 dark:text-zinc-100">Client Servicing Access Manager</h3>
-                <p className="text-xs text-slate-500 dark:text-zinc-400 font-medium mt-0.5">{selectedUser.name}</p>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#FFF7D6] dark:bg-[#2E2818] text-[#8a6b10] dark:text-[#F4C542] flex items-center justify-center font-bold">
+                  <Shield size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-800 dark:text-zinc-100">Client Servicing Access Manager</h3>
+                  <p className="text-xs text-slate-500 dark:text-zinc-400 font-medium mt-0.5">Configuring permissions for {selectedUser.name}</p>
+                </div>
               </div>
               <button
+                type="button"
                 onClick={closeModal}
-                className="text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 p-1.5 hover:bg-slate-100 dark:hover:bg-zinc-850 rounded-xl transition-all"
+                className="text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 p-1.5 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-xl transition-all"
               >
                 <X size={18} />
               </button>
@@ -461,49 +604,65 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
                     <th className="py-3 px-4 text-[10px] font-bold text-slate-500 dark:text-zinc-400 tracking-wider uppercase text-center">Edit</th>
                     <th className="py-3 px-4 text-[10px] font-bold text-slate-500 dark:text-zinc-400 tracking-wider uppercase text-center">Delete</th>
                     <th className="py-3 px-4 text-[10px] font-bold text-slate-500 dark:text-zinc-400 tracking-wider uppercase text-center">Export</th>
+                    <th className="py-3 px-4 text-[10px] font-bold text-slate-500 dark:text-zinc-400 tracking-wider uppercase text-center">All</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-zinc-800/80">
                   {[
-                    { id: "cpst" as ClientServicingModule, label: "CPST" },
-                    { id: "acr" as ClientServicingModule, label: "ACR" },
-                    { id: "fst" as ClientServicingModule, label: "FST" },
-                    { id: "cpc" as ClientServicingModule, label: "CPC" },
-                    { id: "ppu" as ClientServicingModule, label: "PPU" },
-                    { id: "mngt" as ClientServicingModule, label: "MNGT" },
-                  ].map(module => (
-                    <tr key={module.id} className="hover:bg-slate-50/30 dark:hover:bg-zinc-900/20 transition-all duration-150">
-                      <td className="py-3.5 px-5 text-xs font-bold text-slate-700 dark:text-zinc-300">{module.label}</td>
-                      {["view", "create", "edit", "delete", "export"].map((action) => (
-                        <td key={action} className="py-3.5 px-4 text-center">
-                          <label className="cursor-pointer flex items-center justify-center w-full h-full">
-                            <input
-                              type="checkbox"
-                              className="w-4 h-4 rounded border-slate-300 dark:border-zinc-700 text-[#F4C542] focus:ring-[#F4C542] focus:ring-offset-0 bg-white dark:bg-zinc-800 transition cursor-pointer"
-                              checked={tempPermissions[module.id][action as keyof ModulePermissions]}
-                              onChange={() => togglePermission(module.id, action as keyof ModulePermissions)}
-                            />
-                          </label>
+                    { id: "cpst" as ClientServicingModule, label: "CPST (Client Policy Status Tracking)" },
+                    { id: "acr" as ClientServicingModule, label: "ACR (Advisor Change Request)" },
+                    { id: "fst" as ClientServicingModule, label: "FST (Financial Servicing Tracker)" },
+                    { id: "cpc" as ClientServicingModule, label: "CPC (Client Policy Care)" },
+                    { id: "ppu" as ClientServicingModule, label: "PPU (Policy Premium Updates)" },
+                    { id: "mngt" as ClientServicingModule, label: "MNGT (Management Overview)" },
+                  ].map(module => {
+                    const allModChecked = Object.values(tempPermissions[module.id]).every(Boolean);
+                    return (
+                      <tr key={module.id} className="hover:bg-slate-50/50 dark:hover:bg-zinc-900/30 transition-all duration-150">
+                        <td className="py-3.5 px-5 text-xs font-bold text-slate-700 dark:text-zinc-300">{module.label}</td>
+                        {["view", "create", "edit", "delete", "export"].map((action) => (
+                          <td key={action} className="py-3.5 px-4 text-center">
+                            <label className="cursor-pointer flex items-center justify-center w-full h-full">
+                              <input
+                                type="checkbox"
+                                className="w-4 h-4 rounded border-slate-300 dark:border-zinc-700 text-[#F4C542] focus:ring-[#F4C542] focus:ring-offset-0 bg-white dark:bg-zinc-800 transition cursor-pointer"
+                                checked={tempPermissions[module.id][action as keyof ModulePermissions]}
+                                onChange={() => togglePermission(module.id, action as keyof ModulePermissions)}
+                              />
+                            </label>
+                          </td>
+                        ))}
+                        <td className="py-3.5 px-4 text-center">
+                          <button
+                            type="button"
+                            onClick={() => toggleAllModulePermissions(module.id)}
+                            className="p-1 text-slate-400 hover:text-[#F4C542] rounded transition"
+                            title={allModChecked ? "Deselect all" : "Select all"}
+                          >
+                            {allModChecked ? <CheckSquare size={16} className="text-[#F4C542]" /> : <Square size={16} />}
+                          </button>
                         </td>
-                      ))}
-                    </tr>
-                  ))}
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
 
             <div className="flex items-center justify-end gap-3 p-5 border-t border-slate-100 dark:border-zinc-800/80 bg-slate-50/50 dark:bg-zinc-900/30">
               <button
+                type="button"
                 onClick={closeModal}
-                className="px-4.5 py-2 text-xs font-semibold text-slate-500 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-800/60 rounded-xl transition-all"
+                className="px-4.5 py-2 text-xs font-semibold text-slate-500 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-xl transition-all"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={savePermissions}
                 className="px-5 py-2 text-xs font-bold bg-[#F4C542] text-black rounded-xl shadow-sm hover:shadow hover:bg-[#d9af39] transition-all hover:-translate-y-0.5"
               >
-                Save Changes
+                Save Permissions
               </button>
             </div>
           </div>

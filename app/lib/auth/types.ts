@@ -27,7 +27,8 @@ export type SecurityEventType =
   | "password_reset_complete"
   | "account_status_change"
   | "registration"
-  | "email_verified";
+  | "email_verified"
+  | "oauth_login";
 
 // ─── Auth Action Results ─────────────────────────────────────────────────────
 

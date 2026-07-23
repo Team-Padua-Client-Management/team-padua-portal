@@ -18,10 +18,11 @@
   @apply flex font-sans antialiased;
   min-height: 100vh;
   width: 100%;
-  gap: 24px;
-  padding: 28px 32px;
+  gap: 20px;
+  padding: 20px 24px;
   background: var(--bg);
   color: var(--text);
+  box-sizing: border-box;
 
   /* Base warm-neutral surface tokens */
   --bg: #FAF8F3;
@@ -244,9 +245,9 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 24px;
-  min-height: 180px;
-  padding: 28px 36px;
+  gap: 20px;
+  min-height: 160px;
+  padding: 24px 28px;
   border-radius: var(--radius-xl);
   overflow: hidden;
   isolation: isolate;
@@ -254,13 +255,15 @@
   background: linear-gradient(135deg, #FFFDF8 0%, #FFF5DC 40%, #FFE9B8 100%);
   box-shadow: var(--shadow-sm);
   transition: background 0.5s ease, border-color 0.5s ease;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-@media (min-width: 900px) {
+@media (min-width: 1080px) {
   .heroCard {
     flex-direction: row;
     align-items: center;
-    padding: 32px 40px;
+    padding: 28px 36px;
   }
 }
 
@@ -366,30 +369,89 @@
 
 .heroPortals {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 8px;
+  align-items: stretch;
+  gap: 10px;
+  margin-top: 14px;
   flex-wrap: wrap;
 }
 
-.heroPortalCircle {
+.heroPortalCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 78px;
+  padding: 8px 10px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1.5px solid rgba(229, 213, 181, 0.45);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  text-decoration: none;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  gap: 6px;
+}
+
+.heroPortalCard:hover {
+  transform: translateY(-4px) scale(1.05);
+  background: rgba(255, 255, 255, 0.75);
+  border-color: #D97706;
+  box-shadow: 0 10px 24px -4px rgba(217, 119, 6, 0.22), 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.heroPortalIconWrapper {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 999px;
-  background: #FFFFFF;
-  border: 2px solid #E8DFCC;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-  text-decoration: none;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.heroPortalCircle:hover {
-  transform: translateY(-2px) scale(1.05);
-  border-color: var(--accent, #C9962E);
-  box-shadow: 0 6px 14px rgba(201, 150, 46, 0.16);
+.heroPortalCard:hover .heroPortalIconWrapper {
+  transform: scale(1.12);
+}
+
+.heroPortalName {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #3D3525;
+  text-align: center;
+  line-height: 1.15;
+  white-space: nowrap;
+  max-width: 95px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.2s ease;
+}
+
+.heroPortalCard:hover .heroPortalName {
+  color: #1F1B12;
+}
+
+.heroCard[data-period="evening"] .heroPortalCard {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.heroCard[data-period="evening"] .heroPortalCard:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: #FCD34D;
+  box-shadow: 0 10px 24px -4px rgba(252, 211, 77, 0.25);
+}
+
+.heroCard[data-period="evening"] .heroPortalIconWrapper {
+  background: transparent;
+}
+
+.heroCard[data-period="evening"] .heroPortalName {
+  color: #E2E8F0;
+}
+
+.heroCard[data-period="evening"] .heroPortalCard:hover .heroPortalName {
+  color: #FFFFFF;
 }
 
 .portalMarkText {
@@ -399,8 +461,8 @@
 }
 
 .portalLogoImg {
-  width: 18px;
-  height: 18px;
+  width: 26px;
+  height: 26px;
   object-fit: contain;
 }
 
@@ -417,8 +479,9 @@
   border-radius: 20px;
   padding: 14px 20px;
   box-shadow: 0 8px 24px -6px rgba(28, 26, 18, 0.08);
-  min-width: 440px;
-  max-width: 100%;
+  width: 100%;
+  max-width: 460px;
+  box-sizing: border-box;
 }
 
 .heroCard[data-period="evening"] .heroGlassCard {
@@ -716,43 +779,54 @@
   width: 100%;
   display: grid;
   grid-template-columns: 1fr;
-  gap: 24px;
+  gap: 20px;
   align-items: start;
+  min-width: 0;
 }
 
-@media (min-width: 768px) and (max-width: 1279px) {
+@media (min-width: 641px) and (max-width: 899px) {
   .boardGrid {
     grid-template-columns: 1fr 1fr;
-    gap: 24px;
+    gap: 16px;
   }
 }
 
-@media (min-width: 1280px) {
+@media (min-width: 900px) and (max-width: 1279px) {
   .boardGrid {
-    grid-template-columns: 1.1fr 1.4fr 1.2fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 18px;
+  }
+}
+
+@media (min-width: 1280px) and (max-width: 1535px) {
+  .boardGrid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 1fr);
+    gap: 18px;
+  }
+}
+
+@media (min-width: 1536px) {
+  .boardGrid {
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.25fr) minmax(0, 1.1fr);
     gap: 24px;
   }
 }
 
-.boardCol {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  width: 100%;
-}
-
+.boardCol,
 .centerCol {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
   width: 100%;
+  min-width: 0;
 }
 
 .bottomWidgetsRow {
   width: 100%;
   display: flex;
   flex-wrap: wrap;
-  gap: 24px;
+  gap: 20px;
+  min-width: 0;
 }
 
 /* Shared premium card shell */
@@ -763,14 +837,17 @@
 .trackerCalendarCard {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  padding: 22px;
+  gap: 18px;
+  padding: 20px;
   border-radius: var(--radius-lg);
   background: var(--surface);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-xs);
   transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
   width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .dashboardCard:hover,
@@ -1332,6 +1409,20 @@
 .userPickerTrigger:hover {
   background: var(--surface-hover);
   border-color: var(--border-strong);
+}
+
+.fixedUserTrigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.5rem 0.7rem;
+  font-size: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  cursor: default;
+  opacity: 0.95;
 }
 
 .userPickerBadge {
@@ -3514,6 +3605,19 @@
   color: var(--text);
 }
 
+.birthdayAgeBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+  border: 1px solid var(--border-strong);
+  white-space: nowrap;
+}
+
 .birthdayPolicyTag {
   font-size: 9.5px;
   font-weight: 600;
@@ -3561,36 +3665,106 @@
 }
 
 /* ---------------------------------------------------------------------------
-   14. RESPONSIVE
+   14. RESPONSIVE & ZOOM SCALING ACROSS ALL RESOLUTIONS
 --------------------------------------------------------------------------- */
-@media (max-width: 640px) {
-  .shell {
-    padding: 16px;
+@media (max-width: 1120px) {
+  .heroCard {
+    flex-direction: column;
+    align-items: stretch;
     gap: 16px;
   }
 
-  .heroCard {
-    padding: 1.4rem;
-  }
-
-  .heroRight {
+  .heroGlassCard {
+    max-width: 100%;
     width: 100%;
   }
 
-  .activityModal {
-    padding: 1.1rem;
+  .glassPomodoroRow {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .shell {
+    padding: 14px;
+    gap: 14px;
   }
 
-  .formFieldRow {
-    grid-template-columns: 1fr;
+  .heroCard {
+    padding: 18px 20px;
   }
 
-  .trackerCalendarCard {
-    max-width: 100%;
+  .welcomeText {
+    font-size: 24px;
+  }
+
+  .heroPortals {
+    gap: 8px;
+  }
+
+  .heroPortalCard {
+    min-width: 68px;
+    padding: 6px 8px;
+  }
+
+  .glassTimerDisplay {
+    font-size: 24px;
+  }
+
+  .glassPomoButtons {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .glassStartBtn,
+  .glassPomoTab {
+    height: 30px;
+    padding: 0 12px;
+    font-size: 11px;
+  }
+
+  .dashboardCardHeader {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .shell {
+    padding: 10px;
+    gap: 12px;
+  }
+
+  .heroCard {
+    padding: 14px;
+    border-radius: 18px;
+  }
+
+  .welcomeText {
+    font-size: 20px;
+  }
+
+  .heroPortalCard {
+    min-width: 60px;
+    padding: 5px 6px;
+  }
+
+  .heroPortalName {
+    font-size: 9.5px;
+    max-width: 70px;
+  }
+
+  .trackerCalendarCard,
+  .monitoringCard,
+  .dashboardCard {
+    padding: 14px;
+    border-radius: 14px;
   }
 
   .taskListRow {
     flex-wrap: wrap;
+    gap: 8px;
   }
 
   .taskRowRight {

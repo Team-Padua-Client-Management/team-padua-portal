@@ -16,11 +16,11 @@ import { supabaseAdmin } from "@/app/lib/supabase/admin";
 import Header from "@/app/components/admin/AdminHeader";
 import Sidebar from "@/app/components/admin/AdminSidebar";
 import AdminMembersTable from "./AdminMembersTable/AdminMembersTable";
+import { Users, UserCheck, Clock, UserX, Plus } from "lucide-react";
 
 /**
  * Executes operations logic for AdminMembers.
  *
- * 
  * @returns State operations sequence.
  */
 export default async function AdminMembers() {
@@ -34,7 +34,7 @@ export default async function AdminMembers() {
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.listUsers();
     if (authError) throw new Error(authError.message);
 
-    const { data: profilesData } = await /* Query database records from active repository grid */ supabase.from("profiles").select("*");
+    const { data: profilesData } = await supabase.from("profiles").select("*");
 
     const users = authData.users
         .filter((u) => u.id !== user.id)
@@ -79,36 +79,88 @@ export default async function AdminMembers() {
         disabled: users.filter(u => u.status === "Disabled").length,
     };
 
+    const statCards = [
+        {
+            label: "Total Members",
+            val: stats.total,
+            icon: Users,
+            color: "text-foreground",
+            pct: "100%",
+            accentBg: "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+        },
+        {
+            label: "Active Members",
+            val: stats.verified,
+            icon: UserCheck,
+            color: "text-emerald-600 dark:text-emerald-400",
+            pct: stats.total > 0 ? `${Math.round((stats.verified / stats.total) * 100)}%` : "0%",
+            accentBg: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+        },
+        {
+            label: "Pending Verification",
+            val: stats.pending,
+            icon: Clock,
+            color: "text-amber-500 dark:text-amber-400",
+            pct: stats.total > 0 ? `${Math.round((stats.pending / stats.total) * 100)}%` : "0%",
+            accentBg: "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+        },
+        {
+            label: "Disabled / Suspended",
+            val: stats.disabled,
+            icon: UserX,
+            color: "text-red-500 dark:text-red-400",
+            pct: stats.total > 0 ? `${Math.round((stats.disabled / stats.total) * 100)}%` : "0%",
+            accentBg: "bg-red-500/10 text-red-600 dark:text-red-400"
+        }
+    ];
+
     return (
-        <div className={styles.text_0}>
+        <div className={styles.pageShell}>
             <Sidebar />
-            <div className={styles.container_1}>
+            <div className={styles.contentWrapper}>
                 <Header />
-                <div className={styles.div_2}>
-                    <div className={styles.container_3}>
-                        <div>
-                            <h1 className={styles.table_4}>Members Management</h1>
-                            <p className={styles.text_5}>Manage team roles, departments, and platform access.</p>
+                <div className={styles.mainContainer}>
+                    {/* Header Section */}
+                    <div className={styles.pageHeader}>
+                        <div className={styles.headerInfo}>
+                            <span className={styles.categoryBadge}>
+                                <Users size={12} strokeWidth={2.2} />
+                                Access & Directory Control
+                            </span>
+                            <h1 className={styles.pageTitle}>Members Directory</h1>
+                            <p className={styles.pageSubtitle}>
+                                Manage team accounts, assign organizational roles, configure departments, and control granular module-level permissions across TeamPadua.
+                            </p>
                         </div>
-                        <button className={styles.table_6}>
-                            + Invite Member
+                        <button type="button" className={styles.inviteBtn}>
+                            <Plus size={15} strokeWidth={2.5} />
+                            <span>Invite Member</span>
                         </button>
                     </div>
 
-                    <div className={styles.container_7}>
-                        {[
-                            { label: "Total Members", val: stats.total },
-                            { label: "Verified", val: stats.verified, color: "text-green-600 dark:text-green-400" },
-                            { label: "Pending", val: stats.pending, color: "text-amber-500 dark:text-amber-400" },
-                            { label: "Disabled", val: stats.disabled, color: "text-red-500 dark:text-red-400" }
-                        ].map((stat, idx) => (
-                            <div key={idx} className={styles.card_8}>
-                                <p className={styles.table_9}>{stat.label}</p>
-                                <h3 className={`${styles.text_10} ${stat.color || "text-foreground"}`}>{stat.val}</h3>
-                            </div>
-                        ))}
+                    {/* KPI Stat Cards Grid */}
+                    <div className={styles.statsGrid}>
+                        {statCards.map((stat, idx) => {
+                            const IconComponent = stat.icon;
+                            return (
+                                <div key={idx} className={styles.statCard}>
+                                    <div className={styles.statCardHeader}>
+                                        <span className={styles.statLabel}>{stat.label}</span>
+                                        <div className={`${styles.statIconWrap} ${stat.accentBg}`}>
+                                            <IconComponent size={16} strokeWidth={2} />
+                                        </div>
+                                    </div>
+                                    <div className={styles.statValueRow}>
+                                        <h3 className={`${styles.statValue} ${stat.color}`}>{stat.val}</h3>
+                                        <span className={styles.statBadge}>{stat.pct}</span>
+                                    </div>
+                                    <div className={styles.statDecoration} />
+                                </div>
+                            );
+                        })}
                     </div>
 
+                    {/* Members Interactive Table Component */}
                     <AdminMembersTable initialUsers={users} />
                 </div>
             </div>

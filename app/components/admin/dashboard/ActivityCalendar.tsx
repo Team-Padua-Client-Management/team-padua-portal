@@ -1,5 +1,6 @@
 import React from 'react';
-import { CalendarClock, Plus, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import Link from 'next/link';
+import { CalendarClock, Plus, ExternalLink, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { ActivityEvent, formatDisplayDate, formatDisplayTime } from './ActivityCard';
 import styles from '@/styles/admin/dashboard/page.module.css';
 
@@ -14,6 +15,7 @@ interface ActivityCalendarProps {
   onSelectDate: (dateKey: string | null) => void;
   onOpenLogModal: () => void;
   onSelectEvent: (event: ActivityEvent) => void;
+  calendarUrl?: string;
 }
 
 export function formatDateKey(year: number, month: number, day: number): string {
@@ -47,7 +49,8 @@ export default function ActivityCalendar({
   onNextMonth,
   onSelectDate,
   onOpenLogModal,
-  onSelectEvent
+  onSelectEvent,
+  calendarUrl
 }: ActivityCalendarProps) {
   const now = new Date();
   const todayKey = formatDateKey(now.getFullYear(), now.getMonth(), now.getDate());
@@ -64,10 +67,18 @@ export default function ActivityCalendar({
           <CalendarClock size={14} strokeWidth={1.8} />
           <h3>Activity Tracker Calendar</h3>
         </div>
-        <button type="button" onClick={onOpenLogModal} className={styles.trackerLink}>
-          <Plus size={13} strokeWidth={2} />
-          Log Activity
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          {calendarUrl && (
+            <Link href={calendarUrl} className={styles.trackerLink} style={{ opacity: 0.85 }}>
+              <ExternalLink size={12} strokeWidth={2} />
+              Full Calendar
+            </Link>
+          )}
+          <button type="button" onClick={onOpenLogModal} className={styles.trackerLink}>
+            <Plus size={13} strokeWidth={2} />
+            Log Activity
+          </button>
+        </div>
       </div>
 
       <div className={styles.dashboardCardBody}>
