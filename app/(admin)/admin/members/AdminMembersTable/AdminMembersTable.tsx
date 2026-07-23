@@ -14,7 +14,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from "@/styles/admin/members/AdminMembersTable/AdminMembersTable.module.css";
-import { Search, X, Shield, ExternalLink, RotateCcw, Check, CheckSquare, Square } from "lucide-react";
+import { Search, X, Shield, ExternalLink, RotateCcw, Check, CheckSquare, Square, AlertTriangle, Info } from "lucide-react";
 import ProfileAvatar from "@/components/shared/ProfileAvatar";
 import { supabase } from "@/app/lib/supabase/client";
 
@@ -88,6 +88,10 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [tempPermissions, setTempPermissions] = useState<ClientServicingPermissions>(defaultClientServicingPermissions);
+  
+  // Custom Modal States
+  const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; title: string; message: string; onConfirm: () => void; isVerifying: boolean } | null>(null);
+  const [alertModal, setAlertModal] = useState<{ isOpen: boolean; title: string; message: string; isError?: boolean } | null>(null);
 
   useEffect(() => {
     const uniqueId = Math.random().toString(36).slice(2, 9);
@@ -138,47 +142,73 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
     setStatusFilter("All");
   };
 
-  const handleVerifyAllEmails = async () => {
-    if (!confirm("Are you sure you want to verify emails and activate ALL pending members?")) return;
-    setIsVerifying(true);
-    try {
-      const res = await fetch("/api/admin/members/verify-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ verifyAll: true })
-      });
-      if (res.ok) {
-        alert("All pending emails have been verified. Page will reload to reflect changes.");
-        window.location.reload();
-      } else {
-        const err = await res.json();
-        alert("Error: " + err.error);
+  const handleVerifyAllEmails = () => {
+    setConfirmModal({
+      isOpen: true,
+      title: "Verify All Pending Emails",
+      message: "Are you sure you want to verify emails and activate ALL pending members?",
+      isVerifying: false,
+      onConfirm: async () => {
+        setConfirmModal(prev => prev ? { ...prev, isVerifying: true } : null);
+        try {
+          const res = await fetch("/api/admin/members/verify-email", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ verifyAll: true })
+          });
+          if (res.ok) {
+            setConfirmModal(null);
+            setAlertModal({
+              isOpen: true,
+              title: "Success",
+              message: "All pending emails have been verified. The table will reload to reflect changes.",
+            });
+            setTimeout(() => window.location.reload(), 2000);
+          } else {
+            const err = await res.json();
+            setConfirmModal(null);
+            setAlertModal({ isOpen: true, title: "Error", message: err.error, isError: true });
+          }
+        } catch (err) {
+          console.error(err);
+          setConfirmModal(null);
+          setAlertModal({ isOpen: true, title: "Error", message: "An unexpected error occurred.", isError: true });
+        }
       }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsVerifying(false);
-    }
+    });
   };
 
-  const handleVerifyEmail = async (id: string, e: React.MouseEvent) => {
+  const handleVerifyEmail = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm("Verify email and activate this member?")) return;
-    try {
-      const res = await fetch("/api/admin/members/verify-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id })
-      });
-      if (res.ok) {
-        setUsers(prev => prev.map(u => u.id === id ? { ...u, status: "Active", presence_status: "Online" } : u));
-      } else {
-        const err = await res.json();
-        alert("Error: " + err.error);
+    setConfirmModal({
+      isOpen: true,
+      title: "Verify Member Email",
+      message: "Are you sure you want to verify the email and activate this specific member?",
+      isVerifying: false,
+      onConfirm: async () => {
+        setConfirmModal(prev => prev ? { ...prev, isVerifying: true } : null);
+        try {
+          const res = await fetch("/api/admin/members/verify-email", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id })
+          });
+          if (res.ok) {
+            setUsers(prev => prev.map(u => u.id === id ? { ...u, status: "Active", presence_status: "Online" } : u));
+            setConfirmModal(null);
+            setAlertModal({ isOpen: true, title: "Success", message: "Email verified successfully." });
+          } else {
+            const err = await res.json();
+            setConfirmModal(null);
+            setAlertModal({ isOpen: true, title: "Error", message: err.error, isError: true });
+          }
+        } catch (err) {
+          console.error(err);
+          setConfirmModal(null);
+          setAlertModal({ isOpen: true, title: "Error", message: "An unexpected error occurred.", isError: true });
+        }
       }
-    } catch (err) {
-      console.error(err);
-    }
+    });
   };
 
   const saveUser = async (user: User) => {
@@ -663,6 +693,67 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
                 className="px-5 py-2 text-xs font-bold bg-[#F4C542] text-black rounded-xl shadow-sm hover:shadow hover:bg-[#d9af39] transition-all hover:-translate-y-0.5"
               >
                 Save Permissions
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Confirm Modal */}
+      {confirmModal && confirmModal.isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-[#121318] border border-slate-200 dark:border-zinc-800/80 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150">
+            <div className="p-6 text-center">
+              <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 mx-auto flex items-center justify-center mb-4">
+                <AlertTriangle size={24} />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-zinc-100 mb-2">{confirmModal.title}</h3>
+              <p className="text-sm text-slate-500 dark:text-zinc-400 leading-relaxed">
+                {confirmModal.message}
+              </p>
+            </div>
+            <div className="flex items-center p-4 border-t border-slate-100 dark:border-zinc-800/80 bg-slate-50/50 dark:bg-zinc-900/30 gap-3">
+              <button
+                type="button"
+                disabled={confirmModal.isVerifying}
+                onClick={() => setConfirmModal(null)}
+                className="flex-1 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-zinc-200 bg-white hover:bg-slate-100 dark:bg-zinc-800 dark:hover:bg-zinc-700 border border-slate-200 dark:border-zinc-700 rounded-xl transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={confirmModal.isVerifying}
+                onClick={confirmModal.onConfirm}
+                className="flex-1 px-4 py-2.5 text-sm font-bold bg-[#F4C542] text-black rounded-xl shadow-sm hover:shadow hover:bg-[#d9af39] transition-all disabled:opacity-50 flex justify-center items-center gap-2"
+              >
+                {confirmModal.isVerifying ? "Processing..." : "Confirm"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Alert Modal */}
+      {alertModal && alertModal.isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-[#121318] border border-slate-200 dark:border-zinc-800/80 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150">
+            <div className="p-6 text-center">
+              <div className={`w-12 h-12 rounded-full mx-auto flex items-center justify-center mb-4 ${alertModal.isError ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400' : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'}`}>
+                {alertModal.isError ? <AlertTriangle size={24} /> : <Check size={24} />}
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-zinc-100 mb-2">{alertModal.title}</h3>
+              <p className="text-sm text-slate-500 dark:text-zinc-400 leading-relaxed">
+                {alertModal.message}
+              </p>
+            </div>
+            <div className="p-4 border-t border-slate-100 dark:border-zinc-800/80 bg-slate-50/50 dark:bg-zinc-900/30">
+              <button
+                type="button"
+                onClick={() => setAlertModal(null)}
+                className={`w-full px-4 py-2.5 text-sm font-bold rounded-xl shadow-sm transition-all ${alertModal.isError ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-emerald-500 hover:bg-emerald-600 text-white'}`}
+              >
+                Got it
               </button>
             </div>
           </div>

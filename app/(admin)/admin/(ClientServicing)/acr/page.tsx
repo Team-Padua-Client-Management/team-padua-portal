@@ -11,6 +11,7 @@ import styles from "@/styles/admin/cpst/page.module.css";
 import dynamic from 'next/dynamic';
 import { generateAdvisorChangeRequestPdfFromTemplate } from '@/app/lib/pdf/generateAdvisorChangeRequestPdfFromTemplate';
 import { acrFormConfig } from './acrConfig';
+import { useSearchParams } from 'next/navigation';
 
 const PdfViewerEngine = dynamic(
   () => import('@/app/components/pdf-engine/PdfViewerEngine'),
@@ -241,6 +242,16 @@ export default function AdvisorChangeRequestPage() {
   useEffect(() => {
     fetchRecords();
   }, []);
+
+  const searchParams = useSearchParams();
+  const clientIdQuery = searchParams.get('client_id');
+
+  useEffect(() => {
+    if (clientIdQuery && !isEditorOpen) {
+      setFormData(prev => ({ ...prev, client_id: clientIdQuery }));
+      setIsEditorOpen(true);
+    }
+  }, [clientIdQuery, isEditorOpen]);
 
   const handleClientSelect = async (clientId: string) => {
     setFormData(prev => ({ ...prev, client_id: clientId }));

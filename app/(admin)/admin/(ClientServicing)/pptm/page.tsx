@@ -15,6 +15,7 @@ import SignaturePad from '@/app/components/ui/SignaturePad';
 import ExportDropdown from '@/app/components/shared/ExportDropdown';
 import { exportToPDF, exportToDOCS } from '@/app/lib/export';
 import ClientSelector from '@/app/components/shared/ClientSelector';
+import { useSearchParams } from 'next/navigation';
 
 const SunLifeLogo = () => (
   <div className="flex items-center gap-2">
@@ -232,6 +233,8 @@ export default function PPTMPage() {
   const [currentRecord, setCurrentRecord] = useState<Partial<PpuRecord>>({});
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const searchParams = useSearchParams();
+  const clientIdQuery = searchParams.get('client_id');
 
   // Loading, Error, Confirmation feedback state
   const [feedback, setFeedback] = useState<{
@@ -278,6 +281,13 @@ export default function PPTMPage() {
   useEffect(() => {
     fetchRecords();
   }, []);
+
+  useEffect(() => {
+    if (clientIdQuery && !activeModal) {
+      setCurrentRecord({ client_id: clientIdQuery });
+      setActiveModal('add');
+    }
+  }, [clientIdQuery, activeModal]);
 
   const handleCreateRecord = async (e: React.FormEvent) => {
     e.preventDefault();

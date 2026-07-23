@@ -11,6 +11,7 @@ import {
 import Header from "@/app/components/admin/AdminHeader";
 import Sidebar from "@/app/components/admin/AdminSidebar";
 import { supabase } from "@/app/lib/supabase/client";
+import { useSearchParams } from 'next/navigation';
 import baseStyles from "@/styles/admin/cpst/page.module.css";
 
 interface Client {
@@ -179,6 +180,15 @@ export default function CGPTPage() {
     fetchClients();
     setHistory([]);
   }, []);
+
+  const searchParams = useSearchParams();
+  const clientIdQuery = searchParams.get('client_id');
+
+  useEffect(() => {
+    if (clientIdQuery && clients.some(c => c.id === clientIdQuery)) {
+      setSelectedClientId(clientIdQuery);
+    }
+  }, [clientIdQuery, clients]);
 
   useEffect(() => {
     if (birthdayClients.length > 0 && !birthdayClients.some(c => c.id === selectedClientId)) {

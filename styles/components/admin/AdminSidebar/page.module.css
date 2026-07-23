@@ -366,7 +366,7 @@
 }
 
 .navItemActive {
-  background-color: var(--surface-2) !important;
+  background-color: transparent !important;
   color: var(--text) !important;
   border-left: 3px solid var(--primary) !important;
   font-weight: 600 !important;
@@ -395,7 +395,7 @@
 }
 
 .navSubActive {
-  background-color: var(--surface-2) !important;
+  background-color: transparent !important;
   color: var(--text) !important;
   font-weight: 600 !important;
 }

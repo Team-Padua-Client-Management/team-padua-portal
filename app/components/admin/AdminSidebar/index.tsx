@@ -135,7 +135,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
 
   const clientServicingItems = [
     { name: 'Client Management Tracker', href: '/admin/cpst' },
-    { name: 'Client Policy Card', href: '/admin/cv' },
+    { name: 'Client Policy Card', href: '/admin/cpc' },
     { name: 'Premium Payment', href: '/admin/pptm' },
     { name: 'Client Welcome Note & Birthday Poster', href: '/admin/cgpt' },
     { name: 'Client Social Media Visibility', href: '/admin/csmv' },
@@ -183,7 +183,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
 
   const sidebarContent = (
     <div className={styles.sidebarInner}>
-      <div className={`${styles.sidebarHeader} ${isEffectivelyCollapsed ? styles.sidebarHeaderCollapsed : ''}`}>
+      <div className={`pt-10 pb-5 border-b border-slate-100 dark:border-slate-800/50 flex flex-col items-center ${styles.sidebarHeader} ${isEffectivelyCollapsed ? styles.sidebarHeaderCollapsed : ''}`}>
         <div className={`${styles.sidebarHeaderContainer} ${isEffectivelyCollapsed ? styles.sidebarHeaderContainerCollapsed : ''}`}>
           <div className={`flex items-center gap-3 ${isEffectivelyCollapsed ? styles.headerBrandCollapsed : ''}`}>
             <Image
@@ -310,7 +310,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                       const subActive = pathname === sub.href || pathname.startsWith(sub.href);
                       return (
                         <Link
-                          key={sub.href}
+                          key={sub.name}
                           href={sub.href}
                           onClick={onClose}
                           className={`${styles.sidebarSubNavItem} ${subActive ? styles.navSubActive : styles.navSubInactive}`}
@@ -368,7 +368,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                       const subActive = pathname === sub.href || pathname.startsWith(sub.href);
                       return (
                         <Link
-                          key={sub.href}
+                          key={sub.name}
                           href={sub.href}
                           onClick={onClose}
                           className={`${styles.sidebarSubNavItem} ${subActive ? styles.navSubActive : styles.navSubInactive}`}

@@ -208,8 +208,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   Plus, Search, Edit2, Trash2, X, ChevronRight, ArrowLeft,
   Upload, FileSpreadsheet, CheckCircle2, Target, Users,
-  AlertCircle, Eye, EyeOff, UserCheck, UserPlus, Briefcase, Mail
+  AlertCircle, Eye, EyeOff, UserCheck, UserPlus, Briefcase, Mail, MoreVertical
 } from 'lucide-react';
+import Link from 'next/link';
 import AdminHeader from '@/app/components/admin/AdminHeader';
 import AdminSidebar from '@/app/components/admin/AdminSidebar';
 import { supabase } from "@/app/lib/supabase/client";
@@ -281,7 +282,7 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const [activeModal, setActiveModal] = useState<'add' | 'edit' | 'import' | 'addAdvisor' | 'editAdvisor' | null>(null);
+  const [activeModal, setActiveModal] = useState<'add' | 'edit' | 'import' | 'addAdvisor' | 'editAdvisor' | 'actions' | null>(null);
   const [currentClient, setCurrentClient] = useState<Partial<ClientManagementRecord>>({});
   const [currentAdvisor, setCurrentAdvisor] = useState<Partial<AdvisorRecord>>({});
 
@@ -1425,6 +1426,9 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
                           <td className={styles.text_107}>{client.modeOfPayment}</td>
                           <td className="py-2 px-3 text-right sticky right-0 bg-card group-hover:bg-surface-2/50 text-xs">
                             <div className="flex justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                              <button onClick={() => { setCurrentClient(client); setActiveModal('actions'); }} className="p-2 text-muted hover:text-blue-500 transition-colors duration-200 bg-card border border-transparent hover:border-blue-500 rounded-full shadow-sm" title="Forms & Services">
+                                <MoreVertical size={14} />
+                              </button>
                               {canEdit && (
                                 <button onClick={() => { setCurrentClient(client); setActiveModal('edit'); }} className="p-2 text-muted hover:text-[#F4C542] transition-colors duration-200 bg-card border border-transparent hover:border-primary rounded-full shadow-sm" title="Edit">
                                   <Edit2 size={14} />
@@ -1919,6 +1923,43 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {activeModal === 'actions' && currentClient && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 backdrop-blur-sm p-4">
+          <div className="bg-card border border-border w-full max-w-sm rounded-2xl shadow-2xl relative flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between p-4 border-b border-border bg-surface-2 shrink-0">
+              <h2 className="text-sm font-bold text-foreground">Forms & Services</h2>
+              <button onClick={() => setActiveModal(null)} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg text-slate-500 transition-colors">
+                <X size={16} />
+              </button>
+            </div>
+            <div className="p-4 flex flex-col gap-2">
+              <p className="text-xs text-muted-foreground mb-3 text-center">
+                Select a form to open for <strong className="text-foreground">{currentClient.clientName}</strong>
+              </p>
+              
+              <Link href={`/admin/cv?client_id=${currentClient.id}`} className="px-4 py-3 bg-surface hover:bg-primary/10 border border-border hover:border-primary text-sm font-medium rounded-xl text-foreground flex items-center justify-between transition-colors">
+                Client Policy Card <ChevronRight size={16} className="text-muted-foreground" />
+              </Link>
+              <Link href={`/admin/pptm?client_id=${currentClient.id}`} className="px-4 py-3 bg-surface hover:bg-primary/10 border border-border hover:border-primary text-sm font-medium rounded-xl text-foreground flex items-center justify-between transition-colors">
+                Premium Payment <ChevronRight size={16} className="text-muted-foreground" />
+              </Link>
+              <Link href={`/admin/cgpt?client_id=${currentClient.id}`} className="px-4 py-3 bg-surface hover:bg-primary/10 border border-border hover:border-primary text-sm font-medium rounded-xl text-foreground flex items-center justify-between transition-colors">
+                Client Welcome Note & Birthday <ChevronRight size={16} className="text-muted-foreground" />
+              </Link>
+              <Link href={`/admin/csmv?client_id=${currentClient.id}`} className="px-4 py-3 bg-surface hover:bg-primary/10 border border-border hover:border-primary text-sm font-medium rounded-xl text-foreground flex items-center justify-between transition-colors">
+                Social Media Visibility <ChevronRight size={16} className="text-muted-foreground" />
+              </Link>
+              <Link href={`/admin/acr?client_id=${currentClient.id}`} className="px-4 py-3 bg-surface hover:bg-primary/10 border border-border hover:border-primary text-sm font-medium rounded-xl text-foreground flex items-center justify-between transition-colors">
+                Advisor Change Request <ChevronRight size={16} className="text-muted-foreground" />
+              </Link>
+              <Link href={`/admin/form`} className="px-4 py-3 bg-surface hover:bg-primary/10 border border-border hover:border-primary text-sm font-medium rounded-xl text-foreground flex items-center justify-between transition-colors">
+                Other Forms Hub <ChevronRight size={16} className="text-muted-foreground" />
+              </Link>
+            </div>
           </div>
         </div>
       )}

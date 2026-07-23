@@ -8,6 +8,7 @@ import SignaturePad from '@/app/components/ui/SignaturePad';
 import { exportToPDF, exportToDOCS } from '@/app/lib/export';
 import ExportDropdown from '@/app/components/shared/ExportDropdown';
 import ClientSelector from '@/app/components/shared/ClientSelector';
+import { useSearchParams } from 'next/navigation';
 import { supabase } from "@/app/lib/supabase/client";
 import styles from "@/styles/admin/cpst/page.module.css";
 
@@ -57,6 +58,16 @@ export default function CSMVClient({ canCreate, canEdit, canDelete }: CSMVClient
   useEffect(() => {
     fetchRecords();
   }, []);
+
+  const searchParams = useSearchParams();
+  const clientIdQuery = searchParams.get('client_id');
+
+  useEffect(() => {
+    if (clientIdQuery && !activeModal) {
+      setCurrentRecord({ client_id: clientIdQuery });
+      setActiveModal('add');
+    }
+  }, [clientIdQuery, activeModal]);
 
   const exportToCSV = () => {
     if (records.length === 0) return;
