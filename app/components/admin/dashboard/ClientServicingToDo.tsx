@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CheckCircle2, FileText, ChevronDown, ChevronUp } from 'lucide-react';
+import { CheckCircle2, FileText, ChevronDown, ChevronUp, Plus } from 'lucide-react';
 import { TaskItem } from './TaskRow';
 import StatusBadge from './StatusBadge';
 import UserAvatar, { UserProfile } from './UserAvatar';
@@ -9,6 +9,7 @@ interface ClientServicingToDoProps {
   tasks: TaskItem[];
   allProfiles: UserProfile[];
   bizDevProfiles: UserProfile[];
+  onCreateTask?: () => void;
   onToggleComplete: (task: TaskItem) => void;
   onSelectTask: (taskId: string) => void;
 }
@@ -17,6 +18,7 @@ export default function ClientServicingToDo({
   tasks,
   allProfiles,
   bizDevProfiles,
+  onCreateTask,
   onToggleComplete,
   onSelectTask
 }: ClientServicingToDoProps) {
@@ -45,7 +47,17 @@ export default function ClientServicingToDo({
           <h3 className={styles.todoWidgetTitle}>To-do</h3>
         </div>
 
-        <div className={styles.todoHeaderActions}>
+        <div className={`${styles.todoHeaderActions} flex items-center gap-1`}>
+          {onCreateTask && (
+            <button
+              type="button"
+              className="p-1 text-gray-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-md transition-colors"
+              onClick={(e) => { e.stopPropagation(); onCreateTask(); }}
+              title="Add To-do"
+            >
+              <Plus size={16} strokeWidth={2.5} />
+            </button>
+          )}
           <button
             type="button"
             className={styles.cardHeaderToggleBtn}

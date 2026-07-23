@@ -122,7 +122,7 @@ export default function UserSidebar({ isOpen, onClose }: UserSidebarProps) {
       {/* Header */}
       <div className={`${styles.sidebarHeader} ${isEffectivelyCollapsed ? styles.sidebarHeaderCollapsed : ''}`}>
         <div className={`${styles.sidebarHeaderContainer} ${isEffectivelyCollapsed ? styles.sidebarHeaderContainerCollapsed : ''}`}>
-          <div className={`flex items-center gap-3 ${isEffectivelyCollapsed ? 'justify-center w-full' : ''}`}>
+          <Link href="/dashboard/personal" className={`flex items-center gap-3 ${isEffectivelyCollapsed ? 'justify-center w-full' : ''}`}>
             <Image
               src="/Image/icon/TPC.png"
               alt="Team Padua Logo"
@@ -134,7 +134,7 @@ export default function UserSidebar({ isOpen, onClose }: UserSidebarProps) {
               <h1 className={styles.sidebarTitle}>Team Padua</h1>
               <p className={styles.sidebarSubtitle}>Intern Workspace</p>
             </div>
-          </div>
+          </Link>
           <div className={styles.headerActions}>
             {onClose && !isEffectivelyCollapsed && (
               <button type="button" onClick={onClose} className={styles.mobileCloseBtn}>

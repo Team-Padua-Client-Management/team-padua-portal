@@ -23,10 +23,9 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import Link from 'next/link';
 import { createPortal } from 'react-dom';
 import { motion, useReducedMotion, type Variants } from 'framer-motion';
-import { CalendarDays, ExternalLink } from 'lucide-react';
+import { CalendarDays, Plus } from 'lucide-react';
 import Header from "@/app/components/admin/AdminHeader";
 import Sidebar from "@/app/components/admin/AdminSidebar";
 import { supabase } from "@/app/lib/supabase/client";
@@ -42,11 +41,14 @@ import TaskList from "@/app/components/admin/dashboard/TaskList";
 import { TaskItem } from "@/app/components/admin/dashboard/TaskRow";
 import BirthdayCard, { BirthdayItem } from "@/app/components/admin/dashboard/BirthdayCard";
 import ActivityCard, { ActivityEvent } from "@/app/components/admin/dashboard/ActivityCard";
+import CalendarActivityCard, { CalendarActivityItem } from "@/app/components/admin/dashboard/CalendarActivityCard";
+import CalendarActivityModal from "@/app/components/admin/dashboard/CalendarActivityModal";
 import ActivityCalendar from "@/app/components/admin/dashboard/ActivityCalendar";
 import RequestFormsAccordion from "@/app/components/admin/dashboard/RequestFormsAccordion";
 import TaskModal from "@/app/components/admin/dashboard/TaskModal";
 import ActivityModal from "@/app/components/admin/dashboard/ActivityModal";
 import EventDetailsModal from "@/app/components/admin/dashboard/EventDetailsModal";
+import ConfirmDeleteModal from "@/app/components/admin/dashboard/ConfirmDeleteModal";
 import { UserProfile } from "@/app/components/admin/dashboard/UserAvatar";
 
 type KpiData = {
@@ -232,7 +234,6 @@ function getBirthdaysAroundNow(clients: any[]): BirthdayItem[] {
           date: labelDate,
           when,
           age,
-          policyNo: client.policy_number || client.policyNo || undefined
         });
       }
     }
@@ -255,37 +256,33 @@ function getBirthdaysAroundNow(clients: any[]): BirthdayItem[] {
         name: c1Name,
         date: todayFormatted,
         when: 'today',
-        age: 32,
-        policyNo: clients && clients[0]?.policy_number ? clients[0].policy_number : 'POL-884029'
+        age: 45,
       },
       {
         id: 'bday-active-2',
         name: c2Name,
         date: todayFormatted,
         when: 'today',
-        age: 28,
-        policyNo: clients && clients[1]?.policy_number ? clients[1].policy_number : 'POL-773012'
+        age: 32,
       },
       {
         id: 'bday-active-3',
         name: c3Name,
         date: tomorrowFormatted,
         when: 'tomorrow',
-        age: 35,
-        policyNo: clients && clients[2]?.policy_number ? clients[2].policy_number : 'POL-904128'
+        age: 28,
       },
       {
         id: 'bday-active-4',
         name: c4Name,
         date: yesterdayFormatted,
         when: 'yesterday',
-        age: 41,
-        policyNo: clients && clients[3]?.policy_number ? clients[3].policy_number : 'POL-663910'
+        age: 50,
       }
     );
   }
 
-  const priority = { today: 0, tomorrow: 1, yesterday: 2 };
+  const priority = { yesterday: 0, today: 1, tomorrow: 2 };
   matched.sort((a, b) => priority[a.when] - priority[b.when]);
 
   return matched;
@@ -312,11 +309,18 @@ export default function DashboardOverviewPage() {
 
   // Activity State Management
   const [activities, setActivities] = useState<ActivityEvent[]>(initialActivities);
+
+  // Calendar of Activities State
+  const [calendarLogs, setCalendarLogs] = useState<CalendarActivityItem[]>([]);
+  const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
+  const [calendarRoleFilter, setCalendarRoleFilter] = useState<'All' | 'Admin' | 'Advisor' | 'Bizdev'>('All');
+
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
   const [miniCalendarMonth, setMiniCalendarMonth] = useState<Date>(new Date());
   const [selectedMiniDate, setSelectedMiniDate] = useState<string | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<ActivityEvent | null>(null);
   const [activityForm, setActivityForm] = useState<Omit<ActivityEvent, 'id'>>(emptyActivityForm);
+  const [activityToDelete, setActivityToDelete] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
 
   // Built-in Pomodoro Timer State
@@ -325,7 +329,6 @@ export default function DashboardOverviewPage() {
   const [pomoIsRunning, setPomoIsRunning] = useState<boolean>(false);
   const [pomoCompletedSessions, setPomoCompletedSessions] = useState<number>(0);
   const [pomoNotice, setPomoNotice] = useState<string | null>(null);
-
 
   const prefersReducedMotion = useReducedMotion();
   const fadeVariants = prefersReducedMotion ? itemVariantsReduced : itemVariants;
@@ -469,7 +472,7 @@ export default function DashboardOverviewPage() {
         }
       }
 
-      const { data: cpstClientsData } = await supabase.from('cpst_clients').select('id, client_name, birthdate, policy_number');
+      const { data: cpstClientsData } = await supabase.from('cpst_clients').select('id, client_name, birthdate');
       if (cpstClientsData && Array.isArray(cpstClientsData)) {
         const matched = getBirthdaysAroundNow(cpstClientsData);
         setClientBirthdays(matched);
@@ -559,7 +562,7 @@ export default function DashboardOverviewPage() {
         notes: '',
         category: 'Others',
         assigned_to: activeUserId,
-        processed_by: activeUserId
+        processed_by: null
       }),
       status: 'Pending',
       priority: 'High',
@@ -587,7 +590,7 @@ export default function DashboardOverviewPage() {
           status: 'Pending',
           completed: false,
           assigned_to: activeUserId,
-          processed_by: activeUserId,
+          processed_by: null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         };
@@ -652,33 +655,7 @@ export default function DashboardOverviewPage() {
     };
   }, []);
 
-  const fetchActivities = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('calendar_events')
-        .select('*')
-        .order('event_date', { ascending: true });
-
-      if (!error && data && data.length > 0) {
-        const mapped: ActivityEvent[] = data.map((c: any) => ({
-          id: String(c.id),
-          title: c.title || 'Untitled Activity',
-          type: c.category || 'Client Meeting',
-          date: c.event_date || new Date().toISOString().split('T')[0],
-          time: c.start_time || '',
-          location: c.location_name || '',
-          notes: c.description || '',
-          status: 'Scheduled'
-        }));
-        setActivities(mapped);
-        localStorage.setItem('tp_user_activities', JSON.stringify(mapped));
-        localStorage.setItem('tp_calendar_events', JSON.stringify(data));
-        return;
-      }
-    } catch (err) {
-      console.error('Error fetching calendar_events:', err);
-    }
-
+  useEffect(() => {
     try {
       const storedActivities = localStorage.getItem('tp_user_activities');
       if (storedActivities) {
@@ -690,27 +667,20 @@ export default function DashboardOverviewPage() {
     } catch (e) {
       console.error(e);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchActivities();
-
-    const channel = supabase
-      .channel(`admin-activities-sync-${Math.random().toString(36).substring(2, 9)}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'calendar_events' }, () => {
-        fetchActivities();
-      })
-      .subscribe();
-
-    const handleLocalSync = () => {
-      fetchActivities();
-    };
-    window.addEventListener('tp_calendar_events_updated', handleLocalSync);
-
-    return () => {
-      supabase.removeChannel(channel);
-      window.removeEventListener('tp_calendar_events_updated', handleLocalSync);
-    };
+    try {
+      const storedCalendarLogs = localStorage.getItem('tp_calendar_of_activities');
+      if (storedCalendarLogs) {
+        const parsed = JSON.parse(storedCalendarLogs);
+        if (Array.isArray(parsed)) {
+          setCalendarLogs(parsed);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
   }, []);
 
   useEffect(() => {
@@ -776,45 +746,29 @@ export default function DashboardOverviewPage() {
       const saved = localStorage.getItem('tp_admin_pomodoro');
       if (saved) {
         const parsed = JSON.parse(saved);
+        if (parsed.mode && POMODORO_CONFIG[parsed.mode as PomodoroMode]) {
+          const mode = parsed.mode as PomodoroMode;
+          setPomoMode(mode);
+          let rem = typeof parsed.remainingSeconds === 'number' ? parsed.remainingSeconds : POMODORO_CONFIG[mode].duration;
+          let isRun = !!parsed.isRunning;
 
-        const mode: PomodoroMode =
-          parsed.mode && POMODORO_CONFIG[parsed.mode as PomodoroMode]
-            ? (parsed.mode as PomodoroMode)
-            : 'focus';
-
-        const configDuration = POMODORO_CONFIG[mode].duration;
-
-        const cachedRemaining = parsed.remainingSeconds;
-        const isValidCachedRemaining =
-          typeof cachedRemaining === 'number' &&
-          Number.isFinite(cachedRemaining) &&
-          cachedRemaining >= 0 &&
-          cachedRemaining <= configDuration;
-
-        let rem = isValidCachedRemaining ? cachedRemaining : configDuration;
-        let isRun = !!parsed.isRunning;
-
-        if (isRun && parsed.lastTimestamp) {
-          const elapsed = Math.floor((Date.now() - parsed.lastTimestamp) / 1000);
-          rem = rem - elapsed;
-          if (rem <= 0) {
-            rem = 0;
-            isRun = false;
-            if (mode === 'focus') {
-              setPomoCompletedSessions((prev) =>
-                typeof parsed.completedSessions === 'number' ? parsed.completedSessions + 1 : prev + 1
-              );
-              setPomoNotice('Pomodoro Complete');
-            } else {
-              setPomoNotice('Break Finished');
+          if (isRun && parsed.lastTimestamp) {
+            const elapsed = Math.floor((Date.now() - parsed.lastTimestamp) / 1000);
+            rem = rem - elapsed;
+            if (rem <= 0) {
+              rem = 0;
+              isRun = false;
+              if (mode === 'focus') {
+                setPomoCompletedSessions((prev) => (typeof parsed.completedSessions === 'number' ? parsed.completedSessions + 1 : prev + 1));
+                setPomoNotice('Pomodoro Complete');
+              } else {
+                setPomoNotice('Break Finished');
+              }
             }
           }
+          setPomoSeconds(rem);
+          setPomoIsRunning(isRun);
         }
-
-        setPomoMode(mode);
-        setPomoSeconds(rem);
-        setPomoIsRunning(isRun);
-
         if (typeof parsed.completedSessions === 'number') {
           setPomoCompletedSessions(parsed.completedSessions);
         }
@@ -823,7 +777,6 @@ export default function DashboardOverviewPage() {
       console.error('Failed to load Pomodoro state:', err);
     }
   }, []);
-
 
   // Save Pomodoro state to LocalStorage
   useEffect(() => {
@@ -841,7 +794,7 @@ export default function DashboardOverviewPage() {
     }
   }, [pomoMode, pomoSeconds, pomoIsRunning, pomoCompletedSessions]);
 
-
+  // Pomodoro Countdown Interval lifecycle
   useEffect(() => {
     let timerId: NodeJS.Timeout | null = null;
 
@@ -911,11 +864,9 @@ export default function DashboardOverviewPage() {
     setActivityForm((prev) => ({ ...prev, [field]: value }) as Omit<ActivityEvent, 'id'>);
   };
 
-  const handleSaveActivity = async () => {
+  const handleSaveActivity = () => {
     if (!activityForm.title.trim() || !activityForm.date) return;
-    const tempId = `evt-${Date.now()}`;
-    const newEvent: ActivityEvent = { id: tempId, ...activityForm };
-
+    const newEvent: ActivityEvent = { id: `evt-${Date.now()}`, ...activityForm };
     setActivities((prev) => {
       const next = [newEvent, ...prev];
       try {
@@ -928,39 +879,39 @@ export default function DashboardOverviewPage() {
     setSelectedMiniDate(newEvent.date);
     setIsLogModalOpen(false);
     setActivityForm(emptyActivityForm);
+  };
 
-    try {
-      const payload = {
-        title: activityForm.title,
-        category: activityForm.type || 'Client Meeting',
-        event_date: activityForm.date,
-        end_date: activityForm.date,
-        start_time: activityForm.time || '',
-        location_name: activityForm.location || '',
-        description: activityForm.notes || '',
-        module_source: 'manual'
-      };
+  const handleSaveCalendarActivity = (activityData: Omit<CalendarActivityItem, 'id' | 'createdAt'>) => {
+    const newItem: CalendarActivityItem = {
+      ...activityData,
+      id: `cal-evt-${Date.now()}`,
+      createdAt: new Date().toISOString()
+    };
+    
+    setCalendarLogs(prev => {
+      const next = [newItem, ...prev];
+      try {
+        localStorage.setItem('tp_calendar_of_activities', JSON.stringify(next));
+      } catch(e) { console.error(e); }
+      return next;
+    });
+    setIsCalendarModalOpen(false);
+  };
 
-      const { data, error } = await supabase.from('calendar_events').insert([payload]).select().single();
-      if (!error && data) {
-        const realEvent: ActivityEvent = {
-          id: String(data.id),
-          title: data.title || activityForm.title,
-          type: data.category || activityForm.type,
-          date: data.event_date || activityForm.date,
-          time: data.start_time || activityForm.time,
-          location: data.location_name || activityForm.location,
-          notes: data.description || activityForm.notes,
-          status: 'Scheduled'
-        };
-        setActivities((prev) => prev.map(a => (a.id === tempId ? realEvent : a)));
-      }
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('tp_calendar_events_updated'));
-      }
-    } catch (err) {
-      console.error('Error auto-saving activity:', err);
-    }
+  const promptDeleteCalendarActivity = (id: string) => {
+    setActivityToDelete(id);
+  };
+
+  const executeDeleteCalendarActivity = () => {
+    if (!activityToDelete) return;
+    setCalendarLogs(prev => {
+      const next = prev.filter(log => log.id !== activityToDelete);
+      try {
+        localStorage.setItem('tp_calendar_of_activities', JSON.stringify(next));
+      } catch(e) { console.error(e); }
+      return next;
+    });
+    setActivityToDelete(null);
   };
 
   const goToPrevMiniMonth = () => {
@@ -975,11 +926,10 @@ export default function DashboardOverviewPage() {
     setSelectedEvent(evt);
   };
 
-  const handleDeleteEvent = async () => {
+  const handleDeleteEvent = () => {
     if (!selectedEvent) return;
-    const targetId = selectedEvent.id;
     setActivities((prev) => {
-      const next = prev.filter((a) => a.id !== targetId);
+      const next = prev.filter((a) => a.id !== selectedEvent.id);
       try {
         localStorage.setItem('tp_user_activities', JSON.stringify(next));
       } catch (e) {
@@ -988,15 +938,6 @@ export default function DashboardOverviewPage() {
       return next;
     });
     setSelectedEvent(null);
-
-    try {
-      await supabase.from('calendar_events').delete().eq('id', targetId);
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('tp_calendar_events_updated'));
-      }
-    } catch (err) {
-      console.error('Error deleting activity:', err);
-    }
   };
 
   const filteredActivities = useMemo(() => {
@@ -1005,21 +946,24 @@ export default function DashboardOverviewPage() {
   }, [activities, selectedMiniDate]);
 
   const sortedActivities = [...filteredActivities].sort((a, b) => b.date.localeCompare(a.date));
-  const selectedTaskForModal = userTasks.find((t) => t.id === selectedTaskIdForModal) || null;
 
-  const currentUserProfile = useMemo(() => {
-    if (!currentUserId) return null;
-    return allProfiles.find((p) => p.id === currentUserId) || null;
-  }, [allProfiles, currentUserId]);
+  const filteredCalendarLogs = useMemo(() => {
+    if (calendarRoleFilter === 'All') return calendarLogs;
+    return calendarLogs.filter(log => log.assignedRole === calendarRoleFilter);
+  }, [calendarLogs, calendarRoleFilter]);
+
+  const sortedCalendarLogs = [...filteredCalendarLogs].sort((a, b) => {
+    const dateA = new Date(a.date).getTime();
+    const dateB = new Date(b.date).getTime();
+    return dateB - dateA;
+  });
+  const selectedTaskForModal = userTasks.find((t) => t.id === selectedTaskIdForModal) || null;
 
   const taskCounts = {
     total: userTasks.length,
     pending: userTasks.filter((t) => t.status === 'Pending').length,
     inProgress: userTasks.filter((t) => t.status === 'In Progress').length,
-    acknowledged: userTasks.filter((t) => t.status === 'Acknowledged').length,
     done: userTasks.filter((t) => t.status === 'Done').length,
-    onHold: userTasks.filter((t) => t.status === 'On Hold').length,
-    cancelled: userTasks.filter((t) => t.status === 'Cancelled').length,
     overdue: userTasks.filter((t) => t.due_date && new Date(t.due_date).getTime() < Date.now() && t.status !== 'Done').length
   };
 
@@ -1090,48 +1034,68 @@ export default function DashboardOverviewPage() {
               <BirthdayCard birthdays={clientBirthdays} />
 
               <div className={styles.activitiesCard}>
-                <div className={styles.dashboardCardHeader}>
-                  <div className={styles.dashboardCardTitle}>
-                    <CalendarDays size={14} strokeWidth={1.8} />
-                    <h3>Calendar of Activities</h3>
+                <div className={`${styles.dashboardCardHeader} !flex-col !items-stretch !gap-3 !p-4`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CalendarDays size={18} strokeWidth={2.2} className="text-gray-700 dark:text-gray-300" />
+                      <h3 className="text-[15px] font-extrabold text-gray-900 dark:text-white tracking-tight m-0 leading-none">
+                        Calendar of Activities
+                      </h3>
+                    </div>
+                    <button type="button" onClick={() => setIsCalendarModalOpen(true)} className={`${styles.newTaskBtn} !py-1 !px-3 !text-[11px]`}>
+                      <Plus size={13} strokeWidth={2.5} />
+                      <span className="font-bold">Add Activity</span>
+                    </button>
                   </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    {selectedMiniDate && (
-                      <div className={styles.activityDateFilterBadge}>
-                        <span>Date: {selectedMiniDate}</span>
+                  
+                  {/* Lightweight Role Filter */}
+                  <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                    {['All', 'Admin', 'Advisor', 'Bizdev'].map((role) => {
+                      const isActive = calendarRoleFilter === role;
+                      return (
                         <button
+                          key={role}
                           type="button"
-                          onClick={() => setSelectedMiniDate(null)}
-                          className={styles.clearDateFilterBtn}
-                          title="Clear date filter"
+                          onClick={() => setCalendarRoleFilter(role as any)}
+                          className={`px-3 py-1 rounded-lg text-[10.5px] font-semibold transition-all shrink-0 cursor-pointer border ${
+                            isActive
+                              ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white border-amber-500 shadow-sm shadow-amber-500/20 scale-[1.02]'
+                              : 'bg-surface/80 text-text-secondary border-border/70 hover:border-amber-500/50 hover:text-text hover:bg-surface'
+                          }`}
                         >
-                          &times;
+                          {role}
                         </button>
-                      </div>
-                    )}
-                    <Link href="/admin/calendar" className={styles.trackerLink} style={{ opacity: 0.85 }}>
-                      <ExternalLink size={12} strokeWidth={2} />
-                      Full Calendar
-                    </Link>
+                      );
+                    })}
                   </div>
                 </div>
+
                 <div className={styles.dashboardCardBody}>
-                  {sortedActivities.length === 0 ? (
-                    <div className={styles.emptyStateContainer}>
+                  {sortedCalendarLogs.length === 0 ? (
+                    <div className={styles.emptyStateContainer} onClick={() => setIsCalendarModalOpen(true)} style={{ cursor: 'pointer' }}>
                       <div className={styles.emptyStateIcon}>📅</div>
-                      <div className={styles.emptyStateTitle}>No activities scheduled {selectedMiniDate ? `for ${selectedMiniDate}` : ''}</div>
-                      <div className={styles.emptyStateDescription}>Log an activity to manage client schedules.</div>
+                      <div className={styles.emptyStateTitle}>No activities scheduled</div>
+                      <div className={styles.emptyStateDescription}>Click to log a new activity for the team.</div>
                     </div>
                   ) : (
                     <div className={styles.activityList}>
-                      {sortedActivities.map((act) => (
-                        <ActivityCard
-                          key={act.id}
-                          activity={act}
-                          onSelect={handleEventClick}
-                        />
-                      ))}
+                      {sortedCalendarLogs.map((log) => {
+                        let matchingProfiles = [] as typeof allProfiles;
+                        if (log.assignedRole === 'Bizdev') {
+                          matchingProfiles = bizDevProfiles;
+                        } else {
+                          matchingProfiles = allProfiles.filter(p => p.role?.toLowerCase().includes(log.assignedRole.toLowerCase()));
+                        }
+                        
+                        return (
+                          <CalendarActivityCard
+                            key={log.id}
+                            activity={log}
+                            matchingProfiles={matchingProfiles}
+                            onDelete={promptDeleteCalendarActivity}
+                          />
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -1142,6 +1106,7 @@ export default function DashboardOverviewPage() {
                 tasks={userTasks}
                 allProfiles={allProfiles}
                 bizDevProfiles={bizDevProfiles}
+                onCreateTask={handleCreateTask}
                 onToggleComplete={handleToggleCheckbox}
                 onSelectTask={(id) => setSelectedTaskIdForModal(id)}
               />
@@ -1158,7 +1123,6 @@ export default function DashboardOverviewPage() {
                 onSelectDate={(dateKey) => setSelectedMiniDate(dateKey)}
                 onOpenLogModal={openLogModal}
                 onSelectEvent={handleEventClick}
-                calendarUrl="/admin/calendar"
               />
 
               <RequestFormsAccordion kpis={kpis} />
@@ -1202,13 +1166,29 @@ export default function DashboardOverviewPage() {
           task={selectedTaskForModal}
           allProfiles={allProfiles}
           bizDevProfiles={bizDevProfiles}
-          currentUserProfile={currentUserProfile}
           onSaveField={saveTaskField}
           onDeleteTask={handleDeleteTask}
           onClose={() => setSelectedTaskIdForModal(null)}
         />,
         document.body
       )}
+
+      {isMounted && isCalendarModalOpen && createPortal(
+        <CalendarActivityModal
+          onSave={handleSaveCalendarActivity}
+          onClose={() => setIsCalendarModalOpen(false)}
+        />,
+        document.body
+      )}
+
+      {isMounted && activityToDelete && createPortal(
+        <ConfirmDeleteModal
+          onConfirm={executeDeleteCalendarActivity}
+          onCancel={() => setActivityToDelete(null)}
+        />,
+        document.body
+      )}
     </div>
   );
 }
+

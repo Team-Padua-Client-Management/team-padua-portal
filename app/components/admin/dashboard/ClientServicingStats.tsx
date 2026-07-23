@@ -4,9 +4,6 @@ import {
   Clock,
   CircleEllipsis,
   CircleCheck,
-  CirclePause,
-  CircleX,
-  CircleDot,
   AlertTriangle,
   TrendingUp
 } from 'lucide-react';
@@ -16,10 +13,7 @@ export interface TaskCounts {
   total: number;
   pending: number;
   inProgress: number;
-  acknowledged?: number;
   done: number;
-  onHold: number;
-  cancelled: number;
   overdue?: number;
 }
 
@@ -52,25 +46,11 @@ export default function ClientServicingStats({ counts, isUserView = false }: Cli
       trend: 'Active'
     },
     {
-      label: 'Acknowledged',
-      value: counts.acknowledged || 0,
-      icon: CircleDot,
-      badgeClass: styles.statBadgeAcknowledged || styles.statBadgeInProgress,
-      trend: 'Received'
-    },
-    {
       label: 'Done',
       value: counts.done,
       icon: CircleCheck,
       badgeClass: styles.statBadgeDone,
       trend: 'Completed'
-    },
-    {
-      label: 'On Hold',
-      value: counts.onHold,
-      icon: CirclePause,
-      badgeClass: styles.statBadgeOnHold,
-      trend: 'Paused'
     },
     {
       label: 'Overdue',

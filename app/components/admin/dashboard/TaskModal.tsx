@@ -16,8 +16,7 @@ import StatusBadge, { getTaskStatusMeta, getStatusColorHex } from './StatusBadge
 import { formatDisplayDate } from './ActivityCard';
 import styles from '@/styles/admin/dashboard/page.module.css';
 
-const TASK_STATUSES = ['Pending', 'In Progress', 'Acknowledged', 'On Hold', 'Done', 'Cancelled'];
-const TASK_PRIORITIES = ['Normal', 'High', 'Urgent'];
+const TASK_STATUSES = ['Pending', 'In Progress', 'Done'];
 
 interface TaskModalProps {
   task: TaskItem;
@@ -51,7 +50,6 @@ export default function TaskModal({
   const assignedAuthor = findProfileById(task.assigned_to);
   const activeNoteAuthor = processedAuthor || assignedAuthor;
   const currentStatusColor = getStatusColorHex(task.status);
-  const priority = task.priority || (task.status === 'Done' ? 'Normal' : 'High');
 
   const handleAddNote = () => {
     if (!newNoteText.trim()) return;
@@ -154,17 +152,6 @@ export default function TaskModal({
                 onChange={(e) => onSaveField(task.id, { category: e.target.value })}
               >
                 {TASK_CATEGORIES.map((cat) => (<option key={cat} value={cat}>{cat}</option>))}
-              </select>
-            </div>
-
-            <div className={styles.formField}>
-              <label className={styles.formFieldLabel}>Priority</label>
-              <select
-                className={styles.formSelect}
-                value={priority}
-                onChange={(e) => onSaveField(task.id, { priority: e.target.value })}
-              >
-                {TASK_PRIORITIES.map((p) => (<option key={p} value={p}>{p} Priority</option>))}
               </select>
             </div>
           </div>

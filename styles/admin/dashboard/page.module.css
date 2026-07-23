@@ -289,6 +289,460 @@
   display: none;
 }
 
+/* ============================================================================
+   DECORATIVE BANNER ANIMATIONS (NIGHT, MORNING, AFTERNOON)
+   ============================================================================ */
+.heroDecorationContainer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 1;
+}
+
+/* ----------------------------------------------------------------------------
+   NIGHT / EVENING THEME ANIMATIONS
+   ---------------------------------------------------------------------------- */
+.heroNightOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(30, 27, 75, 0.1) 0%, rgba(15, 23, 42, 0.25) 100%);
+  pointer-events: none;
+}
+
+.heroAuroraWave {
+  position: absolute;
+  top: -30%;
+  left: -20%;
+  width: 140%;
+  height: 120%;
+  background: radial-gradient(ellipse at 50% 30%, rgba(147, 51, 234, 0.22) 0%, rgba(79, 70, 229, 0.15) 35%, rgba(6, 182, 212, 0.12) 65%, transparent 85%);
+  filter: blur(35px);
+  animation: auroraFlow 18s ease-in-out infinite alternate;
+}
+
+.heroMoonGlow {
+  position: absolute;
+  top: 0%;
+  right: 28%;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(254, 240, 138, 0.45) 0%, rgba(253, 224, 71, 0.18) 40%, rgba(192, 132, 252, 0.08) 70%, transparent 100%);
+  filter: blur(12px);
+  animation: moonGlowPulse 4.5s ease-in-out infinite;
+}
+
+/* Shooting Stars */
+.shootingStar {
+  position: absolute;
+  width: 90px;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.8) 50%, #FFFFFF 100%);
+  border-radius: 999px;
+  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.9));
+  opacity: 0;
+  transform: rotate(-32deg);
+}
+
+.shootingStar1 {
+  top: 15%;
+  right: 18%;
+  animation: shootStar1 8s cubic-bezier(0.4, 0, 0.2, 1) infinite 1s;
+}
+
+.shootingStar2 {
+  top: 30%;
+  right: 45%;
+  width: 110px;
+  animation: shootStar2 12s cubic-bezier(0.4, 0, 0.2, 1) infinite 4s;
+}
+
+.shootingStar3 {
+  top: 10%;
+  right: 65%;
+  width: 70px;
+  animation: shootStar3 9s cubic-bezier(0.4, 0, 0.2, 1) infinite 6s;
+}
+
+/* Stars Container & Twinkles */
+.starsContainer {
+  position: absolute;
+  inset: 0;
+}
+
+.star {
+  position: absolute;
+  border-radius: 50%;
+  background: #FFFFFF;
+  box-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
+}
+
+.starTwinkle1 { animation: starTwinkle 2.2s ease-in-out infinite 0.2s; }
+.starTwinkle2 { animation: starTwinkle 3.1s ease-in-out infinite 0.7s; }
+.starTwinkle3 { animation: starTwinkle 2.8s ease-in-out infinite 1.4s; }
+.starTwinkle4 { animation: starTwinkle 3.8s ease-in-out infinite 1.9s; }
+
+/* Floating Night Dust */
+.nightDustContainer {
+  position: absolute;
+  inset: 0;
+}
+
+.nightDust {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgba(224, 231, 255, 0.7);
+  box-shadow: 0 0 6px rgba(165, 180, 252, 0.9);
+}
+
+.dust1 { top: 65%; left: 12%; animation: floatUpParticle 6s ease-in-out infinite; }
+.dust2 { top: 75%; left: 34%; animation: floatUpParticle 8s ease-in-out infinite 2s; }
+.dust3 { top: 50%; left: 58%; animation: floatUpParticle 7s ease-in-out infinite 1s; }
+.dust4 { top: 80%; left: 78%; animation: floatUpParticle 9s ease-in-out infinite 3s; }
+.dust5 { top: 40%; left: 88%; animation: floatUpParticle 7.5s ease-in-out infinite 4s; }
+
+/* ----------------------------------------------------------------------------
+   MORNING THEME ANIMATIONS
+   ---------------------------------------------------------------------------- */
+.heroMorningOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, rgba(254, 243, 199, 0.35) 0%, rgba(253, 230, 138, 0.2) 40%, rgba(252, 211, 77, 0.05) 100%);
+  pointer-events: none;
+}
+
+.heroDawnSunGlow {
+  position: absolute;
+  top: -20%;
+  left: 25%;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(251, 191, 36, 0.45) 0%, rgba(245, 158, 11, 0.2) 45%, rgba(252, 211, 77, 0.05) 75%, transparent 100%);
+  filter: blur(16px);
+  animation: dawnGlowPulse 5s ease-in-out infinite alternate;
+}
+
+.heroSunbeams {
+  position: absolute;
+  top: -50%;
+  left: 15%;
+  width: 400px;
+  height: 400px;
+  background: conic-gradient(from 0deg at 50% 50%, rgba(251, 191, 36, 0.12) 0deg 15deg, transparent 15deg 45deg, rgba(245, 158, 11, 0.09) 45deg 60deg, transparent 60deg 105deg, rgba(251, 191, 36, 0.1) 105deg 120deg, transparent 120deg 180deg, rgba(245, 158, 11, 0.08) 180deg 200deg, transparent 200deg 360deg);
+  border-radius: 50%;
+  animation: rotateSunbeams 60s linear infinite;
+  pointer-events: none;
+}
+
+.heroCloud {
+  position: absolute;
+  color: rgba(255, 255, 255, 0.45);
+  filter: drop-shadow(0 2px 8px rgba(245, 158, 11, 0.12));
+}
+
+.heroCloudMorning1 {
+  top: 10%;
+  width: 110px;
+  animation: floatCloudLeft 38s linear infinite;
+}
+
+.heroCloudMorning2 {
+  top: 25%;
+  width: 130px;
+  animation: floatCloudLeft 52s linear infinite -18s;
+  opacity: 0.6;
+}
+
+.heroCloudMorning3 {
+  top: 50%;
+  width: 90px;
+  animation: floatCloudLeft 44s linear infinite -8s;
+  opacity: 0.35;
+}
+
+.heroBirdFlock {
+  position: absolute;
+  top: 22%;
+  left: -60px;
+  color: rgba(180, 83, 9, 0.6);
+  animation: birdsFly 24s ease-in-out infinite 2s;
+}
+
+.dewContainer {
+  position: absolute;
+  inset: 0;
+}
+
+.dewParticle {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgba(251, 191, 36, 0.85);
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.9);
+}
+
+.dew1 { top: 70%; left: 15%; animation: floatUpParticle 5.5s ease-in-out infinite; }
+.dew2 { top: 80%; left: 35%; animation: floatUpParticle 7s ease-in-out infinite 1.5s; }
+.dew3 { top: 60%; left: 55%; animation: floatUpParticle 6.5s ease-in-out infinite 0.8s; }
+.dew4 { top: 75%; left: 72%; animation: floatUpParticle 8s ease-in-out infinite 2.5s; }
+.dew5 { top: 50%; left: 85%; animation: floatUpParticle 6s ease-in-out infinite 3.2s; }
+.dew6 { top: 65%; left: 45%; animation: floatUpParticle 7.5s ease-in-out infinite 4s; }
+
+/* ----------------------------------------------------------------------------
+   AFTERNOON THEME ANIMATIONS
+   ---------------------------------------------------------------------------- */
+.heroAfternoonOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, rgba(254, 240, 138, 0.25) 0%, rgba(186, 230, 253, 0.15) 50%, rgba(253, 224, 71, 0.1) 100%);
+  pointer-events: none;
+}
+
+.heroSolarFlare {
+  position: absolute;
+  top: -25%;
+  right: 35%;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(253, 224, 71, 0.5) 0%, rgba(250, 204, 21, 0.2) 40%, rgba(245, 158, 11, 0.05) 75%, transparent 100%);
+  filter: blur(18px);
+  animation: solarFlarePulse 4.5s ease-in-out infinite alternate;
+}
+
+.heroAfternoonSunbeams {
+  position: absolute;
+  top: -40%;
+  right: 20%;
+  width: 450px;
+  height: 450px;
+  background: conic-gradient(from 45deg at 50% 50%, rgba(250, 204, 21, 0.12) 0deg 20deg, transparent 20deg 60deg, rgba(245, 158, 11, 0.1) 60deg 80deg, transparent 80deg 140deg, rgba(250, 204, 21, 0.14) 140deg 165deg, transparent 165deg 360deg);
+  border-radius: 50%;
+  animation: rotateSunbeams 75s linear infinite reverse;
+  pointer-events: none;
+}
+
+.heroCloudAfternoon1 {
+  top: 8%;
+  width: 120px;
+  animation: floatCloudRight 42s linear infinite;
+  opacity: 0.55;
+}
+
+.heroCloudAfternoon2 {
+  top: 30%;
+  width: 145px;
+  animation: floatCloudRight 58s linear infinite -20s;
+  opacity: 0.45;
+}
+
+.heroCloudAfternoon3 {
+  top: 52%;
+  width: 100px;
+  animation: floatCloudRight 48s linear infinite -10s;
+  opacity: 0.35;
+}
+
+.daylightDustContainer {
+  position: absolute;
+  inset: 0;
+}
+
+.daylightParticle {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  box-shadow: 0 0 6px rgba(253, 224, 71, 0.9);
+}
+
+.sunParticle1 { top: 35%; left: 20%; animation: floatUpParticle 6s ease-in-out infinite; }
+.sunParticle2 { top: 65%; left: 40%; animation: floatUpParticle 7.5s ease-in-out infinite 1.2s; }
+.sunParticle3 { top: 45%; left: 62%; animation: floatUpParticle 5.8s ease-in-out infinite 2.4s; }
+.sunParticle4 { top: 70%; left: 80%; animation: floatUpParticle 8s ease-in-out infinite 0.5s; }
+.sunParticle5 { top: 25%; left: 90%; animation: floatUpParticle 6.5s ease-in-out infinite 3.5s; }
+
+/* ----------------------------------------------------------------------------
+   KEYFRAME ANIMATIONS
+   ---------------------------------------------------------------------------- */
+@keyframes starTwinkle {
+  0%, 100% {
+    opacity: 0.2;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.35);
+    box-shadow: 0 0 8px rgba(255, 255, 255, 1);
+  }
+}
+
+@keyframes shootStar1 {
+  0% {
+    transform: translate(0, 0) scale(0.5);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  60% {
+    transform: translate(-200px, 120px) scale(1);
+    opacity: 0.95;
+  }
+  100% {
+    transform: translate(-300px, 180px) scale(0.2);
+    opacity: 0;
+  }
+}
+
+@keyframes shootStar2 {
+  0% {
+    transform: translate(0, 0) scale(0.5);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  65% {
+    transform: translate(-240px, 140px) scale(1.1);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate(-340px, 200px) scale(0.2);
+    opacity: 0;
+  }
+}
+
+@keyframes shootStar3 {
+  0% {
+    transform: translate(0, 0) scale(0.5);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  70% {
+    transform: translate(-160px, 95px) scale(0.9);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate(-240px, 140px) scale(0.2);
+    opacity: 0;
+  }
+}
+
+@keyframes moonGlowPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.22);
+    opacity: 0.95;
+  }
+}
+
+@keyframes auroraFlow {
+  0% {
+    transform: translateX(-12%) translateY(0) scaleY(1);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translateX(10%) translateY(-10px) scaleY(1.25);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateX(-12%) translateY(0) scaleY(1);
+    opacity: 0.4;
+  }
+}
+
+@keyframes floatUpParticle {
+  0% {
+    transform: translateY(15px) translateX(0);
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.95;
+  }
+  100% {
+    transform: translateY(-45px) translateX(18px);
+    opacity: 0;
+  }
+}
+
+@keyframes floatCloudLeft {
+  0% {
+    transform: translateX(-140px);
+  }
+  100% {
+    transform: translateX(110vw);
+  }
+}
+
+@keyframes floatCloudRight {
+  0% {
+    transform: translateX(100vw);
+  }
+  100% {
+    transform: translateX(-160px);
+  }
+}
+
+@keyframes rotateSunbeams {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes dawnGlowPulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1.3);
+    opacity: 0.9;
+  }
+}
+
+@keyframes birdsFly {
+  0% {
+    transform: translate(-60px, 20px) scale(0.65);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.8;
+  }
+  85% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate(600px, -35px) scale(1.1);
+    opacity: 0;
+  }
+}
+
+@keyframes solarFlarePulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(1.25);
+    opacity: 0.9;
+  }
+}
+
 .heroLeft {
   position: relative;
   z-index: 2;

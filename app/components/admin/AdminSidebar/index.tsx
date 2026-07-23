@@ -24,7 +24,6 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
   const effectiveIsOpen = isOpen ?? layoutContext?.isSidebarOpen;
   const effectiveOnClose = onClose ?? layoutContext?.closeSidebar;
   const effectiveOpen = layoutContext?.openSidebar;
-  const [dashboardOpen, setDashboardOpen] = useState(false);
   const [camsOpen, setCamsOpen] = useState(false);
   const [clientServicingOpen, setClientServicingOpen] = useState(false);
   const [trackersOpen, setTrackersOpen] = useState(false);
@@ -98,11 +97,6 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
   }, []);
 
   useEffect(() => {
-    if (pathname.startsWith('/admin/dashboard')) {
-      setTimeout(() => {
-        setDashboardOpen(true);
-      }, 0);
-    }
     const clientServicingPaths = ['/admin/cpst', '/admin/cv', '/admin/pptm', '/admin/cgpt', '/admin/csmv'];
     const trackerPaths = ['/admin/jf-application', '/admin/jf-bizdev'];
     const sunlifeFormPaths = [
@@ -129,9 +123,6 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
     }
   }, [pathname]);
 
-  const dashboardItems = [
-    { name: 'Overview', href: '/admin/dashboard' },
-  ];
 
   const clientServicingItems = [
     { name: 'Client Management Tracker', href: '/admin/cpst' },
@@ -185,7 +176,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
     <div className={styles.sidebarInner}>
       <div className={`pt-10 pb-5 border-b border-slate-100 dark:border-slate-800/50 flex flex-col items-center ${styles.sidebarHeader} ${isEffectivelyCollapsed ? styles.sidebarHeaderCollapsed : ''}`}>
         <div className={`${styles.sidebarHeaderContainer} ${isEffectivelyCollapsed ? styles.sidebarHeaderContainerCollapsed : ''}`}>
-          <div className={`flex items-center gap-3 ${isEffectivelyCollapsed ? styles.headerBrandCollapsed : ''}`}>
+          <Link href="/admin/dashboard" className={`flex items-center gap-3 ${isEffectivelyCollapsed ? styles.headerBrandCollapsed : ''}`}>
             <Image
               src="/Image/icon/TPC.png"
               alt="Team Padua Logo"
@@ -197,7 +188,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
               <h1 className={styles.sidebarTitle}>Team Padua</h1>
               <p className={styles.sidebarSubtitle}>Control Terminal</p>
             </div>
-          </div>
+          </Link>
         </div>
 
         {greeting && (
@@ -224,37 +215,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
               <LayoutDashboard size={16} className={`shrink-0 ${pathname.startsWith('/admin/dashboard') ? styles.navIconActive : styles.navIconInactive}`} />
               <span className={`${styles.navLabel} ${isEffectivelyCollapsed ? styles.navLabelHidden : ''}`}>Dashboard</span>
             </Link>
-            {!isEffectivelyCollapsed && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  setDashboardOpen(!dashboardOpen);
-                }}
-                className={styles.dropdownToggleBtn}
-              >
-                {dashboardOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-              </button>
-            )}
           </div>
-
-          {!isEffectivelyCollapsed && dashboardOpen && (
-            <div className={styles.sidebarSubNav}>
-              {dashboardItems.map((sub) => {
-                const subActive = pathname === sub.href;
-                return (
-                  <Link
-                    key={sub.href}
-                    href={sub.href}
-                    onClick={onClose}
-                    className={`${styles.sidebarSubNavItem} ${subActive ? styles.navSubActive : styles.navSubInactive}`}
-                  >
-                    <span>{sub.name}</span>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
         </div>
 
         <div className={styles.sidebarNavGroup}>

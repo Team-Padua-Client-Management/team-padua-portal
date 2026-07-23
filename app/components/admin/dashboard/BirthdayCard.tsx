@@ -6,11 +6,11 @@ import styles from '@/styles/admin/dashboard/page.module.css';
 export interface BirthdayItem {
   id: string;
   name: string;
-  date: string; // e.g. "Jul 22"
+  date: string;
   when: 'today' | 'yesterday' | 'tomorrow';
   age?: number;
-  policyNo?: string;
   advisor?: string;
+  policyNo?: string;
 }
 
 interface BirthdayCardProps {
@@ -23,20 +23,22 @@ export default function BirthdayCard({ birthdays = [] }: BirthdayCardProps) {
   return (
     <div className={`${styles.dashboardCard} ${styles.birthdayCard}`}>
       {/* Header Row */}
-      <div className={styles.dashboardCardHeader}>
-        <div className={styles.headerTitleWrapper}>
-          <div className={styles.birthdayIconBadge}>
-            <Cake size={16} strokeWidth={2.2} />
+      <div className={`${styles.dashboardCardHeader} !p-4`}>
+        <div className="flex items-center gap-2.5">
+          <div className={`${styles.birthdayIconBadge} !w-9 !h-9 !p-2`}>
+            <Cake size={22} strokeWidth={2.5} />
           </div>
-          <div className={styles.dashboardCardTitle}>
-            <h3>Client Birthdays</h3>
+          <div className="flex items-center">
+            <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight m-0 leading-none">
+              Client Birthdays
+            </h1>
           </div>
         </div>
 
         <div className={styles.headerRightActions}>
           {todayCount > 0 && (
-            <span className={styles.birthdayTodayPill}>
-              <Sparkles size={11} />
+            <span className={`${styles.birthdayTodayPill} !text-[14px] !px-3.5 !py-1.5 !font-bold !gap-1.5`}>
+              <Sparkles size={16} />
               {todayCount} Today!
             </span>
           )}
@@ -88,7 +90,7 @@ export default function BirthdayCard({ birthdays = [] }: BirthdayCardProps) {
                       )}
                     </div>
                     <span className={styles.birthdayDateMeta}>
-                      {item.date} {item.age !== undefined && item.age > 0 ? `• ${item.age} yrs old` : ''} {item.policyNo ? `• ${item.policyNo}` : ''}
+                      {item.date} {item.age !== undefined && item.age > 0 ? `• ${item.age} yrs old` : ''}
                     </span>
                   </div>
 

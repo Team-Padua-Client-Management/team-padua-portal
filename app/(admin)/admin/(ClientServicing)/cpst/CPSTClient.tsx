@@ -262,13 +262,6 @@ interface CPSTClientProps {
 const formInputClass = "w-full px-3.5 py-2.5 border border-border rounded-2xl text-xs focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 bg-card text-foreground transition-all duration-200";
 const formLabelClass = "block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5";
 
-const DEFAULT_ADVISOR: AdvisorRecord = {
-  id: '1223fa43-e434-4445-9d9d-aac809f8226b',
-  advisorCode: 'ADV-001',
-  advisorName: 'Daniel Padua',
-  email: 'daniel.a.padua@sunlife.com.ph'
-};
-
 export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }: CPSTClientProps) {
   const [advisors, setAdvisors] = useState<AdvisorRecord[]>([]);
   const [clients, setClients] = useState<ClientManagementRecord[]>([]);
@@ -294,6 +287,7 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
 
   const [isDragging, setIsDragging] = useState(false);
   const [importMethod, setImportMethod] = useState<'file' | 'paste'>('file');
+  const [importTarget, setImportTarget] = useState<'clients' | 'advisors'>('clients');
   const [pastedText, setPastedText] = useState('');
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importAdvisorId, setImportAdvisorId] = useState<string>('');
@@ -304,9 +298,9 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
     phase: 'idle' | 'reading' | 'password' | 'preview' | 'importing' | 'done' | 'error';
     fileName: string;
     validation: {
-      valid: Partial<ClientManagementRecord>[];
+      valid: any[];
       invalid: { rowNumber: number; reason: string; rawData: any }[];
-      total: number;
+      stats: { skippedHeaders: number; skippedEmpty: number; skippedInvalid: number };
     } | null;
     totalRows?: number;
     importedCount?: number;
@@ -342,6 +336,10 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
         .select('*')
         .order('advisor_name', { ascending: true });
 
+      if (advisorsErr) {
+        console.error('Supabase Error fetching advisors:', advisorsErr);
+      }
+
       const { data: clientsData, error: clientsErr } = await supabase
         .from('cpst_clients')
         .select('*, advisor:advisors(*)')
@@ -362,6 +360,7 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
           createdAt: a.created_at || ''
         }));
       } else if (clientsData && clientsData.length > 0) {
+        console.warn('Fallback Warning: advisors table is empty or inaccessible. Building advisor list from clients.advisor_id. This may mask database issues like missing RLS policies.');
         const advisorMap = new Map<string, AdvisorRecord>();
         clientsData.forEach((c: any) => {
           const advId = c.advisor_id || (c.advisor ? c.advisor.id : null);
@@ -369,16 +368,16 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
             if (c.advisor) {
               advisorMap.set(advId, {
                 id: c.advisor.id,
-                advisorCode: c.advisor.advisor_code || 'ADV-001',
-                advisorName: c.advisor.advisor_name || 'Daniel Padua',
-                email: c.advisor.email || 'daniel.a.padua@sunlife.com.ph'
+                advisorCode: c.advisor.advisor_code || '',
+                advisorName: c.advisor.advisor_name || 'Unknown Advisor',
+                email: c.advisor.email || ''
               });
             } else {
               advisorMap.set(advId, {
                 id: advId,
-                advisorCode: 'ADV-001',
-                advisorName: 'Daniel Padua',
-                email: 'daniel.a.padua@sunlife.com.ph'
+                advisorCode: '',
+                advisorName: 'Unknown Advisor',
+                email: ''
               });
             }
           }
@@ -386,32 +385,10 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
         loadedAdvisors = Array.from(advisorMap.values());
       }
 
-      if (loadedAdvisors.length === 0) {
-        loadedAdvisors = [DEFAULT_ADVISOR];
-      }
       setAdvisors(loadedAdvisors);
 
       if (clientsErr || !clientsData) {
-        const triwynnId = loadedAdvisors[0]?.id || DEFAULT_ADVISOR.id;
-        setClients([
-          {
-            id: '00000000-0000-0000-0000-000000000001',
-            advisorId: triwynnId,
-            advisor: loadedAdvisors[0] || DEFAULT_ADVISOR,
-            clientName: 'Juan Dela Cruz',
-            relationship: 'Self',
-            policyNumber: 'POL-998877',
-            product: 'Sun Maxilink Prime',
-            approvalDate: '2025-01-15',
-            annualPremium: 45000,
-            mobileNumber: '+639171234567',
-            email: 'juan@example.com',
-            address: 'Makati City',
-            beneficiary: 'Maria Dela Cruz',
-            fundAllocation: '100% Equity',
-            modeOfPayment: 'Annual'
-          }
-        ]);
+        setClients([]);
       } else {
         const mappedClients: ClientManagementRecord[] = clientsData.map((c: any) => ({
           id: c.id,
@@ -589,17 +566,28 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
         email: currentAdvisor.email?.trim() || '',
       };
 
+      let error = null;
+
       if (currentAdvisor.id) {
-        await supabase.from('advisors').update(payload).eq('id', currentAdvisor.id);
+        const res = await supabase.from('advisors').update(payload).eq('id', currentAdvisor.id);
+        error = res.error;
       } else {
         const newId = crypto.randomUUID();
-        await supabase.from('advisors').insert([{ ...payload, id: newId }]);
+        const res = await supabase.from('advisors').insert([{ ...payload, id: newId }]);
+        error = res.error;
+      }
+
+      if (error) {
+        console.error('Supabase Error saving advisor:', error);
+        alert(`Failed to save advisor: ${error.message}\nCheck RLS policies or console for details.`);
+        return; // Don't close modal on error
       }
 
       setActiveModal(null);
       fetchData();
     } catch (err) {
-      console.error('Error saving advisor:', err);
+      console.error('Exception saving advisor:', err);
+      alert('An unexpected exception occurred while saving.');
     }
   };
 
@@ -699,7 +687,8 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
       if (
         rowText.includes("report:") ||
         rowText.includes("date generated:") ||
-        rowText.includes("data privacy act")
+        rowText.includes("data privacy act") ||
+        rowText.includes("policy owner")
       ) {
         skippedHeaders++;
         continue;
@@ -710,6 +699,10 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
       headerRow.forEach((h: any, idx: number) => { rawData[String(h)] = row[idx] ?? ''; });
 
       const clientName = nameCol >= 0 ? String(row[nameCol] ?? '').trim() : '';
+      if (clientName === '1') {
+        skippedHeaders++;
+        continue;
+      }
       const mobileNumber = mobCol >= 0 ? String(row[mobCol] ?? '').trim() : '';
       const email = emailCol >= 0 ? String(row[emailCol] ?? '').trim() : '';
       const address = addCol >= 0 ? String(row[addCol] ?? '').trim() : '';
@@ -735,6 +728,17 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
         continue;
       }
 
+      const isDuplicate = clients.some(c => 
+        (policyNumber && c.policyNumber === policyNumber) || 
+        (!policyNumber && c.clientName.toLowerCase() === clientName.toLowerCase() && c.birthdate === birthdate)
+      );
+
+      if (isDuplicate) {
+        skippedInvalid++;
+        invalid.push({ rowNumber, reason: 'Duplicate Entry', rawData });
+        continue;
+      }
+
       valid.push({
         clientName,
         mobileNumber,
@@ -749,6 +753,77 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
         fundAllocation,
         modeOfPayment
       });
+    }
+
+    return { valid, invalid, stats: { skippedHeaders, skippedEmpty, skippedInvalid } };
+  };
+
+  const parseAdvisorRows = (rows: any[][]) => {
+    let headerIndex = -1;
+    const requiredHeaders = ["advisor name", "advisor code", "name", "code"];
+
+    for (let i = 0; i < Math.min(rows.length, 30); i++) {
+      const row = rows[i] || [];
+      const lowerCells = row.map(cell => String(cell).toLowerCase().trim());
+      
+      let matchCount = 0;
+      for (const h of requiredHeaders) {
+        if (lowerCells.some(cell => cell.includes(h))) {
+          matchCount++;
+        }
+      }
+
+      if (matchCount >= 2) {
+        headerIndex = i;
+        break;
+      }
+    }
+
+    if (headerIndex === -1) {
+      throw new Error("Could not detect valid header row. Ensure template contains Advisor Name and Advisor Code.");
+    }
+
+    const headerRow = rows[headerIndex] || [];
+    const findCol = (kw: string[]): number => headerRow.findIndex((h: any) => kw.some(k => String(h).toLowerCase().includes(k)));
+
+    const nameCol = findCol(['advisor name', 'advisor', 'name']);
+    const codeCol = findCol(['advisor code', 'code']);
+    const emailCol = findCol(['email', 'email address']);
+
+    const valid: Partial<AdvisorRecord>[] = [];
+    const invalid: { rowNumber: number; reason: string; rawData: any }[] = [];
+    let skippedHeaders = 0;
+    let skippedEmpty = 0;
+    let skippedInvalid = 0;
+
+    for (let i = headerIndex + 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row || row.every((cell: any) => !String(cell).trim())) {
+        skippedEmpty++;
+        continue;
+      }
+
+      const rowText = row.join(" ").toLowerCase();
+      if (rowText.includes("report:") || rowText.includes("date generated:")) {
+        skippedHeaders++;
+        continue;
+      }
+
+      const rowNumber = i + 1;
+      const rawData: Record<string, any> = {};
+      headerRow.forEach((h: any, idx: number) => { rawData[String(h)] = row[idx] ?? ''; });
+
+      const advisorName = nameCol >= 0 ? String(row[nameCol] ?? '').trim() : '';
+      const advisorCode = codeCol >= 0 ? String(row[codeCol] ?? '').trim() : '';
+      const email = emailCol >= 0 ? String(row[emailCol] ?? '').trim() : '';
+
+      if (!advisorName || !advisorCode) {
+        skippedInvalid++;
+        invalid.push({ rowNumber, reason: 'Missing Name or Code', rawData });
+        continue;
+      }
+
+      valid.push({ advisorName, advisorCode, email });
     }
 
     return { valid, invalid, stats: { skippedHeaders, skippedEmpty, skippedInvalid } };
@@ -881,6 +956,79 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
     }
   };
 
+  const processAndImportAdvisors = async (
+    validRows: Partial<AdvisorRecord>[],
+    fileName: string,
+    parseStats?: { skippedHeaders: number; skippedEmpty: number; skippedInvalid: number }
+  ) => {
+    if (validRows.length === 0) return;
+    setImportState(prev => ({ ...prev, phase: 'importing', fileName }));
+
+    try {
+      const { data: existingAdvisors } = await supabase.from('advisors').select('id, advisor_code, email');
+
+      const recordsToUpsert: any[] = [];
+      let importedCount = 0;
+      let updatedCount = 0;
+      let skippedCount = 0;
+
+      for (const record of validRows) {
+        const existing = existingAdvisors?.find(a =>
+          (a.advisor_code && record.advisorCode && a.advisor_code.toLowerCase() === record.advisorCode.toLowerCase()) ||
+          (a.email && record.email && a.email.toLowerCase() === record.email.toLowerCase())
+        );
+
+        const existingInBatch = recordsToUpsert.find(a =>
+          (a.advisor_code && record.advisorCode && a.advisor_code.toLowerCase() === record.advisorCode.toLowerCase()) ||
+          (a.email && record.email && a.email.toLowerCase() === record.email.toLowerCase())
+        );
+
+        if (existingInBatch) {
+          skippedCount++;
+          continue;
+        }
+
+        let id = '';
+        if (existing) {
+          id = existing.id;
+          updatedCount++;
+        } else {
+          id = crypto.randomUUID();
+          importedCount++;
+        }
+
+        recordsToUpsert.push({
+          id,
+          advisor_code: record.advisorCode,
+          advisor_name: record.advisorName,
+          email: record.email || ''
+        });
+      }
+
+      const { error } = await supabase.from('advisors').upsert(recordsToUpsert).select();
+      if (error) throw error;
+
+      setImportState(prev => ({
+        ...prev,
+        phase: 'done',
+        totalRows: validRows.length + (parseStats ? parseStats.skippedHeaders + parseStats.skippedEmpty + parseStats.skippedInvalid : 0),
+        importedCount,
+        updatedCount,
+        skippedCount,
+        skippedHeaders: parseStats?.skippedHeaders || 0,
+        skippedEmpty: parseStats?.skippedEmpty || 0,
+        skippedInvalid: parseStats?.skippedInvalid || 0
+      }));
+      fetchData();
+    } catch (err) {
+      setImportState(prev => ({
+        ...prev,
+        phase: 'error',
+        errorMessage: typeof err === 'object' && err !== null && 'message' in err ? String((err as any).message) : String(err)
+      }));
+    }
+  };
+
   const parseDecryptedFile = async (file: File) => {
     try {
       const XLSX = await import('xlsx');
@@ -889,8 +1037,13 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
       const sheet = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1, raw: true, defval: '' });
 
-      const { valid, invalid, stats } = parseClientRows(rows);
-      await processAndImportClients(valid, file.name, stats);
+      if (importTarget === 'clients') {
+        const { valid, invalid, stats } = parseClientRows(rows);
+        setImportState(prev => ({ ...prev, phase: 'preview', validation: { valid, invalid, stats } as any }));
+      } else {
+        const { valid, invalid, stats } = parseAdvisorRows(rows);
+        setImportState(prev => ({ ...prev, phase: 'preview', validation: { valid, invalid, stats } as any }));
+      }
     } catch (err) {
       setImportState({
         phase: 'error',
@@ -903,8 +1056,8 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
   };
 
   const handleFileSelected = async (file: File) => {
-    if (!importAdvisorId) {
-      setImportState({ phase: 'error', fileName: file.name, validation: null, importedCount: 0, errorMessage: 'Please select an Advisor before uploading.' });
+    if (importTarget === 'clients' && !importAdvisorId) {
+      setImportState({ phase: 'error', fileName: file.name, validation: null, importedCount: 0, errorMessage: 'Please select an Advisor before uploading clients.' });
       return;
     }
 
@@ -929,8 +1082,13 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
       const sheet = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1, raw: true, defval: '' });
 
-      const { valid, invalid, stats } = parseClientRows(rows);
-      await processAndImportClients(valid, file.name, stats);
+      if (importTarget === 'clients') {
+        const { valid, invalid, stats } = parseClientRows(rows);
+        setImportState(prev => ({ ...prev, phase: 'preview', validation: { valid, invalid, stats } as any }));
+      } else {
+        const { valid, invalid, stats } = parseAdvisorRows(rows);
+        setImportState(prev => ({ ...prev, phase: 'preview', validation: { valid, invalid, stats } as any }));
+      }
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
       const isPasswordProtected = errMsg.toLowerCase().includes('password') ||
@@ -950,8 +1108,8 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
   };
 
   const handlePasteImport = async (text: string) => {
-    if (!importAdvisorId) {
-      setImportState({ phase: 'error', fileName: 'Pasted Grid Data', validation: null, importedCount: 0, errorMessage: 'Please select an Advisor before importing.' });
+    if (importTarget === 'clients' && !importAdvisorId) {
+      setImportState({ phase: 'error', fileName: 'Pasted Grid Data', validation: null, importedCount: 0, errorMessage: 'Please select an Advisor before importing clients.' });
       return;
     }
 
@@ -962,8 +1120,13 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
       const rows = text.split(/\r?\n/).map(row => row.split('\t'));
       if (rows.length < 2) throw new Error("No data found or insufficient rows.");
 
-      const { valid, invalid, stats } = parseClientRows(rows);
-      await processAndImportClients(valid, 'Pasted Grid Data', stats);
+      if (importTarget === 'clients') {
+        const { valid, invalid, stats } = parseClientRows(rows);
+        setImportState(prev => ({ ...prev, phase: 'preview', validation: { valid, invalid, stats } as any }));
+      } else {
+        const { valid, invalid, stats } = parseAdvisorRows(rows);
+        setImportState(prev => ({ ...prev, phase: 'preview', validation: { valid, invalid, stats } as any }));
+      }
     } catch (err) {
       setImportState({ phase: 'error', fileName: 'Pasted Grid Data', validation: null, importedCount: 0, errorMessage: err instanceof Error ? err.message : String(err) });
     }
@@ -1115,6 +1278,7 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
 
                 <button
                   onClick={() => {
+                    setImportTarget(selectedAdvisor ? 'clients' : 'advisors');
                     setImportAdvisorId(selectedAdvisor?.id || advisors[0]?.id || '');
                     setActiveModal('import');
                   }}
@@ -1162,11 +1326,12 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
                       <h3 className={styles.table_70}>CAMS Batch Import</h3>
                     </div>
                     <p className={styles.text_71}>
-                      Upload Excel or CSV files to batch import clients under a selected advisor.
+                      Upload Excel or CSV files to batch import clients under a selected advisor, or batch import new advisors.
                     </p>
                   </div>
                   <button
                     onClick={() => {
+                      setImportTarget('clients');
                       setImportAdvisorId(advisors[0]?.id || '');
                       setActiveModal('import');
                     }}
@@ -1188,17 +1353,6 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
                     className="w-full bg-card border border-border rounded-full h-11 pl-10 pr-4 text-sm text-text transition duration-200 focus:outline-none focus:border-[#F4C542] focus:ring-4 focus:ring-[#F4C542]/10"
                   />
                 </div>
-                {canCreate && (
-                  <button
-                    onClick={() => {
-                      setCurrentAdvisor({});
-                      setActiveModal('addAdvisor');
-                    }}
-                    className="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-black font-extrabold px-5 py-2.5 rounded-full text-xs transition-all duration-200 shadow-md hover:shadow-lg cursor-pointer whitespace-nowrap active:scale-[0.97]"
-                  >
-                    <UserPlus size={14} /> Add Advisor
-                  </button>
-                )}
               </div>
 
               <div className={styles.card_85}>
@@ -1589,22 +1743,47 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
               </button>
             </div>
 
-            <div className="p-5 border-b border-border bg-slate-50/50 dark:bg-slate-900/20 text-left">
-              <label className={formLabelClass}>Import For Advisor <span className="text-red-500">*</span></label>
-              <select
-                value={importAdvisorId}
-                onChange={e => setImportAdvisorId(e.target.value)}
-                required
-                className={formInputClass}
-              >
-                <option value="">Select Advisor</option>
-                {advisors.map(a => (
-                  <option key={a.id} value={a.id}>
-                    {a.advisorName} ({a.advisorCode})
-                  </option>
-                ))}
-              </select>
+            <div className="flex gap-6 p-5 border-b border-border bg-surface-2 text-left items-center shrink-0">
+              <label className="flex items-center gap-2 text-sm font-bold text-text cursor-pointer">
+                <input
+                  type="radio"
+                  name="importTarget"
+                  checked={importTarget === 'clients'}
+                  onChange={() => setImportTarget('clients')}
+                  className="w-4 h-4 text-primary focus:ring-primary/20 bg-transparent border-border"
+                />
+                Import Clients
+              </label>
+              <label className="flex items-center gap-2 text-sm font-bold text-text cursor-pointer">
+                <input
+                  type="radio"
+                  name="importTarget"
+                  checked={importTarget === 'advisors'}
+                  onChange={() => setImportTarget('advisors')}
+                  className="w-4 h-4 text-primary focus:ring-primary/20 bg-transparent border-border"
+                />
+                Import Advisors
+              </label>
             </div>
+
+            {importTarget === 'clients' && (
+              <div className="p-5 border-b border-border bg-slate-50/50 dark:bg-slate-900/20 text-left shrink-0">
+                <label className={formLabelClass}>Import For Advisor <span className="text-red-500">*</span></label>
+                <select
+                  value={importAdvisorId}
+                  onChange={e => setImportAdvisorId(e.target.value)}
+                  required
+                  className={formInputClass}
+                >
+                  <option value="">Select Advisor</option>
+                  {advisors.map(a => (
+                    <option key={a.id} value={a.id}>
+                      {a.advisorName} ({a.advisorCode})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {importState.phase === 'idle' && (
               <div className="flex border-b border-border bg-slate-50/50 dark:bg-slate-900/20 p-1.5 gap-1.5 shrink-0">
@@ -1766,6 +1945,68 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
                 <div className="text-center">
                   <h3 className="text-sm font-bold text-text">Analyzing Register</h3>
                   <p className="text-xs text-text-secondary mt-1">Reading headers and validating cells...</p>
+                </div>
+              </div>
+            )}
+
+            {importState.phase === 'preview' && importState.validation && (
+              <div className="flex flex-col h-full max-h-[60vh] p-6 space-y-4">
+                <div className="text-left">
+                  <h3 className="text-sm font-bold text-text">Preview Valid Records</h3>
+                  <p className="text-xs text-text-secondary mt-1">
+                    Found {importState.validation.valid.length} valid rows and {importState.validation.invalid.length} invalid/duplicate rows.
+                  </p>
+                </div>
+                
+                <div className="flex-1 overflow-auto rounded-xl border border-border bg-surface-2 p-0">
+                  <table className="w-full text-left text-xs whitespace-nowrap">
+                    <thead className="bg-card border-b border-border sticky top-0">
+                      <tr>
+                        <th className="py-2 px-3 font-bold text-text-secondary">#</th>
+                        <th className="py-2 px-3 font-bold text-text-secondary">Name</th>
+                        {importTarget === 'clients' && <th className="py-2 px-3 font-bold text-text-secondary">Policy No</th>}
+                        <th className="py-2 px-3 font-bold text-text-secondary">Email</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {importState.validation.valid.length === 0 ? (
+                        <tr><td colSpan={4} className="py-8 text-center text-text-secondary">No valid records to import.</td></tr>
+                      ) : importState.validation.valid.slice(0, 50).map((r: any, i: number) => (
+                        <tr key={i} className="border-b border-border/40 last:border-0 hover:bg-card/50">
+                          <td className="py-2 px-3 text-text-secondary">{i + 1}</td>
+                          <td className="py-2 px-3 font-semibold text-text">{r.clientName || r.advisorName}</td>
+                          {importTarget === 'clients' && <td className="py-2 px-3 text-text-secondary">{r.policyNumber || '—'}</td>}
+                          <td className="py-2 px-3 text-text-secondary">{r.email || '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="flex gap-3 pt-2 shrink-0">
+                  <button
+                    onClick={() => {
+                      if (importTarget === 'clients') {
+                        processAndImportClients(importState.validation!.valid, importState.fileName, importState.validation!.stats);
+                      } else {
+                        processAndImportAdvisors(importState.validation!.valid, importState.fileName, importState.validation!.stats);
+                      }
+                    }}
+                    disabled={importState.validation.valid.length === 0}
+                    className="flex-1 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-extrabold text-xs py-3 rounded-full transition-all duration-200 cursor-pointer shadow-md active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Confirm Import ({importState.validation.valid.length})
+                  </button>
+                  <button
+                    onClick={() => {
+                      resetImportState();
+                      setImportFile(null);
+                      setPastedText('');
+                    }}
+                    className="flex-1 bg-transparent border border-border text-text hover:bg-surface-2 text-xs font-semibold py-3 rounded-full transition-all duration-200 cursor-pointer active:scale-[0.97]"
+                  >
+                    Cancel
+                  </button>
                 </div>
               </div>
             )}
