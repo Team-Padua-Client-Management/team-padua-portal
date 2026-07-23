@@ -98,7 +98,7 @@ const mapDbTaskToUiTask = (t: any): TaskItem => {
 
 const formatUiTaskToDbUpdates = (updates: Partial<TaskItem>, currentTask?: TaskItem) => {
   const dbUpdates: any = {};
-  
+
   if (updates.title !== undefined) dbUpdates.title = updates.title;
   if (updates.status !== undefined) dbUpdates.status = updates.status;
   if (updates.priority !== undefined) dbUpdates.priority = updates.priority;
@@ -175,10 +175,10 @@ function parseFlexDate(val: any): Date | null {
 
 function getBirthdaysAroundNow(clients: any[]): BirthdayItem[] {
   const now = new Date();
-  
+
   const yesterday = new Date(now);
   yesterday.setDate(now.getDate() - 1);
-  
+
   const tomorrow = new Date(now);
   tomorrow.setDate(now.getDate() + 1);
 
@@ -198,7 +198,7 @@ function getBirthdaysAroundNow(clients: any[]): BirthdayItem[] {
     for (const client of clients) {
       const bdateVal = client.birthdate || client.birth_date || client.dob || client.birthday;
       if (!bdateVal) continue;
-      
+
       const bDate = parseFlexDate(bdateVal);
       if (!bDate) continue;
 
@@ -310,6 +310,7 @@ export default function DashboardOverviewPage() {
   const [pomoIsRunning, setPomoIsRunning] = useState<boolean>(false);
   const [pomoCompletedSessions, setPomoCompletedSessions] = useState<number>(0);
   const [pomoNotice, setPomoNotice] = useState<string | null>(null);
+
 
   const prefersReducedMotion = useReducedMotion();
   const fadeVariants = prefersReducedMotion ? itemVariantsReduced : itemVariants;
@@ -713,29 +714,45 @@ export default function DashboardOverviewPage() {
       const saved = localStorage.getItem('tp_admin_pomodoro');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed.mode && POMODORO_CONFIG[parsed.mode as PomodoroMode]) {
-          const mode = parsed.mode as PomodoroMode;
-          setPomoMode(mode);
-          let rem = typeof parsed.remainingSeconds === 'number' ? parsed.remainingSeconds : POMODORO_CONFIG[mode].duration;
-          let isRun = !!parsed.isRunning;
 
-          if (isRun && parsed.lastTimestamp) {
-            const elapsed = Math.floor((Date.now() - parsed.lastTimestamp) / 1000);
-            rem = rem - elapsed;
-            if (rem <= 0) {
-              rem = 0;
-              isRun = false;
-              if (mode === 'focus') {
-                setPomoCompletedSessions((prev) => (typeof parsed.completedSessions === 'number' ? parsed.completedSessions + 1 : prev + 1));
-                setPomoNotice('Pomodoro Complete');
-              } else {
-                setPomoNotice('Break Finished');
-              }
+        const mode: PomodoroMode =
+          parsed.mode && POMODORO_CONFIG[parsed.mode as PomodoroMode]
+            ? (parsed.mode as PomodoroMode)
+            : 'focus';
+
+        const configDuration = POMODORO_CONFIG[mode].duration;
+
+        const cachedRemaining = parsed.remainingSeconds;
+        const isValidCachedRemaining =
+          typeof cachedRemaining === 'number' &&
+          Number.isFinite(cachedRemaining) &&
+          cachedRemaining >= 0 &&
+          cachedRemaining <= configDuration;
+
+        let rem = isValidCachedRemaining ? cachedRemaining : configDuration;
+        let isRun = !!parsed.isRunning;
+
+        if (isRun && parsed.lastTimestamp) {
+          const elapsed = Math.floor((Date.now() - parsed.lastTimestamp) / 1000);
+          rem = rem - elapsed;
+          if (rem <= 0) {
+            rem = 0;
+            isRun = false;
+            if (mode === 'focus') {
+              setPomoCompletedSessions((prev) =>
+                typeof parsed.completedSessions === 'number' ? parsed.completedSessions + 1 : prev + 1
+              );
+              setPomoNotice('Pomodoro Complete');
+            } else {
+              setPomoNotice('Break Finished');
             }
           }
-          setPomoSeconds(rem);
-          setPomoIsRunning(isRun);
         }
+
+        setPomoMode(mode);
+        setPomoSeconds(rem);
+        setPomoIsRunning(isRun);
+
         if (typeof parsed.completedSessions === 'number') {
           setPomoCompletedSessions(parsed.completedSessions);
         }
@@ -744,6 +761,7 @@ export default function DashboardOverviewPage() {
       console.error('Failed to load Pomodoro state:', err);
     }
   }, []);
+
 
   // Save Pomodoro state to LocalStorage
   useEffect(() => {
@@ -761,7 +779,7 @@ export default function DashboardOverviewPage() {
     }
   }, [pomoMode, pomoSeconds, pomoIsRunning, pomoCompletedSessions]);
 
-  // Pomodoro Countdown Interval lifecycle
+
   useEffect(() => {
     let timerId: NodeJS.Timeout | null = null;
 
