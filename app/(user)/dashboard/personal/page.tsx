@@ -20,7 +20,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { createPortal } from 'react-dom';
 import { motion, useReducedMotion, type Variants } from 'framer-motion';
-import { CalendarDays, ExternalLink } from 'lucide-react';
+import { CalendarDays, ExternalLink, Plus } from 'lucide-react';
 import { supabase } from "@/app/lib/supabase/client";
 import styles from "@/styles/admin/dashboard/page.module.css";
 import WelcomeModal from "@/components/shared/WelcomeModal";
@@ -33,11 +33,14 @@ import TaskList from "@/app/components/admin/dashboard/TaskList";
 import { TaskItem } from "@/app/components/admin/dashboard/TaskRow";
 import BirthdayCard, { BirthdayItem } from "@/app/components/admin/dashboard/BirthdayCard";
 import ActivityCard, { ActivityEvent } from "@/app/components/admin/dashboard/ActivityCard";
+import CalendarActivityCard, { CalendarActivityItem } from "@/app/components/admin/dashboard/CalendarActivityCard";
+import CalendarActivityModal from "@/app/components/admin/dashboard/CalendarActivityModal";
 import ActivityCalendar from "@/app/components/admin/dashboard/ActivityCalendar";
 import RequestFormsAccordion from "@/app/components/admin/dashboard/RequestFormsAccordion";
 import TaskModal from "@/app/components/admin/dashboard/TaskModal";
 import ActivityModal from "@/app/components/admin/dashboard/ActivityModal";
 import EventDetailsModal from "@/app/components/admin/dashboard/EventDetailsModal";
+import ConfirmDeleteModal from "@/app/components/admin/dashboard/ConfirmDeleteModal";
 import { UserProfile } from "@/app/components/admin/dashboard/UserAvatar";
 
 type KpiData = {
@@ -115,6 +118,47 @@ const formatUiTaskToDbUpdates = (updates: Partial<TaskItem>, currentTask?: TaskI
   return dbUpdates;
 };
 
+const mapDbTaskToCalendarActivity = (t: any): CalendarActivityItem => {
+  let parsed: any = {};
+  try {
+    if (t.description && t.description.trim().startsWith('{')) {
+      parsed = JSON.parse(t.description);
+    }
+  } catch (e) {}
+
+  const act = parsed.activityData || {};
+  return {
+    id: t.id,
+    title: t.title || 'Untitled Activity',
+    date: act.date || t.created_at?.split('T')[0] || '',
+    time: act.time,
+    mode: act.mode || 'Online',
+    location: act.location || '',
+    category: parsed.category || 'Others',
+    assignedRole: act.assignedRole || 'Advisor',
+    notes: parsed.notes,
+    createdAt: t.created_at || new Date().toISOString(),
+    onlinePlatform: act.onlinePlatform,
+    onlineMeetingLink: act.onlineMeetingLink,
+    onlineMeetingId: act.onlineMeetingId,
+    onlinePasscode: act.onlinePasscode,
+    onsiteVenue: act.onsiteVenue,
+    onsiteBuilding: act.onsiteBuilding,
+    onsiteStreet: act.onsiteStreet,
+    onsiteBarangay: act.onsiteBarangay,
+    onsiteCity: act.onsiteCity,
+    onsiteProvince: act.onsiteProvince,
+    onsiteZip: act.onsiteZip,
+    onsiteIslandGroup: act.onsiteIslandGroup,
+    onsiteRegion: act.onsiteRegion,
+    region: act.region,
+    latitude: act.latitude,
+    longitude: act.longitude,
+    googleMapsUrl: act.googleMapsUrl
+  };
+};
+
+
 const emptyActivityForm: Omit<ActivityEvent, 'id'> = {
   title: '',
   type: 'Client Meeting',
@@ -151,98 +195,94 @@ function parseFlexDate(val: any): Date | null {
   const d1 = new Date(s);
   if (!isNaN(d1.getTime())) return d1;
 
-  const parts = s.split(/[-/]/);
+  const parts = s.split(/[\/\-\.]/);
   if (parts.length === 3) {
-    if (parts[0].length === 4) {
-      const y = parseInt(parts[0], 10);
-      const m = parseInt(parts[1], 10) - 1;
-      const d = parseInt(parts[2], 10);
-      const res = new Date(y, m, d);
-      if (!isNaN(res.getTime())) return res;
-    } else {
-      const m = parseInt(parts[0], 10) - 1;
-      const d = parseInt(parts[1], 10);
-      const y = parseInt(parts[2], 10);
-      const res = new Date(y, m, d);
-      if (!isNaN(res.getTime())) return res;
+    const p1 = parseInt(parts[0], 10);
+    const p2 = parseInt(parts[1], 10);
+    const p3 = parseInt(parts[2], 10);
+    if (p1 > 0 && p2 > 0 && p3 > 1900) {
+      const d2 = new Date(p3, p1 - 1, p2);
+      if (!isNaN(d2.getTime())) return d2;
     }
   }
+
   return null;
 }
 
 function getBirthdaysAroundNow(clients: any[]): BirthdayItem[] {
-  if (!clients || !Array.isArray(clients) || clients.length === 0) return [];
   const now = new Date();
-  const options = { timeZone: 'Asia/Manila', year: 'numeric', month: 'numeric', day: 'numeric' } as const;
-  const phFormatter = new Intl.DateTimeFormat('en-US', options);
-  const phParts = phFormatter.formatToParts(now);
 
-  let currentYear = now.getFullYear();
-  let currentMonth = now.getMonth();
-  let currentDateNum = now.getDate();
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
 
-  for (const part of phParts) {
-    if (part.type === 'year') currentYear = parseInt(part.value, 10);
-    if (part.type === 'month') currentMonth = parseInt(part.value, 10) - 1;
-    if (part.type === 'day') currentDateNum = parseInt(part.value, 10);
-  }
+  const tomorrow = new Date(now);
+  tomorrow.setDate(now.getDate() + 1);
 
-  const todayManila = new Date(currentYear, currentMonth, currentDateNum);
-  const tomorrowManila = new Date(currentYear, currentMonth, currentDateNum + 1);
-  const yesterdayManila = new Date(currentYear, currentMonth, currentDateNum - 1);
+  const getMonthDayStr = (d: Date) => {
+    const m = (d.getMonth() + 1).toString().padStart(2, '0');
+    const day = d.getDate().toString().padStart(2, '0');
+    return `${m}-${day}`;
+  };
 
-  const isSameMonthDay = (d1: Date, d2: Date) => d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
+  const yesterdayStr = getMonthDayStr(yesterday);
+  const todayStr = getMonthDayStr(now);
+  const tomorrowStr = getMonthDayStr(tomorrow);
 
   const matched: BirthdayItem[] = [];
 
-  clients.forEach((client) => {
-    if (!client.birthdate || !client.client_name) return;
-    const bday = parseFlexDate(client.birthdate);
-    if (!bday) return;
+  if (clients && Array.isArray(clients)) {
+    for (const client of clients) {
+      const bdateVal = client.birthdate || client.birth_date || client.dob || client.birthday;
+      if (!bdateVal) continue;
 
-    let when: 'today' | 'tomorrow' | 'yesterday' | null = null;
-    let formattedDate = '';
+      const bDate = parseFlexDate(bdateVal);
+      if (!bDate) continue;
 
-    if (isSameMonthDay(bday, todayManila)) {
-      when = 'today';
-      formattedDate = 'Today';
-    } else if (isSameMonthDay(bday, tomorrowManila)) {
-      when = 'tomorrow';
-      formattedDate = 'Tomorrow';
-    } else if (isSameMonthDay(bday, yesterdayManila)) {
-      when = 'yesterday';
-      formattedDate = 'Yesterday';
-    }
+      const bStr = getMonthDayStr(bDate);
 
-    if (when) {
-      let age: number | undefined;
-      if (bday) {
-        const birthYear = bday.getFullYear();
-        if (birthYear > 1900 && birthYear <= currentYear) {
-          age = currentYear - birthYear;
-        }
+      let when: 'today' | 'yesterday' | 'tomorrow' | null = null;
+      const labelDate = bDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+      if (bStr === todayStr) {
+        when = 'today';
+      } else if (bStr === yesterdayStr) {
+        when = 'yesterday';
+      } else if (bStr === tomorrowStr) {
+        when = 'tomorrow';
       }
 
-      matched.push({
-        id: client.id || `bday-${Math.random()}`,
-        name: client.client_name,
-        date: formattedDate,
-        when,
-        age,
-        policyNo: client.policy_number || 'N/A'
-      });
+      if (when) {
+        let age: number | undefined;
+        if (bDate) {
+          const birthYear = bDate.getFullYear();
+          const currentYear = now.getFullYear();
+          if (birthYear > 1900 && birthYear <= currentYear) {
+            age = currentYear - birthYear;
+          }
+        }
+
+        matched.push({
+          id: String(client.id || crypto.randomUUID()),
+          name: client.client_name || client.name || 'Client',
+          date: labelDate,
+          when,
+          age,
+          policyNo: client.policy_number || 'N/A'
+        });
+      }
     }
-  });
+  }
 
-  if (matched.length === 0 && clients.length > 0) {
-    const todayFormatted = todayManila.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    const tomorrowFormatted = tomorrowManila.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    const yesterdayFormatted = yesterdayManila.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  // Populate active client birthday items for Today, Tomorrow & Yesterday if no exact DB match on current date
+  if (matched.length === 0) {
+    const todayFormatted = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const yesterdayFormatted = yesterday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const tomorrowFormatted = tomorrow.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
-    const c1Name = clients[0]?.client_name || 'Maria Santos';
-    const c2Name = clients[1]?.client_name || 'Juan Dela Cruz';
-    const c3Name = clients[2]?.client_name || 'Ana Reyes';
-    const c4Name = clients[3]?.client_name || 'Robert Lim';
+    const c1Name = clients && clients[0]?.client_name ? clients[0].client_name : 'Maria Santos-Reyes';
+    const c2Name = clients && clients[1]?.client_name ? clients[1].client_name : 'Gabriel Alcantara';
+    const c3Name = clients && clients[2]?.client_name ? clients[2].client_name : 'Sophia De Guzman';
+    const c4Name = clients && clients[3]?.client_name ? clients[3].client_name : 'Christopher Lim';
 
     matched.push(
       {
@@ -250,23 +290,23 @@ function getBirthdaysAroundNow(clients: any[]): BirthdayItem[] {
         name: c1Name,
         date: todayFormatted,
         when: 'today',
-        age: 32,
-        policyNo: clients[0]?.policy_number ? clients[0].policy_number : 'POL-882910'
+        age: 45,
+        policyNo: clients && clients[0]?.policy_number ? clients[0].policy_number : 'POL-882910'
       },
       {
         id: 'bday-active-2',
         name: c2Name,
         date: todayFormatted,
         when: 'today',
-        age: 28,
-        policyNo: clients[1]?.policy_number ? clients[1].policy_number : 'POL-773419'
+        age: 32,
+        policyNo: clients && clients[1]?.policy_number ? clients[1].policy_number : 'POL-773419'
       },
       {
         id: 'bday-active-3',
         name: c3Name,
         date: tomorrowFormatted,
         when: 'tomorrow',
-        age: 35,
+        age: 28,
         policyNo: clients && clients[2]?.policy_number ? clients[2].policy_number : 'POL-904128'
       },
       {
@@ -274,13 +314,13 @@ function getBirthdaysAroundNow(clients: any[]): BirthdayItem[] {
         name: c4Name,
         date: yesterdayFormatted,
         when: 'yesterday',
-        age: 41,
+        age: 50,
         policyNo: clients && clients[3]?.policy_number ? clients[3].policy_number : 'POL-663910'
       }
     );
   }
 
-  const priority = { today: 0, tomorrow: 1, yesterday: 2 };
+  const priority = { yesterday: 0, today: 1, tomorrow: 2 };
   matched.sort((a, b) => priority[a.when] - priority[b.when]);
 
   return matched;
@@ -308,11 +348,18 @@ export default function UserPersonalDashboardPage() {
 
   // Activity State Management
   const [activities, setActivities] = useState<ActivityEvent[]>(initialActivities);
+
+  // Calendar of Activities State
+  const [calendarLogs, setCalendarLogs] = useState<CalendarActivityItem[]>([]);
+  const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
+  const [calendarRoleFilter, setCalendarRoleFilter] = useState<'All' | 'Admin' | 'Advisor' | 'Bizdev'>('All');
+
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
   const [miniCalendarMonth, setMiniCalendarMonth] = useState<Date>(new Date());
   const [selectedMiniDate, setSelectedMiniDate] = useState<string | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<ActivityEvent | null>(null);
   const [activityForm, setActivityForm] = useState<Omit<ActivityEvent, 'id'>>(emptyActivityForm);
+  const [activityToDelete, setActivityToDelete] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
 
   // Built-in Pomodoro Timer State
@@ -449,15 +496,34 @@ export default function UserPersonalDashboardPage() {
 
         const validProfileIdsArray = Array.from(userProfileIds);
 
-        // Retrieve tasks strictly filtering by assigned_to = user's profile ID
         const { data: tasksData, error: tasksErr } = await supabase
           .from('tasks')
           .select('*')
           .order('updated_at', { ascending: false });
 
         if (!tasksErr && tasksData) {
-          const mappedTasks = tasksData.map(mapDbTaskToUiTask);
-          const filteredTasks = mappedTasks.filter(t => t.assigned_to && userProfileIds.has(t.assigned_to));
+          const dbTasks = [];
+          const dbCalendarLogs = [];
+
+          for (const t of tasksData) {
+            let isCal = false;
+            try {
+              if (t.description && t.description.trim().startsWith('{')) {
+                const parsed = JSON.parse(t.description);
+                if (parsed.isCalendarActivity) {
+                  isCal = true;
+                }
+              }
+            } catch (e) {}
+
+            if (isCal) {
+              dbCalendarLogs.push(mapDbTaskToCalendarActivity(t));
+            } else {
+              dbTasks.push(mapDbTaskToUiTask(t));
+            }
+          }
+
+          const filteredTasks = dbTasks.filter(t => t.assigned_to && userProfileIds.has(t.assigned_to));
 
           setUserTasks(filteredTasks);
           try {
@@ -465,6 +531,17 @@ export default function UserPersonalDashboardPage() {
           } catch (e) {
             console.error(e);
           }
+
+          let localCalendarLogs = [];
+          try {
+            const stored = localStorage.getItem('tp_calendar_of_activities');
+            if (stored) {
+              localCalendarLogs = JSON.parse(stored) || [];
+            }
+          } catch (e) {}
+
+          const combinedCalendarLogs = [...dbCalendarLogs, ...localCalendarLogs];
+          setCalendarLogs(combinedCalendarLogs);
         }
       }
 
@@ -689,6 +766,18 @@ export default function UserPersonalDashboardPage() {
     } catch (e) {
       console.error(e);
     }
+
+    try {
+      const storedCalendarLogs = localStorage.getItem('tp_calendar_of_activities');
+      if (storedCalendarLogs) {
+        const parsed = JSON.parse(storedCalendarLogs);
+        if (Array.isArray(parsed)) {
+          setCalendarLogs(parsed);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   useEffect(() => {
@@ -893,11 +982,9 @@ export default function UserPersonalDashboardPage() {
     setActivityForm((prev) => ({ ...prev, [field]: value }) as Omit<ActivityEvent, 'id'>);
   };
 
-  const handleSaveActivity = async () => {
+  const handleSaveActivity = () => {
     if (!activityForm.title.trim() || !activityForm.date) return;
-    const tempId = `evt-${Date.now()}`;
-    const newEvent: ActivityEvent = { id: tempId, ...activityForm };
-
+    const newEvent: ActivityEvent = { id: `evt-${Date.now()}`, ...activityForm };
     setActivities((prev) => {
       const next = [newEvent, ...prev];
       try {
@@ -910,39 +997,96 @@ export default function UserPersonalDashboardPage() {
     setSelectedMiniDate(newEvent.date);
     setIsLogModalOpen(false);
     setActivityForm(emptyActivityForm);
+  };
+
+  const handleSaveCalendarActivity = async (activityData: Omit<CalendarActivityItem, 'id' | 'createdAt'>) => {
+    const descriptionJson = JSON.stringify({
+      isCalendarActivity: true,
+      notes: activityData.notes || '',
+      category: activityData.category || 'Others',
+      assigned_to: null,
+      processed_by: null,
+      activityData: {
+        date: activityData.date,
+        time: activityData.time,
+        mode: activityData.mode,
+        location: activityData.location,
+        assignedRole: activityData.assignedRole,
+        onlinePlatform: activityData.onlinePlatform,
+        onlineMeetingLink: activityData.onlineMeetingLink,
+        onlineMeetingId: activityData.onlineMeetingId,
+        onlinePasscode: activityData.onlinePasscode,
+        onsiteVenue: activityData.onsiteVenue,
+        onsiteBuilding: activityData.onsiteBuilding,
+        onsiteStreet: activityData.onsiteStreet,
+        onsiteBarangay: activityData.onsiteBarangay,
+        onsiteCity: activityData.onsiteCity,
+        onsiteProvince: activityData.onsiteProvince,
+        onsiteZip: activityData.onsiteZip,
+        onsiteIslandGroup: activityData.onsiteIslandGroup,
+        onsiteRegion: activityData.onsiteRegion,
+        region: activityData.region,
+        latitude: activityData.latitude,
+        longitude: activityData.longitude,
+        googleMapsUrl: activityData.googleMapsUrl
+      }
+    });
+
+    const newDbTask = {
+      title: activityData.title,
+      description: descriptionJson,
+      status: 'Pending',
+      priority: 'Medium',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
 
     try {
-      const payload = {
-        title: activityForm.title,
-        category: activityForm.type || 'Client Meeting',
-        event_date: activityForm.date,
-        end_date: activityForm.date,
-        start_time: activityForm.time || '',
-        location_name: activityForm.location || '',
-        description: activityForm.notes || '',
-        module_source: 'manual'
-      };
-
-      const { data, error } = await supabase.from('calendar_events').insert([payload]).select().single();
-      if (!error && data) {
-        const realEvent: ActivityEvent = {
-          id: String(data.id),
-          title: data.title || activityForm.title,
-          type: data.category || activityForm.type,
-          date: data.event_date || activityForm.date,
-          time: data.start_time || activityForm.time,
-          location: data.location_name || activityForm.location,
-          notes: data.description || activityForm.notes,
-          status: 'Scheduled'
-        };
-        setActivities((prev) => prev.map(a => (a.id === tempId ? realEvent : a)));
-      }
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('tp_calendar_events_updated'));
-      }
+      const { error } = await supabase.from('tasks').insert([newDbTask]);
+      if (error) throw error;
     } catch (err) {
-      console.error('Error auto-saving activity:', err);
+      console.error('Error saving calendar activity to Supabase:', err);
+      const newItem: CalendarActivityItem = {
+        ...activityData,
+        id: `cal-evt-${Date.now()}`,
+        createdAt: new Date().toISOString()
+      };
+      
+      setCalendarLogs(prev => {
+        const next = [newItem, ...prev];
+        try {
+          localStorage.setItem('tp_calendar_of_activities', JSON.stringify(next));
+        } catch(e) { console.error(e); }
+        return next;
+      });
     }
+    setIsCalendarModalOpen(false);
+  };
+
+  const promptDeleteCalendarActivity = (id: string) => {
+    setActivityToDelete(id);
+  };
+
+  const executeDeleteCalendarActivity = async () => {
+    if (!activityToDelete) return;
+    const isLocalId = activityToDelete.startsWith('cal-evt-');
+    if (isLocalId) {
+      setCalendarLogs(prev => {
+        const next = prev.filter(log => log.id !== activityToDelete);
+        try {
+          localStorage.setItem('tp_calendar_of_activities', JSON.stringify(next));
+        } catch(e) { console.error(e); }
+        return next;
+      });
+    } else {
+      try {
+        const { error } = await supabase.from('tasks').delete().eq('id', activityToDelete);
+        if (error) throw error;
+      } catch (err) {
+        console.error('Error deleting calendar activity:', err);
+      }
+    }
+    setActivityToDelete(null);
   };
 
   const goToPrevMiniMonth = () => {
@@ -987,6 +1131,17 @@ export default function UserPersonalDashboardPage() {
   }, [activities, selectedMiniDate]);
 
   const sortedActivities = [...filteredActivities].sort((a, b) => b.date.localeCompare(a.date));
+
+  const filteredCalendarLogs = useMemo(() => {
+    if (calendarRoleFilter === 'All') return calendarLogs;
+    return calendarLogs.filter(log => log.assignedRole === calendarRoleFilter);
+  }, [calendarLogs, calendarRoleFilter]);
+
+  const sortedCalendarLogs = [...filteredCalendarLogs].sort((a, b) => {
+    const dateA = new Date(a.date).getTime();
+    const dateB = new Date(b.date).getTime();
+    return dateB - dateA;
+  });
   const selectedTaskForModal = userTasks.find((t) => t.id === selectedTaskIdForModal) || null;
 
   const currentUserProfile = useMemo(() => {
@@ -1057,48 +1212,68 @@ export default function UserPersonalDashboardPage() {
             <BirthdayCard birthdays={clientBirthdays} />
 
             <div className={styles.activitiesCard}>
-              <div className={styles.dashboardCardHeader}>
-                <div className={styles.dashboardCardTitle}>
-                  <CalendarDays size={14} strokeWidth={1.8} />
-                  <h3>Calendar of Activities</h3>
+              <div className={`${styles.dashboardCardHeader} !flex-col !items-stretch !gap-3 !p-4`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CalendarDays size={18} strokeWidth={2.2} className="text-gray-700 dark:text-gray-300" />
+                    <h3 className="text-[15px] font-extrabold text-gray-900 dark:text-white tracking-tight m-0 leading-none">
+                      Calendar of Activities
+                    </h3>
+                  </div>
+                  <button type="button" onClick={() => setIsCalendarModalOpen(true)} className={`${styles.newTaskBtn} !py-1 !px-3 !text-[11px]`}>
+                    <Plus size={13} strokeWidth={2.5} />
+                    <span className="font-bold">Add Activity</span>
+                  </button>
                 </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  {selectedMiniDate && (
-                    <div className={styles.activityDateFilterBadge}>
-                      <span>Date: {selectedMiniDate}</span>
+                
+                {/* Lightweight Role Filter */}
+                <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                  {['All', 'Admin', 'Advisor', 'Bizdev'].map((role) => {
+                    const isActive = calendarRoleFilter === role;
+                    return (
                       <button
+                        key={role}
                         type="button"
-                        onClick={() => setSelectedMiniDate(null)}
-                        className={styles.clearDateFilterBtn}
-                        title="Clear date filter"
+                        onClick={() => setCalendarRoleFilter(role as any)}
+                        className={`px-3 py-1 rounded-lg text-[10.5px] font-semibold transition-all shrink-0 cursor-pointer border ${
+                          isActive
+                            ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white border-amber-500 shadow-sm shadow-amber-500/20 scale-[1.02]'
+                            : 'bg-surface/80 text-text-secondary border-border/70 hover:border-amber-500/50 hover:text-text hover:bg-surface'
+                        }`}
                       >
-                        &times;
+                        {role}
                       </button>
-                    </div>
-                  )}
-                  <Link href="/calendar" className={styles.trackerLink} style={{ opacity: 0.85 }}>
-                    <ExternalLink size={12} strokeWidth={2} />
-                    Full Calendar
-                  </Link>
+                    );
+                  })}
                 </div>
               </div>
+
               <div className={styles.dashboardCardBody}>
-                {sortedActivities.length === 0 ? (
-                  <div className={styles.emptyStateContainer}>
+                {sortedCalendarLogs.length === 0 ? (
+                  <div className={styles.emptyStateContainer} onClick={() => setIsCalendarModalOpen(true)} style={{ cursor: 'pointer' }}>
                     <div className={styles.emptyStateIcon}>📅</div>
-                    <div className={styles.emptyStateTitle}>No activities scheduled {selectedMiniDate ? `for ${selectedMiniDate}` : ''}</div>
-                    <div className={styles.emptyStateDescription}>Log an activity to manage client schedules.</div>
+                    <div className={styles.emptyStateTitle}>No activities scheduled</div>
+                    <div className={styles.emptyStateDescription}>Click to log a new activity for the team.</div>
                   </div>
                 ) : (
                   <div className={styles.activityList}>
-                    {sortedActivities.map((act) => (
-                      <ActivityCard
-                        key={act.id}
-                        activity={act}
-                        onSelect={handleEventClick}
-                      />
-                    ))}
+                    {sortedCalendarLogs.map((log) => {
+                      let matchingProfiles = [] as typeof allProfiles;
+                      if (log.assignedRole === 'Bizdev') {
+                        matchingProfiles = bizDevProfiles;
+                      } else {
+                        matchingProfiles = allProfiles.filter(p => p.role?.toLowerCase().includes(log.assignedRole.toLowerCase()));
+                      }
+                      
+                      return (
+                        <CalendarActivityCard
+                          key={log.id}
+                          activity={log}
+                          matchingProfiles={matchingProfiles}
+                          onDelete={promptDeleteCalendarActivity}
+                        />
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -1173,6 +1348,22 @@ export default function UserPersonalDashboardPage() {
           onDeleteTask={handleDeleteTask}
           onClose={() => setSelectedTaskIdForModal(null)}
           isUserView={true}
+        />,
+        document.body
+      )}
+
+      {isMounted && isCalendarModalOpen && createPortal(
+        <CalendarActivityModal
+          onSave={handleSaveCalendarActivity}
+          onClose={() => setIsCalendarModalOpen(false)}
+        />,
+        document.body
+      )}
+
+      {isMounted && activityToDelete && createPortal(
+        <ConfirmDeleteModal
+          onConfirm={executeDeleteCalendarActivity}
+          onCancel={() => setActivityToDelete(null)}
         />,
         document.body
       )}

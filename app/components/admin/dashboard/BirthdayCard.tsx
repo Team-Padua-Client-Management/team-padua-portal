@@ -85,7 +85,7 @@ export default function BirthdayCard({ birthdays = [] }: BirthdayCardProps) {
                       <span className={styles.birthdayName}>{item.name}</span>
                       {item.age !== undefined && item.age > 0 && (
                         <span className={styles.birthdayAgeBadge}>
-                          Turning {item.age}
+                          {item.when === 'yesterday' ? 'Turned' : 'Turning'} {item.age}
                         </span>
                       )}
                     </div>

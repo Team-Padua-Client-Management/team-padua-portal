@@ -29,6 +29,8 @@ export type CalendarActivityItem = {
   onsiteCity?: string;
   onsiteProvince?: string;
   onsiteZip?: string;
+  onsiteIslandGroup?: string;
+  onsiteRegion?: string;
 
   region?: string;
   latitude?: number;

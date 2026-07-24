@@ -31,6 +31,7 @@ export const TASK_CATEGORIES = [
   'SRO - Reinstatement (SRO)',
   'PDI - Reinstatement (PDI)',
   'CSMV - Client Servicing Monitoring Verification',
+  'Inquiry',
   'Others'
 ];
 
@@ -49,6 +50,7 @@ export function normalizeCategory(cat?: string | null): string {
   if (c === 'PDI' || c.startsWith('PDI -')) return 'PDI - Reinstatement (PDI)';
   if (c === 'CSMV' || c === 'UID' || c.startsWith('CSMV -')) return 'CSMV - Client Servicing Monitoring Verification';
   if (c === 'PLT') return 'CPC - Client Policy Change';
+  if (c === 'INQUIRY' || c.startsWith('INQUIRY')) return 'Inquiry';
 
   return cat.trim();
 }
@@ -114,7 +116,10 @@ export default function TaskRow({
   const activeProfile = assignedProfile || processedProfile;
   const userName = activeProfile ? (activeProfile.full_name || activeProfile.email) : 'Unassigned';
   const processedName = processedProfile ? (processedProfile.full_name || processedProfile.email) : null;
-  const timestampText = formatFormattedTime(task.updated_at);
+  const isDone = task.status === 'Done' || task.completed;
+  const timestampText = isDone 
+    ? formatFormattedTime(task.updated_at) 
+    : `Created: ${formatFormattedTime(task.created_at || task.updated_at)}`;
 
   return (
     <div

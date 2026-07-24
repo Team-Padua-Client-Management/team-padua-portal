@@ -47,9 +47,9 @@
   --status-pending: #D97706;
   --status-pending-bg: #FEF3C7;
   --status-pending-border: #FCD34D;
-  --status-inprogress: #2563EB;
-  --status-inprogress-bg: #EFF6FF;
-  --status-inprogress-border: #BFDBFE;
+  --status-inprogress: #CA8A04;
+  --status-inprogress-bg: #FEF9C3;
+  --status-inprogress-border: #FDE047;
   --status-acknowledged: #7C3AED;
   --status-acknowledged-bg: #F5F3FF;
   --status-acknowledged-border: #DDD6FE;
@@ -98,9 +98,9 @@
 
   --status-pending-bg: rgba(184, 134, 11, 0.15);
   --status-pending-border: rgba(184, 134, 11, 0.3);
-  --status-inprogress: #60A5FA;
-  --status-inprogress-bg: rgba(96, 165, 250, 0.14);
-  --status-inprogress-border: rgba(96, 165, 250, 0.28);
+  --status-inprogress: #FDE047;
+  --status-inprogress-bg: rgba(253, 224, 71, 0.14);
+  --status-inprogress-border: rgba(253, 224, 71, 0.28);
   --status-acknowledged: #C4A0FA;
   --status-acknowledged-bg: rgba(196, 160, 250, 0.14);
   --status-acknowledged-border: rgba(196, 160, 250, 0.28);

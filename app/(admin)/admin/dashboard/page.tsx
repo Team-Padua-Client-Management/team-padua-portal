@@ -126,6 +126,47 @@ const formatUiTaskToDbUpdates = (updates: Partial<TaskItem>, currentTask?: TaskI
   return dbUpdates;
 };
 
+const mapDbTaskToCalendarActivity = (t: any): CalendarActivityItem => {
+  let parsed: any = {};
+  try {
+    if (t.description && t.description.trim().startsWith('{')) {
+      parsed = JSON.parse(t.description);
+    }
+  } catch (e) {}
+
+  const act = parsed.activityData || {};
+  return {
+    id: t.id,
+    title: t.title || 'Untitled Activity',
+    date: act.date || t.created_at?.split('T')[0] || '',
+    time: act.time,
+    mode: act.mode || 'Online',
+    location: act.location || '',
+    category: parsed.category || 'Others',
+    assignedRole: act.assignedRole || 'Advisor',
+    notes: parsed.notes,
+    createdAt: t.created_at || new Date().toISOString(),
+    onlinePlatform: act.onlinePlatform,
+    onlineMeetingLink: act.onlineMeetingLink,
+    onlineMeetingId: act.onlineMeetingId,
+    onlinePasscode: act.onlinePasscode,
+    onsiteVenue: act.onsiteVenue,
+    onsiteBuilding: act.onsiteBuilding,
+    onsiteStreet: act.onsiteStreet,
+    onsiteBarangay: act.onsiteBarangay,
+    onsiteCity: act.onsiteCity,
+    onsiteProvince: act.onsiteProvince,
+    onsiteZip: act.onsiteZip,
+    onsiteIslandGroup: act.onsiteIslandGroup,
+    onsiteRegion: act.onsiteRegion,
+    region: act.region,
+    latitude: act.latitude,
+    longitude: act.longitude,
+    googleMapsUrl: act.googleMapsUrl
+  };
+};
+
+
 const emptyActivityForm: Omit<ActivityEvent, 'id'> = {
   title: '',
   type: 'Client Meeting',
@@ -454,8 +495,28 @@ export default function DashboardOverviewPage() {
           .order('updated_at', { ascending: false });
 
         if (!tasksErr && tasksData) {
-          const mappedTasks = tasksData.map(mapDbTaskToUiTask);
-          const filteredTasks = mappedTasks.filter(t => {
+          const dbTasks = [];
+          const dbCalendarLogs = [];
+
+          for (const t of tasksData) {
+            let isCal = false;
+            try {
+              if (t.description && t.description.trim().startsWith('{')) {
+                const parsed = JSON.parse(t.description);
+                if (parsed.isCalendarActivity) {
+                  isCal = true;
+                }
+              }
+            } catch (e) {}
+
+            if (isCal) {
+              dbCalendarLogs.push(mapDbTaskToCalendarActivity(t));
+            } else {
+              dbTasks.push(mapDbTaskToUiTask(t));
+            }
+          }
+
+          const filteredTasks = dbTasks.filter(t => {
             if (isAdmin) return true;
             if (t.assigned_to) {
               return userProfileIds.has(t.assigned_to);
@@ -469,6 +530,17 @@ export default function DashboardOverviewPage() {
           } catch (e) {
             console.error(e);
           }
+
+          let localCalendarLogs = [];
+          try {
+            const stored = localStorage.getItem('tp_calendar_of_activities');
+            if (stored) {
+              localCalendarLogs = JSON.parse(stored) || [];
+            }
+          } catch (e) {}
+
+          const combinedCalendarLogs = [...dbCalendarLogs, ...localCalendarLogs];
+          setCalendarLogs(combinedCalendarLogs);
         }
       }
 
@@ -881,20 +953,67 @@ export default function DashboardOverviewPage() {
     setActivityForm(emptyActivityForm);
   };
 
-  const handleSaveCalendarActivity = (activityData: Omit<CalendarActivityItem, 'id' | 'createdAt'>) => {
-    const newItem: CalendarActivityItem = {
-      ...activityData,
-      id: `cal-evt-${Date.now()}`,
-      createdAt: new Date().toISOString()
-    };
-    
-    setCalendarLogs(prev => {
-      const next = [newItem, ...prev];
-      try {
-        localStorage.setItem('tp_calendar_of_activities', JSON.stringify(next));
-      } catch(e) { console.error(e); }
-      return next;
+  const handleSaveCalendarActivity = async (activityData: Omit<CalendarActivityItem, 'id' | 'createdAt'>) => {
+    const descriptionJson = JSON.stringify({
+      isCalendarActivity: true,
+      notes: activityData.notes || '',
+      category: activityData.category || 'Others',
+      assigned_to: null,
+      processed_by: null,
+      activityData: {
+        date: activityData.date,
+        time: activityData.time,
+        mode: activityData.mode,
+        location: activityData.location,
+        assignedRole: activityData.assignedRole,
+        onlinePlatform: activityData.onlinePlatform,
+        onlineMeetingLink: activityData.onlineMeetingLink,
+        onlineMeetingId: activityData.onlineMeetingId,
+        onlinePasscode: activityData.onlinePasscode,
+        onsiteVenue: activityData.onsiteVenue,
+        onsiteBuilding: activityData.onsiteBuilding,
+        onsiteStreet: activityData.onsiteStreet,
+        onsiteBarangay: activityData.onsiteBarangay,
+        onsiteCity: activityData.onsiteCity,
+        onsiteProvince: activityData.onsiteProvince,
+        onsiteZip: activityData.onsiteZip,
+        onsiteIslandGroup: activityData.onsiteIslandGroup,
+        onsiteRegion: activityData.onsiteRegion,
+        region: activityData.region,
+        latitude: activityData.latitude,
+        longitude: activityData.longitude,
+        googleMapsUrl: activityData.googleMapsUrl
+      }
     });
+
+    const newDbTask = {
+      title: activityData.title,
+      description: descriptionJson,
+      status: 'Pending',
+      priority: 'Medium',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    try {
+      const { error } = await supabase.from('tasks').insert([newDbTask]);
+      if (error) throw error;
+    } catch (err) {
+      console.error('Error saving calendar activity to Supabase:', err);
+      const newItem: CalendarActivityItem = {
+        ...activityData,
+        id: `cal-evt-${Date.now()}`,
+        createdAt: new Date().toISOString()
+      };
+      
+      setCalendarLogs(prev => {
+        const next = [newItem, ...prev];
+        try {
+          localStorage.setItem('tp_calendar_of_activities', JSON.stringify(next));
+        } catch(e) { console.error(e); }
+        return next;
+      });
+    }
     setIsCalendarModalOpen(false);
   };
 
@@ -902,15 +1021,25 @@ export default function DashboardOverviewPage() {
     setActivityToDelete(id);
   };
 
-  const executeDeleteCalendarActivity = () => {
+  const executeDeleteCalendarActivity = async () => {
     if (!activityToDelete) return;
-    setCalendarLogs(prev => {
-      const next = prev.filter(log => log.id !== activityToDelete);
+    const isLocalId = activityToDelete.startsWith('cal-evt-');
+    if (isLocalId) {
+      setCalendarLogs(prev => {
+        const next = prev.filter(log => log.id !== activityToDelete);
+        try {
+          localStorage.setItem('tp_calendar_of_activities', JSON.stringify(next));
+        } catch(e) { console.error(e); }
+        return next;
+      });
+    } else {
       try {
-        localStorage.setItem('tp_calendar_of_activities', JSON.stringify(next));
-      } catch(e) { console.error(e); }
-      return next;
-    });
+        const { error } = await supabase.from('tasks').delete().eq('id', activityToDelete);
+        if (error) throw error;
+      } catch (err) {
+        console.error('Error deleting calendar activity:', err);
+      }
+    }
     setActivityToDelete(null);
   };
 

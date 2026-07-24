@@ -16,7 +16,7 @@ interface StatusBadgeProps {
 export const getStatusColorHex = (status: string): string => {
   switch (status) {
     case 'In Progress':
-      return '#2563EB'; // Blue
+      return '#CA8A04'; // Light Yellow
     case 'Done':
       return '#10B981'; // Emerald Green
     case 'Pending':

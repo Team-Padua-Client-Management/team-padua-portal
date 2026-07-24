@@ -86,7 +86,6 @@ export default function TaskList({
         <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-surface-2/80 text-text-tertiary text-[11px] font-semibold shrink-0 border border-border/50">
             <Filter size={11} className="text-amber-500" strokeWidth={2.2} />
-            <span>Filter</span>
           </div>
           {STATUS_OPTIONS.map((st) => {
             const isActive = selectedStatus === st;

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { X, Calendar as CalendarIcon, Clock, MapPin, Video, Building2 } from 'lucide-react';
+import { X, Video, Building2 } from 'lucide-react';
 import styles from '@/styles/admin/dashboard/page.module.css';
 import { CalendarActivityItem } from './CalendarActivityCard';
-import { PHILIPPINE_LOCATIONS } from '@/app/lib/constants/philippineLocations';
+import PhilippineLocationSelector from '@/app/components/shared/PhilippineLocationSelector';
+import { REGIONS, PROVINCES, CITIES } from '@/app/lib/constants/philippineLocations';
 
 const CATEGORY_OPTIONS = ['Client Meeting', 'Training', 'Internal', 'Site Visit', 'Others'];
 const ROLE_OPTIONS = ['Admin', 'Advisor', 'Bizdev'] as const;
@@ -18,7 +19,6 @@ export default function CalendarActivityModal({ onSave, onClose }: CalendarActiv
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [mode, setMode] = useState<'Online' | 'Onsite'>('Online');
-  const [location, setLocation] = useState('');
   const [category, setCategory] = useState(CATEGORY_OPTIONS[0]);
   const [assignedRole, setAssignedRole] = useState<'Admin' | 'Advisor' | 'Bizdev'>('Advisor');
   const [notes, setNotes] = useState('');
@@ -37,23 +37,30 @@ export default function CalendarActivityModal({ onSave, onClose }: CalendarActiv
   const [onsiteCity, setOnsiteCity] = useState('');
   const [onsiteProvince, setOnsiteProvince] = useState('');
   const [onsiteZip, setOnsiteZip] = useState('');
-
-  const selectedProvinceData = PHILIPPINE_LOCATIONS.find(p => p.province === onsiteProvince);
-  const availableCities = selectedProvinceData ? selectedProvinceData.cities : [];
+  const [onsiteIslandGroup, setOnsiteIslandGroup] = useState('');
+  const [onsiteRegion, setOnsiteRegion] = useState('');
 
   const handleSave = () => {
     if (!title.trim() || !date) return;
     
+    const provObj = PROVINCES.find(p => p.code === onsiteProvince);
+    const cityObj = CITIES.find(c => c.code === onsiteCity);
+    const regObj = REGIONS.find(r => r.code === onsiteRegion);
+
+    const provinceName = provObj ? provObj.name : onsiteProvince;
+    const cityName = cityObj ? cityObj.name : onsiteCity;
+    const regionName = regObj ? regObj.name : onsiteRegion;
+
     const computedLocation = mode === 'Online'
       ? onlinePlatform
-      : [onsiteVenue, onsiteBuilding, onsiteStreet, onsiteCity].filter(Boolean).join(', ');
+      : [onsiteVenue, onsiteBuilding, onsiteStreet, cityName, provinceName].filter(Boolean).join(', ');
 
     onSave({
       title: title.trim(),
       date,
       time: time || undefined,
       mode,
-      location: computedLocation || location.trim(),
+      location: computedLocation,
       onlinePlatform: onlinePlatform.trim(),
       onlineMeetingLink: onlineMeetingLink.trim(),
       onlineMeetingId: onlineMeetingId.trim(),
@@ -62,9 +69,12 @@ export default function CalendarActivityModal({ onSave, onClose }: CalendarActiv
       onsiteBuilding: onsiteBuilding.trim(),
       onsiteStreet: onsiteStreet.trim(),
       onsiteBarangay: onsiteBarangay.trim(),
-      onsiteCity: onsiteCity.trim(),
-      onsiteProvince: onsiteProvince.trim(),
+      onsiteCity: cityName.trim(),
+      onsiteProvince: provinceName.trim(),
       onsiteZip: onsiteZip.trim(),
+      onsiteIslandGroup: onsiteIslandGroup.trim(),
+      onsiteRegion: regionName.trim(),
+      region: regionName.trim(),
       category,
       assignedRole,
       notes: notes.trim() || undefined,
@@ -167,7 +177,7 @@ export default function CalendarActivityModal({ onSave, onClose }: CalendarActiv
               <select
                 className={styles.formSelect}
                 value={assignedRole}
-                onChange={(e) => setAssignedRole(e.target.value as any)}
+                onChange={(e) => setAssignedRole(e.target.value as 'Admin' | 'Advisor' | 'Bizdev')}
               >
                 {ROLE_OPTIONS.map((role) => (<option key={role} value={role}>{role}</option>))}
               </select>
@@ -225,98 +235,27 @@ export default function CalendarActivityModal({ onSave, onClose }: CalendarActiv
             </div>
           ) : (
             <div className={styles.modalSection}>
-              <div className="bg-green-50/50 dark:bg-green-900/10 border border-green-100 dark:border-green-800/30 rounded-lg p-4 flex flex-col gap-3">
-                <div className={styles.modalTwoCol}>
-                  <div className={styles.formField}>
-                    <label className={styles.formFieldLabel}>Province</label>
-                    <select
-                      className={styles.formSelect}
-                      value={onsiteProvince}
-                      onChange={(e) => {
-                        setOnsiteProvince(e.target.value);
-                        setOnsiteCity(''); // reset city when province changes
-                      }}
-                    >
-                      <option value="" disabled>Select Province</option>
-                      {PHILIPPINE_LOCATIONS.map(loc => (
-                        <option key={loc.province} value={loc.province}>{loc.province}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className={styles.formField}>
-                    <label className={styles.formFieldLabel}>City / Municipality</label>
-                    <select
-                      className={styles.formSelect}
-                      value={onsiteCity}
-                      onChange={(e) => setOnsiteCity(e.target.value)}
-                      disabled={!onsiteProvince}
-                    >
-                      <option value="" disabled>
-                        {!onsiteProvince ? 'Select Province first' : 'Select City / Municipality'}
-                      </option>
-                      {availableCities.map(city => (
-                        <option key={city} value={city}>{city}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <div className={styles.modalTwoCol}>
-                  <div className={styles.formField}>
-                    <label className={styles.formFieldLabel}>Barangay</label>
-                    <input
-                      type="text"
-                      className={styles.formInput}
-                      value={onsiteBarangay}
-                      onChange={(e) => setOnsiteBarangay(e.target.value)}
-                      placeholder=""
-                    />
-                  </div>
-                  <div className={styles.formField}>
-                    <label className={styles.formFieldLabel}>Street Address</label>
-                    <input
-                      type="text"
-                      className={styles.formInput}
-                      value={onsiteStreet}
-                      onChange={(e) => setOnsiteStreet(e.target.value)}
-                      placeholder=""
-                    />
-                  </div>
-                </div>
-                <div className={styles.modalTwoCol}>
-                  <div className={styles.formField}>
-                    <label className={styles.formFieldLabel}>Building</label>
-                    <input
-                      type="text"
-                      className={styles.formInput}
-                      value={onsiteBuilding}
-                      onChange={(e) => setOnsiteBuilding(e.target.value)}
-                      placeholder="e.g. 5th Avenue"
-                    />
-                  </div>
-                  <div className={styles.formField}>
-                    <label className={styles.formFieldLabel}>Venue Name</label>
-                    <input
-                      type="text"
-                      className={styles.formInput}
-                      value={onsiteVenue}
-                      onChange={(e) => setOnsiteVenue(e.target.value)}
-                      placeholder="e.g. Sun Life Center"
-                    />
-                  </div>
-                </div>
-                <div className={styles.modalTwoCol}>
-                  <div className={styles.formField}>
-                    <label className={styles.formFieldLabel}>ZIP Code</label>
-                    <input
-                      type="text"
-                      className={styles.formInput}
-                      value={onsiteZip}
-                      onChange={(e) => setOnsiteZip(e.target.value)}
-                      placeholder=""
-                    />
-                  </div>
-                  <div></div>
-                </div>
+              <div className="bg-green-50/50 dark:bg-green-900/10 border border-green-100 dark:border-green-800/30 rounded-lg p-4">
+                <PhilippineLocationSelector
+                  islandGroup={onsiteIslandGroup}
+                  setIslandGroup={setOnsiteIslandGroup}
+                  region={onsiteRegion}
+                  setRegion={setOnsiteRegion}
+                  province={onsiteProvince}
+                  setProvince={setOnsiteProvince}
+                  city={onsiteCity}
+                  setCity={setOnsiteCity}
+                  barangay={onsiteBarangay}
+                  setBarangay={setOnsiteBarangay}
+                  street={onsiteStreet}
+                  setStreet={setOnsiteStreet}
+                  building={onsiteBuilding}
+                  setBuilding={setOnsiteBuilding}
+                  venue={onsiteVenue}
+                  setVenue={setOnsiteVenue}
+                  zip={onsiteZip}
+                  setZip={setOnsiteZip}
+                />
               </div>
             </div>
           )}
