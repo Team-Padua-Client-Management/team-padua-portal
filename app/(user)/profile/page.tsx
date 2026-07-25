@@ -23,9 +23,9 @@ import styles from "@/styles/user/profile/page.module.css";
 // Lifecycle Effects & Data Sync
 // ======================================================
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { supabase } from "@/app/lib/supabase/client";
-import ProfileAvatar from "@/components/shared/ProfileAvatar";
-import UserStatusBadge from "@/components/shared/UserStatusBadge";
+import { supabase } from "@src/lib/supabase/client";
+import ProfileAvatar from "@src/components/shared/ProfileAvatar";
+import UserStatusBadge from "@src/components/shared/UserStatusBadge";
 import {
   Shield, Bell, Lock, Camera, Sparkles, Upload, X, ImageIcon,
   Pencil, User, Phone, Globe, Cake, MapPin, FileText, Plus, Trash2,
@@ -1977,4 +1977,5 @@ const deleteLink = async (id: string) => {
     </div>
   );
 }
+
 

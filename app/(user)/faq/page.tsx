@@ -24,9 +24,9 @@ import styles from "@/styles/user/faq/page.module.css";
 // ======================================================
 import React, { useState, useEffect, useMemo } from "react";
 import { Search, ChevronDown, ChevronUp, CircleHelp, Tag } from "lucide-react";
-import Header from "@/app/components/user/UserHeader";
-import Sidebar from "@/app/components/user/UserSidebar";
-import { supabase } from "@/app/lib/supabase/client";
+import { AdminHeader as Header } from '@src/components/layout';
+import { AdminSidebar as Sidebar } from '@src/components/layout';
+import { supabase } from "@src/lib/supabase/client";
 
 interface FAQ {
   id: string;
@@ -223,3 +223,4 @@ async function loadFaqs() {
     </div>
   );
 }
+

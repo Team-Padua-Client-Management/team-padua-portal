@@ -22,10 +22,10 @@
 // Lifecycle Effects & Data Sync
 // ======================================================
 import styles from "@/styles/admin/Design/page.module.css"; import React, { useState, useEffect, useRef } from "react";
-import { supabase } from "@/app/lib/supabase/client";
+import { supabase } from "@src/lib/supabase/client";
 import * as Lucide from "lucide-react";
-import Header from "@/app/components/admin/AdminHeader";
-import Sidebar from "@/app/components/admin/AdminSidebar";
+import { AdminHeader as Header } from "@src/components/layout";
+import { AdminSidebar as Sidebar } from "@src/components/layout";
 
 interface DesignFolder {
     id: string;

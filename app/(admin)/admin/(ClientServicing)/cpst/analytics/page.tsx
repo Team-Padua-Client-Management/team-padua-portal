@@ -30,8 +30,8 @@ import {
   TrendingUp, Activity, Info,
   ArrowDown, ArrowUp, List
 } from 'lucide-react';
-import Header from "@/app/components/admin/AdminHeader";
-import Sidebar from "@/app/components/admin/AdminSidebar";
+import { AdminHeader as Header } from "@src/components/layout";
+import { AdminSidebar as Sidebar } from "@src/components/layout";
 
 interface Client {
   id: string;
@@ -768,3 +768,6 @@ const getMostCommonAge = (arr: number[]) => {
     </div>
   );
 }
+
+
+

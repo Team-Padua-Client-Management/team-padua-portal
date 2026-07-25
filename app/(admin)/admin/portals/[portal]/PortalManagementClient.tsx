@@ -8,10 +8,10 @@ import {
   MoreVertical
 } from 'lucide-react';
 import Link from 'next/link';
-import Sidebar from '@/app/components/admin/AdminSidebar';
-import Header from '@/app/components/admin/AdminHeader';
+import { AdminSidebar as Sidebar } from '@src/components/layout';
+import { AdminHeader as Header } from '@src/components/layout';
 import styles from '@/styles/admin/portals/page.module.css';
-import { supabase } from '@/app/lib/supabase/client';
+import { supabase } from '@src/lib/supabase/client';
 
 interface Category {
   id: string;

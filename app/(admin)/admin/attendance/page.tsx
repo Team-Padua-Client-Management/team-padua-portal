@@ -9,9 +9,9 @@
  * - Handles modular presentation logic.
  */
 
-import { createClient } from "@/app/lib/supabase/server";
-import { supabaseAdmin } from "@/app/lib/supabase/admin";
-import AttendanceClient from "./AttendanceClient";
+import { createClient } from "@src/lib/supabase/server";
+import { supabaseAdmin } from "@src/lib/supabase/admin";
+import AttendanceClient from "@src/features/attendance/components/AdminAttendanceClient";
 
 /**
  * Executes operations logic for AttendancePage.
@@ -60,3 +60,4 @@ export default async function AttendancePage() {
         />
     );
 }
+

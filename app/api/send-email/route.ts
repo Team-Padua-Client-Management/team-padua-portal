@@ -11,8 +11,8 @@
 
 import { NextResponse } from "next/server";
 import React from "react";
-import { resend } from "@/app/lib/resend/resend";
-import WelcomeEmail from "@/app/components/emails/WelcomeEmail";
+import { resend } from "@src/lib/resend";
+import WelcomeEmail from "@src/features/users/emails/WelcomeEmail";
 
 /**
  * Executes operations logic for sendEmail.
@@ -170,3 +170,4 @@ export async function POST(req: Request) {
         );
     }
 }
+

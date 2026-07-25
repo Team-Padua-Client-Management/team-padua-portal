@@ -22,10 +22,10 @@
 // Lifecycle Effects & Data Sync
 // ======================================================
 import styles from "@/styles/user/attendance/page.module.css";import React, { useEffect, useState } from "react";
-import { supabase } from "@/app/lib/supabase/client";
-import { AttendanceRecord, DashboardStats } from "./attendance.types";
-import { calculateHours, getStatus, formatDateString } from "./attendance.utils";
-import AttendanceDashboard from "./AttendanceDashboard";
+import { supabase } from "@src/lib/supabase/client";
+import { AttendanceRecord, DashboardStats } from "@src/features/attendance/types";
+import { calculateHours, getStatus, formatDateString } from "@src/features/attendance/utils";
+import AttendanceDashboard from "@src/features/attendance/components/AttendanceDashboard";
 /**
  * AttendancePage
  *
@@ -360,3 +360,4 @@ async function handlePunch(field: "time_in" | "break_out" | "break_in" | "time_o
     />
   );
 }
+

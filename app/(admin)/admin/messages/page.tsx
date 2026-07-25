@@ -10,9 +10,9 @@
  */
 
 import styles from "@/styles/admin/messages/page.module.css";
-import { createClient } from "@/app/lib/supabase/server";
-import { supabaseAdmin } from "@/app/lib/supabase/admin";
-import AdminMessagesClient from "./AdminMessagesClient";
+import { createClient } from "@src/lib/supabase/server";
+import { supabaseAdmin } from "@src/lib/supabase/admin";
+import AdminMessagesClient from "@src/features/messages/components/AdminMessagesClient";
 
 /**
  * Executes operations logic for AdminMessagesPage.
@@ -57,3 +57,4 @@ export default async function AdminMessagesPage() {
 
     return <AdminMessagesClient users={safeUsers} currentUserId={user.id} />;
 }
+

@@ -10,8 +10,8 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { chatWithOllama } from "@/lib/ai/ollama";
-import { ChatRequest } from "@/lib/types";
+import { chatWithOllama } from "@src/features/chatbot/services/ollama";
+import { ChatRequest } from "@src/features/chatbot/types";
 
 /**
  * Executes operations logic for POST.
@@ -52,3 +52,4 @@ export async function POST(request: NextRequest) {
         );
     }
 }
+

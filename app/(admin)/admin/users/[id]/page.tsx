@@ -10,9 +10,9 @@
  */
 
 import { redirect, notFound } from "next/navigation";
-import { createClient } from "@/app/lib/supabase/server";
-import { supabaseAdmin } from "@/app/lib/supabase/admin";
-import UserDetailClient from "./UserDetailClient";
+import { createClient } from "@src/lib/supabase/server";
+import { supabaseAdmin } from "@src/lib/supabase/admin";
+import UserDetailClient from "@src/features/users/components/UserDetailClient";
 
 interface Props {
   params: Promise<{ id: string }>;

@@ -2,8 +2,8 @@
 
 import React, { useState } from 'react';
 import { Plus, Search, Edit2, Trash2, Download, Filter, Activity } from 'lucide-react';
-import AdminHeader from '@/app/components/admin/AdminHeader';
-import AdminSidebar from '@/app/components/admin/AdminSidebar';
+import { AdminHeader } from '@src/components/layout';
+import { AdminSidebar } from '@src/components/layout';
 
 export default function AdvisorDailyActivityPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -87,3 +87,6 @@ export default function AdvisorDailyActivityPage() {
     </div>
   );
 }
+
+
+

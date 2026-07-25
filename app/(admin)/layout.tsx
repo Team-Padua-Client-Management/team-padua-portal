@@ -15,7 +15,7 @@
 
 import styles from "@/styles/layouts/admin/layout.module.css";
 import React, { useState, useEffect } from "react";
-import { AdminLayoutProvider } from "@/app/components/admin/AdminLayoutContext";
+import { AdminLayoutProvider } from "@src/components/layout";
 
 /**
  * AdminLayout
@@ -64,3 +64,4 @@ const handleThemeChange = (e: any) => {
     </div>
   );
 }
+

@@ -1,0 +1,2 @@
+export { portalsConfig } from './config';
+

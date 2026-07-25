@@ -4,17 +4,17 @@ import React, { useState, useEffect } from 'react';
 import {
   Plus, Search, Edit2, Trash2, X, Download, AlertCircle, Loader2, Save, CheckCircle2, FileText, Inbox, ArrowLeft
 } from 'lucide-react';
-import Header from '@/app/components/admin/AdminHeader';
-import Sidebar from '@/app/components/admin/AdminSidebar';
-import { supabase } from "@/app/lib/supabase/client";
+import { AdminHeader as Header } from '@src/components/layout';
+import { AdminSidebar as Sidebar } from '@src/components/layout';
+import { supabase } from "@src/lib/supabase/client";
 import styles from "@/styles/admin/cpst/page.module.css";
 import dynamic from 'next/dynamic';
-import { generateAdvisorChangeRequestPdfFromTemplate } from '@/app/lib/pdf/generateAdvisorChangeRequestPdfFromTemplate';
-import { acrFormConfig } from './acrConfig';
+import { generateAdvisorChangeRequestPdfFromTemplate } from '@src/features/client-servicing/pdf/generateAdvisorChangeRequestPdfFromTemplate';
+import { acrFormConfig } from '@src/features/client-servicing/config/acrConfig';
 import { useSearchParams } from 'next/navigation';
 
 const PdfViewerEngine = dynamic(
-  () => import('@/app/components/pdf-engine/PdfViewerEngine'),
+  () => import('@src/features/client-servicing/pdf-engine/PdfViewerEngine'),
   { ssr: false }
 );
 
@@ -779,3 +779,5 @@ export default function AdvisorChangeRequestPage() {
     </div>
   );
 }
+
+

@@ -8,9 +8,9 @@ import {
   Check, Play, Save, ChevronRight, BookOpen, AlertCircle,
   MessageCircle, Smartphone, X, Search, Users, CheckCircle2, Loader2
 } from 'lucide-react';
-import Header from "@/app/components/admin/AdminHeader";
-import Sidebar from "@/app/components/admin/AdminSidebar";
-import { supabase } from "@/app/lib/supabase/client";
+import { AdminHeader as Header } from "@src/components/layout";
+import { AdminSidebar as Sidebar } from "@src/components/layout";
+import { supabase } from "@src/lib/supabase/client";
 import { useSearchParams } from 'next/navigation';
 import baseStyles from "@/styles/admin/cpst/page.module.css";
 
@@ -931,3 +931,6 @@ export default function CGPTPage() {
     </div>
   );
 }
+
+
+

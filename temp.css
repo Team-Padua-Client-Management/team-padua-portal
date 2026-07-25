@@ -1,0 +1,8 @@
+/*! tailwindcss v4.3.3 | MIT License | https://tailwindcss.com */
+.text_0 {
+  display: flex;
+  min-height: 100%;
+  flex-direction: column;
+  background-color: var(--background);
+  color: var(--text);
+}

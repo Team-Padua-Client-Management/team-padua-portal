@@ -10,10 +10,10 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { createClient } from "@/app/lib/supabase/server";
-import { supabaseAdmin } from "@/app/lib/supabase/admin";
-import { createNotification } from "@/app/lib/notifications";
-import { validateEmail, validatePassword, validateName, validatePhoneNumber } from "@/app/lib/auth/validation";
+import { createClient } from "@src/lib/supabase/server";
+import { supabaseAdmin } from "@src/lib/supabase/admin";
+import { createNotification } from "@src/lib/notifications";
+import { validateEmail, validatePassword, validateName, validatePhoneNumber } from "@src/lib/auth/validation";
 import {
   checkAccountStatus,
   checkLoginLockout,
@@ -24,8 +24,8 @@ import {
   addPasswordToHistory,
   checkResetRateLimit,
   timingSafeDelay,
-} from "@/app/lib/auth/security";
-import { AUTH_CONSTANTS, type AuthActionResult } from "@/app/lib/auth/types";
+} from "@src/lib/auth/security";
+import { AUTH_CONSTANTS, type AuthActionResult } from "@src/lib/auth/types";
 
 // ─── Sign In ─────────────────────────────────────────────────────────────────
 
@@ -274,8 +274,8 @@ export const SignUp = async (formData: FormData): Promise<AuthActionResult> => {
     const emailFrom = process.env.EMAIL_FROM;
     const apiKey = process.env.RESEND_API_KEY;
     if (apiKey && emailFrom) {
-      const { resend } = await import("@/app/lib/resend/resend");
-      const WelcomeEmail = (await import("@/app/components/emails/WelcomeEmail")).default;
+      const { resend } = await import("@src/lib/resend");
+      const WelcomeEmail = (await import("@src/features/users/emails/WelcomeEmail")).default;
       const React = await import("react");
       await resend.emails.send({
         from: `Team Padua <${emailFrom}>`,
@@ -407,3 +407,4 @@ export const ResetPasswordAction = async (
 
   return { success: true };
 };
+

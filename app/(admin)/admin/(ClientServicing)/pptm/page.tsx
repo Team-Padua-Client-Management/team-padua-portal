@@ -7,14 +7,14 @@ import {
   Eye, Download, ChevronDown, ChevronRight, Clock, Calendar,
   ArrowUpDown, Check, AlertTriangle, Users, Star, Target, Archive, FileText
 } from 'lucide-react';
-import Header from '@/app/components/admin/AdminHeader';
-import Sidebar from '@/app/components/admin/AdminSidebar';
-import { supabase } from "@/app/lib/supabase/client";
+import { AdminHeader as Header } from '@src/components/layout';
+import { AdminSidebar as Sidebar } from '@src/components/layout';
+import { supabase } from "@src/lib/supabase/client";
 import styles from "@/styles/admin/cpst/page.module.css";
-import SignaturePad from '@/app/components/ui/SignaturePad';
-import ExportDropdown from '@/app/components/shared/ExportDropdown';
-import { exportToPDF, exportToDOCS } from '@/app/lib/export';
-import ClientSelector from '@/app/components/shared/ClientSelector';
+import SignaturePad from '@src/components/ui/SignaturePad';
+import ExportDropdown from '@src/components/shared/ExportDropdown';
+import { exportToPDF, exportToDOCS } from '@src/lib/export';
+import ClientSelector from '@src/components/shared/ClientSelector';
 import { useSearchParams } from 'next/navigation';
 
 const SunLifeLogo = () => (
@@ -1300,3 +1300,6 @@ export default function PPTMPage() {
     </div>
   );
 }
+
+
+

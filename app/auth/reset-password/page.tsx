@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { Eye, EyeOff, Lock, AlertCircle, CheckCircle2, ChevronLeft, Sparkles, ShieldCheck } from "lucide-react";
-import { supabase } from "@/app/lib/supabase/client";
+import { supabase } from "@src/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
 const getPasswordChecks = (value: string) => [
@@ -267,3 +267,4 @@ export default function ResetPasswordPage() {
     </div>
   );
 }
+

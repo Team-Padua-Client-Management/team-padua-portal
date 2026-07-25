@@ -19,7 +19,7 @@ import styles from "@/styles/layouts/root/page.module.css";
 // Lifecycle Effects & Data Sync
 // ======================================================
 import { useEffect } from 'react';
-import Main from './Landing/Main';
+import Main from '@src/features/landing/Main';
 
 /**
  * Home
@@ -44,3 +44,4 @@ export default function Home() {
     </main>
   );
 }
+

@@ -11,11 +11,10 @@
 
 import styles from "@/styles/admin/members/page.module.css";
 import { redirect } from "next/navigation";
-import { createClient } from "@/app/lib/supabase/server";
-import { supabaseAdmin } from "@/app/lib/supabase/admin";
-import Header from "@/app/components/admin/AdminHeader";
-import Sidebar from "@/app/components/admin/AdminSidebar";
-import AdminMembersTable from "./AdminMembersTable/AdminMembersTable";
+import { createClient } from "@src/lib/supabase/server";
+import { supabaseAdmin } from "@src/lib/supabase/admin";
+import { AdminHeader as Header, AdminSidebar as Sidebar } from "@src/components/layout";
+import AdminMembersTable from "@src/features/users/components/AdminMembersTable";
 import { Users, UserCheck, Clock, UserX, Plus } from "lucide-react";
 
 /**
@@ -37,7 +36,17 @@ export default async function AdminMembers() {
     const { data: profilesData } = await supabase.from("profiles").select("*");
 
     const users = authData.users
-        .filter((u) => u.id !== user.id)
+        .filter((u) => {
+            const profile = profilesData?.find((p) => p.id === u.id) || {};
+            const name = profile.full_name || u.user_metadata?.full_name || u.user_metadata?.name || '';
+            const email = (u.email || '').toLowerCase();
+            const isGenericAdminUser =
+                email === 'admin@teampadua.com' ||
+                name === 'User' ||
+                (name.toLowerCase() === 'user' && (profile.role === 'Admin' || profile.role === 'ADMIN'));
+
+            return u.id !== user.id && !isGenericAdminUser;
+        })
         .map((u) => {
             const profile = profilesData?.find((p) => p.id === u.id) || {};
             const googleAvatar = u.user_metadata?.avatar_url || u.user_metadata?.picture || "";
@@ -167,3 +176,4 @@ export default async function AdminMembers() {
         </div>
     );
 }
+

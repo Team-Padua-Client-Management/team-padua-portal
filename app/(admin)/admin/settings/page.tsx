@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Header from '@/app/components/admin/AdminHeader';
-import Sidebar from '@/app/components/admin/AdminSidebar';
+import { AdminHeader as Header } from '@src/components/layout';
+import { AdminSidebar as Sidebar } from '@src/components/layout';
 import { Settings, Shield, FolderArchive, HelpCircle, Trash2, RotateCcw, MonitorSmartphone, Bell, Users, Globe, ExternalLink, Plus, Paintbrush, Sun, Moon, Lock, Key, ShieldAlert, Mail, CheckCircle, Wrench, Search, Save, AlertTriangle } from 'lucide-react';
-import { supabase } from '@/app/lib/supabase/client';
+import { supabase } from '@src/lib/supabase/client';
+import { applyThemeWithTransition } from '@src/lib/theme';
 
 export default function AdminSettings() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -568,17 +569,9 @@ export default function AdminSettings() {
                         ].map((t) => (
                           <button
                             key={t.id}
-                            onClick={() => {
+                            onClick={(e) => {
                               setCurrentTheme(t.id);
-                              localStorage.setItem('theme', t.id);
-                              document.documentElement.setAttribute('data-theme', t.id);
-                              const isDark = ["dark", "midnight", "forest", "sunset", "slate", "purple"].includes(t.id);
-                              if (isDark) {
-                                document.documentElement.classList.add('dark');
-                              } else {
-                                document.documentElement.classList.remove('dark');
-                              }
-                              window.dispatchEvent(new CustomEvent('theme-change', { detail: { theme: t.id } }));
+                              applyThemeWithTransition(t.id, e);
                             }}
                             className={`flex flex-col items-center justify-between p-3 rounded-xl border-2 text-center transition-all cursor-pointer hover:scale-[1.02] hover:shadow-sm ${
                               currentTheme === t.id ? 'border-amber-500 bg-amber-500/5' : 'border-border bg-card'
@@ -1165,3 +1158,4 @@ export default function AdminSettings() {
     </div>
   );
 }
+

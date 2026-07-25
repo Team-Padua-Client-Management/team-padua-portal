@@ -2,11 +2,11 @@ import React from 'react';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowRight, LayoutGrid } from 'lucide-react';
-import { createClient } from '@/app/lib/supabase/server';
-import { supabaseAdmin } from '@/app/lib/supabase/admin';
-import Sidebar from '@/app/components/admin/AdminSidebar';
-import Header from '@/app/components/admin/AdminHeader';
-import { portalsConfig } from '@/app/lib/portals/config';
+import { createClient } from '@src/lib/supabase/server';
+import { supabaseAdmin } from '@src/lib/supabase/admin';
+import { AdminSidebar as Sidebar } from '@src/components/layout';
+import { AdminHeader as Header } from '@src/components/layout';
+import { portalsConfig } from '@src/features/portals/config';
 import styles from '@/styles/admin/portals/page.module.css';
 
 export const metadata = {
@@ -96,3 +96,5 @@ export default async function PortalsOverviewPage() {
     </div>
   );
 }
+
+

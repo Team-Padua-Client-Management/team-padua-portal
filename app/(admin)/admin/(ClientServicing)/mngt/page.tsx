@@ -7,11 +7,11 @@ import {
   Eye, Download, ChevronDown, ChevronRight, Clock, Calendar,
   ArrowUpDown, Check, AlertTriangle, Users, Star, Target, Archive
 } from 'lucide-react';
-import Header from '@/app/components/admin/AdminHeader';
-import Sidebar from '@/app/components/admin/AdminSidebar';
-import { supabase } from "@/app/lib/supabase/client";
+import { AdminHeader as Header } from '@src/components/layout';
+import { AdminSidebar as Sidebar } from '@src/components/layout';
+import { supabase } from "@src/lib/supabase/client";
 import styles from "@/styles/admin/cpst/page.module.css";
-import SignaturePad from '@/app/components/ui/SignaturePad';
+import SignaturePad from '@src/components/ui/SignaturePad';
 
 interface StatusOption { id: string; name: string; color: string; sort_order: number; }
 
@@ -1110,3 +1110,6 @@ export default function EmailMessengerManagementPage() {
     </div>
   );
 }
+
+
+

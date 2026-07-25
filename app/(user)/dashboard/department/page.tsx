@@ -24,7 +24,7 @@ import styles from "@/styles/user/dashboard/department/page.module.css";
 // ======================================================
 import React, { useState, useEffect } from "react";
 import { Building2, Layers, Megaphone, Link2, BookOpen, ShieldCheck, ChevronRight } from "lucide-react";
-import { supabase } from "@/app/lib/supabase/client";
+import { supabase } from "@src/lib/supabase/client";
 
 type Announcement = {
   id: string;
@@ -209,3 +209,5 @@ async function loadAnnouncements() {
     </div>
   );
 }
+
+

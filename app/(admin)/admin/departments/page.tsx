@@ -24,10 +24,10 @@ import styles from "@/styles/admin/departments/page.module.css";
 // ======================================================
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/app/lib/supabase/client";
-import { DEPARTMENTS } from "@/app/lib/departments";
-import Header from "@/app/components/admin/AdminHeader";
-import Sidebar from "@/app/components/admin/AdminSidebar";
+import { supabase } from "@src/lib/supabase/client";
+import { DEPARTMENTS } from "@src/lib/departments";
+import { AdminHeader as Header } from "@src/components/layout";
+import { AdminSidebar as Sidebar } from "@src/components/layout";
 import { Building2, Users, ArrowRight } from "lucide-react";
 
 type MemberCount = Record<string, number>;
@@ -278,3 +278,4 @@ const handleSelect = (code: string) => {
     </div>
   );
 }
+

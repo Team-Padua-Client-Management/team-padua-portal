@@ -13,8 +13,8 @@ import {
   ClipboardList,
   type LucideIcon
 } from 'lucide-react';
-import Header from '@/app/components/admin/AdminHeader';
-import Sidebar from '@/app/components/admin/AdminSidebar';
+import { AdminHeader as Header } from '@src/components/layout';
+import { AdminSidebar as Sidebar } from '@src/components/layout';
 import styles from '@/styles/admin/cpst/page.module.css';
 
 interface FormDirectoryItem {
@@ -203,3 +203,6 @@ export default function FormsHubPage() {
     </div>
   );
 }
+
+
+

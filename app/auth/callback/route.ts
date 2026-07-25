@@ -9,9 +9,9 @@
  */
 
 import { NextResponse } from "next/server";
-import { createClient } from "@/app/lib/supabase/server";
-import { supabaseAdmin } from "@/app/lib/supabase/admin";
-import { logSecurityEvent } from "@/app/lib/auth/security";
+import { createClient } from "@src/lib/supabase/server";
+import { supabaseAdmin } from "@src/lib/supabase/admin";
+import { logSecurityEvent } from "@src/lib/auth/security";
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
@@ -136,3 +136,4 @@ export async function GET(request: Request) {
 
   return NextResponse.redirect(`${requestUrl.origin}/dashboard`);
 }
+

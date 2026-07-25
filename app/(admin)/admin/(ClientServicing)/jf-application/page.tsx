@@ -2,9 +2,9 @@
 
 import React, { useState, useRef } from 'react';
 import { Plus, Search, Edit2, Trash2, Download, Filter, FileText, X, Check, RefreshCw } from 'lucide-react';
-import AdminHeader from '@/app/components/admin/AdminHeader';
-import AdminSidebar from '@/app/components/admin/AdminSidebar';
-import { ConfirmModal } from '@/app/components/ui/modals/ConfirmModal';
+import { AdminHeader } from '@src/components/layout';
+import { AdminSidebar } from '@src/components/layout';
+import { ConfirmModal } from '@src/components/modals/ConfirmModal';
 
 interface JotFormApplication {
   id: string;
@@ -409,3 +409,6 @@ export default function JotFormApplicationPage() {
     </div>
   );
 }
+
+
+

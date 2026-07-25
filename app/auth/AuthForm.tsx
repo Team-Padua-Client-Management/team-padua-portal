@@ -3,10 +3,10 @@
 import React, { useState, useTransition, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { Eye, EyeOff, Lock, Mail, AlertCircle, CheckCircle2, X, Users, User, Shield, Phone, ChevronDown, ArrowRight, Sparkles } from "lucide-react";
-import { supabase } from "@/app/lib/supabase/client";
+import { supabase } from "@src/lib/supabase/client";
 import { SignIn, SignUp } from "../action/auth";
 
-import type { AuthActionResult } from "@/app/lib/auth/types";
+import type { AuthActionResult } from "@src/lib/auth/types";
 
 const SAVED_EMAIL_KEY = "tp_saved_email";
 const SAVED_GOOGLE_KEY = "tp_saved_google";
@@ -595,3 +595,4 @@ export const AuthForm = ({ action }: AuthFormProps) => {
 };
 
 export default AuthForm;
+

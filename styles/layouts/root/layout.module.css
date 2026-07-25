@@ -10,5 +10,5 @@
    Font weights, leading scales, and text colors
 ====================================================== */
 .text_0 {
-  @apply min-h-full flex flex-col bg-background text-foreground;
+   @apply min-h-full flex flex-col bg-background text-foreground;
 }

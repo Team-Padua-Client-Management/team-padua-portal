@@ -1,6 +1,6 @@
 'use client';
 
-import CalendarContent from '@/app/components/calendar/CalendarContent';
+import CalendarContent from '@src/features/calendar/components/CalendarContent';
 import styles from '@/styles/components/calendar/CalendarContent.module.css';
 
 export default function UserCalendarPage() {
@@ -13,3 +13,5 @@ export default function UserCalendarPage() {
     </div>
   );
 }
+
+

@@ -6,7 +6,8 @@ import {
   Save, MonitorSmartphone, Paintbrush, Globe, ExternalLink, 
   Plus, Trash2, Eye
 } from 'lucide-react';
-import { supabase } from '@/app/lib/supabase/client';
+import { supabase } from '@src/lib/supabase/client';
+import { applyThemeWithTransition } from '@src/lib/theme';
 
 export default function UserSettings() {
   const [profileName, setProfileName] = useState('');
@@ -230,17 +231,9 @@ export default function UserSettings() {
                   ].map((t) => (
                     <button
                       key={t.id}
-                      onClick={() => {
+                      onClick={(e) => {
                         setCurrentTheme(t.id);
-                        localStorage.setItem('theme', t.id);
-                        document.documentElement.setAttribute('data-theme', t.id);
-                        const isDark = ["dark", "midnight", "forest", "sunset", "slate", "purple"].includes(t.id);
-                        if (isDark) {
-                          document.documentElement.classList.add('dark');
-                        } else {
-                          document.documentElement.classList.remove('dark');
-                        }
-                        window.dispatchEvent(new CustomEvent('theme-change', { detail: { theme: t.id } }));
+                        applyThemeWithTransition(t.id, e);
                         setPreferences({ ...preferences, theme: t.id });
                       }}
                       className={`flex flex-col items-center justify-between p-3 rounded-xl border-2 text-center transition-all cursor-pointer hover:scale-[1.02] hover:shadow-sm ${
@@ -519,3 +512,4 @@ export default function UserSettings() {
     </div>
   );
 }
+

@@ -10,8 +10,8 @@
  */
 
 import { redirect, notFound } from "next/navigation";
-import { createClient } from "@/app/lib/supabase/server";
-import UserViewClient from "./UserViewClient";
+import { createClient } from "@src/lib/supabase/server";
+import UserViewClient from "@src/features/users/components/UserViewClient";
 
 interface Props {
   params: Promise<{ id: string }>;

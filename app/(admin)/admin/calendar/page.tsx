@@ -1,8 +1,7 @@
 'use client';
 
-import Sidebar from '@/app/components/admin/AdminSidebar';
-import Header from '@/app/components/admin/AdminHeader';
-import CalendarContent from '@/app/components/calendar/CalendarContent';
+import { AdminSidebar as Sidebar, AdminHeader as Header } from '@src/components/layout';
+import CalendarContent from '@src/features/calendar/components/CalendarContent';
 import styles from '@/styles/components/calendar/CalendarContent.module.css';
 
 export default function AdminCalendarPage() {

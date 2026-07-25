@@ -370,3 +370,4 @@ const getStatusColor = (status: string) => {
 };
 
 export default DashboardPage;
+

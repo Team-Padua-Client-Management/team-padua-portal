@@ -23,9 +23,9 @@ import styles from "@/styles/admin/faq/page.module.css";
 // ======================================================
 import React, { useState, useMemo, useEffect } from 'react';
 import { Search, Plus, MoreVertical, HelpCircle } from 'lucide-react';
-import Header from "@/app/components/admin/AdminHeader";
-import Sidebar from "@/app/components/admin/AdminSidebar";
-import { supabase } from "@/app/lib/supabase/client";
+import { AdminHeader as Header } from "@src/components/layout";
+import { AdminSidebar as Sidebar } from "@src/components/layout";
+import { supabase } from "@src/lib/supabase/client";
 
 interface FAQ {
   id: string;
@@ -500,3 +500,4 @@ const handleTogglePin = async (id: string, currentPin: boolean) => {
     </div>
   );
 }
+

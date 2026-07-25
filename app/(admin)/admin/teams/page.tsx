@@ -24,9 +24,9 @@ import styles from "@/styles/admin/teams/page.module.css";
 // ======================================================
 import React, { useState, useEffect, useMemo } from 'react';
 import { Search, Plus, MoreVertical, Loader2 } from 'lucide-react';
-import Header from "@/app/components/admin/AdminHeader";
-import Sidebar from "@/app/components/admin/AdminSidebar";
-import { supabase } from '@/app/lib/supabase/client';
+import { AdminHeader as Header } from "@src/components/layout";
+import { AdminSidebar as Sidebar } from "@src/components/layout";
+import { supabase } from '@src/lib/supabase/client';
 
 interface Team {
   id: string;
@@ -487,3 +487,4 @@ const handleDeleteTeam = (id: string) => {
     </div>
   );
 }
+

@@ -13,8 +13,8 @@ import styles from "@/styles/layouts/root/layout.module.css";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Figtree } from "next/font/google";
 import "@/styles/globals/globals.css";
-import { cn } from "@/lib/utils";
-import MaintenanceOverlay from "@/app/components/MaintenanceOverlay";
+import { cn } from "@src/lib/utils";
+import MaintenanceOverlay from "@src/components/shared/MaintenanceOverlay";
 
 const figtree = Figtree({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -74,3 +74,4 @@ export default function RootLayout({
     </html>
   );
 }
+

@@ -8,7 +8,7 @@ import {
 import Link from 'next/link';
 import Image from 'next/image';
 import styles from '@/styles/admin/portals/page.module.css';
-import { supabase } from '@/app/lib/supabase/client';
+import { supabase } from '@src/lib/supabase/client';
 
 interface Category {
   id: string;

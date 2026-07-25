@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
-import { canAccessModule } from "@/app/lib/permissions";
-import CSMVClient from "./CSMVClient";
+import { canAccessModule } from "@src/lib/permissions";
+import CSMVClient from "@src/features/client-servicing/csmv/CSMVClient";
 
 export default async function CSMVPage() {
   // Use a generic or specific permission identifier if available.
@@ -23,3 +23,6 @@ export default async function CSMVPage() {
     />
   );
 }
+
+
+

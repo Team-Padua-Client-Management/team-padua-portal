@@ -19,10 +19,10 @@ import styles from "@/styles/admin/chatbot/page.module.css";
 // State Initialization & Hooks
 // ======================================================
 import { useState, useCallback, useRef } from "react";
-import { ChatMessage } from "@/lib/types";
-import ChatHeader from "./components/ChatHeader";
-import ChatWindow from "./components/ChatWindow";
-import ChatInput from "./components/ChatInput";
+import { ChatMessage } from "@src/features/chatbot/types";
+import ChatHeader from "@src/features/chatbot/components/ChatHeader";
+import ChatWindow from "@src/features/chatbot/components/ChatWindow";
+import ChatInput from "@src/features/chatbot/components/ChatInput";
 
 /**
  * ChatbotPage
@@ -163,3 +163,4 @@ function handleSuggestion(text: string) {
         </div>
     );
 }
+

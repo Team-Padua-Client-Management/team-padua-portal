@@ -23,7 +23,7 @@ import styles from "@/styles/user/dashboard/team/page.module.css";
 // Lifecycle Effects & Data Sync
 // ======================================================
 import React, { useState, useEffect } from "react";
-import { supabase } from "@/app/lib/supabase/client";
+import { supabase } from "@src/lib/supabase/client";
 import { Users, Shield, Plus, MessageSquare, ClipboardList, Target, TrendingUp } from "lucide-react";
 
 type TeamMember = {
@@ -183,3 +183,5 @@ async function fetchTeamData() {
     </div>
   );
 }
+
+

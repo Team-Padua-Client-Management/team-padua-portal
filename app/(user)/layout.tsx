@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import UserSidebar from "@/app/components/user/UserSidebar";
-import UserHeader from "@/app/components/user/UserHeader";
+import { UserSidebar } from "@src/components/layout";
+import { UserHeader } from "@src/components/layout";
 import styles from "@/styles/layouts/user/layout.module.css";
 
 export default function UserLayout({ children }: { children: React.ReactNode }) {
@@ -41,4 +41,5 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
     </div>
   );
 }
+
 

@@ -10,8 +10,8 @@
  */
 
 // C:\website\tp\app\(user)\messages\page.tsx
-import { createClient } from "@/app/lib/supabase/server";
-import MessagesClient from "./MessagesClient";
+import { createClient } from "@src/lib/supabase/server";
+import MessagesClient from "@src/features/messages/components/MessagesClient";
 
 /**
  * Executes operations logic for MessagesPage.
@@ -30,3 +30,4 @@ export default async function MessagesPage() {
 
   return <MessagesClient userId={user.id} username={user.user_metadata?.full_name ?? user.email ?? "User"} />;
 }
+

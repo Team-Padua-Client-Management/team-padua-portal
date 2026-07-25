@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
-import { canAccessModule } from "@/app/lib/permissions";
-import CPSTClient from "./CPSTClient";
+import { canAccessModule } from "@src/lib/permissions";
+import CPSTClient from "@src/features/client-servicing/cpst/CPSTClient";
 
 export default async function CPSTPage() {
   const canView = await canAccessModule("cpst", "view");
@@ -23,3 +23,6 @@ export default async function CPSTPage() {
     />
   );
 }
+
+
+

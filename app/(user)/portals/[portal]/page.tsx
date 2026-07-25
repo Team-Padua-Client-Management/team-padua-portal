@@ -1,7 +1,7 @@
 import React from 'react';
 import { redirect, notFound } from 'next/navigation';
-import { createClient } from '@/app/lib/supabase/server';
-import { portalsConfig } from '@/app/lib/portals/config';
+import { createClient } from '@src/lib/supabase/server';
+import { portalsConfig } from '@src/features/portals/config';
 import PortalClientView from "./PortalClientView";
 
 interface Props {
