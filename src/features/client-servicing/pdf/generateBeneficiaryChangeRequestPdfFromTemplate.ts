@@ -100,10 +100,13 @@ export async function generateBeneficiaryChangeRequestPdfFromTemplate(record: Bc
   // ─── Section A: General Info ────────────────────────────────────────────────
   
   setTxt(form, 'undefined', record.plan_numbers);
-  setTxt(form, 'undefined_4', record.plan_numbers); // Sometimes plan number appears twice
   
-  if (record.planholder_type === 'company') {
+  // Default to individual if not specified
+  const holderType = record.planholder_type || 'individual';
+  
+  if (holderType === 'company') {
     setTxt(form, 'For CompanyBusiness Planholder', record.company_name);
+    setTxt(form, 'undefined_4', record.company_name); // Company/Business Name second line
   } else {
     setTxt(form, 'undefined_2', record.planholder_last_name);
     setTxt(form, 'undefined_3', record.planholder_first_name);

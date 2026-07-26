@@ -13,8 +13,8 @@ import dynamic from 'next/dynamic';
 import { generateBeneficiaryChangeRequestPdfFromTemplate } from '@src/features/client-servicing/pdf/generateBeneficiaryChangeRequestPdfFromTemplate';
 import { bcrFormConfig } from '@src/features/client-servicing/bcr-engine/bcrConfig';
 
-const BcrPdfViewer = dynamic(
-  () => import('@src/features/client-servicing/bcr-engine/BcrPdfViewer'),
+const BcrStandardForm = dynamic(
+  () => import('@src/features/client-servicing/bcr-engine/BcrStandardForm'),
   { ssr: false }
 );
 
@@ -626,7 +626,7 @@ export default function BeneficiaryChangeRequestPage() {
           </div>
         )}
 
-        <BcrPdfViewer
+        <BcrStandardForm
           config={bcrFormConfig}
           initialValues={formData}
           clientId={formData.client_id}
