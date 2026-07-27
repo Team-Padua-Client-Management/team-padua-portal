@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import {
-  Plus, Search, Edit2, Trash2, X, AlertCircle, Loader2, Save, CheckCircle2, Inbox, ArrowLeft
+  Plus, Search, Edit2, Trash2, X, AlertCircle, Loader2, Save, CheckCircle2, Inbox, ArrowLeft, Download
 } from 'lucide-react';
 import { AdminHeader as Header } from '@src/components/layout';
 import { AdminSidebar as Sidebar } from '@src/components/layout';
@@ -203,7 +203,7 @@ export default function ACAPage() {
       const clientDob = selectedClientDetails?.birthdate || '';
       const pdfBytes = await generateAcaPdfFromScratch(engineValues, clientName, clientDob);
 
-      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      const blob = new Blob([new Uint8Array(pdfBytes)], { type: 'application/pdf' });
       const downloadUrl = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = downloadUrl;
@@ -232,7 +232,7 @@ export default function ACAPage() {
       const clientDob = record.client?.birthdate || '';
       const pdfBytes = await generateAcaPdfFromScratch(record, clientName, clientDob);
 
-      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      const blob = new Blob([new Uint8Array(pdfBytes)], { type: 'application/pdf' });
       const downloadUrl = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = downloadUrl;
