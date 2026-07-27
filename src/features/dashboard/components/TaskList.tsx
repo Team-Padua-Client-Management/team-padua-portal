@@ -1,8 +1,56 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Plus, Filter, ChevronDown, Check } from 'lucide-react';
-import TaskRow, { TaskItem, TASK_CATEGORIES, normalizeCategory } from './TaskRow';
-import { UserProfile } from './UserAvatar';
+import React, { useMemo } from 'react';
+import Link from 'next/link';
+import { Plus, LayoutGrid, ChevronRight, Trash2 } from 'lucide-react';
+import { TaskItem, normalizeCategory } from './TaskRow';
+import UserAvatar, { UserProfile } from './UserAvatar';
 import styles from '@/styles/admin/dashboard/page.module.css';
+
+// ─── Category metadata ────────────────────────────────────────────────────────
+// Each entry maps a short badge key to its display title, color, and admin route.
+// href: null means there is no dedicated page for that category.
+
+interface CategoryMeta {
+  badge: string;
+  title: string;
+  accent: string;
+  tint: string;
+  href: string | null;
+}
+
+const KNOWN_CATEGORIES: CategoryMeta[] = [
+  { badge: 'ACR',       title: 'Advisor Change Request',                  accent: '#4F46E5', tint: 'rgba(79, 70, 229, 0.12)',   href: '/admin/acr'               },
+  { badge: 'BCR',       title: 'Beneficiary Change Request',               accent: '#2563EB', tint: 'rgba(37, 99, 235, 0.12)',   href: '/admin/bcr'               },
+  { badge: 'FSR',       title: 'Fund Switching Request',                   accent: '#059669', tint: 'rgba(5, 150, 105, 0.12)',   href: '/admin/fund-switching'    },
+  { badge: 'FW',        title: 'Fund Withdrawal Request',                  accent: '#10B981', tint: 'rgba(16, 185, 129, 0.12)',  href: '/admin/fund-withdrawal'   },
+  { badge: 'ACA',       title: 'Auto Credits Arrangement',                 accent: '#7C3AED', tint: 'rgba(124, 58, 237, 0.12)',  href: '/admin/aca'               },
+  { badge: 'ADA / MOA', title: 'Auto Debit Arrangement',                   accent: '#8B5CF6', tint: 'rgba(139, 92, 246, 0.12)',  href: '/admin/ada'               },
+  { badge: 'SRO',       title: 'Reinstatement (SRO)',                      accent: '#D97706', tint: 'rgba(217, 119, 6, 0.12)',   href: '/admin/reinstatement-sro' },
+  { badge: 'PPI',       title: 'Reinstatement (PPI)',                      accent: '#EA580C', tint: 'rgba(234, 88, 12, 0.12)',   href: '/admin/reinstatement-pdi' },
+  { badge: 'CPST',      title: 'Client Policy Status Tracking',            accent: '#0D9488', tint: 'rgba(13, 148, 136, 0.12)',  href: '/admin/cpst'              },
+  { badge: 'CSMV',      title: 'Client Servicing Monitoring Verification', accent: '#099268', tint: 'rgba(9, 146, 104, 0.12)',   href: '/admin/csmv'              },
+  { badge: 'CPC',       title: 'Client Policy Card',                       accent: '#0369A1', tint: 'rgba(3, 105, 161, 0.12)',   href: null                       },
+  { badge: 'Inquiry',   title: 'Inquiry',                                  accent: '#C9962E', tint: 'rgba(201, 150, 46, 0.12)',  href: null                       },
+  { badge: 'Others',    title: 'Others / Miscellaneous',                   accent: '#71717A', tint: 'rgba(113, 113, 122, 0.12)', href: null                       },
+];
+
+/** Map a normalized full-category string back to a short badge key. */
+function getBadgeFromNormalized(normalized: string): string {
+  if (normalized.startsWith('ACR'))                                    return 'ACR';
+  if (normalized.startsWith('BCR'))                                    return 'BCR';
+  if (normalized.startsWith('FSR'))                                    return 'FSR';
+  if (normalized.startsWith('FW'))                                     return 'FW';
+  if (normalized.startsWith('ACA'))                                    return 'ACA';
+  if (normalized.startsWith('ADA') || normalized.startsWith('MOA'))   return 'ADA / MOA';
+  if (normalized.startsWith('SRO'))                                    return 'SRO';
+  if (normalized.startsWith('PPI') || normalized.startsWith('PDI'))   return 'PPI';
+  if (normalized.startsWith('CPC'))                                    return 'CPC';
+  if (normalized.startsWith('CPST'))                                   return 'CPST';
+  if (normalized.startsWith('CSMV'))                                   return 'CSMV';
+  if (normalized.toLowerCase().startsWith('inquiry'))                  return 'Inquiry';
+  return normalized.split(' - ')[0].trim() || normalized;
+}
+
+// ─── Props ────────────────────────────────────────────────────────────────────
 
 interface TaskListProps {
   tasks: TaskItem[];
@@ -12,262 +60,375 @@ interface TaskListProps {
   onToggleComplete: (task: TaskItem) => void;
   onSelectTask: (taskId: string) => void;
   onSaveTaskField?: (taskId: string, updates: Partial<TaskItem>) => void;
+  onDeleteTask?: (taskId: string) => void;
   isUserView?: boolean;
 }
 
-const CATEGORY_OPTIONS = ['All', ...TASK_CATEGORIES];
-const STATUS_OPTIONS = ['All', 'Pending', 'In Progress', 'Done'];
+// ─── Category Row ─────────────────────────────────────────────────────────────
+// Clicking navigates to the dedicated admin page for that category.
+// No inline expansion — the dropdown and task list are on the target page.
 
-interface FilterOption {
-  label: string;
-  value: string;
+interface CategoryRowProps {
+  meta: CategoryMeta;
+  count: number;
+  assignedProfiles: UserProfile[];
+  categoryTasks: TaskItem[];
+  onDeleteTask?: (taskId: string) => void;
 }
 
-function RoundedFilterSelect({
-  value,
-  options,
-  onChange,
-  placeholder,
-  className = ''
-}: {
-  value: string;
-  options: FilterOption[];
-  onChange: (val: string) => void;
-  placeholder: string;
-  className?: string;
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+function CategoryRow({ meta, count, assignedProfiles, categoryTasks, onDeleteTask }: CategoryRowProps) {
+  const displayTitle = `${meta.title} (${meta.badge})`;
 
-  const selectedOpt = options.find((o) => o.value === value);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  return (
-    <div ref={dropdownRef} className={`relative ${className}`}>
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between gap-2 px-3 py-1.5 bg-surface/90 hover:bg-surface border border-border/80 hover:border-amber-500/60 rounded-xl text-text text-[11.5px] font-semibold transition-all cursor-pointer shadow-xs"
+  const rowContent = (
+    <>
+      {/* Col 1 — Count */}
+      <span
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '16px 0',
+          fontSize: '28px',
+          fontWeight: 800,
+          color: meta.accent,
+          fontVariantNumeric: 'tabular-nums',
+          letterSpacing: '-0.03em',
+          borderRight: '1px solid var(--border)',
+          backgroundColor: 'rgba(0, 0, 0, 0.01)',
+        }}
       >
-        <span className="truncate">{selectedOpt ? selectedOpt.label : placeholder}</span>
-        <ChevronDown size={13} className={`text-text-tertiary transition-transform duration-200 ${isOpen ? 'rotate-180 text-amber-500' : ''}`} />
-      </button>
+        {count}
+      </span>
 
-      {isOpen && (
-        <div className="absolute left-0 top-full mt-1.5 w-full min-w-[180px] z-50 bg-surface/95 backdrop-blur-xl border border-border/80 rounded-2xl shadow-xl p-1.5 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
-          <div className="max-h-60 overflow-y-auto space-y-0.5 [scrollbar-width:thin]">
-            {options.map((opt) => {
-              const isSelected = opt.value === value;
-              return (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => {
-                    onChange(opt.value);
-                    setIsOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-3 py-1.5 rounded-xl text-[11.5px] font-medium transition-all text-left cursor-pointer ${
-                    isSelected
-                      ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold'
-                      : 'text-text-secondary hover:text-text hover:bg-surface-2/80'
-                  }`}
-                >
-                  <span className="truncate">{opt.label}</span>
-                  {isSelected && <Check size={13} className="text-amber-500 shrink-0 ml-2" />}
-                </button>
-              );
-            })}
+      {/* Col 2 — Full title with badge abbreviation */}
+      <span
+        style={{
+          padding: '16px 20px',
+          fontSize: '15.5px',
+          fontWeight: 700,
+          color: 'var(--text)',
+          lineHeight: 1.3,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {displayTitle}
+      </span>
+
+      {/* Col 3 — Overlapping Assigned To Avatars */}
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          padding: '0 12px',
+        }}
+      >
+        {assignedProfiles.length > 0 ? (
+          <div style={{ display: 'flex', alignItems: 'center', flexFlow: 'row-reverse' }}>
+            {assignedProfiles.slice(0, 4).map((profile, i) => (
+              <div
+                key={profile.id}
+                style={{
+                  marginRight: i === 0 ? '0' : '-8px',
+                  zIndex: i,
+                  position: 'relative',
+                  border: '2px solid var(--surface)',
+                  borderRadius: '999px',
+                  overflow: 'hidden',
+                  background: 'var(--surface)',
+                }}
+              >
+                <UserAvatar profile={profile} size={28} showTooltip={true} />
+              </div>
+            ))}
+            {assignedProfiles.length > 4 && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '999px',
+                  backgroundColor: 'var(--bg-muted)',
+                  border: '2px solid var(--surface)',
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  color: 'var(--text-secondary)',
+                  zIndex: 5,
+                  marginRight: '-8px',
+                }}
+                title={`${assignedProfiles.length - 4} more assigned`}
+              >
+                +{assignedProfiles.length - 4}
+              </div>
+            )}
           </div>
+        ) : (
+          <span style={{ fontSize: '12px', color: 'var(--text-tertiary)', fontStyle: 'italic' }}>Unassigned</span>
+        )}
+      </span>
+
+      {/* Col 4 — Arrow (only when clickable) */}
+      {meta.href && (
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px 20px',
+            color: 'var(--text-tertiary)',
+            flexShrink: 0,
+            transition: 'color 0.15s ease, transform 0.15s ease',
+          }}
+        >
+          <ChevronRight size={18} strokeWidth={2.5} />
+        </span>
+      )}
+    </>
+  );
+
+  const gridStyle: React.CSSProperties = {
+    display: 'grid',
+    gridTemplateColumns: meta.href ? '68px 1fr auto auto' : '68px 1fr auto',
+    alignItems: 'center',
+    width: '100%',
+    borderLeft: `4px solid ${meta.accent}`,
+  };
+
+  const wrapperStyle: React.CSSProperties = {
+    borderRadius: '12px',
+    border: '1px solid var(--border)',
+    background: 'var(--surface)',
+    overflow: 'hidden',
+    transition: 'border-color 0.18s ease, box-shadow 0.18s ease',
+  };
+
+  if (meta.href) {
+    return (
+      <div style={wrapperStyle} className="group">
+        <Link
+          href={meta.href}
+          style={{
+            ...gridStyle,
+            textDecoration: 'none',
+            display: 'grid',
+          }}
+          className="hover:bg-surface-2/60 transition-colors"
+        >
+          {rowContent}
+        </Link>
+      </div>
+    );
+  }
+
+  // No route — render as plain row with sub-list of tasks for inline management (deletion)
+  return (
+    <div style={wrapperStyle}>
+      <div style={{ ...gridStyle, display: 'grid' }}>
+        {rowContent}
+      </div>
+      {categoryTasks.length > 0 && (
+        <div
+          style={{
+            borderTop: '1px solid var(--border)',
+            padding: '8px 12px 12px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '6px',
+            background: 'var(--bg-muted)',
+          }}
+        >
+          {categoryTasks.map((task) => (
+            <div
+              key={task.id}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '6px 10px',
+                borderRadius: '8px',
+                background: 'var(--surface)',
+                border: '1px solid var(--border)',
+              }}
+            >
+              <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text)' }}>
+                {task.title || 'Untitled Task'}
+              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <UserAvatar
+                  profile={assignedProfiles.find(p => p.id === task.assigned_to) || null}
+                  size={20}
+                />
+                <button
+                  type="button"
+                  onClick={() => onDeleteTask?.(task.id)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--text-tertiary)',
+                    padding: '2px',
+                    borderRadius: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  className="hover:text-red-500 hover:bg-red-50"
+                  title="Delete Task"
+                >
+                  <Trash2 size={13} />
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
   );
 }
 
+// ─── Main Export ──────────────────────────────────────────────────────────────
+
 export default function TaskList({
   tasks,
   allProfiles,
   bizDevProfiles,
   onCreateTask,
-  onToggleComplete,
-  onSelectTask,
-  onSaveTaskField,
-  isUserView = false
+  onToggleComplete: _onToggleComplete,
+  onSelectTask: _onSelectTask,
+  onSaveTaskField: _onSaveTaskField,
+  onDeleteTask,
+  isUserView = false,
 }: TaskListProps) {
-  const [selectedStatus, setSelectedStatus] = useState<string>('All');
-  const [selectedCategory, setSelectedCategory] = useState<string>('All');
-  const [selectedAssignee, setSelectedAssignee] = useState<string>('All');
-
-  const categoryOptions = useMemo(() => {
-    return CATEGORY_OPTIONS.map((c) => ({
-      label: c === 'All' ? 'All Categories' : c,
-      value: c
-    }));
-  }, []);
-
-  const assigneeOptions = useMemo(() => {
-    return [
-      { label: 'All Assignees', value: 'All' },
-      ...allProfiles.map((p) => ({
-        label: p.full_name || p.email || 'Unknown User',
-        value: p.id
-      }))
-    ];
-  }, [allProfiles]);
 
   const findProfileById = (id: string | null): UserProfile | null => {
     if (!id) return null;
     return allProfiles.find((p) => p.id === id) || bizDevProfiles.find((p) => p.id === id) || null;
   };
 
-  const filteredTasks = useMemo(() => {
-    return tasks.filter((task) => {
-      const matchesStatus =
-        selectedStatus === 'All' ||
-        task.status.toLowerCase() === selectedStatus.toLowerCase();
+  /** Group tasks by badge key — computed from existing userTasks, no DB calls. */
+  const categoryGroups = useMemo(() => {
+    const map = new Map<string, TaskItem[]>();
+    for (const task of tasks) {
+      const normalized = normalizeCategory(task.category);
+      const badge = getBadgeFromNormalized(normalized);
+      if (!map.has(badge)) {
+        map.set(badge, []);
+      }
+      map.get(badge)!.push(task);
+    }
+    return map;
+  }, [tasks]);
 
-      const normalizedCat = normalizeCategory(task.category);
-      const matchesCategory =
-        selectedCategory === 'All' ||
-        normalizedCat.toLowerCase() === selectedCategory.toLowerCase() ||
-        (task.category && task.category.toLowerCase() === selectedCategory.toLowerCase());
+  /**
+   * Build ordered display rows:
+   *  1. Known categories in fixed order (only those with records)
+   *  2. Any future/unknown categories discovered dynamically
+   */
+  const displayRows = useMemo(() => {
+    const knownBadges = new Set(KNOWN_CATEGORIES.map((c) => c.badge));
+    const rows: Array<{ meta: CategoryMeta; count: number; assignedProfiles: UserProfile[]; categoryTasks: TaskItem[] }> = [];
 
-      const matchesAssignee =
-        selectedAssignee === 'All' ||
-        task.assigned_to === selectedAssignee;
+    for (const meta of KNOWN_CATEGORIES) {
+      const catTasks = categoryGroups.get(meta.badge) || [];
+      if (catTasks.length > 0) {
+        const profileIds = Array.from(new Set(catTasks.map((t) => t.assigned_to).filter(Boolean))) as string[];
+        const profiles = profileIds.map(findProfileById).filter(Boolean) as UserProfile[];
+        rows.push({ meta, count: catTasks.length, assignedProfiles: profiles, categoryTasks: catTasks });
+      }
+    }
 
-      return matchesStatus && matchesCategory && matchesAssignee;
-    });
-  }, [tasks, selectedStatus, selectedCategory, selectedAssignee, allProfiles, bizDevProfiles]);
+    for (const [badge, catTasks] of categoryGroups.entries()) {
+      if (!knownBadges.has(badge) && catTasks.length > 0) {
+        const profileIds = Array.from(new Set(catTasks.map((t) => t.assigned_to).filter(Boolean))) as string[];
+        const profiles = profileIds.map(findProfileById).filter(Boolean) as UserProfile[];
+        rows.push({
+          meta: { badge, title: badge, accent: '#C9962E', tint: 'rgba(201, 150, 46, 0.12)', href: null },
+          count: catTasks.length,
+          assignedProfiles: profiles,
+          categoryTasks: catTasks,
+        });
+      }
+    }
 
-  const blankRowsCount = Math.max(0, 5 - filteredTasks.length);
+    return rows;
+  }, [categoryGroups, allProfiles, bizDevProfiles]);
+
+  const totalLogged = tasks.length;
 
   return (
     <div className={styles.monitoringCard}>
-      {/* Header */}
+      {/* ── Header ─────────────────────────────────────────────── */}
       <div className={`${styles.dashboardCardHeader} !flex-col !items-stretch !gap-3 !p-4`}>
-        <div className="flex items-center gap-2">
-          <Filter size={20} strokeWidth={2.2} className="text-gray-700 dark:text-gray-300" />
+        <div className="flex items-center gap-2.5">
+          <LayoutGrid size={20} strokeWidth={2.2} className="text-gray-700 dark:text-gray-300 shrink-0" />
           <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight m-0 leading-none">
             Client Servicing Monitoring
           </h1>
         </div>
-        <div className="flex items-center justify-between mt-1">
-          <span className="text-[14px] px-3.5 py-1 rounded-full bg-slate-200 text-slate-900 font-bold dark:bg-slate-800 dark:text-slate-100 shadow-sm">
-            {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'}
+
+        <div className="flex items-center justify-between mt-0.5">
+          {/* Dynamic total */}
+          <span className="text-[13px] font-bold" style={{ color: 'var(--text-secondary)' }}>
+            <span
+              className="text-[22px] font-extrabold mr-1.5"
+              style={{ color: 'var(--accent)', fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.03em' }}
+            >
+              {totalLogged}
+            </span>
+            Total Logged Request{totalLogged !== 1 ? 's' : ''}
           </span>
+
+          {/* Log Request button — reuses existing onCreateTask workflow unchanged */}
           {!isUserView && (
-            <button type="button" onClick={onCreateTask} className={`${styles.newTaskBtn} !py-1.5 !px-4 !text-[13px]`}>
-              <Plus size={15} strokeWidth={2.5} />
-              <span className="font-bold">New Task</span>
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Filter Bar */}
-      <div className="p-3.5 border-b border-border/40 space-y-2.5 bg-surface-2/40 backdrop-blur-md rounded-t-2xl">
-        {/* Status Tabs */}
-        <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-          <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-surface-2/80 text-text-tertiary text-[11px] font-semibold shrink-0 border border-border/50">
-            <Filter size={11} className="text-amber-500" strokeWidth={2.2} />
-          </div>
-          {STATUS_OPTIONS.map((st) => {
-            const isActive = selectedStatus === st;
-            return (
-              <button
-                key={st}
-                type="button"
-                onClick={() => setSelectedStatus(st)}
-                className={`px-3 py-1 rounded-lg text-[11.5px] font-semibold transition-all shrink-0 cursor-pointer border ${
-                  isActive
-                    ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white border-amber-500 shadow-sm shadow-amber-500/20 scale-[1.02]'
-                    : 'bg-surface/80 text-text-secondary border-border/70 hover:border-amber-500/50 hover:text-text hover:bg-surface'
-                }`}
-              >
-                {st}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Category & Assignee Selectors */}
-        <div className="flex flex-wrap items-center gap-2 pt-0.5 text-[11.5px]">
-          <RoundedFilterSelect
-            value={selectedCategory}
-            options={categoryOptions}
-            onChange={(val) => setSelectedCategory(val)}
-            placeholder="All Categories"
-            className="flex-1 min-w-[140px]"
-          />
-
-          {!isUserView && allProfiles.length > 0 && (
-            <RoundedFilterSelect
-              value={selectedAssignee}
-              options={assigneeOptions}
-              onChange={(val) => setSelectedAssignee(val)}
-              placeholder="All Assignees"
-              className="min-w-[130px] max-w-[160px]"
-            />
-          )}
-
-          {(selectedStatus !== 'All' || selectedCategory !== 'All' || selectedAssignee !== 'All') && (
             <button
               type="button"
-              onClick={() => {
-                setSelectedStatus('All');
-                setSelectedCategory('All');
-                setSelectedAssignee('All');
-              }}
-              className="px-2.5 py-1.5 rounded-xl text-[11px] font-bold text-amber-600 hover:text-amber-700 bg-amber-500/10 hover:bg-amber-500/15 border border-amber-500/30 transition-all shrink-0 cursor-pointer ml-auto"
+              onClick={onCreateTask}
+              className={`${styles.newTaskBtn} !py-1.5 !px-4 !text-[13px]`}
             >
-              Reset Filters
+              <Plus size={15} strokeWidth={2.5} />
+              <span className="font-bold">Log Request</span>
             </button>
           )}
         </div>
       </div>
 
-      <div className={styles.dashboardCardBody}>
-        <div className={styles.taskWidgetList} style={{ maxHeight: '520px', overflowY: 'auto' }}>
-          {filteredTasks.length === 0 ? (
-            <div className="p-8 text-center text-xs text-muted-foreground">
-              No tasks found matching your filter criteria.
+      {/* ── Category Summary Rows ──────────────────────────────── */}
+      <div
+        className={styles.dashboardCardBody}
+        style={{ padding: '0 16px 16px', gap: '8px' }}
+      >
+        {totalLogged === 0 ? (
+          <div
+            className={styles.emptyStateContainer}
+            onClick={!isUserView ? onCreateTask : undefined}
+            style={{ cursor: !isUserView ? 'pointer' : 'default' }}
+          >
+            <div className={styles.emptyStateIcon}>📋</div>
+            <div className={styles.emptyStateTitle}>No requests logged yet</div>
+            <div className={styles.emptyStateDescription}>
+              {!isUserView
+                ? 'Click "Log Request" to record your first client servicing request.'
+                : 'No client servicing requests have been logged.'}
             </div>
-          ) : (
-            filteredTasks.map((task) => (
-              <TaskRow
-                key={task.id}
-                task={task}
-                assignedProfile={findProfileById(task.assigned_to)}
-                processedProfile={findProfileById(task.processed_by)}
-                onToggleComplete={onToggleComplete}
-                onSelectTask={onSelectTask}
-                onSaveTaskField={onSaveTaskField}
-              />
-            ))
-          )}
-
-          {/* Blank ruled rows for aesthetic enterprise layout structure */}
-          {Array.from({ length: blankRowsCount }).map((_, idx) => (
-            <div
-              key={`blank-row-${idx}`}
-              className={styles.blankRuledRow}
-              onClick={!isUserView ? onCreateTask : undefined}
-              title={!isUserView ? "Click to add task" : undefined}
+          </div>
+        ) : (
+          displayRows.map(({ meta, count, assignedProfiles, categoryTasks }) => (
+            <CategoryRow
+              key={meta.badge}
+              meta={meta}
+              count={count}
+              assignedProfiles={assignedProfiles}
+              categoryTasks={categoryTasks}
+              onDeleteTask={onDeleteTask}
             />
-          ))}
-        </div>
+          ))
+        )}
       </div>
     </div>
   );
 }
+
 

@@ -14,6 +14,12 @@ import ClientSelector from '@src/components/shared/ClientSelector';
 // ── PDF generator ────────────────────────────────────────────────────────
 import { generateFundSwitchingPdf } from '@src/features/client-servicing/pdf/generateFundSwitchingPdf';
 // ──────────────────────────────────────────────────────────────────────────
+import dynamic from 'next/dynamic';
+
+const FundSwitchingStandardForm = dynamic(
+  () => import('@src/features/client-servicing/fund-switching-engine/FundSwitchingStandardForm'),
+  { ssr: false }
+);
 
 const TABLE_NAME = 'fund_switching_requests';
 
@@ -400,9 +406,8 @@ export default function FundSwitchingPage() {
     setIsModalOpen(true);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.client_id) {
+  const handleSaveDraft = async (values: FundSwitchingRecord) => {
+    if (!values.client_id) {
       setError("Please select a client.");
       return;
     }
@@ -412,7 +417,7 @@ export default function FundSwitchingPage() {
       setError("");
 
       if (editingRecord) {
-        const payload: any = { ...formData };
+        const payload: any = { ...values };
         if (!payload.date_of_signing) payload.date_of_signing = null;
 
         const { error: updateError } = await supabase
@@ -423,7 +428,7 @@ export default function FundSwitchingPage() {
         if (updateError) throw updateError;
         setSuccess("Record updated successfully");
       } else {
-        const payload: any = { ...formData };
+        const payload: any = { ...values };
         if (!payload.date_of_signing) payload.date_of_signing = null;
 
         const { error: insertError } = await supabase
@@ -446,14 +451,17 @@ export default function FundSwitchingPage() {
     }
   };
 
-  const handleDownloadPdf = async (record: FundSwitchingRecord) => {
+  const handleDownloadPdf = async (record: FundSwitchingRecord, clientDetails?: any) => {
     try {
       setIsGeneratingPdf(true);
-      setGeneratingPdfId(record.id);
+      if (record.id) setGeneratingPdfId(record.id);
       setError("");
 
-      const ownerName = getClientNameParts(record.client?.client_name);
-      const ownerDob = record.client?.birthdate || '';
+      const clientName = clientDetails?.client_name || record.client?.client_name;
+      const clientDob = clientDetails?.birthdate || record.client?.birthdate;
+
+      const ownerName = getClientNameParts(clientName);
+      const ownerDob = clientDob || '';
 
       const pdfBytes = await generateFundSwitchingPdf(record, ownerName, ownerDob);
 
@@ -557,6 +565,28 @@ export default function FundSwitchingPage() {
     (r.client?.client_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
     (r.policy_number || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  if (isModalOpen) {
+    return (
+      <div className="relative w-screen h-screen overflow-hidden bg-slate-950">
+        <FundSwitchingStandardForm
+          initialValues={formData as FundSwitchingRecord}
+          clientId={formData.client_id}
+          selectedClientDetails={selectedClientDetails}
+          status={formData.status}
+          onBack={() => {
+            setIsModalOpen(false);
+            fetchRecords();
+          }}
+          onClientSelect={handleClientSelect}
+          onSaveDraft={(values) => handleSaveDraft(values)}
+          onExportPdf={(values) => handleDownloadPdf(values, selectedClientDetails)}
+          isSubmitting={isSubmitting}
+          isGeneratingPdf={isGeneratingPdf}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className={styles.text_52}>
@@ -704,373 +734,6 @@ export default function FundSwitchingPage() {
           </div>
         </main>
       </div>
-
-      {isModalOpen && (
-        <Modal onClose={() => setIsModalOpen(false)}>
-          <div className="px-7 py-5 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center">
-                <FileText className="text-amber-500" size={18} />
-              </div>
-              <h2 className="text-xl font-bold text-gray-900 tracking-tight">
-                {editingRecord ? 'Edit Fund Switching Request' : 'New Fund Switching Request'}
-              </h2>
-            </div>
-            <button
-              onClick={() => setIsModalOpen(false)}
-              className="p-2.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors duration-200"
-            >
-              <X size={20} />
-            </button>
-          </div>
-
-          <div className="p-7 overflow-y-auto bg-gray-50/60 flex-1">
-            <form id="fsForm" onSubmit={handleSubmit} className="space-y-6">
-              <div className={cardClass}>
-                <h3 className="text-base font-semibold text-gray-900 mb-4">Select Client</h3>
-                <ClientSelector
-                  onChange={handleClientSelect}
-                  value={formData.client_id}
-                />
-              </div>
-
-              {formData.client_id && (
-                <>
-                  <div className="bg-[#003865] w-full py-4 px-6 rounded-[28px] flex items-center justify-between shadow-sm">
-                    <h2 className="text-xl font-bold text-white uppercase tracking-wide">Fund Switching</h2>
-                    <div className="text-amber-400 font-bold text-xl tracking-tighter">Sun Life</div>
-                  </div>
-
-                  <div className={cardClass}>
-                    <SectionHeader letter="1" title="General Information" />
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div>
-                          <label className={labelClass}>Policy Owner (Last Name)</label>
-                          <input type="text" value={clientNameParts.last} disabled className={inputDisabledClass} />
-                        </div>
-                        <div>
-                          <label className={labelClass}>First Name</label>
-                          <input type="text" value={clientNameParts.first} disabled className={inputDisabledClass} />
-                        </div>
-                        <div>
-                          <label className={labelClass}>Middle Name</label>
-                          <input type="text" value={clientNameParts.middle} disabled className={inputDisabledClass} />
-                        </div>
-                        <div>
-                          <label className={labelClass}>Policy Number</label>
-                          <input type="text" value={formData.policy_number} onChange={e => setFormData({ ...formData, policy_number: e.target.value })} className={inputClass} />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                          <label className={labelClass}>Life Insured</label>
-                          <input type="text" value={formData.life_insured} onChange={e => setFormData({ ...formData, life_insured: e.target.value })} className={inputClass} />
-                        </div>
-                        <div>
-                          <label className={labelClass}>Citizenship</label>
-                          <input type="text" value={formData.citizenship} onChange={e => setFormData({ ...formData, citizenship: e.target.value })} className={inputClass} />
-                        </div>
-                        <div>
-                          <label className={labelClass}>Email Address</label>
-                          <input type="text" value={formData.email_address} onChange={e => setFormData({ ...formData, email_address: e.target.value })} className={inputClass} />
-                        </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                          <label className={labelClass}>Mobile Phone</label>
-                          <input type="text" value={formData.mobile_phone} onChange={e => setFormData({ ...formData, mobile_phone: e.target.value })} className={inputClass} />
-                        </div>
-                        <div>
-                          <label className={labelClass}>Home Phone</label>
-                          <input type="text" value={formData.home_phone} onChange={e => setFormData({ ...formData, home_phone: e.target.value })} className={inputClass} />
-                        </div>
-                        <div>
-                          <label className={labelClass}>Work Phone</label>
-                          <input type="text" value={formData.work_phone} onChange={e => setFormData({ ...formData, work_phone: e.target.value })} className={inputClass} />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className={labelClass}>Present Address</label>
-                          <textarea value={formData.present_address} onChange={e => setFormData({ ...formData, present_address: e.target.value })} className={inputClass} rows={2} />
-                        </div>
-                        <div>
-                          <label className={labelClass}>Permanent Address</label>
-                          <textarea value={formData.permanent_address} onChange={e => setFormData({ ...formData, permanent_address: e.target.value })} className={inputClass} rows={2} />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className={labelClass}>Work Address</label>
-                          <textarea value={formData.work_address} onChange={e => setFormData({ ...formData, work_address: e.target.value })} className={inputClass} rows={2} />
-                        </div>
-                        <div>
-                          <label className={labelClass}>Country of Legal Residence</label>
-                          <input type="text" value={formData.country_of_legal_residence} onChange={e => setFormData({ ...formData, country_of_legal_residence: e.target.value })} className={inputClass} />
-                        </div>
-                      </div>
-                      
-                    </div>
-                  </div>
-
-                  <div className={cardClass}>
-                    <SectionHeader letter="2" title="Fund Switching Details" />
-                    <div className="space-y-4">
-                      {formData.fund_switch_rows.map((row, idx) => (
-                        <div key={idx} className="p-4 rounded-3xl border border-gray-100 bg-gray-50/50 relative">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                            <div>
-                              <label className={labelClass}>Switch From Fund</label>
-                              <input type="text" value={row.from_fund} onChange={e => updateRow(idx, 'from_fund', e.target.value)} className={inputClass} />
-                            </div>
-                            <div>
-                              <label className={labelClass}>Switch To Fund</label>
-                              <input type="text" value={row.to_fund} onChange={e => updateRow(idx, 'to_fund', e.target.value)} className={inputClass} />
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-                            <div>
-                              <label className={labelClass}>Switch Type</label>
-                              <select value={row.switch_type} onChange={e => updateRow(idx, 'switch_type', e.target.value)} className={inputClass}>
-                                <option value="">Select...</option>
-                                <option value="full">Full</option>
-                                <option value="partial">Partial</option>
-                              </select>
-                            </div>
-                            <div>
-                              <label className={labelClass}>Amount</label>
-                              <input type="text" value={row.amount} onChange={e => updateRow(idx, 'amount', e.target.value)} disabled={row.switch_type === 'full'} className={row.switch_type === 'full' ? inputDisabledClass : inputClass} placeholder="For partial only" />
-                            </div>
-                            <div className="flex gap-2 items-end">
-                              <div className="flex-1">
-                                <label className={labelClass}>Percentage (%)</label>
-                                <input type="number" max="100" min="0" value={row.percentage} onChange={e => updateRow(idx, 'percentage', e.target.value)} disabled={row.switch_type === 'full'} className={row.switch_type === 'full' ? inputDisabledClass : inputClass} placeholder="For partial only" />
-                              </div>
-                              {formData.fund_switch_rows.length > 1 && (
-                                <button type="button" onClick={() => removeRow(idx)} className="p-2.5 text-red-500 hover:bg-red-50 rounded-full mb-1">
-                                  <MinusCircle size={20} />
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                      <button type="button" onClick={addRow} className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700 p-2">
-                        <PlusCircle size={16} /> Add another switch row
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className={cardClass}>
-                    <SectionHeader letter="3" title="Future Fund Allocation" />
-                    <div className="space-y-6">
-                      
-                      <div>
-                        <h4 className="font-semibold text-gray-800 mb-3 text-sm">Peso Funds</h4>
-                        <div className="space-y-3">
-                          {formData.future_peso_allocations.map((row, idx) => (
-                            <div key={idx} className="flex gap-3 items-center">
-                              <div className="flex-1">
-                                <input type="text" value={row.fund_name} onChange={e => updatePesoRow(idx, 'fund_name', e.target.value)} placeholder="Fund Name" className={inputClass} />
-                              </div>
-                              <div className="w-32">
-                                <div className="relative">
-                                  <input type="number" min="0" max="100" value={row.percentage} onChange={e => updatePesoRow(idx, 'percentage', e.target.value)} placeholder="%" className={inputClass} />
-                                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">%</span>
-                                </div>
-                              </div>
-                              {formData.future_peso_allocations.length > 1 ? (
-                                <button type="button" onClick={() => removePesoRow(idx)} className="p-2 text-red-500 hover:bg-red-50 rounded-full">
-                                  <X size={16} />
-                                </button>
-                              ) : <div className="w-8"></div>}
-                            </div>
-                          ))}
-                          <div className="flex justify-between items-center px-2">
-                            <button type="button" onClick={addPesoRow} className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700">
-                              <PlusCircle size={14} /> Add Peso Fund
-                            </button>
-                            <span className={`text-sm font-bold ${pesoTotal === 100 || pesoTotal === 0 ? 'text-green-600' : 'text-red-500'}`}>
-                              Total: {pesoTotal}% {pesoTotal > 0 && pesoTotal !== 100 && '(Must equal 100%)'}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="border-t border-gray-100 pt-6">
-                        <h4 className="font-semibold text-gray-800 mb-3 text-sm">Dollar Funds</h4>
-                        <div className="space-y-3">
-                          {formData.future_dollar_allocations.map((row, idx) => (
-                            <div key={idx} className="flex gap-3 items-center">
-                              <div className="flex-1">
-                                <input type="text" value={row.fund_name} onChange={e => updateDollarRow(idx, 'fund_name', e.target.value)} placeholder="Fund Name" className={inputClass} />
-                              </div>
-                              <div className="w-32">
-                                <div className="relative">
-                                  <input type="number" min="0" max="100" value={row.percentage} onChange={e => updateDollarRow(idx, 'percentage', e.target.value)} placeholder="%" className={inputClass} />
-                                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">%</span>
-                                </div>
-                              </div>
-                              {formData.future_dollar_allocations.length > 1 ? (
-                                <button type="button" onClick={() => removeDollarRow(idx)} className="p-2 text-red-500 hover:bg-red-50 rounded-full">
-                                  <X size={16} />
-                                </button>
-                              ) : <div className="w-8"></div>}
-                            </div>
-                          ))}
-                          <div className="flex justify-between items-center px-2">
-                            <button type="button" onClick={addDollarRow} className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700">
-                              <PlusCircle size={14} /> Add Dollar Fund
-                            </button>
-                            <span className={`text-sm font-bold ${dollarTotal === 100 || dollarTotal === 0 ? 'text-green-600' : 'text-red-500'}`}>
-                              Total: {dollarTotal}% {dollarTotal > 0 && dollarTotal !== 100 && '(Must equal 100%)'}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                    </div>
-                  </div>
-
-                  <div className={cardClass}>
-                    <SectionHeader letter="4" title="Excess Premium Changes" />
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-3">
-                        <label className={`flex items-center gap-3 p-3.5 rounded-2xl border transition-colors duration-200 cursor-pointer ${formData.excess_premium_option === 'add' ? 'border-amber-200 bg-amber-50/40' : 'border-transparent hover:bg-gray-50'}`}>
-                          <input type="radio" name="excess_premium_option" checked={formData.excess_premium_option === 'add'} onChange={() => setFormData({ ...formData, excess_premium_option: 'add' })} className="accent-gray-900" />
-                          <span className="text-sm text-gray-900">Add To Regular Premium</span>
-                        </label>
-                        <label className={`flex items-center gap-3 p-3.5 rounded-2xl border transition-colors duration-200 cursor-pointer ${formData.excess_premium_option === 'change' ? 'border-amber-200 bg-amber-50/40' : 'border-transparent hover:bg-gray-50'}`}>
-                          <input type="radio" name="excess_premium_option" checked={formData.excess_premium_option === 'change'} onChange={() => setFormData({ ...formData, excess_premium_option: 'change' })} className="accent-gray-900" />
-                          <span className="text-sm text-gray-900">Change Existing Excess Premium</span>
-                        </label>
-                        <label className={`flex items-center gap-3 p-3.5 rounded-2xl border transition-colors duration-200 cursor-pointer ${formData.excess_premium_option === 'cancel' ? 'border-amber-200 bg-amber-50/40' : 'border-transparent hover:bg-gray-50'}`}>
-                          <input type="radio" name="excess_premium_option" checked={formData.excess_premium_option === 'cancel'} onChange={() => setFormData({ ...formData, excess_premium_option: 'cancel', excess_amount: '', excess_currency: '' })} className="accent-gray-900" />
-                          <span className="text-sm text-gray-900">Cancel Excess Premium</span>
-                        </label>
-                      </div>
-                      
-                      <div className="bg-gray-50/50 p-4 rounded-3xl border border-gray-100">
-                        <label className={labelClass}>Currency & Amount</label>
-                        <div className="flex gap-4 mb-4">
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input type="radio" name="excess_currency" checked={formData.excess_currency === 'PHP'} onChange={() => setFormData({ ...formData, excess_currency: 'PHP' })} disabled={formData.excess_premium_option === 'cancel'} className="accent-gray-900" />
-                            <span className="text-sm text-gray-700">PHP</span>
-                          </label>
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input type="radio" name="excess_currency" checked={formData.excess_currency === 'USD'} onChange={() => setFormData({ ...formData, excess_currency: 'USD' })} disabled={formData.excess_premium_option === 'cancel'} className="accent-gray-900" />
-                            <span className="text-sm text-gray-700">USD</span>
-                          </label>
-                        </div>
-                        <input 
-                          type="text" 
-                          value={formData.excess_amount} 
-                          onChange={e => setFormData({ ...formData, excess_amount: e.target.value })} 
-                          disabled={formData.excess_premium_option === 'cancel'} 
-                          placeholder="Amount"
-                          className={formData.excess_premium_option === 'cancel' ? inputDisabledClass : inputClass} 
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className={cardClass}>
-                    <SectionHeader letter="5" title="Acknowledgement & Signatures" />
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                      <div>
-                        <label className={labelClass}>Place of Signing</label>
-                        <input type="text" value={formData.place_of_signing} onChange={e => setFormData({ ...formData, place_of_signing: e.target.value })} className={inputClass} />
-                      </div>
-                      <div>
-                        <label className={labelClass}>
-                          Date of Signing
-                        </label>
-                        <input type="date" value={formData.date_of_signing} onChange={e => setFormData({ ...formData, date_of_signing: e.target.value })} className={inputClass} />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
-                      <div>
-                        <label className={labelClass}>Signature of Policy Owner</label>
-                        <div className="border border-gray-200 rounded-3xl p-3 bg-gray-50/50 overflow-hidden">
-                          <SignaturePad
-                            initialSignature={formData.policy_owner_signature}
-                            onSignatureChange={(data: string | null) => setFormData({ ...formData, policy_owner_signature: data || '' })}
-                            title="Policy Owner Signature"
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label className={labelClass}>Signature of Witness</label>
-                        <div className="border border-gray-200 rounded-3xl p-3 bg-gray-50/50 overflow-hidden">
-                          <SignaturePad
-                            initialSignature={formData.witness_signature}
-                            onSignatureChange={(data: string | null) => setFormData({ ...formData, witness_signature: data || '' })}
-                            title="Witness Signature"
-                          />
-                        </div>
-                        <div className="grid grid-cols-1 gap-3 mt-4">
-                          <div>
-                            <input type="text" value={formData.witness_name} onChange={e => setFormData({ ...formData, witness_name: e.target.value })} className={`${inputClass} py-2 text-sm`} placeholder="Witness Name" />
-                          </div>
-                          <div>
-                            <input type="text" value={formData.witness_address} onChange={e => setFormData({ ...formData, witness_address: e.target.value })} className={`${inputClass} py-2 text-sm`} placeholder="Witness Address" />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                      <div>
-                        <label className={labelClass}>Signature of Assignee</label>
-                        <div className="border border-gray-200 rounded-3xl p-3 bg-gray-50/50 overflow-hidden">
-                          <SignaturePad
-                            initialSignature={formData.assignee_signature}
-                            onSignatureChange={(data: string | null) => setFormData({ ...formData, assignee_signature: data || '' })}
-                            title="Assignee Signature"
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label className={labelClass}>Signature of Beneficiary</label>
-                        <div className="border border-gray-200 rounded-3xl p-3 bg-gray-50/50 overflow-hidden">
-                          <SignaturePad
-                            initialSignature={formData.beneficiary_signature}
-                            onSignatureChange={(data: string | null) => setFormData({ ...formData, beneficiary_signature: data || '' })}
-                            title="Beneficiary Signature"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                  </div>
-                </>
-              )}
-            </form>
-          </div>
-
-          <div className="px-7 py-5 border-t border-gray-100 bg-white flex justify-end gap-3 shrink-0">
-            <SecondaryButton onClick={() => setIsModalOpen(false)}>
-              Cancel
-            </SecondaryButton>
-            <PrimaryButton
-              form="fsForm"
-              type="submit"
-              disabled={!formData.client_id}
-              loading={isSubmitting}
-            >
-              {!isSubmitting && <Save size={16} />}
-              Save Request
-            </PrimaryButton>
-          </div>
-        </Modal>
-      )}
 
       {isDeleteModalOpen && (
         <Modal onClose={() => setIsDeleteModalOpen(false)} maxWidth="max-w-sm" z="z-[60]">

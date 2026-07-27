@@ -113,10 +113,8 @@ export default function FormsHubPage() {
           {/* Page Header */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-5 border-b border-gray-100">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 font-sans">Sun Life Forms</h1>
-              <p className="text-sm text-gray-500">
-                Directory and access hub for client servicing forms.
-              </p>
+              <h1 className="text-2xl font-bold text-gray-900 font-sans">Client Servicing Request Forms</h1>
+              <p className="text-sm text-gray-500 mt-1 font-sans">Manage your client servicing request forms and documents</p>
             </div>
           </div>
 

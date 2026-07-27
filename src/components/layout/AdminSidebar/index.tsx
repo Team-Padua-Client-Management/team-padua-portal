@@ -101,7 +101,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
     const trackerPaths = ['/admin/jf-application', '/admin/jf-bizdev'];
     const sunlifeFormPaths = [
       '/admin/acr', '/admin/bcr', '/admin/fund-switching', '/admin/fund-withdrawal',
-      '/admin/aca', '/admin/reinstatement-sro', '/admin/reinstatement-pdi'
+      '/admin/aca', '/admin/ada', '/admin/reinstatement-sro', '/admin/reinstatement-pdi'
     ];
 
     const isClientServicing = clientServicingPaths.some(p => pathname.startsWith(p));
@@ -138,15 +138,14 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
   // ];
 
   const sunlifeFormItems = [
-    { name: 'FORM', href: '/admin/form' },
-    { name: 'Advisor Change Request', href: '/admin/acr' },
-    { name: 'Beneficiary Change Request', href: '/admin/bcr' },
-    { name: 'Fund Switching', href: '/admin/fund-switching' },
-    { name: 'Fund Withdrawal', href: '/admin/fund-withdrawal' },
-    { name: 'Auto Change Arrangement', href: '/admin/aca' },
+    { name: 'Advisor Change Request (ACR)', href: '/admin/acr' },
+    { name: 'Beneficiary Change Request (BCR)', href: '/admin/bcr' },
+    { name: 'Fund Switching Request (FSR)', href: '/admin/fund-switching' },
+    { name: 'Fund Withdrawal Request (FWR)', href: '/admin/fund-withdrawal' },
+    { name: 'Auto Credit Arrangement (ACA)', href: '/admin/aca' },
+    { name: 'Auto Debit Arrangement (ADA)', href: '/admin/ada' },
     { name: 'Reinstatement SRO', href: '/admin/reinstatement-sro' },
     { name: 'Reinstatement PDI', href: '/admin/reinstatement-pdi' },
-    // { name: 'Advisor Daily Activity Tracker', href: '/admin/adat' },
   ];
 
   const camsActive = [
@@ -313,14 +312,14 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                 )}
               </div> */}
 
-              {/* Category 3: Sun Life Forms */}
+              {/* Category 3: Client Servicing Request Forms */}
               <div className="flex flex-col">
                 <button
                   type="button"
                   onClick={() => setSunlifeFormsOpen(!sunlifeFormsOpen)}
                   className="flex items-center justify-between w-full px-2.5 py-1.5 text-[11px] font-bold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors border-0 cursor-pointer bg-transparent text-left"
                 >
-                  <span>Sun Life Forms</span>
+                  <span>Client Servicing Request Forms</span>
                   {sunlifeFormsOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
                 </button>
                 {sunlifeFormsOpen && (

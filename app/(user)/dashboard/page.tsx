@@ -20,7 +20,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 
 import styles from "@/styles/admin/dashboard/page.module.css";
 import WelcomeModal from "@src/components/modals/WelcomeModal";
-import { CalendarDays, Plus } from 'lucide-react';
+import { CalendarDays, Plus } from 'lucide-react'; 
 
 // Modular Dashboard Components
 import DashboardHero from "@src/features/dashboard/components/DashboardHero";

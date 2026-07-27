@@ -202,6 +202,7 @@ export default function DashboardOverviewPage() {
                 onToggleComplete={handleToggleCheckbox}
                 onSelectTask={(id) => setSelectedTaskIdForModal(id)}
                 onSaveTaskField={saveTaskField}
+                onDeleteTask={handleDeleteTask}
               />              {/* To-do Widget with Client Servicing Tasks & Personal To-Dos */}
               <ClientServicingToDo
                 tasks={userTasks}

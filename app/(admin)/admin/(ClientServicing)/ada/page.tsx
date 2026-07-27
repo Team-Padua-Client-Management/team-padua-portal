@@ -9,21 +9,23 @@ import { AdminHeader as Header } from '@src/components/layout';
 import { AdminSidebar as Sidebar } from '@src/components/layout';
 import { supabase } from "@src/lib/supabase/client";
 import dynamic from 'next/dynamic';
-import { generatePdiPdfFromTemplate } from '@src/features/client-servicing/pdf/generatePdiPdfFromTemplate';
+import { generateAdaPdfFromTemplate } from '@src/features/client-servicing/pdf/generateAdaPdfFromTemplate';
 
-const PdiStandardForm = dynamic(
-  () => import('@src/features/client-servicing/pdi-engine/PdiStandardForm'),
+const AdaStandardForm = dynamic(
+  () => import('@src/features/client-servicing/ada-engine/AdaStandardForm'),
   { ssr: false }
 );
 
-const TABLE_NAME = 'reinstatement_pdi_requests';
+const TABLE_NAME = 'ada_requests';
 
-interface PdiRecord {
+interface AdaRecord {
   id: string;
   client_id: string;
   client?: { client_name: string; policy_number: string | null; birthdate: string | null };
   status: string;
   date_submitted: string;
+  bank_type: string;
+  bank_account_number: string;
   comments: string;
   created_at?: string;
 }
@@ -32,6 +34,8 @@ const defaultRecord = {
   client_id: '',
   status: 'Pending',
   date_submitted: new Date().toISOString().split('T')[0],
+  bank_type: 'BPI',
+  bank_account_number: '',
   comments: ''
 };
 
@@ -48,16 +52,16 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-export default function ReinstatementPdiPage() {
+export default function AdaPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [records, setRecords] = useState<PdiRecord[]>([]);
+  const [records, setRecords] = useState<AdaRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
   const [isEditorOpen, setIsEditorOpen] = useState(false);
-  const [editingRecord, setEditingRecord] = useState<PdiRecord | null>(null);
+  const [editingRecord, setEditingRecord] = useState<AdaRecord | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [recordToDelete, setRecordToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -95,15 +99,19 @@ export default function ReinstatementPdiPage() {
         .from(TABLE_NAME)
         .select(`
           *,
-          client:cpst_clients(client_name, policy_number, birthdate)
+          client:client_id(client_name, policy_number, birthdate)
         `)
         .order('created_at', { ascending: false });
 
       if (err) throw err;
       setRecords(data || []);
     } catch (err: any) {
-      console.error("Error fetching PDI records:", err);
-      setError(err.message || "Failed to load records");
+      console.error("Error fetching ADA records:", err);
+      if (err.code === '42P01') {
+        setError("Table 'ada_requests' does not exist. Please run the SQL migration.");
+      } else {
+        setError(err.message || "Failed to load records");
+      }
     } finally {
       setLoading(false);
     }
@@ -126,18 +134,21 @@ export default function ReinstatementPdiPage() {
       return (
         r.client?.client_name?.toLowerCase().includes(q) ||
         r.client?.policy_number?.toLowerCase().includes(q) ||
-        r.status.toLowerCase().includes(q)
+        r.status.toLowerCase().includes(q) ||
+        r.bank_type?.toLowerCase().includes(q)
       );
     });
   }, [records, searchQuery]);
 
-  const handleOpenEditor = (record?: PdiRecord) => {
+  const handleOpenEditor = (record?: AdaRecord) => {
     if (record) {
       setEditingRecord(record);
       setFormData({
         client_id: record.client_id || '',
         status: record.status || 'Pending',
         date_submitted: record.date_submitted || defaultRecord.date_submitted,
+        bank_type: record.bank_type || 'BPI',
+        bank_account_number: record.bank_account_number || '',
         comments: record.comments || ''
       });
     } else {
@@ -161,6 +172,8 @@ export default function ReinstatementPdiPage() {
             client_id: values.client_id,
             status: values.status,
             date_submitted: values.date_submitted,
+            bank_type: values.bank_type,
+            bank_account_number: values.bank_account_number,
             comments: values.comments,
           })
           .eq('id', editingRecord.id);
@@ -173,6 +186,8 @@ export default function ReinstatementPdiPage() {
             client_id: values.client_id,
             status: values.status,
             date_submitted: values.date_submitted,
+            bank_type: values.bank_type,
+            bank_account_number: values.bank_account_number,
             comments: values.comments,
           }]);
         if (err) throw err;
@@ -194,13 +209,13 @@ export default function ReinstatementPdiPage() {
       setIsGeneratingPdf(true);
       const clientName = selectedClientDetails?.client_name || '';
       const clientDob = selectedClientDetails?.birthdate || '';
-      const pdfBytes = await generatePdiPdfFromTemplate(values, clientName, clientDob);
+      const pdfBytes = await generateAdaPdfFromTemplate(values, clientName, clientDob);
       
       const blob = new Blob([new Uint8Array(pdfBytes)], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `PDI_Request_${clientName.replace(/\s+/g, '_')}.pdf`;
+      a.download = `ADA_Request_${clientName.replace(/\s+/g, '_')}_${values.bank_type}.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -239,7 +254,7 @@ export default function ReinstatementPdiPage() {
   if (isEditorOpen) {
     return (
       <div className="fixed inset-0 z-50 bg-white">
-        <PdiStandardForm
+        <AdaStandardForm
           initialValues={formData}
           clientId={formData.client_id}
           selectedClientDetails={selectedClientDetails}
@@ -275,8 +290,8 @@ export default function ReinstatementPdiPage() {
                 <span>/</span>
                 <span>Client Servicing</span>
               </div>
-              <h1 className="text-2xl font-bold tracking-tight text-gray-900">Reinstatement PDI</h1>
-              <p className="text-sm text-gray-500 mt-1">Manage health and insurability reinstatement offers and generate forms.</p>
+              <h1 className="text-2xl font-bold tracking-tight text-gray-900">Auto-Debit Arrangement (ADA)</h1>
+              <p className="text-sm text-gray-500 mt-1">Manage BPI and BDO auto-debit requests and generate forms.</p>
             </div>
             <button
               onClick={() => handleOpenEditor()}
@@ -324,7 +339,7 @@ export default function ReinstatementPdiPage() {
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={17} />
                 <input
                   type="text"
-                  placeholder="Search PDI requests..."
+                  placeholder="Search ADA requests..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-11 pr-4 py-2.5 bg-white border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-400 transition-all duration-200"
@@ -337,6 +352,8 @@ export default function ReinstatementPdiPage() {
                 <thead className="bg-gray-50/40 text-gray-500">
                   <tr>
                     <th className="px-6 py-3.5 font-medium">Policy Owner</th>
+                    <th className="px-6 py-3.5 font-medium">Bank Type</th>
+                    <th className="px-6 py-3.5 font-medium">Account Number</th>
                     <th className="px-6 py-3.5 font-medium">Date Submitted</th>
                     <th className="px-6 py-3.5 font-medium">Status</th>
                     <th className="px-6 py-3.5 font-medium text-right">Actions</th>
@@ -345,7 +362,7 @@ export default function ReinstatementPdiPage() {
                 <tbody className="divide-y divide-gray-50">
                   {loading ? (
                     <tr>
-                      <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
+                      <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
                         <div className="flex flex-col items-center gap-2">
                           <Loader2 className="w-6 h-6 animate-spin text-amber-500" />
                           <p>Loading records...</p>
@@ -354,12 +371,12 @@ export default function ReinstatementPdiPage() {
                     </tr>
                   ) : filteredRecords.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
+                      <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
                         <div className="flex flex-col items-center gap-3">
                           <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-gray-400">
                             <Inbox size={24} />
                           </div>
-                          <p>No PDI records found.</p>
+                          <p>No ADA records found.</p>
                         </div>
                       </td>
                     </tr>
@@ -370,6 +387,10 @@ export default function ReinstatementPdiPage() {
                           <div className="font-medium text-gray-900">{record.client?.client_name || 'Unknown'}</div>
                           <div className="text-xs text-gray-500">{record.client?.policy_number || 'No Policy #'}</div>
                         </td>
+                        <td className="px-6 py-4">
+                          <span className="font-medium">{record.bank_type}</span>
+                        </td>
+                        <td className="px-6 py-4 text-gray-600">{record.bank_account_number || '-'}</td>
                         <td className="px-6 py-4 text-gray-600">{record.date_submitted}</td>
                         <td className="px-6 py-4">
                           <StatusBadge status={record.status} />

@@ -13,8 +13,8 @@ import { generateAdvisorChangeRequestPdfFromTemplate } from '@src/features/clien
 import { acrFormConfig } from '@src/features/client-servicing/config/acrConfig';
 import { useSearchParams } from 'next/navigation';
 
-const PdfViewerEngine = dynamic(
-  () => import('@src/features/client-servicing/pdf-engine/PdfViewerEngine'),
+const AcrStandardForm = dynamic(
+  () => import('@src/features/client-servicing/acr-engine/AcrStandardForm'),
   { ssr: false }
 );
 
@@ -540,45 +540,7 @@ export default function AdvisorChangeRequestPage() {
   if (isEditorOpen) {
     return (
       <div className="relative w-screen h-screen overflow-hidden bg-slate-950">
-        {/* Floating Top Back Button */}
-        <button
-          onClick={() => {
-            setIsEditorOpen(false);
-            fetchRecords();
-          }}
-          className="fixed top-3 left-4 z-[100] px-3.5 py-1.5 bg-slate-900/90 hover:bg-slate-800 border border-slate-700 text-slate-200 hover:text-white rounded-full text-xs font-semibold flex items-center gap-1.5 backdrop-blur-md shadow-lg transition-all"
-        >
-          <ArrowLeft size={14} />
-          Back to ACR List
-        </button>
-
-        {error && (
-          <div className="fixed top-16 right-6 z-[200] max-w-sm animate-[slideInRight_0.2s_ease-out]">
-            <div className="bg-white border border-red-100 rounded-2xl p-4 flex items-center gap-3 shadow-2xl">
-              <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center shrink-0">
-                <AlertCircle className="text-red-500" size={16} />
-              </div>
-              <p className="text-red-700 text-xs flex-1 font-medium">{error}</p>
-              <button onClick={() => setError("")} className="text-gray-300 hover:text-gray-500">
-                <X size={16} />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {success && (
-          <div className="fixed top-16 right-6 z-[200] max-w-sm animate-[slideInRight_0.2s_ease-out]">
-            <div className="bg-white border border-emerald-100 rounded-2xl p-4 flex items-center gap-3 shadow-2xl">
-              <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center shrink-0">
-                <CheckCircle2 className="text-emerald-500" size={16} />
-              </div>
-              <p className="text-emerald-700 text-xs flex-1 font-semibold">{success}</p>
-            </div>
-          </div>
-        )}
-
-        <PdfViewerEngine
-          config={acrFormConfig}
+        <AcrStandardForm
           initialValues={engineInitialValues}
           clientId={formData.client_id}
           selectedClientDetails={selectedClientDetails}
