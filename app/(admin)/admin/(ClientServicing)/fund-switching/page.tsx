@@ -2,18 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-  Plus, Search, Edit2, Trash2, X, Download, AlertCircle, Loader2, Save, CheckCircle2, FileText, Inbox, PlusCircle, MinusCircle
+  Plus, Search, Edit2, Trash2, X, Download, AlertCircle, Loader2, CheckCircle2, FileText, Inbox
 } from 'lucide-react';
 import { AdminHeader as Header } from '@src/components/layout';
 import { AdminSidebar as Sidebar } from '@src/components/layout';
 import { supabase } from "@src/lib/supabase/client";
 import styles from "@/styles/admin/cpst/page.module.css";
-import SignaturePad from '@src/components/ui/SignaturePad';
-import ClientSelector from '@src/components/shared/ClientSelector';
 
-// ── PDF generator ────────────────────────────────────────────────────────
 import { generateFundSwitchingPdf } from '@src/features/client-servicing/pdf/generateFundSwitchingPdf';
-// ──────────────────────────────────────────────────────────────────────────
 import dynamic from 'next/dynamic';
 
 const FundSwitchingStandardForm = dynamic(
@@ -37,13 +33,12 @@ export interface FutureAllocation {
 }
 
 export interface FundSwitchingRecord {
-  id: string;
+  id?: string;
   client_id: string;
   client?: { client_name: string; policy_number: string | null; birthdate: string | null };
   status: string;
   created_at?: string;
 
-  // Section 1
   policy_number: string;
   life_insured: string;
   citizenship: string;
@@ -56,19 +51,15 @@ export interface FundSwitchingRecord {
   work_address: string;
   country_of_legal_residence: string;
 
-  // Section 2
   fund_switch_rows: FundSwitchRow[];
 
-  // Section 3
   future_peso_allocations: FutureAllocation[];
   future_dollar_allocations: FutureAllocation[];
 
-  // Section 4
   excess_premium_option: 'add' | 'change' | 'cancel' | '';
   excess_currency: 'PHP' | 'USD' | '';
   excess_amount: string;
 
-  // Section 5
   place_of_signing: string;
   date_of_signing: string;
   policy_owner_signature: string;
@@ -279,8 +270,7 @@ export default function FundSwitchingPage() {
           .single();
         if (err) throw err;
         setSelectedClientDetails(data);
-        
-        // Auto-fill policy number if empty
+
         if (!formData.policy_number && data.policy_number) {
           setFormData(prev => ({ ...prev, policy_number: data.policy_number || '' }));
         }
@@ -373,7 +363,7 @@ export default function FundSwitchingPage() {
         fund_switch_rows: record.fund_switch_rows?.length ? record.fund_switch_rows : [{ from_fund: '', to_fund: '', switch_type: '', amount: '', percentage: '' }],
         future_peso_allocations: record.future_peso_allocations?.length ? record.future_peso_allocations : [{ fund_name: '', percentage: '' }],
         future_dollar_allocations: record.future_dollar_allocations?.length ? record.future_dollar_allocations : [{ fund_name: '', percentage: '' }],
-        
+
         excess_premium_option: record.excess_premium_option || '',
         excess_currency: record.excess_currency || '',
         excess_amount: record.excess_amount || '',
@@ -507,14 +497,14 @@ export default function FundSwitchingPage() {
     }
   };
 
-  const handleDeleteClick = (id: string) => {
+  const handleDeleteClick = (id: string | undefined) => {
+    if (!id) return;
     setRecordToDelete(id);
     setIsDeleteModalOpen(true);
   };
 
   const clientNameParts = getClientNameParts(selectedClientDetails?.client_name);
-  
-  // Helpers for dynamic rows
+
   const updateRow = (idx: number, field: keyof FundSwitchRow, val: string) => {
     const newRows = [...formData.fund_switch_rows];
     newRows[idx] = { ...newRows[idx], [field]: val };
@@ -559,7 +549,6 @@ export default function FundSwitchingPage() {
   };
   const pesoTotal = calculateTotal(formData.future_peso_allocations);
   const dollarTotal = calculateTotal(formData.future_dollar_allocations);
-
 
   const filteredRecords = records.filter(r =>
     (r.client?.client_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -765,7 +754,7 @@ export default function FundSwitchingPage() {
       )}
 
       {isGeneratingPdf && (
-        <div className="fixed inset-0 bg-gray-900/30 backdrop-blur-sm flex items-center justify-center p-4 z-70 animate-[fadeIn_0.15s_ease-out]">
+        <div className="fixed inset-0 bg-gray-900/30 backdrop-blur-sm flex items-center justify-center p-4 z-[70] animate-[fadeIn_0.15s_ease-out]">
           <div className="bg-white rounded-[32px] w-full max-w-xs shadow-2xl p-8 flex flex-col items-center text-center animate-[scaleIn_0.2s_ease-out]">
             <div className="relative w-16 h-16 flex items-center justify-center mb-4">
               <div className="absolute inset-0 rounded-full border-4 border-amber-100" />
@@ -780,6 +769,3 @@ export default function FundSwitchingPage() {
     </div>
   );
 }
-
-
-

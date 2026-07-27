@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import {
-  Plus, Search, Edit2, Trash2, X, AlertCircle, Loader2, Save, CheckCircle2, Inbox, ArrowLeft
+  Plus, Search, Edit2, Trash2, X, Download, AlertCircle, Loader2, Save, CheckCircle2, Inbox, ArrowLeft
 } from 'lucide-react';
 import { AdminHeader as Header } from '@src/components/layout';
 import { AdminSidebar as Sidebar } from '@src/components/layout';
@@ -48,6 +48,10 @@ function StatusBadge({ status }: { status: string }) {
       {status}
     </span>
   );
+}
+
+function toBlobPart(bytes: Uint8Array): BlobPart {
+  return new Uint8Array(bytes) as unknown as BlobPart;
 }
 
 export default function FundWithdrawalPage() {
@@ -207,7 +211,7 @@ export default function FundWithdrawalPage() {
       const clientDob = selectedClientDetails?.birthdate || '';
       const pdfBytes = await generateFundWithdrawalPdfFromScratch(engineValues, clientName, clientDob);
 
-      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      const blob = new Blob([toBlobPart(pdfBytes)], { type: 'application/pdf' });
       const downloadUrl = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = downloadUrl;
@@ -236,7 +240,7 @@ export default function FundWithdrawalPage() {
       const clientDob = record.client?.birthdate || '';
       const pdfBytes = await generateFundWithdrawalPdfFromScratch(record, clientName, clientDob);
 
-      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      const blob = new Blob([toBlobPart(pdfBytes)], { type: 'application/pdf' });
       const downloadUrl = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = downloadUrl;
@@ -338,7 +342,6 @@ export default function FundWithdrawalPage() {
             </button>
           </div>
 
-          {/* Stats Section */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
               { label: 'TOTAL REQUESTS', count: stats.total, color: 'text-slate-900', border: 'border-amber-500/50' },
@@ -369,7 +372,6 @@ export default function FundWithdrawalPage() {
             </div>
           )}
 
-          {/* Table list */}
           <div className="bg-white rounded-3xl shadow-[0_1px_3px_rgba(0,0,0,0.04)] border border-gray-100 overflow-hidden">
             <div className="p-4 border-b border-gray-100 flex gap-4 bg-gray-50/40">
               <div className="relative flex-1 max-w-md">
@@ -483,7 +485,6 @@ export default function FundWithdrawalPage() {
         </main>
       </div>
 
-      {/* Delete Confirmation Modal */}
       {isDeleteModalOpen && (
         <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-gray-100 text-center space-y-4">
