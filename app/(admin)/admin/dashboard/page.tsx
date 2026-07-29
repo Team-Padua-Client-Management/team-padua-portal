@@ -120,7 +120,9 @@ export default function DashboardOverviewPage() {
     personalTodos,
     handleCreatePersonalTodo,
     handleTogglePersonalTodoComplete,
-    handleDeletePersonalTodo
+    handleDeletePersonalTodo,
+    userRole,
+    userPermissions
   } = useAdminDashboard();
 
   const prefersReducedMotion = useReducedMotion();
@@ -301,8 +303,7 @@ export default function DashboardOverviewPage() {
                 onOpenLogModal={openLogModal}
                 onSelectEvent={handleEventClick}
               />
-
-              <RequestFormsAccordion kpis={kpis} />
+              <RequestFormsAccordion kpis={kpis} userRole={userRole} userPermissions={userPermissions} />
             </div>
           </motion.div>
 

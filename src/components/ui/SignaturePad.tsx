@@ -78,12 +78,12 @@ export default function SignaturePad({ onSignatureChange, initialSignature, titl
         </div>
       </div>
 
-      <div className="relative border-2 border-dashed border-slate-200 bg-slate-50/60 rounded-2xl min-h-[150px] flex items-center justify-center overflow-hidden transition-colors duration-200">
+      <div className="relative border-2 border-dashed border-slate-200 bg-slate-50/60 rounded-2xl min-h-[220px] flex items-center justify-center overflow-hidden transition-colors duration-200 group">
         {mode === 'draw' && !signatureImage ? (
           <SignatureCanvas
             ref={sigCanvas}
             penColor="black"
-            canvasProps={{ className: 'w-full h-[150px] cursor-crosshair' }}
+            canvasProps={{ className: 'w-full h-[220px] cursor-crosshair' }}
             onEnd={handleDrawEnd}
           />
         ) : mode === 'upload' && !signatureImage ? (
@@ -91,7 +91,7 @@ export default function SignaturePad({ onSignatureChange, initialSignature, titl
             onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
             onDragLeave={() => setIsDragging(false)}
             onDrop={handleDrop}
-            className={`flex flex-col items-center justify-center gap-2 cursor-pointer w-full h-[150px] text-slate-400 hover:text-slate-600 transition-all duration-200 rounded-2xl ${isDragging ? 'bg-amber-50 text-amber-500' : ''
+            className={`flex flex-col items-center justify-center gap-2 cursor-pointer w-full min-h-[220px] text-slate-400 hover:text-slate-600 transition-all duration-200 rounded-2xl ${isDragging ? 'bg-amber-50 text-amber-500' : ''
               }`}
           >
             <div className="w-11 h-11 rounded-2xl bg-white border border-slate-200 flex items-center justify-center shadow-sm">
@@ -107,9 +107,17 @@ export default function SignaturePad({ onSignatureChange, initialSignature, titl
             />
           </label>
         ) : (
-          <div className="relative w-full h-[150px] flex items-center justify-center bg-white rounded-2xl">
+          <div className="relative w-full h-[220px] flex items-center justify-center bg-white rounded-2xl overflow-hidden group">
             {signatureImage && (
-              <img src={signatureImage} alt="Signature" className="max-h-full max-w-full object-contain pointer-events-none" />
+              <a href={signatureImage} target="_blank" rel="noreferrer" className="w-full h-full flex items-center justify-center cursor-zoom-in hover:opacity-90 transition-opacity">
+                <img src={signatureImage} alt="Signature" className="max-h-full max-w-full object-contain" />
+              </a>
+            )}
+            {mode === 'upload' && (
+              <label className="absolute bottom-3 right-3 bg-black/70 hover:bg-black text-white px-4 py-2 rounded-full text-xs font-bold cursor-pointer backdrop-blur-md transition-colors opacity-0 group-hover:opacity-100 flex items-center gap-2 shadow-lg">
+                <Upload size={14} /> Replace
+                <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
+              </label>
             )}
           </div>
         )}

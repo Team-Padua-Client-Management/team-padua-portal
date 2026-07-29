@@ -43,6 +43,8 @@ export const useAdminDashboard = () => {
   const [allProfiles, setAllProfiles] = useState<UserProfile[]>([]);
   const [bizDevProfiles, setBizDevProfiles] = useState<UserProfile[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [userPermissions, setUserPermissions] = useState<any>(null);
   const [selectedTaskIdForModal, setSelectedTaskIdForModal] = useState<string | null>(null);
 
   const [activities, setActivities] = useState<ActivityEvent[]>(initialActivities);
@@ -146,12 +148,16 @@ export const useAdminDashboard = () => {
 
         const { data: userProfileData } = await supabase
           .from('profiles')
-          .select('role')
+          .select('role, client_servicing_permissions')
           .eq('id', user.id)
           .maybeSingle();
 
-        const userRole = (userProfileData?.role || '').toLowerCase();
-        const isAdmin = userRole === 'admin';
+        const fetchedRole = userProfileData?.role || '';
+        setUserRole(fetchedRole);
+        setUserPermissions(userProfileData?.client_servicing_permissions || null);
+
+        const userRoleLower = fetchedRole.toLowerCase();
+        const isAdmin = userRoleLower === 'admin';
 
         const dbTasks: TaskItem[] = [];
         const dbCalendarLogs: CalendarActivityItem[] = [];
@@ -760,6 +766,8 @@ export const useAdminDashboard = () => {
     handleDeleteTask,
     handleCreatePersonalTodo,
     handleTogglePersonalTodoComplete,
-    handleDeletePersonalTodo
+    handleDeletePersonalTodo,
+    userRole,
+    userPermissions
   };
 };

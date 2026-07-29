@@ -6,7 +6,7 @@ export default async function CPSTPage() {
   const canView = await canAccessModule("cpst", "view");
 
   if (!canView) {
-    redirect("/403"); // Or a simple 403 page
+    redirect("/403");
   }
 
   const canCreate = await canAccessModule("cpst", "create");

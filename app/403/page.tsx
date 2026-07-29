@@ -8,9 +8,31 @@
  */
 
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { ShieldAlert } from 'lucide-react';
+import { supabase } from '@src/lib/supabase/client';
 
 export default function ForbiddenPage() {
+  const [dashboardHref, setDashboardHref] = useState('/dashboard');
+
+  useEffect(() => {
+    async function checkRole() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      if (profile?.role === 'Admin') {
+        setDashboardHref('/admin/dashboard');
+      }
+    }
+    checkRole();
+  }, []);
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -74,7 +96,7 @@ export default function ForbiddenPage() {
         </p>
 
         <Link
-          href="/admin/dashboard"
+          href={dashboardHref}
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -96,4 +118,3 @@ export default function ForbiddenPage() {
     </div>
   );
 }
-

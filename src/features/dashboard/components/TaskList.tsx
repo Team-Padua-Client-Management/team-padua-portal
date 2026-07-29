@@ -28,6 +28,7 @@ const KNOWN_CATEGORIES: CategoryMeta[] = [
   { badge: 'PPI',       title: 'Reinstatement (PPI)',                      accent: '#EA580C', tint: 'rgba(234, 88, 12, 0.12)',   href: '/admin/reinstatement-pdi' },
   { badge: 'CPST',      title: 'Client Policy Status Tracking',            accent: '#0D9488', tint: 'rgba(13, 148, 136, 0.12)',  href: '/admin/cpst'              },
   { badge: 'CSMV',      title: 'Client Servicing Monitoring Verification', accent: '#099268', tint: 'rgba(9, 146, 104, 0.12)',   href: '/admin/csmv'              },
+  { badge: 'ACICR',     title: 'Address and Contact Information Change Request', accent: '#D946EF', tint: 'rgba(217, 70, 239, 0.12)', href: '/admin/acicr'             },
   { badge: 'CPC',       title: 'Client Policy Card',                       accent: '#0369A1', tint: 'rgba(3, 105, 161, 0.12)',   href: null                       },
   { badge: 'Inquiry',   title: 'Inquiry',                                  accent: '#C9962E', tint: 'rgba(201, 150, 46, 0.12)',  href: null                       },
   { badge: 'Others',    title: 'Others / Miscellaneous',                   accent: '#71717A', tint: 'rgba(113, 113, 122, 0.12)', href: null                       },
@@ -43,9 +44,11 @@ function getBadgeFromNormalized(normalized: string): string {
   if (normalized.startsWith('ADA') || normalized.startsWith('MOA'))   return 'ADA / MOA';
   if (normalized.startsWith('SRO'))                                    return 'SRO';
   if (normalized.startsWith('PPI') || normalized.startsWith('PDI'))   return 'PPI';
-  if (normalized.startsWith('CPC'))                                    return 'CPC';
   if (normalized.startsWith('CPST'))                                   return 'CPST';
-  if (normalized.startsWith('CSMV'))                                   return 'CSMV';
+  if (normalized.startsWith('CSMV') || normalized.startsWith('UID'))   return 'CSMV';
+  if (normalized.startsWith('ACICR'))                                  return 'ACICR';
+  if (normalized.startsWith('CPC') || normalized.startsWith('PLT'))    return 'CPC';
+  if (normalized.startsWith('INQUIRY'))                                return 'Inquiry';
   if (normalized.toLowerCase().startsWith('inquiry'))                  return 'Inquiry';
   return normalized.split(' - ')[0].trim() || normalized;
 }

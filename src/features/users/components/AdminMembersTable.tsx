@@ -18,7 +18,7 @@ import { Search, X, Shield, ExternalLink, RotateCcw, Check, CheckSquare, Square,
 import ProfileAvatar from "@src/components/shared/ProfileAvatar";
 import { supabase } from "@src/lib/supabase/client";
 
-export type ClientServicingModule = "cpst" | "acr" | "fst" | "cpc" | "ppu" | "mngt" | "csmv" | "bcr" | "aca" | "sro" | "pdi" | "form" | "fw";
+export type ClientServicingModule = "cpst" | "acr" | "fst" | "cpc" | "ppu" | "mngt" | "csmv" | "bcr" | "aca" | "sro" | "pdi" | "form" | "fw" | "ada";
 
 export interface ModulePermissions {
   view: boolean;
@@ -52,6 +52,7 @@ export const defaultClientServicingPermissions: ClientServicingPermissions = {
   pdi: { ...defaultModulePermissions },
   form: { ...defaultModulePermissions },
   fw: { ...defaultModulePermissions },
+  ada: { ...defaultModulePermissions },
 };
 
 export interface User {
@@ -280,6 +281,10 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
                     avatar: updatedProfile.avatar_url || u.avatar,
                     name: updatedProfile.full_name || u.name,
                     role: updatedProfile.role || u.role,
+                    department: updatedProfile.department ?? u.department,
+                    status: updatedProfile.status || u.status,
+                    client_servicing_permissions:
+                      updatedProfile.client_servicing_permissions ?? u.client_servicing_permissions,
                   }
                   : u
               )
@@ -459,10 +464,20 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
 
     try {
       await saveUser(updatedUser);
+      setAlertModal({
+        isOpen: true,
+        title: "Permissions Saved",
+        message: `Access permissions for ${selectedUser.name} have been updated successfully.`,
+      });
     } catch (error) {
       console.error(error);
-      alert(error instanceof Error ? error.message : "Failed to save assignment changes.");
       setUsers(prev => prev.map(u => u.id === selectedUser.id ? selectedUser : u));
+      setAlertModal({
+        isOpen: true,
+        title: "Save Failed",
+        message: error instanceof Error ? error.message : "Failed to save permissions. Please try again.",
+        isError: true,
+      });
     }
   };
 
@@ -486,8 +501,8 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
     });
   };
 
-  const clientServicingModules: ClientServicingModule[] = ["mngt", "cpc", "ppu", "cpst", "csmv"];
-  const sunLifeModules: ClientServicingModule[] = ["form", "acr", "bcr", "fst", "fw", "aca", "sro", "pdi"];
+  const clientServicingModules: ClientServicingModule[] = ["mngt", "cpc", "ppu"];
+  const sunLifeModules: ClientServicingModule[] = ["form", "acr", "bcr", "fst", "fw", "aca", "ada", "sro", "pdi", "cpst", "csmv", "acicr"];
 
   const filteredUsers = useMemo(() => {
     return users.filter(u => {
@@ -842,7 +857,7 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
                   </label>
                 </div>
                 <p className="mt-3.5 text-[11.5px] text-slate-500 dark:text-zinc-400 font-medium leading-relaxed pl-11">
-                  <span className="font-bold text-slate-600 dark:text-zinc-300">Includes forms:</span> FORM, Advisor Change Request, Beneficiary Change Request, Fund Switching, Fund Withdrawal, Auto Change Arrangement, Reinstatement SRO, Reinstatement PDI
+                  <span className="font-bold text-slate-600 dark:text-zinc-300">Includes forms:</span> FORM, Advisor Change Request, Beneficiary Change Request, Fund Switching, Fund Withdrawal, Auto Credit Arrangement, Auto Debit Arrangement, Reinstatement SRO, Reinstatement PDI, Client Policy Status Tracking, Client Servicing Monitoring Verification, Address and Contact Information Change Request
                 </p>
               </div>
             </div>

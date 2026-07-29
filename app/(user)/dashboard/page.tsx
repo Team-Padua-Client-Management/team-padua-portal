@@ -14,13 +14,15 @@
  * ============================================================================
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 
 import styles from "@/styles/admin/dashboard/page.module.css";
 import WelcomeModal from "@src/components/modals/WelcomeModal";
 import { CalendarDays, Plus } from 'lucide-react'; 
+import { supabase } from "@src/lib/supabase/client";
+import type { UserPermissions } from "@src/features/dashboard/components/RequestFormsAccordion";
 
 // Modular Dashboard Components
 import DashboardHero from "@src/features/dashboard/components/DashboardHero";
@@ -112,6 +114,28 @@ export default function UserPersonalDashboardPage() {
     handleTogglePersonalTodoComplete,
     handleDeletePersonalTodo
   } = useAdminDashboard();
+
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [userPermissions, setUserPermissions] = useState<UserPermissions>(null);
+
+  useEffect(() => {
+    async function fetchUserAccess() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role, client_servicing_permissions")
+        .eq("id", user.id)
+        .single();
+
+      if (profile) {
+        setUserRole(profile.role ?? null);
+        setUserPermissions(profile.client_servicing_permissions ?? null);
+      }
+    }
+    fetchUserAccess();
+  }, []);
 
   const prefersReducedMotion = useReducedMotion();
   const fadeVariants = prefersReducedMotion ? itemVariantsReduced : itemVariants;
@@ -283,7 +307,7 @@ export default function UserPersonalDashboardPage() {
                 calendarUrl="/calendar"
               />
 
-              <RequestFormsAccordion kpis={kpis} />
+              <RequestFormsAccordion kpis={kpis} userRole={userRole} userPermissions={userPermissions} />
             </div>
           </motion.div>
 

@@ -33,6 +33,7 @@ export const TASK_CATEGORIES = [
   'PPI - Reinstatement (PPI)',
   'CPST - Client Policy Status Tracking',
   'CSMV - Client Servicing Monitoring Verification',
+  'ACICR - Address and Contact Information Change Request',
   'Inquiry',
   'Others'
 ];
@@ -52,6 +53,7 @@ export function normalizeCategory(cat?: string | null): string {
   if (c === 'CPC' || c.startsWith('CPC -')) return 'CPC - Client Policy Card';
   if (c === 'CPST' || c.startsWith('CPST -')) return 'CPST - Client Policy Status Tracking';
   if (c === 'CSMV' || c === 'UID' || c.startsWith('CSMV -')) return 'CSMV - Client Servicing Monitoring Verification';
+  if (c === 'ACICR' || c.startsWith('ACICR -') || c.includes('ADDRESS')) return 'ACICR - Address and Contact Information Change Request';
   if (c === 'PLT') return 'CPC - Client Policy Card';
   if (c === 'INQUIRY' || c.startsWith('INQUIRY')) return 'Inquiry';
 

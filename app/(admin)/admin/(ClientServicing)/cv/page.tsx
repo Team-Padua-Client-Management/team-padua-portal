@@ -15,7 +15,7 @@ import SignaturePad from '@src/components/ui/SignaturePad';
 import ExportDropdown from '@src/components/shared/ExportDropdown';
 import { exportToPDF, exportToDOCS } from '@src/lib/export';
 import ClientSelector from '@src/components/shared/ClientSelector';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 const SunLifeLogo = () => (
   <div className="flex items-center gap-2">
@@ -231,6 +231,15 @@ export default function CVPage() {
   const [isDragging, setIsDragging] = useState(false);
   const searchParams = useSearchParams();
   const clientIdQuery = searchParams.get('client_id');
+  const router = useRouter();
+
+  const handleCloseModal = () => {
+    setActiveModal(null);
+    setCurrentRecord({});
+    if (clientIdQuery) {
+      router.replace('/admin/cv');
+    }
+  };
 
   // Loading, Error, Confirmation feedback state
   const [feedback, setFeedback] = useState<{
@@ -909,101 +918,111 @@ export default function CVPage() {
       </div>
 
       {activeModal === 'add' && (
-        <div className={styles.container_114}>
-          <div className={styles.card_115}>
-            <div className={styles.container_116}>
-              <button
-                onClick={() => setActiveModal(null)}
-                className={styles.table_117}
-              >
-                <X size={16} />
-              </button>
-              <div className={styles.div_118}>
-                <h2 className={styles.text_119}>
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-end bg-slate-900/45 backdrop-blur-sm p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) handleCloseModal(); }}
+        >
+          <div className="bg-card border border-border w-full max-w-md h-full rounded-[28px] shadow-2xl relative flex flex-col overflow-hidden animate-in slide-in-from-right duration-200">
+            
+            <div className="flex items-center justify-between p-6 border-b border-border bg-surface-2 shrink-0">
+              <div>
+                <h2 className="text-base font-bold text-text">
                   {currentRecord.id ? 'Edit CPC Registry' : 'Register CPC Registry'}
                 </h2>
-                <p className={styles.text_120}>
+                <p className="text-xs text-text-secondary mt-1">
                   Onboard policy dispatch parameters into directory
                 </p>
               </div>
+              <button
+                onClick={() => handleCloseModal()}
+                className="p-2.5 text-muted-foreground hover:text-text hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-colors duration-200 cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
 
-
-              <form id="cpc-form" onSubmit={handleCreateRecord} className={styles.div_121}>
+            <div className="p-6 overflow-y-auto flex-1 space-y-5">
+              <form id="cpc-form" onSubmit={handleCreateRecord} className="space-y-4 text-left">
                 <div>
-                  <label className={styles.table_122}>Client *</label>
+                  <label className="block text-[10px] font-bold text-text-secondary uppercase tracking-wider mb-1.5">Client *</label>
                   <ClientSelector
                     value={currentRecord.client_id || ''}
                     onChange={(id) => setCurrentRecord({ ...currentRecord, client_id: id })}
                   />
                 </div>
-                <div className={styles.container_126}>
-                  <div>
-                    <label className={styles.table_127}>Date Processed</label>
+                
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <label className="block text-[10px] font-bold text-text-secondary uppercase tracking-wider mb-1.5">Date Processed</label>
                     <input
                       type="date"
                       value={currentRecord.date_processed || ''}
                       onChange={e => setCurrentRecord({ ...currentRecord, date_processed: e.target.value })}
-                      className={styles.text_128}
+                      className="w-full bg-surface-1 border border-border rounded-xl px-4 py-2.5 text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
                     />
                   </div>
-                  <div>
-                    <label className={styles.table_129}>Digital Basic</label>
+                  <div className="flex-1">
+                    <label className="block text-[10px] font-bold text-text-secondary uppercase tracking-wider mb-1.5">Digital Basic</label>
                     <select
                       value={currentRecord.digital_basic_id || ''}
                       onChange={e => setCurrentRecord({ ...currentRecord, digital_basic_id: e.target.value || null })}
-                      className={styles.text_130}
+                      className="w-full bg-surface-1 border border-border rounded-xl px-4 py-2.5 text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all appearance-none"
                     >
                       <option value="">None</option>
                       {cpcOptions.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
                     </select>
                   </div>
                 </div>
-                <div className={styles.container_126}>
-                  <div>
-                    <label className={styles.table_127}>Digital Premium</label>
+
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <label className="block text-[10px] font-bold text-text-secondary uppercase tracking-wider mb-1.5">Digital Premium</label>
                     <select
                       value={currentRecord.digital_premium_id || ''}
                       onChange={e => setCurrentRecord({ ...currentRecord, digital_premium_id: e.target.value || null })}
-                      className={styles.text_130}
+                      className="w-full bg-surface-1 border border-border rounded-xl px-4 py-2.5 text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all appearance-none"
                     >
                       <option value="">None</option>
                       {cpcOptions.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
                     </select>
                   </div>
-                  <div>
-                    <label className={styles.table_129}>Hard Copy</label>
+                  <div className="flex-1">
+                    <label className="block text-[10px] font-bold text-text-secondary uppercase tracking-wider mb-1.5">Hard Copy</label>
                     <select
                       value={currentRecord.hard_copy_id || ''}
                       onChange={e => setCurrentRecord({ ...currentRecord, hard_copy_id: e.target.value || null })}
-                      className={styles.text_130}
+                      className="w-full bg-surface-1 border border-border rounded-xl px-4 py-2.5 text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all appearance-none"
                     >
                       <option value="">None</option>
                       {cpcOptions.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
                     </select>
                   </div>
                 </div>
+
                 <div>
-                  <label className={styles.table_127}>Processed By</label>
+                  <label className="block text-[10px] font-bold text-text-secondary uppercase tracking-wider mb-1.5">Processed By</label>
                   <select
                     value={currentRecord.processed_by_id || ''}
                     onChange={e => setCurrentRecord({ ...currentRecord, processed_by_id: e.target.value || null })}
-                    className={styles.text_130}
+                    className="w-full bg-surface-1 border border-border rounded-xl px-4 py-2.5 text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all appearance-none"
                   >
                     <option value="">None</option>
                     {processors.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
                 </div>
+
                 <div>
-                  <label className={styles.table_131}>Comments</label>
+                  <label className="block text-[10px] font-bold text-text-secondary uppercase tracking-wider mb-1.5">Comments</label>
                   <textarea
                     value={currentRecord.comments || ''}
                     onChange={e => setCurrentRecord({ ...currentRecord, comments: e.target.value })}
                     placeholder="Add operational notes or annotations..."
                     rows={4}
-                    className={styles.text_132}
+                    className="w-full bg-surface-1 border border-border rounded-xl px-4 py-2.5 text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-text-muted resize-none"
                   />
                 </div>
-                <div style={{ marginTop: '16px' }}>
+
+                <div className="mt-4 border border-border rounded-xl overflow-hidden">
                   <SignaturePad 
                     initialSignature={currentRecord.signatureData} 
                     onSignatureChange={(sig) => setCurrentRecord({ ...currentRecord, signatureData: sig || undefined })}
@@ -1011,22 +1030,24 @@ export default function CVPage() {
                 </div>
               </form>
             </div>
-            <div className={styles.container_133}>
+
+            <div className="flex gap-3 p-6 border-t border-border bg-surface-2 shrink-0">
               <button
                 type="submit"
                 form="cpc-form"
-                className={styles.table_134}
+                className="flex-1 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-900 font-extrabold text-xs py-3 rounded-full transition-all duration-200 cursor-pointer shadow-md active:scale-[0.97]"
               >
                 Confirm Dispatch
               </button>
               <button
                 type="button"
-                onClick={() => setActiveModal(null)}
-                className={styles.table_135}
+                onClick={() => handleCloseModal()}
+                className="flex-1 bg-transparent border border-border text-text hover:bg-surface-2 text-xs font-semibold py-3 rounded-full transition-all duration-200 cursor-pointer active:scale-[0.97]"
               >
                 Cancel
               </button>
             </div>
+
           </div>
         </div>
       )}

@@ -208,7 +208,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   Plus, Search, Edit2, Trash2, X, ChevronRight, ArrowLeft,
   Upload, FileSpreadsheet, CheckCircle2, Target, Users,
-  AlertCircle, Eye, EyeOff, UserCheck, UserPlus, Briefcase, Mail, MoreVertical
+  AlertCircle, Eye, EyeOff, UserCheck, UserPlus, Briefcase, Mail, MoreVertical, FileText
 } from 'lucide-react';
 import Link from 'next/link';
 import { AdminHeader } from '@src/components/layout';
@@ -246,6 +246,10 @@ export interface ClientManagementRecord {
   modeOfPayment: string;
   birthdate?: string;
   signatureData?: string;
+  idType?: string;
+  idNumber?: string;
+  idExpirationDate?: string;
+  idAttachmentUrl?: string;
   created_at?: string;
 }
 
@@ -275,7 +279,7 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const [activeModal, setActiveModal] = useState<'add' | 'edit' | 'import' | 'addAdvisor' | 'editAdvisor' | 'actions' | null>(null);
+  const [activeModal, setActiveModal] = useState<'add' | 'edit' | 'import' | 'addAdvisor' | 'editAdvisor' | 'actions' | 'documents' | 'documentPreview' | null>(null);
   const [currentClient, setCurrentClient] = useState<Partial<ClientManagementRecord>>({});
   const [currentAdvisor, setCurrentAdvisor] = useState<Partial<AdvisorRecord>>({});
 
@@ -290,6 +294,12 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
   const [importTarget, setImportTarget] = useState<'clients' | 'advisors'>('clients');
   const [pastedText, setPastedText] = useState('');
   const [importFile, setImportFile] = useState<File | null>(null);
+  const [uploadingId, setUploadingId] = useState(false);
+  const [docFormOpen, setDocFormOpen] = useState(false);
+  const [docFormData, setDocFormData] = useState<{ idType: string; idNumber: string; idExpirationDate: string; idAttachmentUrl: string }>({
+    idType: '', idNumber: '', idExpirationDate: '', idAttachmentUrl: ''
+  });
+  const [uploadingDocId, setUploadingDocId] = useState(false);
   const [importAdvisorId, setImportAdvisorId] = useState<string>('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -298,7 +308,8 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
     phase: 'idle' | 'reading' | 'password' | 'preview' | 'importing' | 'done' | 'error';
     fileName: string;
     validation: {
-      valid: any[];
+      newClients: any[];
+      duplicateClients: any[];
       invalid: { rowNumber: number; reason: string; rawData: any }[];
       stats: { skippedHeaders: number; skippedEmpty: number; skippedInvalid: number };
     } | null;
@@ -413,6 +424,10 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
           modeOfPayment: c.mode_of_payment || 'Annual',
           birthdate: c.birthdate || '',
           signatureData: c.signature_data || '',
+          idType: c.id_type || '',
+          idNumber: c.id_number || '',
+          idExpirationDate: c.id_expiration_date || '',
+          idAttachmentUrl: c.id_attachment_url || '',
           created_at: c.created_at || ''
         }));
         setClients(mappedClients);
@@ -515,6 +530,10 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
         mode_of_payment: currentClient.modeOfPayment || 'Annual',
         birthdate: currentClient.birthdate || null,
         signature_data: currentClient.signatureData || null,
+        id_type: currentClient.idType || null,
+        id_number: currentClient.idNumber || null,
+        id_expiration_date: currentClient.idExpirationDate || null,
+        id_attachment_url: currentClient.idAttachmentUrl || null,
       };
 
       if (currentClient.id) {
@@ -528,6 +547,84 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
       fetchData();
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handleIdUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingId(true);
+    try {
+      // Local preview
+      const previewUrl = URL.createObjectURL(file);
+      setCurrentClient({ ...currentClient, idAttachmentUrl: previewUrl });
+
+      const fileExt = file.name.split('.').pop() || 'png';
+      const fileName = `${crypto.randomUUID()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('client-ids')
+        .upload(fileName, file);
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const { data } = supabase.storage.from('client-ids').getPublicUrl(fileName);
+      setCurrentClient({ ...currentClient, idAttachmentUrl: data.publicUrl });
+    } catch (err: any) {
+      console.error('Error uploading ID:', err);
+      alert('Failed to upload ID. Please make sure the client-ids storage bucket exists and is public.');
+      setCurrentClient({ ...currentClient, idAttachmentUrl: '' });
+    } finally {
+      setUploadingId(false);
+    }
+  };
+
+  const handleSaveDocFields = async () => {
+    if (!currentClient.id) return;
+    try {
+      await supabase.from('cpst_clients').update({
+        id_type: docFormData.idType || null,
+        id_number: docFormData.idNumber || null,
+        id_expiration_date: docFormData.idExpirationDate || null,
+        id_attachment_url: docFormData.idAttachmentUrl || null,
+      }).eq('id', currentClient.id);
+      // reflect changes in local state immediately
+      setCurrentClient(prev => ({
+        ...prev,
+        idType: docFormData.idType,
+        idNumber: docFormData.idNumber,
+        idExpirationDate: docFormData.idExpirationDate,
+        idAttachmentUrl: docFormData.idAttachmentUrl,
+      }));
+      fetchData();
+      setDocFormOpen(false);
+    } catch (err) {
+      console.error('Error saving document fields:', err);
+    }
+  };
+
+  const handleDocIdUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingDocId(true);
+    try {
+      const previewUrl = URL.createObjectURL(file);
+      setDocFormData(prev => ({ ...prev, idAttachmentUrl: previewUrl }));
+      const fileExt = file.name.split('.').pop() || 'png';
+      const fileName = `${crypto.randomUUID()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage.from('client-ids').upload(fileName, file);
+      if (uploadError) throw uploadError;
+      const { data } = supabase.storage.from('client-ids').getPublicUrl(fileName);
+      setDocFormData(prev => ({ ...prev, idAttachmentUrl: data.publicUrl }));
+    } catch (err) {
+      console.error('Error uploading document ID:', err);
+      alert('Upload failed. Ensure the "client-ids" storage bucket exists and is public.');
+      setDocFormData(prev => ({ ...prev, idAttachmentUrl: '' }));
+    } finally {
+      setUploadingDocId(false);
     }
   };
 
@@ -669,7 +766,8 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
     const paymentModeCol = findCol(['mode of payment']);
     const premiumCol = findCol(['annual premium', 'premium']);
 
-    const valid: Partial<ClientManagementRecord>[] = [];
+    const newClients: Partial<ClientManagementRecord & { _matchedName?: string; _matchedPolicy?: string }>[] = [];
+    const duplicateClients: Partial<ClientManagementRecord & { _matchedName?: string; _matchedPolicy?: string }>[] = [];
     const invalid: { rowNumber: number; reason: string; rawData: any }[] = [];
 
     let skippedHeaders = 0;
@@ -728,18 +826,12 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
         continue;
       }
 
-      const isDuplicate = clients.some(c => 
-        (policyNumber && c.policyNumber === policyNumber) || 
+      const match = clients.find(c =>
+        (policyNumber && c.policyNumber === policyNumber) ||
         (!policyNumber && c.clientName.toLowerCase() === clientName.toLowerCase() && c.birthdate === birthdate)
       );
 
-      if (isDuplicate) {
-        skippedInvalid++;
-        invalid.push({ rowNumber, reason: 'Duplicate Entry', rawData });
-        continue;
-      }
-
-      valid.push({
+      const record = {
         clientName,
         mobileNumber,
         email,
@@ -752,10 +844,21 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
         beneficiary,
         fundAllocation,
         modeOfPayment
-      });
+      };
+
+      if (match) {
+        duplicateClients.push({
+          ...record,
+          _matchedName: match.clientName,
+          _matchedPolicy: match.policyNumber
+        });
+        continue;
+      }
+
+      newClients.push(record);
     }
 
-    return { valid, invalid, stats: { skippedHeaders, skippedEmpty, skippedInvalid } };
+    return { newClients, duplicateClients, invalid, stats: { skippedHeaders, skippedEmpty, skippedInvalid } };
   };
 
   const parseAdvisorRows = (rows: any[][]) => {
@@ -765,7 +868,7 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
     for (let i = 0; i < Math.min(rows.length, 30); i++) {
       const row = rows[i] || [];
       const lowerCells = row.map(cell => String(cell).toLowerCase().trim());
-      
+
       let matchCount = 0;
       for (const h of requiredHeaders) {
         if (lowerCells.some(cell => cell.includes(h))) {
@@ -790,7 +893,8 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
     const codeCol = findCol(['advisor code', 'code']);
     const emailCol = findCol(['email', 'email address']);
 
-    const valid: Partial<AdvisorRecord>[] = [];
+    const newClients: Partial<AdvisorRecord>[] = [];
+    const duplicateClients: Partial<AdvisorRecord>[] = [];
     const invalid: { rowNumber: number; reason: string; rawData: any }[] = [];
     let skippedHeaders = 0;
     let skippedEmpty = 0;
@@ -823,10 +927,10 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
         continue;
       }
 
-      valid.push({ advisorName, advisorCode, email });
+      newClients.push({ advisorName, advisorCode, email });
     }
 
-    return { valid, invalid, stats: { skippedHeaders, skippedEmpty, skippedInvalid } };
+    return { newClients, duplicateClients, invalid, stats: { skippedHeaders, skippedEmpty, skippedInvalid } };
   };
 
   const handleDecryptAndImport = async () => {
@@ -1038,11 +1142,11 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
       const rows = XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1, raw: true, defval: '' });
 
       if (importTarget === 'clients') {
-        const { valid, invalid, stats } = parseClientRows(rows);
-        setImportState(prev => ({ ...prev, phase: 'preview', validation: { valid, invalid, stats } as any }));
+        const { newClients, duplicateClients, invalid, stats } = parseClientRows(rows);
+        setImportState(prev => ({ ...prev, phase: 'preview', validation: { newClients, duplicateClients, invalid, stats } as any }));
       } else {
-        const { valid, invalid, stats } = parseAdvisorRows(rows);
-        setImportState(prev => ({ ...prev, phase: 'preview', validation: { valid, invalid, stats } as any }));
+        const { newClients, duplicateClients, invalid, stats } = parseAdvisorRows(rows);
+        setImportState(prev => ({ ...prev, phase: 'preview', validation: { newClients, duplicateClients, invalid, stats } as any }));
       }
     } catch (err) {
       setImportState({
@@ -1083,11 +1187,11 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
       const rows = XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1, raw: true, defval: '' });
 
       if (importTarget === 'clients') {
-        const { valid, invalid, stats } = parseClientRows(rows);
-        setImportState(prev => ({ ...prev, phase: 'preview', validation: { valid, invalid, stats } as any }));
+        const { newClients, duplicateClients, invalid, stats } = parseClientRows(rows);
+        setImportState(prev => ({ ...prev, phase: 'preview', validation: { newClients, duplicateClients, invalid, stats } as any }));
       } else {
-        const { valid, invalid, stats } = parseAdvisorRows(rows);
-        setImportState(prev => ({ ...prev, phase: 'preview', validation: { valid, invalid, stats } as any }));
+        const { newClients, duplicateClients, invalid, stats } = parseAdvisorRows(rows);
+        setImportState(prev => ({ ...prev, phase: 'preview', validation: { newClients, duplicateClients, invalid, stats } as any }));
       }
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -1121,11 +1225,11 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
       if (rows.length < 2) throw new Error("No data found or insufficient rows.");
 
       if (importTarget === 'clients') {
-        const { valid, invalid, stats } = parseClientRows(rows);
-        setImportState(prev => ({ ...prev, phase: 'preview', validation: { valid, invalid, stats } as any }));
+        const { newClients, duplicateClients, invalid, stats } = parseClientRows(rows);
+        setImportState(prev => ({ ...prev, phase: 'preview', validation: { newClients, duplicateClients, invalid, stats } as any }));
       } else {
-        const { valid, invalid, stats } = parseAdvisorRows(rows);
-        setImportState(prev => ({ ...prev, phase: 'preview', validation: { valid, invalid, stats } as any }));
+        const { newClients, duplicateClients, invalid, stats } = parseAdvisorRows(rows);
+        setImportState(prev => ({ ...prev, phase: 'preview', validation: { newClients, duplicateClients, invalid, stats } as any }));
       }
     } catch (err) {
       setImportState({ phase: 'error', fileName: 'Pasted Grid Data', validation: null, importedCount: 0, errorMessage: err instanceof Error ? err.message : String(err) });
@@ -1264,10 +1368,10 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
                   </button>
                 )}
 
-                {canCreate && selectedAdvisor && (
+                {canCreate && (
                   <button
                     onClick={() => {
-                      setCurrentClient({ advisorId: selectedAdvisor.id });
+                      setCurrentClient({ advisorId: selectedAdvisor?.id || '' });
                       setActiveModal('add');
                     }}
                     className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl border border-transparent bg-primary text-black text-[11.5px] font-extrabold shadow-sm hover:bg-primary/90 transition-all duration-200 active:scale-[0.98]"
@@ -1701,6 +1805,99 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
                   <label className={formLabelClass}>Address</label>
                   <input type="text" value={currentClient.address || ''} onChange={e => setCurrentClient({ ...currentClient, address: e.target.value })} className={formInputClass} placeholder="Full Address" />
                 </div>
+
+                <div className="w-full bg-white dark:bg-card border border-slate-200 dark:border-border rounded-3xl p-4 flex flex-col gap-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Valid ID</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className={formLabelClass}>ID Type</label>
+                      <select
+                        value={currentClient.idType || ''}
+                        onChange={(e) => setCurrentClient({ ...currentClient, idType: e.target.value })}
+                        className={formInputClass}
+                      >
+                        <option value="">Select ID Type</option>
+                        {["Philippine Passport", "Driver's License", "UMID", "PhilHealth ID", "SSS ID", "PRC ID", "Postal ID", "Voter's ID", "Other"].map(type => (
+                          <option key={type} value={type}>{type}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className={formLabelClass}>ID Number</label>
+                      <input
+                        type="text"
+                        value={currentClient.idNumber || ''}
+                        onChange={(e) => setCurrentClient({ ...currentClient, idNumber: e.target.value })}
+                        className={formInputClass}
+                        placeholder="ID Number"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className={formLabelClass}>Expiration Date</label>
+                      <input
+                        type="date"
+                        value={currentClient.idExpirationDate || ''}
+                        onChange={(e) => setCurrentClient({ ...currentClient, idExpirationDate: e.target.value })}
+                        className={formInputClass}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="relative border-2 border-dashed border-slate-200 dark:border-border bg-slate-50/60 dark:bg-surface-2 rounded-2xl min-h-[220px] w-full flex items-center justify-center overflow-hidden transition-colors duration-200">
+                    {uploadingId ? (
+                      <div className="flex flex-col items-center gap-2 text-slate-400">
+                        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                        <span className="text-sm font-medium">Uploading...</span>
+                      </div>
+                    ) : !currentClient.idAttachmentUrl ? (
+                      <label className="flex flex-col items-center justify-center gap-2 cursor-pointer w-full min-h-[220px] text-slate-400 hover:text-slate-600 transition-all duration-200 rounded-2xl">
+                        <div className="w-11 h-11 rounded-2xl bg-white dark:bg-card border border-slate-200 dark:border-border flex items-center justify-center shadow-sm">
+                          <Upload size={20} />
+                        </div>
+                        <span className="text-sm font-medium">Upload ID Image</span>
+                        <input
+                          type="file"
+                          accept="image/*,.pdf"
+                          className="hidden"
+                          onChange={handleIdUpload}
+                        />
+                      </label>
+                    ) : (
+                      <div className="relative w-full min-h-[220px] flex flex-col items-center justify-center bg-white dark:bg-card rounded-2xl group overflow-hidden">
+                        {currentClient.idAttachmentUrl.toLowerCase().includes('.pdf') || (currentClient.idAttachmentUrl.startsWith('blob:') && !currentClient.idAttachmentUrl.includes('image')) ? (
+                          <a href={currentClient.idAttachmentUrl} target="_blank" rel="noreferrer" className="flex flex-col items-center gap-2 text-primary hover:text-primary/80 transition-colors">
+                            <FileText size={40} />
+                            <span className="text-xs font-semibold">Document Attached (Click to View)</span>
+                          </a>
+                        ) : (
+                          <a href={currentClient.idAttachmentUrl} target="_blank" rel="noreferrer" className="w-full h-full flex items-center justify-center cursor-zoom-in group-hover:opacity-90 transition-opacity">
+                            <img src={currentClient.idAttachmentUrl} alt="ID Preview" className="max-h-[300px] w-full object-contain" />
+                          </a>
+                        )}
+                        <label className="absolute bottom-3 right-3 bg-black/70 hover:bg-black text-white px-4 py-2 rounded-full text-xs font-bold cursor-pointer backdrop-blur-md transition-colors opacity-0 group-hover:opacity-100 flex items-center gap-2 shadow-lg">
+                          <Upload size={14} /> Replace ID
+                          <input type="file" accept="image/*,.pdf" className="hidden" onChange={handleIdUpload} />
+                        </label>
+                      </div>
+                    )}
+                  </div>
+
+                  {currentClient.idAttachmentUrl && (
+                    <div className="flex justify-end mt-1">
+                      <button
+                        type="button"
+                        onClick={() => setCurrentClient({ ...currentClient, idAttachmentUrl: '' })}
+                        className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-500 hover:text-red-500 transition-colors duration-200 border border-slate-200 dark:border-border hover:border-red-200 hover:bg-red-50 dark:hover:bg-red-900/20 bg-white dark:bg-card rounded-full"
+                      >
+                        <Trash2 size={13} /> Remove ID
+                      </button>
+                    </div>
+                  )}
+                </div>
+
                 <div>
                   <SignaturePad
                     initialSignature={currentClient.signatureData}
@@ -1956,48 +2153,123 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
                 <div className="text-left">
                   <h3 className="text-sm font-bold text-text">Preview Valid Records</h3>
                   <p className="text-xs text-text-secondary mt-1">
-                    Found {importState.validation.valid.length} valid rows and {importState.validation.invalid.length} invalid/duplicate rows.
+                    Found {importState.validation.newClients.length} new records, {importState.validation.duplicateClients.length} duplicates, and {importState.validation.invalid.length} invalid rows.
                   </p>
                 </div>
-                
-                <div className="flex-1 overflow-auto rounded-xl border border-border bg-surface-2 p-0">
-                  <table className="w-full text-left text-xs whitespace-nowrap">
-                    <thead className="bg-card border-b border-border sticky top-0">
-                      <tr>
-                        <th className="py-2 px-3 font-bold text-text-secondary">#</th>
-                        <th className="py-2 px-3 font-bold text-text-secondary">Name</th>
-                        {importTarget === 'clients' && <th className="py-2 px-3 font-bold text-text-secondary">Policy No</th>}
-                        <th className="py-2 px-3 font-bold text-text-secondary">Email</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {importState.validation.valid.length === 0 ? (
-                        <tr><td colSpan={4} className="py-8 text-center text-text-secondary">No valid records to import.</td></tr>
-                      ) : importState.validation.valid.slice(0, 50).map((r: any, i: number) => (
-                        <tr key={i} className="border-b border-border/40 last:border-0 hover:bg-card/50">
-                          <td className="py-2 px-3 text-text-secondary">{i + 1}</td>
-                          <td className="py-2 px-3 font-semibold text-text">{r.clientName || r.advisorName}</td>
-                          {importTarget === 'clients' && <td className="py-2 px-3 text-text-secondary">{r.policyNumber || '—'}</td>}
-                          <td className="py-2 px-3 text-text-secondary">{r.email || '—'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+
+                <div className="flex-1 overflow-auto rounded-xl border border-border bg-surface-2 p-0 flex flex-col gap-0">
+                  {importState.validation.newClients.length === 0 && importState.validation.duplicateClients.length === 0 && importState.validation.invalid.length === 0 && (
+                    <div className="py-8 text-center text-text-secondary text-xs">No records to preview.</div>
+                  )}
+
+                  {importState.validation.newClients.length > 0 && (
+                    <div className="w-full">
+                      <div className="bg-emerald-500/10 border-b border-emerald-500/20 px-4 py-2 sticky top-0 z-10">
+                        <h4 className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                          New clients to import ({importState.validation.newClients.length})
+                        </h4>
+                      </div>
+                      <table className="w-full text-left text-xs whitespace-nowrap">
+                        <thead className="bg-card/50 border-b border-border">
+                          <tr>
+                            <th className="py-2 px-3 font-bold text-text-secondary">#</th>
+                            <th className="py-2 px-3 font-bold text-text-secondary">Name</th>
+                            {importTarget === 'clients' && <th className="py-2 px-3 font-bold text-text-secondary">Policy No</th>}
+                            <th className="py-2 px-3 font-bold text-text-secondary">Email</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {importState.validation.newClients.slice(0, 50).map((r: any, i: number) => (
+                            <tr key={i} className="border-b border-border/40 last:border-0 hover:bg-card/50">
+                              <td className="py-2 px-3 text-text-secondary">{i + 1}</td>
+                              <td className="py-2 px-3 font-semibold text-text">{r.clientName || r.advisorName}</td>
+                              {importTarget === 'clients' && <td className="py-2 px-3 text-text-secondary">{r.policyNumber || '—'}</td>}
+                              <td className="py-2 px-3 text-text-secondary">{r.email || '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {importState.validation.duplicateClients.length > 0 && (
+                    <div className="w-full">
+                      <details className="group">
+                        <summary className="bg-slate-500/10 border-y border-slate-500/20 px-4 py-2 sticky top-0 z-10 cursor-pointer list-none flex items-center justify-between hover:bg-slate-500/20 transition-colors">
+                          <h4 className="text-xs font-bold text-slate-600 dark:text-slate-400">
+                            Already in your list — will be skipped ({importState.validation.duplicateClients.length})
+                          </h4>
+                          <ChevronRight size={14} className="text-slate-500 transition-transform group-open:rotate-90" />
+                        </summary>
+                        <table className="w-full text-left text-xs whitespace-nowrap">
+                          <thead className="bg-card/50 border-b border-border">
+                            <tr>
+                              <th className="py-2 px-3 font-bold text-text-secondary">#</th>
+                              <th className="py-2 px-3 font-bold text-text-secondary">Name</th>
+                              {importTarget === 'clients' && <th className="py-2 px-3 font-bold text-text-secondary">Policy No</th>}
+                              <th className="py-2 px-3 font-bold text-text-secondary">Match Reason</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {importState.validation.duplicateClients.slice(0, 50).map((r: any, i: number) => (
+                              <tr key={i} className="border-b border-border/40 last:border-0 hover:bg-card/50 opacity-60">
+                                <td className="py-2 px-3 text-text-secondary">{i + 1}</td>
+                                <td className="py-2 px-3 font-semibold text-text">{r.clientName || r.advisorName}</td>
+                                {importTarget === 'clients' && <td className="py-2 px-3 text-text-secondary">{r.policyNumber || '—'}</td>}
+                                <td className="py-2 px-3 text-text-secondary italic text-[10px]">
+                                  Matches existing: {r._matchedName} — Policy {r._matchedPolicy || 'N/A'}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </details>
+                    </div>
+                  )}
+
+                  {importState.validation.invalid.length > 0 && (
+                    <div className="w-full">
+                      <details className="group" open>
+                        <summary className="bg-red-500/10 border-y border-red-500/20 px-4 py-2 sticky top-0 z-10 cursor-pointer list-none flex items-center justify-between hover:bg-red-500/20 transition-colors">
+                          <h4 className="text-xs font-bold text-red-600 dark:text-red-400">
+                            Invalid rows — missing required fields ({importState.validation.invalid.length})
+                          </h4>
+                          <ChevronRight size={14} className="text-red-500 transition-transform group-open:rotate-90" />
+                        </summary>
+                        <table className="w-full text-left text-xs whitespace-nowrap">
+                          <thead className="bg-card/50 border-b border-border">
+                            <tr>
+                              <th className="py-2 px-3 font-bold text-text-secondary">Row</th>
+                              <th className="py-2 px-3 font-bold text-text-secondary">Reason</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {importState.validation.invalid.slice(0, 50).map((r: any, i: number) => (
+                              <tr key={i} className="border-b border-border/40 last:border-0 hover:bg-card/50 opacity-80 text-red-500">
+                                <td className="py-2 px-3 font-mono">{r.rowNumber}</td>
+                                <td className="py-2 px-3">{r.reason}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </details>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex gap-3 pt-2 shrink-0">
                   <button
                     onClick={() => {
                       if (importTarget === 'clients') {
-                        processAndImportClients(importState.validation!.valid, importState.fileName, importState.validation!.stats);
+                        processAndImportClients(importState.validation!.newClients, importState.fileName, importState.validation!.stats);
                       } else {
-                        processAndImportAdvisors(importState.validation!.valid, importState.fileName, importState.validation!.stats);
+                        processAndImportAdvisors(importState.validation!.newClients, importState.fileName, importState.validation!.stats);
                       }
                     }}
-                    disabled={importState.validation.valid.length === 0}
+                    disabled={importState.validation.newClients.length === 0}
                     className="flex-1 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-extrabold text-xs py-3 rounded-full transition-all duration-200 cursor-pointer shadow-md active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Confirm Import ({importState.validation.valid.length})
+                    Import New {importTarget === 'clients' ? 'Clients' : 'Advisors'} ({importState.validation.newClients.length})
                   </button>
                   <button
                     onClick={() => {
@@ -2034,10 +2306,8 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
                 <div>
                   <h3 className="text-base font-bold text-text">Import Completed</h3>
                   <p className="text-xs text-text-secondary mt-1.5 leading-5">
-                    <span className="font-bold text-emerald-500">{importState.importedCount}</span> Imported<br />
-                    <span className="font-bold text-orange-500">{importState.skippedHeaders}</span> Skipped Headers<br />
-                    <span className="font-bold text-orange-500">{importState.skippedEmpty}</span> Skipped Empty Rows<br />
-                    <span className="font-bold text-red-500">{importState.skippedInvalid}</span> Skipped Invalid Rows
+                    <span className="font-bold text-emerald-500">{importState.importedCount}</span> New clients imported<br />
+                    <span className="font-bold text-orange-500">{importState.validation?.duplicateClients?.length || 0}</span> Duplicates skipped (already in list)
                   </p>
                 </div>
                 <button
@@ -2179,29 +2449,315 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
                 <X size={16} />
               </button>
             </div>
-            <div className="p-4 flex flex-col gap-2">
-              <p className="text-xs text-muted-foreground mb-3 text-center">
+            <div className="p-5 flex flex-col gap-4">
+              <p className="text-xs text-muted-foreground mb-1 text-center">
                 Select a form to open for <strong className="text-foreground">{currentClient.clientName}</strong>
               </p>
-              
-              <Link href={`/admin/cv?client_id=${currentClient.id}`} className="px-4 py-3 bg-surface hover:bg-primary/10 border border-border hover:border-primary text-sm font-medium rounded-xl text-foreground flex items-center justify-between transition-colors">
-                Client Policy Card <ChevronRight size={16} className="text-muted-foreground" />
-              </Link>
-              <Link href={`/admin/pptm?client_id=${currentClient.id}`} className="px-4 py-3 bg-surface hover:bg-primary/10 border border-border hover:border-primary text-sm font-medium rounded-xl text-foreground flex items-center justify-between transition-colors">
-                Premium Payment <ChevronRight size={16} className="text-muted-foreground" />
-              </Link>
-              <Link href={`/admin/cgpt?client_id=${currentClient.id}`} className="px-4 py-3 bg-surface hover:bg-primary/10 border border-border hover:border-primary text-sm font-medium rounded-xl text-foreground flex items-center justify-between transition-colors">
-                Client Welcome Note & Birthday <ChevronRight size={16} className="text-muted-foreground" />
-              </Link>
-              <Link href={`/admin/csmv?client_id=${currentClient.id}`} className="px-4 py-3 bg-surface hover:bg-primary/10 border border-border hover:border-primary text-sm font-medium rounded-xl text-foreground flex items-center justify-between transition-colors">
-                Social Media Visibility <ChevronRight size={16} className="text-muted-foreground" />
-              </Link>
-              <Link href={`/admin/acr?client_id=${currentClient.id}`} className="px-4 py-3 bg-surface hover:bg-primary/10 border border-border hover:border-primary text-sm font-medium rounded-xl text-foreground flex items-center justify-between transition-colors">
-                Advisor Change Request <ChevronRight size={16} className="text-muted-foreground" />
-              </Link>
-              <Link href={`/admin/form`} className="px-4 py-3 bg-surface hover:bg-primary/10 border border-border hover:border-primary text-sm font-medium rounded-xl text-foreground flex items-center justify-between transition-colors">
-                Other Forms Hub <ChevronRight size={16} className="text-muted-foreground" />
-              </Link>
+
+              <button onClick={() => setActiveModal('documents')} className="w-full px-4 py-3.5 bg-surface hover:bg-primary/10 border border-border hover:border-primary text-sm font-medium rounded-xl text-foreground flex items-center justify-between transition-colors text-left group">
+                <span className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                    <FileText size={16} />
+                  </div>
+                  Client Documents
+                </span>
+                <ChevronRight size={16} className="text-muted-foreground group-hover:text-primary transition-colors" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeModal === 'documents' && currentClient && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <div className="bg-card border border-border/80 w-full max-w-3xl rounded-[32px] shadow-[0_32px_80px_rgba(0,0,0,0.25)] relative flex flex-col overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 max-h-[90vh]">
+
+            {/* ── HEADER ── */}
+            <div className="relative overflow-hidden shrink-0">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent pointer-events-none" />
+              <div className="relative flex items-center justify-between px-7 py-5 border-b border-border/60">
+                <div className="flex items-center gap-4">
+                  <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-lg shadow-primary/30">
+                    <FileText size={22} className="text-black" />
+                    <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-400 border-2 border-card flex items-center justify-center">
+                      <CheckCircle2 size={9} className="text-white" strokeWidth={3} />
+                    </div>
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-black text-text tracking-tight">Client Documents</h2>
+                    <p className="text-xs text-text-secondary mt-0.5">
+                      Government IDs & Signatures — <span className="font-semibold text-primary">{currentClient.clientName}</span>
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => { setDocFormOpen(false); setActiveModal(null); }}
+                  className="w-9 h-9 flex items-center justify-center text-muted-foreground hover:text-text hover:bg-surface-2 rounded-full transition-all duration-200 border border-transparent hover:border-border active:scale-95"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            {/* ── SCROLLABLE BODY ── */}
+            <div className="overflow-y-auto flex-1 min-h-0">
+
+              {/* SUMMARY CARD ROW */}
+              <div className="px-7 pt-5 pb-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {/* ID Type */}
+                <div className="bg-surface-2/70 border border-border/60 rounded-2xl p-3.5 flex flex-col gap-1 hover:border-border transition-colors">
+                  <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">ID Type</span>
+                  <span className={`text-[13px] font-bold leading-tight ${currentClient.idType ? 'text-text' : 'text-muted-foreground/50 italic font-normal'}`}>
+                    {currentClient.idType || 'Not set'}
+                  </span>
+                </div>
+                {/* ID Number */}
+                <div className="bg-surface-2/70 border border-border/60 rounded-2xl p-3.5 flex flex-col gap-1 hover:border-border transition-colors">
+                  <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">ID Number</span>
+                  <span className={`text-[12px] font-mono font-bold leading-tight ${currentClient.idNumber ? 'text-text' : 'text-muted-foreground/50 italic font-normal'}`}>
+                    {currentClient.idNumber || 'Not set'}
+                  </span>
+                </div>
+                {/* Expiration */}
+                <div className="bg-surface-2/70 border border-border/60 rounded-2xl p-3.5 flex flex-col gap-1 hover:border-border transition-colors">
+                  <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Expiration</span>
+                  <span className={`text-[13px] font-bold leading-tight ${currentClient.idExpirationDate ? 'text-text' : 'text-muted-foreground/50 italic font-normal'}`}>
+                    {currentClient.idExpirationDate || 'Not set'}
+                  </span>
+                </div>
+                {/* Signature status */}
+                <div className="bg-surface-2/70 border border-border/60 rounded-2xl p-3.5 flex flex-col gap-1 hover:border-border transition-colors">
+                  <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Signature</span>
+                  {currentClient.signatureData ? (
+                    <span className="inline-flex items-center gap-1 text-[12px] font-bold text-emerald-500">
+                      <CheckCircle2 size={13} strokeWidth={2.5} /> Signed
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 text-[12px] font-bold text-amber-500">
+                      <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                      Pending
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* ATTACHMENT PREVIEW ROW */}
+              <div className="px-7 pb-4">
+                <div className="bg-surface-2/40 border border-border/50 rounded-2xl p-4 flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                    <FileText size={18} className="text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-wider mb-0.5">ID Attachment</p>
+                    {currentClient.idAttachmentUrl ? (
+                      <a href={currentClient.idAttachmentUrl} target="_blank" rel="noreferrer"
+                        className="text-primary hover:text-primary/80 text-xs font-bold flex items-center gap-1.5 w-fit underline-offset-2 hover:underline transition-colors">
+                        <Eye size={13} /> View Attached File
+                      </a>
+                    ) : (
+                      <span className="text-muted-foreground/60 text-xs italic">No file attached</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {currentClient.idType ? (
+                      <button
+                        onClick={() => {
+                          setDocFormData({
+                            idType: currentClient.idType || '',
+                            idNumber: currentClient.idNumber || '',
+                            idExpirationDate: currentClient.idExpirationDate || '',
+                            idAttachmentUrl: currentClient.idAttachmentUrl || '',
+                          });
+                          setDocFormOpen(true);
+                        }}
+                        className="px-4 py-2 text-xs font-extrabold rounded-full border border-primary/40 bg-primary/10 text-primary hover:bg-primary hover:text-black transition-all duration-200 active:scale-95 flex items-center gap-1.5"
+                      >
+                        <Edit2 size={12} /> Edit ID
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setDocFormData({ idType: '', idNumber: '', idExpirationDate: '', idAttachmentUrl: '' });
+                          setDocFormOpen(true);
+                        }}
+                        className="px-4 py-2 text-xs font-extrabold rounded-full border border-border text-text-secondary hover:border-primary hover:text-primary hover:bg-primary/5 transition-all duration-200 active:scale-95 flex items-center gap-1.5"
+                      >
+                        <Plus size={12} /> Add ID
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* ── INLINE EDIT FORM ── */}
+              {docFormOpen && (
+                <div className="mx-6 my-5 rounded-3xl border border-primary/20 bg-gradient-to-b from-primary/5 to-transparent overflow-hidden animate-in slide-in-from-top-2 fade-in duration-300">
+                  {/* Form header strip */}
+                  <div className="flex items-center justify-between px-6 py-4 border-b border-primary/15 bg-primary/5">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-lg bg-primary/20 flex items-center justify-center">
+                        <Edit2 size={12} className="text-primary" />
+                      </div>
+                      <span className="text-xs font-black text-text uppercase tracking-wider">
+                        {currentClient.idType ? 'Edit ID Details' : 'Add ID Details'}
+                      </span>
+                    </div>
+                    <button onClick={() => setDocFormOpen(false)} className="w-7 h-7 flex items-center justify-center text-muted-foreground hover:text-text rounded-full hover:bg-surface-2 transition-colors">
+                      <X size={14} />
+                    </button>
+                  </div>
+
+                  <div className="p-6 space-y-5">
+                    {/* ID Type + Number row */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className={formLabelClass}>ID Type</label>
+                        <select
+                          value={docFormData.idType}
+                          onChange={e => setDocFormData(prev => ({ ...prev, idType: e.target.value }))}
+                          className={formInputClass}
+                        >
+                          <option value="">Select ID Type</option>
+                          {["Philippine Passport", "Driver's License", "UMID", "PhilHealth ID", "SSS ID", "PRC ID", "Postal ID", "Voter's ID", "Other"].map(t => (
+                            <option key={t} value={t}>{t}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className={formLabelClass}>ID Number</label>
+                        <input
+                          type="text"
+                          value={docFormData.idNumber}
+                          onChange={e => setDocFormData(prev => ({ ...prev, idNumber: e.target.value }))}
+                          className={formInputClass}
+                          placeholder="e.g. P1234567A"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Expiration Date */}
+                    <div className="space-y-1.5">
+                      <label className={formLabelClass}>Expiration Date</label>
+                      <input
+                        type="date"
+                        value={docFormData.idExpirationDate}
+                        onChange={e => setDocFormData(prev => ({ ...prev, idExpirationDate: e.target.value }))}
+                        className={formInputClass}
+                      />
+                    </div>
+
+                    {/* File Upload Zone */}
+                    <div className="space-y-2">
+                      <label className={formLabelClass}>ID Attachment</label>
+
+                      {uploadingDocId ? (
+                        /* ── UPLOADING STATE ── */
+                        <div className="border-2 border-dashed border-primary/40 rounded-2xl h-36 flex flex-col items-center justify-center gap-3 bg-primary/5">
+                          <div className="relative w-12 h-12">
+                            <div className="w-12 h-12 border-4 border-primary/20 rounded-full" />
+                            <div className="absolute inset-0 w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <Upload size={14} className="text-primary animate-bounce" />
+                            </div>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-xs font-bold text-primary">Uploading file…</p>
+                            <p className="text-[10px] text-muted-foreground mt-0.5">Please wait</p>
+                          </div>
+                          <div className="w-40 h-1.5 bg-primary/20 rounded-full overflow-hidden">
+                            <div className="h-full bg-gradient-to-r from-primary to-primary/60 rounded-full animate-pulse w-3/4" />
+                          </div>
+                        </div>
+                      ) : !docFormData.idAttachmentUrl ? (
+                        /* ── EMPTY DROP ZONE ── */
+                        <label className="group relative border-2 border-dashed border-border hover:border-primary rounded-2xl h-36 flex flex-col items-center justify-center gap-3 cursor-pointer bg-surface hover:bg-primary/5 transition-all duration-300 overflow-hidden">
+                          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                            style={{ backgroundImage: 'radial-gradient(circle, rgba(244,197,66,0.08) 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
+                          <div className="relative flex flex-col items-center gap-2.5">
+                            <div className="w-12 h-12 rounded-2xl bg-surface-2 border border-border group-hover:border-primary/40 group-hover:bg-primary/10 flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-primary/20">
+                              <Upload size={20} className="text-muted-foreground group-hover:text-primary transition-colors duration-300" />
+                            </div>
+                            <div className="text-center">
+                              <p className="text-xs font-bold text-text-secondary group-hover:text-text transition-colors">
+                                Drag & drop or <span className="text-primary underline underline-offset-2">browse</span>
+                              </p>
+                              <p className="text-[10px] text-muted-foreground mt-0.5">JPG, PNG, or PDF · Max 10 MB</p>
+                            </div>
+                          </div>
+                          <input type="file" accept="image/*,.pdf" className="hidden" onChange={handleDocIdUpload} />
+                        </label>
+                      ) : (
+                        /* ── FILE PREVIEW ── */
+                        <div className="relative border-2 border-primary/30 rounded-2xl overflow-hidden bg-card group animate-in fade-in zoom-in-95 duration-300">
+                          {docFormData.idAttachmentUrl.toLowerCase().endsWith('.pdf') ? (
+                            <div className="h-36 flex flex-col items-center justify-center gap-3">
+                              <div className="w-14 h-14 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center">
+                                <FileText size={28} className="text-red-500" />
+                              </div>
+                              <div className="text-center">
+                                <p className="text-xs font-bold text-text">PDF Document</p>
+                                <p className="text-[10px] text-muted-foreground">Ready to save</p>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="h-36 flex items-center justify-center bg-surface/50">
+                              <img src={docFormData.idAttachmentUrl} alt="ID Preview" className="max-h-36 max-w-full object-contain rounded-xl" />
+                            </div>
+                          )}
+                          {/* Hover overlay */}
+                          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center gap-3">
+                            <label className="flex items-center gap-1.5 px-3.5 py-2 bg-white/20 hover:bg-white/30 text-white text-xs font-bold rounded-full cursor-pointer transition-colors border border-white/30">
+                              <Upload size={13} /> Replace
+                              <input type="file" accept="image/*,.pdf" className="hidden" onChange={handleDocIdUpload} />
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => setDocFormData(prev => ({ ...prev, idAttachmentUrl: '' }))}
+                              className="flex items-center gap-1.5 px-3.5 py-2 bg-red-500/80 hover:bg-red-500 text-white text-xs font-bold rounded-full cursor-pointer transition-colors border border-red-400/50"
+                            >
+                              <Trash2 size={13} /> Remove
+                            </button>
+                          </div>
+                          {/* Attached badge */}
+                          <div className="absolute top-2 right-2 bg-emerald-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full flex items-center gap-1 shadow-lg">
+                            <CheckCircle2 size={9} /> ATTACHED
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-3 pt-2">
+                      <button
+                        type="button"
+                        onClick={handleSaveDocFields}
+                        className="flex-1 bg-gradient-to-r from-[#F4C542] to-[#e6b800] hover:from-[#e6b800] hover:to-[#d4a800] text-black font-extrabold text-xs py-3 rounded-full transition-all duration-200 shadow-md shadow-primary/30 active:scale-[0.97] flex items-center justify-center gap-2"
+                      >
+                        <CheckCircle2 size={14} /> Save Document
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDocFormOpen(false)}
+                        className="flex-1 bg-transparent border border-border text-text hover:bg-surface-2 text-xs font-semibold py-3 rounded-full transition-all duration-200 active:scale-[0.97]"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 border-t border-border bg-surface-2 shrink-0 flex items-center justify-between">
+              <p className="text-[10px] text-muted-foreground">
+                Last updated: <span className="font-semibold text-text-secondary">{currentClient.created_at ? new Date(currentClient.created_at).toLocaleDateString() : '—'}</span>
+              </p>
+              <button
+                onClick={() => { setDocFormOpen(false); setActiveModal(null); }}
+                className="px-6 py-2.5 bg-transparent border border-border text-text hover:bg-surface-2 text-xs font-semibold rounded-full transition-all duration-200 cursor-pointer active:scale-[0.97]"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>
@@ -2220,4 +2776,3 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
     </div>
   );
 }
-

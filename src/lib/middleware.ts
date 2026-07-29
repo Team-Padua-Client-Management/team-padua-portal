@@ -20,6 +20,12 @@ import {
   isModuleMaintenance,
   type MaintenanceSetting,
 } from "@src/lib/maintenance";
+import {
+  isClientServicingRoute,
+  getModuleKeyForRoute,
+  hasAutomaticAccess,
+  type ClientServicingModule,
+} from "@src/lib/permissions";
 
 /**
  * Executes operations logic for updateSession.
@@ -122,10 +128,42 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Guard C: Non-admins trying to access Admin pages
+  // Exception: Non-admin users with Client Servicing permissions may access
+  // specific Client Servicing routes if their role + permissions allow it.
   if (user && isAdminPage && !isAdmin) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
-    return NextResponse.redirect(url);
+    const isCSRoute = isClientServicingRoute(pathname);
+
+    if (isCSRoute) {
+      // For Client Servicing routes, allow access if:
+      // - Role is Advisor (automatic access), OR
+      // - Role is Bizdev/Member with explicit module permission
+      const moduleKey = getModuleKeyForRoute(pathname);
+
+      if (moduleKey && hasAutomaticAccess(role)) {
+        // Advisor: allow through to the page (page-level guard enforces further)
+      } else if (moduleKey) {
+        // Bizdev/Member: fetch permissions and check
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("client_servicing_permissions")
+          .eq("id", user.id)
+          .single();
+
+        const permissions = profile?.client_servicing_permissions as Record<ClientServicingModule, { view: boolean }> | null;
+        const hasAccess = permissions?.[moduleKey]?.view === true;
+
+        if (!hasAccess) {
+          const url = request.nextUrl.clone();
+          url.pathname = "/403";
+          return NextResponse.redirect(url);
+        }
+      }
+    } else {
+      // Non-CS admin routes: redirect non-admins to dashboard
+      const url = request.nextUrl.clone();
+      url.pathname = "/dashboard";
+      return NextResponse.redirect(url);
+    }
   }
 
   // Guard D: Admins trying to access regular User pages (Redirect to Admin Dashboard)

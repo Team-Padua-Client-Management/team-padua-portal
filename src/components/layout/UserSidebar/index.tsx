@@ -18,6 +18,7 @@ export default function UserSidebar({ isOpen, onClose }: UserSidebarProps) {
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
   const [isClientServicingOpen, setIsClientServicingOpen] = useState(false);
   const [permissions, setPermissions] = useState<any>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   
   const [isHovered, setIsHovered] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -37,12 +38,15 @@ export default function UserSidebar({ isOpen, onClose }: UserSidebarProps) {
       if (user) {
         const { data } = await supabase
           .from("profiles")
-          .select("client_servicing_permissions")
+          .select("role, client_servicing_permissions")
           .eq("id", user.id)
           .single();
 
-        if (data?.client_servicing_permissions) {
-          setPermissions(data.client_servicing_permissions);
+        if (data) {
+          setUserRole(data.role ?? null);
+          if (data.client_servicing_permissions) {
+            setPermissions(data.client_servicing_permissions);
+          }
         }
       }
     }
@@ -77,14 +81,26 @@ export default function UserSidebar({ isOpen, onClose }: UserSidebarProps) {
     { name: "Playground", href: "/playground", icon: Gamepad2 },
   ];
 
-  if (permissions) {
+  const isAdvisor = userRole === "Advisor";
+  const isBizdevOrMember = userRole === "Bizdev" || userRole === "Member";
+
+  if (isAdvisor || permissions) {
     const subItems = [];
-    if (permissions.cpst?.view) subItems.push({ name: "CPST", href: "/admin/cpst" });
-    if (permissions.acr?.view) subItems.push({ name: "ACR", href: "/admin/acr" });
-    if (permissions.fst?.view) subItems.push({ name: "FST", href: "/admin/fst" });
-    if (permissions.cpc?.view) subItems.push({ name: "CPC", href: "/admin/cpc" });
-    if (permissions.ppu?.view) subItems.push({ name: "PPU", href: "/admin/ppu" });
-    if (permissions.mngt?.view) subItems.push({ name: "MNGT", href: "/admin/mngt" });
+    // Advisors always have access to all modules
+    // Bizdev/Member only see modules with explicit permission
+    if (isAdvisor || permissions?.cpst?.view) subItems.push({ name: "CPST", href: "/admin/cpst" });
+    if (isAdvisor || permissions?.acr?.view) subItems.push({ name: "ACR", href: "/admin/acr" });
+    if (isAdvisor || permissions?.fst?.view) subItems.push({ name: "FST", href: "/admin/fund-switching" });
+    if (isAdvisor || permissions?.cpc?.view) subItems.push({ name: "CPC", href: "/admin/cpc" });
+    if (isAdvisor || permissions?.ppu?.view) subItems.push({ name: "PPU", href: "/admin/ppu" });
+    if (isAdvisor || permissions?.mngt?.view) subItems.push({ name: "MNGT", href: "/admin/mngt" });
+    if (isAdvisor || permissions?.bcr?.view) subItems.push({ name: "BCR", href: "/admin/bcr" });
+    if (isAdvisor || permissions?.aca?.view) subItems.push({ name: "ACA", href: "/admin/aca" });
+    if (isAdvisor || permissions?.ada?.view) subItems.push({ name: "ADA", href: "/admin/ada" });
+    if (isAdvisor || permissions?.sro?.view) subItems.push({ name: "SRO", href: "/admin/reinstatement-sro" });
+    if (isAdvisor || permissions?.pdi?.view) subItems.push({ name: "PPI", href: "/admin/reinstatement-pdi" });
+    if (isAdvisor || permissions?.csmv?.view) subItems.push({ name: "CSMV", href: "/admin/csmv" });
+    if (isAdvisor || permissions?.form?.view) subItems.push({ name: "FORM", href: "/admin/form" });
 
     if (subItems.length > 0) {
       menuItems.push({

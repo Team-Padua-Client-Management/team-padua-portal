@@ -9,7 +9,11 @@ import { AdminSidebar as Sidebar } from '@src/components/layout';
 import { supabase } from "@src/lib/supabase/client";
 import styles from "@/styles/admin/cpst/page.module.css";
 
+
+// ── PDF generator ────────────────────────────────────────────────────────
 import { generateFundSwitchingPdf } from '@src/features/client-servicing/pdf/generateFundSwitchingPdf';
+import type { FundSwitchRow, FutureAllocation, FundSwitchingRecord as BaseFundSwitchingRecord } from '@src/features/client-servicing/fund-switching-engine/FundSwitchingStandardForm';
+// ──────────────────────────────────────────────────────────────────────────
 import dynamic from 'next/dynamic';
 
 const FundSwitchingStandardForm = dynamic(
@@ -19,55 +23,13 @@ const FundSwitchingStandardForm = dynamic(
 
 const TABLE_NAME = 'fund_switching_requests';
 
-export interface FundSwitchRow {
-  from_fund: string;
-  to_fund: string;
-  switch_type: 'full' | 'partial' | '';
-  amount: string;
-  percentage: string;
-}
+// Re-export sub-types from the canonical source
+export type { FundSwitchRow, FutureAllocation } from '@src/features/client-servicing/fund-switching-engine/FundSwitchingStandardForm';
 
-export interface FutureAllocation {
-  fund_name: string;
-  percentage: string;
-}
-
-export interface FundSwitchingRecord {
-  id?: string;
-  client_id: string;
+// Extend the base type with page-only database fields
+export interface FundSwitchingRecord extends BaseFundSwitchingRecord {
   client?: { client_name: string; policy_number: string | null; birthdate: string | null };
-  status: string;
   created_at?: string;
-
-  policy_number: string;
-  life_insured: string;
-  citizenship: string;
-  email_address: string;
-  mobile_phone: string;
-  home_phone: string;
-  work_phone: string;
-  present_address: string;
-  permanent_address: string;
-  work_address: string;
-  country_of_legal_residence: string;
-
-  fund_switch_rows: FundSwitchRow[];
-
-  future_peso_allocations: FutureAllocation[];
-  future_dollar_allocations: FutureAllocation[];
-
-  excess_premium_option: 'add' | 'change' | 'cancel' | '';
-  excess_currency: 'PHP' | 'USD' | '';
-  excess_amount: string;
-
-  place_of_signing: string;
-  date_of_signing: string;
-  policy_owner_signature: string;
-  witness_signature: string;
-  witness_name: string;
-  witness_address: string;
-  assignee_signature: string;
-  beneficiary_signature: string;
 }
 
 const defaultRecord: Omit<FundSwitchingRecord, 'id' | 'client_id' | 'created_at'> = {
@@ -271,6 +233,7 @@ export default function FundSwitchingPage() {
         if (err) throw err;
         setSelectedClientDetails(data);
 
+        // Auto-fill policy number if empty
         if (!formData.policy_number && data.policy_number) {
           setFormData(prev => ({ ...prev, policy_number: data.policy_number || '' }));
         }
@@ -407,6 +370,7 @@ export default function FundSwitchingPage() {
       setError("");
 
       if (editingRecord) {
+        if (!editingRecord.id) throw new Error('Cannot update a record without an id.');
         const payload: any = { ...values };
         if (!payload.date_of_signing) payload.date_of_signing = null;
 
@@ -505,6 +469,7 @@ export default function FundSwitchingPage() {
 
   const clientNameParts = getClientNameParts(selectedClientDetails?.client_name);
 
+  // Helpers for dynamic rows
   const updateRow = (idx: number, field: keyof FundSwitchRow, val: string) => {
     const newRows = [...formData.fund_switch_rows];
     newRows[idx] = { ...newRows[idx], [field]: val };
@@ -549,6 +514,7 @@ export default function FundSwitchingPage() {
   };
   const pesoTotal = calculateTotal(formData.future_peso_allocations);
   const dollarTotal = calculateTotal(formData.future_dollar_allocations);
+
 
   const filteredRecords = records.filter(r =>
     (r.client?.client_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -769,3 +735,6 @@ export default function FundSwitchingPage() {
     </div>
   );
 }
+
+
+

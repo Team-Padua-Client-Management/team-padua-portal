@@ -9,7 +9,8 @@ import {
   ShieldCheck,
   ExternalLink,
   CheckCircle2,
-  Info
+  Info,
+  Lock
 } from 'lucide-react';
 import styles from '@/styles/admin/dashboard/page.module.css';
 
@@ -23,7 +24,10 @@ export type CsrFormItem = {
   href: string;
   accent: string;
   tint: string;
+  moduleKey: string;
 };
+
+export type UserPermissions = Record<string, { view?: boolean; create?: boolean; edit?: boolean; delete?: boolean; export?: boolean }> | null;
 
 interface RequestFormsAccordionProps {
   kpis: {
@@ -35,9 +39,23 @@ interface RequestFormsAccordionProps {
     ppu: number;
     [key: string]: number;
   };
+  userRole?: string | null;
+  userPermissions?: UserPermissions;
 }
 
-export default function RequestFormsAccordion({ kpis }: RequestFormsAccordionProps) {
+function hasFormAccess(
+  moduleKey: string,
+  userRole: string | null | undefined,
+  userPermissions: UserPermissions | undefined
+): boolean {
+  if (!userRole) return false;
+  const normalizedRole = userRole.toLowerCase();
+  if (normalizedRole === 'admin' || normalizedRole === 'advisor') return true;
+  if (!userPermissions) return false;
+  return userPermissions[moduleKey]?.view === true;
+}
+
+export default function RequestFormsAccordion({ kpis, userRole, userPermissions }: RequestFormsAccordionProps) {
   const [isCardExpanded, setIsCardExpanded] = useState(true);
   const [expandedFormId, setExpandedFormId] = useState<string | null>(null);
 
@@ -51,7 +69,8 @@ export default function RequestFormsAccordion({ kpis }: RequestFormsAccordionPro
       count: kpis.acr || 0,
       href: '/admin/acr',
       accent: '#4F46E5',
-      tint: 'rgba(79, 70, 229, 0.12)'
+      tint: 'rgba(79, 70, 229, 0.12)',
+      moduleKey: 'acr'
     },
     {
       id: 'BCR',
@@ -62,7 +81,8 @@ export default function RequestFormsAccordion({ kpis }: RequestFormsAccordionPro
       count: kpis.bcr || 0,
       href: '/admin/bcr',
       accent: '#2563EB',
-      tint: 'rgba(37, 99, 235, 0.12)'
+      tint: 'rgba(37, 99, 235, 0.12)',
+      moduleKey: 'bcr'
     },
     {
       id: 'FSR',
@@ -73,7 +93,8 @@ export default function RequestFormsAccordion({ kpis }: RequestFormsAccordionPro
       count: kpis.fst || 0,
       href: '/admin/fund-switching',
       accent: '#059669',
-      tint: 'rgba(5, 150, 105, 0.12)'
+      tint: 'rgba(5, 150, 105, 0.12)',
+      moduleKey: 'fst'
     },
     {
       id: 'FW',
@@ -84,7 +105,8 @@ export default function RequestFormsAccordion({ kpis }: RequestFormsAccordionPro
       count: kpis.fw || kpis.fwr || 0,
       href: '/admin/fund-withdrawal',
       accent: '#10B981',
-      tint: 'rgba(16, 185, 129, 0.12)'
+      tint: 'rgba(16, 185, 129, 0.12)',
+      moduleKey: 'fw'
     },
     {
       id: 'ACA',
@@ -95,7 +117,8 @@ export default function RequestFormsAccordion({ kpis }: RequestFormsAccordionPro
       count: kpis.aca || 0,
       href: '/admin/aca',
       accent: '#7C3AED',
-      tint: 'rgba(124, 58, 237, 0.12)'
+      tint: 'rgba(124, 58, 237, 0.12)',
+      moduleKey: 'aca'
     },
     {
       id: 'ADA / MOA',
@@ -106,7 +129,8 @@ export default function RequestFormsAccordion({ kpis }: RequestFormsAccordionPro
       count: kpis.ada || 0,
       href: '/admin/ada',
       accent: '#8B5CF6',
-      tint: 'rgba(139, 92, 246, 0.12)'
+      tint: 'rgba(139, 92, 246, 0.12)',
+      moduleKey: 'ada'
     },
     {
       id: 'SRO',
@@ -117,7 +141,8 @@ export default function RequestFormsAccordion({ kpis }: RequestFormsAccordionPro
       count: kpis.sro || 0,
       href: '/admin/reinstatement-sro',
       accent: '#D97706',
-      tint: 'rgba(217, 119, 6, 0.12)'
+      tint: 'rgba(217, 119, 6, 0.12)',
+      moduleKey: 'sro'
     },
     {
       id: 'PPI',
@@ -128,7 +153,8 @@ export default function RequestFormsAccordion({ kpis }: RequestFormsAccordionPro
       count: kpis.ppi || 0,
       href: '/admin/reinstatement-pdi',
       accent: '#EA580C',
-      tint: 'rgba(234, 88, 12, 0.12)'
+      tint: 'rgba(234, 88, 12, 0.12)',
+      moduleKey: 'pdi'
     },
     {
       id: 'CPST',
@@ -139,7 +165,8 @@ export default function RequestFormsAccordion({ kpis }: RequestFormsAccordionPro
       count: kpis.cpst || 0,
       href: '/admin/cpst',
       accent: '#0D9488',
-      tint: 'rgba(13, 148, 136, 0.12)'
+      tint: 'rgba(13, 148, 136, 0.12)',
+      moduleKey: 'cpst'
     },
     {
       id: 'CSMV',
@@ -150,13 +177,35 @@ export default function RequestFormsAccordion({ kpis }: RequestFormsAccordionPro
       count: 0,
       href: '/admin/csmv',
       accent: '#099268',
-      tint: 'rgba(9, 146, 104, 0.12)'
+      tint: 'rgba(9, 146, 104, 0.12)',
+      moduleKey: 'csmv'
+    },
+    {
+      id: 'ACICR',
+      name: 'Address and Contact Information Change Request',
+      category: 'Client Profile',
+      description: 'Update client registered address, contact numbers, and email information.',
+      sla: '24-48 hrs turnaround',
+      count: kpis.acicr || 0,
+      href: '/admin/acicr',
+      accent: '#D946EF',
+      tint: 'rgba(217, 70, 239, 0.12)',
+      moduleKey: 'acicr'
     }
   ], [kpis]);
 
+  const formsWithAccess = useMemo(() => {
+    return forms.map(form => ({
+      ...form,
+      hasAccess: hasFormAccess(form.moduleKey, userRole, userPermissions)
+    }));
+  }, [forms, userRole, userPermissions]);
+
+  const accessibleForms = useMemo(() => formsWithAccess.filter(f => f.hasAccess), [formsWithAccess]);
+
   const totalActiveRequests = useMemo(() => {
-    return forms.reduce((sum, f) => sum + f.count, 0);
-  }, [forms]);
+    return accessibleForms.reduce((sum, f) => sum + f.count, 0);
+  }, [accessibleForms]);
 
   const toggleFormExpand = (formId: string) => {
     setExpandedFormId((prev) => (prev === formId ? null : formId));
@@ -206,18 +255,18 @@ export default function RequestFormsAccordion({ kpis }: RequestFormsAccordionPro
         >
           <div className={styles.collapsedChip}>
             <span className={styles.collapsedDot} style={{ background: '#4F46E5' }} />
-            Transfers ({forms.filter(f => f.category === 'Transfers & Policy').length})
+            Transfers ({accessibleForms.filter(f => f.category === 'Transfers & Policy').length})
           </div>
           <div className={styles.collapsedChip}>
             <span className={styles.collapsedDot} style={{ background: '#059669' }} />
-            Funds ({forms.filter(f => f.category === 'Funds & Investments').length})
+            Funds ({accessibleForms.filter(f => f.category === 'Funds & Investments').length})
           </div>
           <div className={styles.collapsedChip}>
             <span className={styles.collapsedDot} style={{ background: '#8B5CF6' }} />
-            Billing & Reinstatement ({forms.filter(f => f.category === 'Billing & Reinstatement').length})
+            Billing & Reinstatement ({accessibleForms.filter(f => f.category === 'Billing & Reinstatement').length})
           </div>
           <div className={styles.collapsedExpandHint}>
-            <span>View All {forms.length} Forms</span>
+            <span>View All {accessibleForms.length} Forms</span>
             <ArrowUpRight size={13} />
           </div>
         </div>
@@ -226,101 +275,143 @@ export default function RequestFormsAccordion({ kpis }: RequestFormsAccordionPro
       {/* Expanded State Body */}
       {isCardExpanded && (
         <div className={styles.dashboardCardBody}>
-          {/* Form Rows List */}
-          <div className={styles.flatFormsList}>
-            {forms.map((form) => {
-              const isExpanded = expandedFormId === form.id;
+          {accessibleForms.length === 0 ? (
+            <div className={styles.emptyStateContainer}>
+              <div className={styles.emptyStateIcon}>
+                <Lock size={24} className="text-gray-400" />
+              </div>
+              <div className={styles.emptyStateTitle}>No Forms Available</div>
+              <div className={styles.emptyStateDescription}>
+                You do not have permission to access any Client Servicing forms.
+                Contact your administrator to request access.
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Form Rows List */}
+              <div className={styles.flatFormsList}>
+                {formsWithAccess.map((form) => {
+                  const isExpanded = expandedFormId === form.id;
 
-              return (
-                <div
-                  key={form.id}
-                  className={`${styles.flatFormItem} ${isExpanded ? styles.flatFormItemExpanded : ''}`}
-                  style={{ borderLeftColor: form.accent }}
-                >
-                  {/* Collapsed Row Header: Badge | Title | Count | Launch | Chevron */}
-                  <div
-                    className={styles.flatFormHeaderRow}
-                    onClick={() => toggleFormExpand(form.id)}
-                  >
-                    <span
-                      className={styles.flatFormBadge}
-                      style={{ color: form.accent, background: form.tint }}
+                  if (!form.hasAccess) {
+                    return (
+                      <div
+                        key={form.id}
+                        className={`${styles.flatFormItem} opacity-50`}
+                        style={{ borderLeftColor: form.accent }}
+                      >
+                        <div className={styles.flatFormHeaderRow} style={{ cursor: 'default' }}>
+                          <span
+                            className={styles.flatFormBadge}
+                            style={{ color: form.accent, background: form.tint }}
+                          >
+                            {form.id}
+                          </span>
+
+                          <span className={styles.flatFormName}>{form.name}</span>
+
+                          <div className={styles.flatFormRight}>
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                              <Lock size={9} />
+                              Access Required
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div
+                      key={form.id}
+                      className={`${styles.flatFormItem} ${isExpanded ? styles.flatFormItemExpanded : ''}`}
+                      style={{ borderLeftColor: form.accent }}
                     >
-                      {form.id}
-                    </span>
-
-                    <span className={styles.flatFormName}>{form.name}</span>
-
-                    <div className={styles.flatFormRight}>
-                      <span
-                        className={`${styles.flatFormCountPill} ${form.count > 0 ? styles.flatFormCountPillHasCount : ''}`}
-                        title={`${form.count} pending requests`}
+                      {/* Collapsed Row Header: Badge | Title | Count | Launch | Chevron */}
+                      <div
+                        className={styles.flatFormHeaderRow}
+                        onClick={() => toggleFormExpand(form.id)}
                       >
-                        {form.count}
-                      </span>
-
-                      <Link
-                        href={form.href}
-                        className={styles.flatFormQuickLaunchBtn}
-                        onClick={(e) => e.stopPropagation()}
-                        title={`Launch ${form.name}`}
-                      >
-                        <span>Launch</span>
-                        <ArrowUpRight size={12} />
-                      </Link>
-
-                      <ChevronDown
-                        size={14}
-                        className={`${styles.flatFormChevron} ${isExpanded ? styles.flatFormChevronOpen : ''}`}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Expanded Detail Body */}
-                  {isExpanded && (
-                    <div className={styles.flatFormDropdownBody}>
-                      <p className={styles.flatFormDescription}>{form.description}</p>
-
-                      <div className={styles.flatFormMetaRow}>
-                        <span className={styles.flatFormSlaBadge}>
-                          <Zap size={11} style={{ color: form.accent }} />
-                          {form.sla}
+                        <span
+                          className={styles.flatFormBadge}
+                          style={{ color: form.accent, background: form.tint }}
+                        >
+                          {form.id}
                         </span>
 
-                        <span className={styles.flatFormStatusText}>
-                          <CheckCircle2 size={11} style={{ color: 'var(--status-done)' }} />
-                          Form Operational & Ready
-                        </span>
+                        <span className={styles.flatFormName}>{form.name}</span>
+
+                        <div className={styles.flatFormRight}>
+                          <span
+                            className={`${styles.flatFormCountPill} ${form.count > 0 ? styles.flatFormCountPillHasCount : ''}`}
+                            title={`${form.count} pending requests`}
+                          >
+                            {form.count}
+                          </span>
+
+                          <Link
+                            href={form.href}
+                            className={styles.flatFormQuickLaunchBtn}
+                            onClick={(e) => e.stopPropagation()}
+                            title={`Launch ${form.name}`}
+                          >
+                            <span>Launch</span>
+                            <ArrowUpRight size={12} />
+                          </Link>
+
+                          <ChevronDown
+                            size={14}
+                            className={`${styles.flatFormChevron} ${isExpanded ? styles.flatFormChevronOpen : ''}`}
+                          />
+                        </div>
                       </div>
 
-                      <div className={styles.flatFormActionsRow}>
-                        <span className={styles.flatFormSecuredNote}>
-                          <ShieldCheck size={11} style={{ color: 'var(--accent-strong)' }} />
-                          Auto-PDF & Compliance Stamped
-                        </span>
+                      {/* Expanded Detail Body */}
+                      {isExpanded && (
+                        <div className={styles.flatFormDropdownBody}>
+                          <p className={styles.flatFormDescription}>{form.description}</p>
 
-                        <Link href={form.href} className={styles.flatFormOpenLink}>
-                          <span>Open Dedicated Portal</span>
-                          <ExternalLink size={12} />
-                        </Link>
-                      </div>
+                          <div className={styles.flatFormMetaRow}>
+                            <span className={styles.flatFormSlaBadge}>
+                              <Zap size={11} style={{ color: form.accent }} />
+                              {form.sla}
+                            </span>
+
+                            <span className={styles.flatFormStatusText}>
+                              <CheckCircle2 size={11} style={{ color: 'var(--status-done)' }} />
+                              Form Operational & Ready
+                            </span>
+                          </div>
+
+                          <div className={styles.flatFormActionsRow}>
+                            <span className={styles.flatFormSecuredNote}>
+                              <ShieldCheck size={11} style={{ color: 'var(--accent-strong)' }} />
+                              Auto-PDF & Compliance Stamped
+                            </span>
+
+                            <Link href={form.href} className={styles.flatFormOpenLink}>
+                              <span>Open Dedicated Portal</span>
+                              <ExternalLink size={12} />
+                            </Link>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                  );
+                })}
+              </div>
 
-          {/* Footer Humanized Tip */}
-          <div className={styles.flatFormFooterTip}>
-            <Info size={13} style={{ color: 'var(--accent-strong)', flexShrink: 0 }} />
-            <span>
-              All client servicing form submissions generate digitally stamped PDFs and automatically trigger tracking status updates in real-time.
-            </span>
-          </div>
+              {/* Footer Humanized Tip */}
+              <div className={styles.flatFormFooterTip}>
+                <Info size={13} style={{ color: 'var(--accent-strong)', flexShrink: 0 }} />
+                <span>
+                  All client servicing form submissions generate digitally stamped PDFs and automatically trigger tracking status updates in real-time.
+                </span>
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>
   );
 }
-
