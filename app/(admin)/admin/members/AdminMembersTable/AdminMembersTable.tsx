@@ -15,7 +15,6 @@ import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from "@/styles/admin/members/AdminMembersTable/AdminMembersTable.module.css";
 import { X } from "lucide-react";
-``
 export type ClientServicingModule = "cpst" | "acr" | "fst" | "cpc" | "ppu" | "mngt";
 
 export interface ModulePermissions {

@@ -5,7 +5,7 @@ import { CalendarActivityItem } from './CalendarActivityCard';
 import PhilippineLocationSelector from '@src/components/shared/PhilippineLocationSelector';
 import { REGIONS, PROVINCES, CITIES } from '@src/constants/philippineLocations';
 
-const CATEGORY_OPTIONS = ['Client Meeting', 'Training', 'Internal', 'Site Visit', 'Others'];
+const CATEGORY_OPTIONS = ['Meeting', 'Training', 'Work Session', 'Speaking Engagement', 'Bonding Activity'];
 const ROLE_OPTIONS = ['Admin', 'Advisor', 'Bizdev'] as const;
 const MODE_OPTIONS = ['Online', 'Onsite'] as const;
 
@@ -31,29 +31,13 @@ export default function CalendarActivityModal({ onSave, onClose }: CalendarActiv
 
   // Onsite details
   const [onsiteVenue, setOnsiteVenue] = useState('');
-  const [onsiteBuilding, setOnsiteBuilding] = useState('');
-  const [onsiteStreet, setOnsiteStreet] = useState('');
-  const [onsiteBarangay, setOnsiteBarangay] = useState('');
-  const [onsiteCity, setOnsiteCity] = useState('');
-  const [onsiteProvince, setOnsiteProvince] = useState('');
-  const [onsiteZip, setOnsiteZip] = useState('');
-  const [onsiteIslandGroup, setOnsiteIslandGroup] = useState('');
-  const [onsiteRegion, setOnsiteRegion] = useState('');
 
   const handleSave = () => {
     if (!title.trim() || !date) return;
     
-    const provObj = PROVINCES.find(p => p.code === onsiteProvince);
-    const cityObj = CITIES.find(c => c.code === onsiteCity);
-    const regObj = REGIONS.find(r => r.code === onsiteRegion);
-
-    const provinceName = provObj ? provObj.name : onsiteProvince;
-    const cityName = cityObj ? cityObj.name : onsiteCity;
-    const regionName = regObj ? regObj.name : onsiteRegion;
-
     const computedLocation = mode === 'Online'
       ? onlinePlatform
-      : [onsiteVenue, onsiteBuilding, onsiteStreet, cityName, provinceName].filter(Boolean).join(', ');
+      : onsiteVenue.trim();
 
     onSave({
       title: title.trim(),
@@ -66,15 +50,6 @@ export default function CalendarActivityModal({ onSave, onClose }: CalendarActiv
       onlineMeetingId: onlineMeetingId.trim(),
       onlinePasscode: onlinePasscode.trim(),
       onsiteVenue: onsiteVenue.trim(),
-      onsiteBuilding: onsiteBuilding.trim(),
-      onsiteStreet: onsiteStreet.trim(),
-      onsiteBarangay: onsiteBarangay.trim(),
-      onsiteCity: cityName.trim(),
-      onsiteProvince: provinceName.trim(),
-      onsiteZip: onsiteZip.trim(),
-      onsiteIslandGroup: onsiteIslandGroup.trim(),
-      onsiteRegion: regionName.trim(),
-      region: regionName.trim(),
       category,
       assignedRole,
       notes: notes.trim() || undefined,
@@ -235,27 +210,17 @@ export default function CalendarActivityModal({ onSave, onClose }: CalendarActiv
             </div>
           ) : (
             <div className={styles.modalSection}>
-              <div className="bg-green-50/50 dark:bg-green-900/10 border border-green-100 dark:border-green-800/30 rounded-2xl p-4">
-                <PhilippineLocationSelector
-                  islandGroup={onsiteIslandGroup}
-                  setIslandGroup={setOnsiteIslandGroup}
-                  region={onsiteRegion}
-                  setRegion={setOnsiteRegion}
-                  province={onsiteProvince}
-                  setProvince={setOnsiteProvince}
-                  city={onsiteCity}
-                  setCity={setOnsiteCity}
-                  barangay={onsiteBarangay}
-                  setBarangay={setOnsiteBarangay}
-                  street={onsiteStreet}
-                  setStreet={setOnsiteStreet}
-                  building={onsiteBuilding}
-                  setBuilding={setOnsiteBuilding}
-                  venue={onsiteVenue}
-                  setVenue={setOnsiteVenue}
-                  zip={onsiteZip}
-                  setZip={setOnsiteZip}
-                />
+              <div className="bg-green-50/50 dark:bg-green-900/10 border border-green-100 dark:border-green-800/30 rounded-2xl p-4 flex flex-col gap-3">
+                <div className={styles.formField}>
+                  <label className={styles.formFieldLabel}>Venue Name</label>
+                  <input
+                    type="text"
+                    className={styles.formInput}
+                    value={onsiteVenue}
+                    onChange={(e) => setOnsiteVenue(e.target.value)}
+                    placeholder="e.g. Starbucks, Client Residence, Office Lobby"
+                  />
+                </div>
               </div>
             </div>
           )}

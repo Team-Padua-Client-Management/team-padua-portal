@@ -1,6 +1,6 @@
 import { createClient } from "./supabase/server";
 
-export type ClientServicingModule = "cpst" | "acr" | "fst" | "cpc" | "ppu" | "mngt" | "csmv" | "bcr" | "aca" | "sro" | "pdi" | "form" | "fw" | "ada";
+export type ClientServicingModule = "cpst" | "acr" | "fst" | "cpc" | "ppu" | "mngt" | "csmv" | "bcr" | "aca" | "sro" | "pdi" | "form" | "fw" | "ada" | "acicr";
 export type PermissionAction = "view" | "create" | "edit" | "delete" | "export";
 
 export interface ModulePermissions {
@@ -36,6 +36,7 @@ export const defaultClientServicingPermissions: ClientServicingPermissions = {
   form: { ...defaultModulePermissions },
   fw: { ...defaultModulePermissions },
   ada: { ...defaultModulePermissions },
+  acicr: { ...defaultModulePermissions },
 };
 
 /**
@@ -64,6 +65,7 @@ export const routeToModuleKey: Record<string, ClientServicingModule> = {
   "/admin/cgpt": "cpst",
   "/admin/jf-application": "form",
   "/admin/jf-bizdev": "form",
+  "/admin/acicr": "acicr",
 };
 
 /**

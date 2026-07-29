@@ -18,7 +18,7 @@ import { Search, X, Shield, ExternalLink, RotateCcw, Check, CheckSquare, Square,
 import ProfileAvatar from "@src/components/shared/ProfileAvatar";
 import { supabase } from "@src/lib/supabase/client";
 
-export type ClientServicingModule = "cpst" | "acr" | "fst" | "cpc" | "ppu" | "mngt" | "csmv" | "bcr" | "aca" | "sro" | "pdi" | "form" | "fw" | "ada";
+export type ClientServicingModule = "cpst" | "acr" | "fst" | "cpc" | "ppu" | "mngt" | "csmv" | "bcr" | "aca" | "sro" | "pdi" | "form" | "fw" | "ada" | "acicr";
 
 export interface ModulePermissions {
   view: boolean;
@@ -53,6 +53,7 @@ export const defaultClientServicingPermissions: ClientServicingPermissions = {
   form: { ...defaultModulePermissions },
   fw: { ...defaultModulePermissions },
   ada: { ...defaultModulePermissions },
+  acicr: { ...defaultModulePermissions },
 };
 
 export interface User {

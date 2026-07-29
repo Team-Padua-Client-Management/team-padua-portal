@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Cake, ArrowUpRight, Calendar, Sparkles, ExternalLink } from 'lucide-react';
 import styles from '@/styles/admin/dashboard/page.module.css';
@@ -18,7 +18,19 @@ interface BirthdayCardProps {
 }
 
 export default function BirthdayCard({ birthdays = [] }: BirthdayCardProps) {
-  const todayCount = birthdays.filter(b => b.when === 'today').length;
+  const [selectedAdvisor, setSelectedAdvisor] = useState('All');
+  
+  const advisors = useMemo(() => {
+    const uniqueAdvisors = new Set(birthdays.map(b => b.advisor).filter(Boolean));
+    return ['All', ...Array.from(uniqueAdvisors)];
+  }, [birthdays]);
+
+  const filteredBirthdays = useMemo(() => {
+    if (selectedAdvisor === 'All') return birthdays;
+    return birthdays.filter(b => b.advisor === selectedAdvisor);
+  }, [birthdays, selectedAdvisor]);
+
+  const todayCount = filteredBirthdays.filter(b => b.when === 'today').length;
 
   return (
     <div className={`${styles.dashboardCard} ${styles.birthdayCard}`}>
@@ -35,7 +47,16 @@ export default function BirthdayCard({ birthdays = [] }: BirthdayCardProps) {
           </div>
         </div>
 
-        <div className={styles.headerRightActions}>
+        <div className={`${styles.headerRightActions} flex items-center gap-2`}>
+          <select 
+            className="text-xs border border-border/70 bg-surface text-text-secondary rounded-lg px-2 py-1 outline-none"
+            value={selectedAdvisor}
+            onChange={(e) => setSelectedAdvisor(e.target.value)}
+          >
+            {advisors.map(adv => (
+              <option key={adv as string} value={adv as string}>{adv}</option>
+            ))}
+          </select>
           {todayCount > 0 && (
             <span className={`${styles.birthdayTodayPill} !text-[14px] !px-3.5 !py-1.5 !font-bold !gap-1.5`}>
               <Sparkles size={16} />
@@ -47,7 +68,7 @@ export default function BirthdayCard({ birthdays = [] }: BirthdayCardProps) {
 
       {/* Card Content Body */}
       <div className={styles.dashboardCardBody}>
-        {birthdays.length === 0 ? (
+        {filteredBirthdays.length === 0 ? (
           <div className={styles.birthdayEmptyContainer}>
             <div className={styles.birthdayEmptyIcon}>🎂</div>
             <div className={styles.emptyStateTitle}>No client birthdays today, yesterday, or tomorrow</div>
@@ -61,7 +82,7 @@ export default function BirthdayCard({ birthdays = [] }: BirthdayCardProps) {
           </div>
         ) : (
           <div className={styles.birthdayList}>
-            {birthdays.map((item) => {
+            {filteredBirthdays.map((item) => {
               const isToday = item.when === 'today';
               const isTomorrow = item.when === 'tomorrow';
 
@@ -90,7 +111,7 @@ export default function BirthdayCard({ birthdays = [] }: BirthdayCardProps) {
                       )}
                     </div>
                     <span className={styles.birthdayDateMeta}>
-                      {item.date} {item.age !== undefined && item.age > 0 ? `• ${item.age} yrs old` : ''}
+                      {item.date} {item.age !== undefined && item.age > 0 ? `• ${item.age} yrs old` : ''} {item.advisor ? `• ${item.advisor}` : ''}
                     </span>
                   </div>
 
