@@ -1398,10 +1398,10 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
                   </button>
                 )}
 
-                {canCreate && (
+                {canCreate && selectedAdvisor && (
                   <button
                     onClick={() => {
-                      setCurrentClient({ advisorId: selectedAdvisor?.id || '' });
+                      setCurrentClient({ advisorId: selectedAdvisor.id });
                       setActiveModal('add');
                     }}
                     className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl border border-transparent bg-primary text-black text-[11.5px] font-extrabold shadow-sm hover:bg-primary/90 transition-all duration-200 active:scale-[0.98]"

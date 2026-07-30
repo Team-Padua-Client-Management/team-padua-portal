@@ -11,10 +11,11 @@
  * - Handles modular presentation logic.
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from "@/styles/admin/members/AdminMembersTable/AdminMembersTable.module.css";
-import { X } from "lucide-react";
+import { X, Camera, Upload } from "lucide-react";
+import { supabase } from "@src/lib/supabase/client";
 export type ClientServicingModule = "cpst" | "acr" | "fst" | "cpc" | "ppu" | "mngt";
 
 export interface ModulePermissions {
@@ -76,6 +77,15 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [tempPermissions, setTempPermissions] = useState<ClientServicingPermissions>(defaultClientServicingPermissions);
+
+  // Avatar Upload State
+  const [avatarUploadUser, setAvatarUploadUser] = useState<User | null>(null);
+  const [avatarFileToUpload, setAvatarFileToUpload] = useState<File | null>(null);
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
+  const [uploadStep, setUploadStep] = useState<1 | 2>(1);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  const avatarFileRef = useRef<HTMLInputElement>(null);
 
   const roles = ["Admin", "Manager", "Intern", "Member"];
   const departments = ["ASA", "BSA", "CSA", "DSA"];
@@ -182,6 +192,67 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
     }
   };
 
+  const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      setUploadError("Only JPG, PNG, and WebP are supported.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError("Image must be less than 5MB.");
+      return;
+    }
+    setUploadError("");
+    setAvatarFileToUpload(file);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setAvatarPreviewUrl(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const confirmAvatarUpload = async () => {
+    if (!avatarFileToUpload || !avatarUploadUser) return;
+    setUploadingAvatar(true);
+    setUploadError("");
+    try {
+      const fileExt = avatarFileToUpload.name.split(".").pop()?.toLowerCase() || "jpg";
+      const timestamp = Date.now();
+      const path = `${avatarUploadUser.id}/${timestamp}.${fileExt}`;
+      
+      const { error: storageError } = await supabase.storage.from("member-avatars").upload(path, avatarFileToUpload, { 
+        upsert: false,
+        contentType: avatarFileToUpload.type,
+      });
+      if (storageError) throw storageError;
+      
+      const { data: urlData } = supabase.storage.from("member-avatars").getPublicUrl(path);
+      const publicUrl = urlData.publicUrl;
+      
+      const { error: dbError } = await supabase.from("profiles").update({
+        avatar_url: publicUrl,
+        updated_at: new Date().toISOString(),
+      }).eq("id", avatarUploadUser.id);
+      if (dbError) throw dbError;
+
+      // Auto Refresh
+      setUsers(prev => prev.map(u => u.id === avatarUploadUser.id ? { ...u, avatar: publicUrl } : u));
+      
+      alert("Profile picture updated successfully.");
+      setAvatarUploadUser(null);
+      setAvatarFileToUpload(null);
+      setAvatarPreviewUrl(null);
+    } catch (err: any) {
+      setUploadError(err.message || "Failed to update profile picture.");
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
   const togglePermission = (moduleName: ClientServicingModule, action: keyof ModulePermissions) => {
     setTempPermissions(prev => ({
       ...prev,
@@ -271,7 +342,7 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
                       <div className={styles.container_22} onClick={() => router.push(`/admin/users/${u.id}`)}>
                         
                         {/* Avatar Wrap logic that manages automatic fallbacks */}
-                        <div className="relative flex items-center justify-center shrink-0">
+                        <div className="relative flex items-center justify-center shrink-0 group">
                           {u.avatar ? (
                             <img 
                               src={u.avatar} 
@@ -346,12 +417,26 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
                       </div>
                     </td>
                     <td className={styles.text_34}>
-                      <button
-                        onClick={() => router.push(`/admin/users/${u.id}`)}
-                        className={styles.card_35}
-                      >
-                        View Profile
-                      </button>
+                      <div className="flex flex-col gap-2">
+                        <button
+                          onClick={() => router.push(`/admin/users/${u.id}`)}
+                          className={styles.card_35}
+                        >
+                          View Profile
+                        </button>
+                        <button
+                          onClick={() => {
+                            setAvatarUploadUser(u);
+                            setUploadStep(1);
+                            setAvatarFileToUpload(null);
+                            setAvatarPreviewUrl(null);
+                            setUploadError("");
+                          }}
+                          className="px-2 py-1 bg-muted hover:bg-muted/80 text-muted-foreground text-xs font-semibold rounded transition-colors"
+                        >
+                          Edit Avatar
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -433,6 +518,132 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
           </div>
         </div>
       )}
+
+      {/* Avatar Preview Modals */}
+      {avatarUploadUser && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-card border border-border w-full max-w-md rounded-2xl shadow-xl p-6 flex flex-col">
+            
+            {uploadStep === 1 && (
+              <>
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="font-bold text-lg text-foreground">Upload Avatar</h3>
+                  <button onClick={() => setAvatarUploadUser(null)} className="text-muted-foreground hover:text-foreground">
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <div className="flex gap-6 mb-6">
+                  <div className="flex-1 flex flex-col items-center text-center">
+                    <span className="text-sm font-semibold text-muted-foreground mb-3">Current Avatar</span>
+                    {avatarUploadUser.avatar ? (
+                       <img src={avatarUploadUser.avatar} alt="Current" className="w-24 h-24 rounded-full object-cover border-4 border-muted" />
+                    ) : (
+                       <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center text-2xl font-bold text-muted-foreground border-4 border-border">
+                         {getInitials(avatarUploadUser.name)}
+                       </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex-1 flex flex-col items-center text-center border-l border-border pl-6">
+                    <span className="text-sm font-semibold text-muted-foreground mb-3">New Avatar Preview</span>
+                    {avatarPreviewUrl ? (
+                      <img src={avatarPreviewUrl} alt="New Preview" className="w-24 h-24 rounded-full object-cover border-4 border-[#F4C542]" />
+                    ) : (
+                      <div className="w-24 h-24 rounded-full bg-muted/50 border-4 border-dashed border-border flex items-center justify-center text-muted-foreground">
+                        <Camera size={24} opacity={0.5} />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mb-6">
+                   <button
+                     onClick={() => avatarFileRef.current?.click()}
+                     className="w-full py-2 border-2 border-dashed border-border rounded-lg text-sm font-semibold text-muted-foreground hover:bg-muted/50 hover:border-muted-foreground transition-all flex items-center justify-center gap-2"
+                   >
+                     <Upload size={16} /> Choose File
+                   </button>
+                   <p className="text-[10px] text-muted-foreground text-center mt-2">Supported: JPG, JPEG, PNG, WEBP. Max: 5MB.</p>
+                </div>
+
+                {uploadError && <p className="text-red-500 text-xs text-center mb-4">{uploadError}</p>}
+
+                <div className="flex items-center gap-3 w-full border-t border-border pt-4">
+                  <button 
+                    onClick={() => setAvatarUploadUser(null)}
+                    className="flex-1 py-2 text-sm font-semibold text-muted-foreground bg-muted hover:bg-muted/80 rounded-lg transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={() => setUploadStep(2)}
+                    disabled={!avatarPreviewUrl}
+                    className="flex-1 py-2 text-sm font-bold bg-[#F4C542] text-black rounded-lg hover:bg-[#d9af39] transition-colors disabled:opacity-50"
+                  >
+                    Continue
+                  </button>
+                </div>
+              </>
+            )}
+
+            {uploadStep === 2 && (
+              <>
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="font-bold text-lg text-foreground">Confirm Avatar Update</h3>
+                </div>
+
+                <div className="mb-4 text-center">
+                  <p className="text-sm text-foreground">Member: <strong className="font-bold">{avatarUploadUser.name}</strong></p>
+                </div>
+
+                <div className="flex items-center justify-center gap-4 mb-6">
+                   {avatarUploadUser.avatar ? (
+                       <img src={avatarUploadUser.avatar} alt="Current" className="w-16 h-16 rounded-full object-cover border-2 border-muted" />
+                    ) : (
+                       <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center text-lg font-bold text-muted-foreground border-2 border-border">
+                         {getInitials(avatarUploadUser.name)}
+                       </div>
+                    )}
+                   
+                   <span className="text-muted-foreground">→</span>
+
+                   <img src={avatarPreviewUrl!} alt="New" className="w-16 h-16 rounded-full object-cover border-2 border-[#F4C542]" />
+                </div>
+
+                <p className="text-sm text-center text-muted-foreground mb-6">Are you sure you want to update this profile picture?</p>
+                {uploadError && <p className="text-red-500 text-xs text-center mb-4">{uploadError}</p>}
+
+                <div className="flex items-center gap-3 w-full">
+                  <button 
+                    onClick={() => setUploadStep(1)}
+                    disabled={uploadingAvatar}
+                    className="flex-1 py-2 text-sm font-semibold text-muted-foreground bg-muted hover:bg-muted/80 rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    Back
+                  </button>
+                  <button 
+                    onClick={confirmAvatarUpload}
+                    disabled={uploadingAvatar}
+                    className="flex-1 py-2 text-sm font-bold bg-black text-white rounded-lg hover:bg-black/80 transition-colors disabled:opacity-50"
+                  >
+                    {uploadingAvatar ? "Uploading..." : "Confirm Update"}
+                  </button>
+                </div>
+              </>
+            )}
+
+          </div>
+        </div>
+      )}
+
+      <input 
+        ref={avatarFileRef} 
+        type="file" 
+        accept="image/jpeg, image/jpg, image/png, image/webp" 
+        className="hidden" 
+        onChange={handleAvatarSelect} 
+      />
     </div>
   );
 }

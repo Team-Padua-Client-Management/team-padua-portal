@@ -139,6 +139,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
 
   const sunlifeFormItems = [
     { name: 'Advisor Change Request (ACR)', href: '/admin/acr' },
+    { name: 'Address & Contact Information Change Request (ACICR)', href: '/admin/acicr' },
     { name: 'Beneficiary Change Request (BCR)', href: '/admin/bcr' },
     { name: 'Fund Switching Request (FSR)', href: '/admin/fund-switching' },
     { name: 'Fund Withdrawal Request (FWR)', href: '/admin/fund-withdrawal' },

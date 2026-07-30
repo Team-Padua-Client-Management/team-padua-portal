@@ -14,7 +14,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from "@/styles/admin/members/AdminMembersTable/AdminMembersTable.module.css";
-import { Search, X, Shield, ExternalLink, RotateCcw, Check, CheckSquare, Square, AlertTriangle, Info, ChevronDown, Briefcase, FileText } from "lucide-react";
+import { Search, X, Shield, ExternalLink, RotateCcw, Check, CheckSquare, Square, AlertTriangle, Info, ChevronDown, Briefcase, FileText, Camera, Upload, Eye } from "lucide-react";
 import ProfileAvatar from "@src/components/shared/ProfileAvatar";
 import { supabase } from "@src/lib/supabase/client";
 
@@ -239,7 +239,7 @@ function TableSelect({ value, options, onChange, placeholder = "None" }: TableSe
   );
 }
 
-export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?: User[] }) {
+export default function AdminMembersTable({ initialUsers = [], currentUserRole = "" }: { initialUsers?: User[]; currentUserRole?: string }) {
   const [users, setUsers] = useState<User[]>(initialUsers);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("All");
@@ -258,6 +258,33 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
   // Custom Modal States
   const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; title: string; message: string; onConfirm: () => void; isVerifying: boolean } | null>(null);
   const [alertModal, setAlertModal] = useState<{ isOpen: boolean; title: string; message: string; isError?: boolean } | null>(null);
+
+  // ── Avatar Upload State (NEW — purely additive) ──────────────────────────
+  const [avatarUploadUser, setAvatarUploadUser] = useState<User | null>(null);
+  const [avatarFileToUpload, setAvatarFileToUpload] = useState<File | null>(null);
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
+  const [uploadStep, setUploadStep] = useState<1 | 2>(1);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const avatarFileRef = useRef<HTMLInputElement>(null);
+
+  // ── Avatar Preview Modal (click avatar to view) ──────────────────────────
+  const [avatarPreviewModalUser, setAvatarPreviewModalUser] = useState<User | null>(null);
+
+  // ── Inline Toast ─────────────────────────────────────────────────────────
+  const [toast, setToast] = useState<{ message: string; type: 'loading' | 'success' | 'error' } | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showToast = (message: string, type: 'loading' | 'success' | 'error', duration = 3500) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToast({ message, type });
+    if (type !== 'loading') {
+      toastTimerRef.current = setTimeout(() => setToast(null), duration);
+    }
+  };
+  const dismissToast = () => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToast(null);
+  };
 
   useEffect(() => {
     const uniqueId = Math.random().toString(36).slice(2, 9);
@@ -482,6 +509,71 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
     }
   };
 
+  // ── Avatar Upload Handlers (NEW — purely additive) ─────────────────────
+  const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      showToast('Invalid file type. Only JPG, JPEG, PNG, and WebP are supported.', 'error');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('File too large. Image must be less than 5MB.', 'error');
+      return;
+    }
+    setAvatarFileToUpload(file);
+    const reader = new FileReader();
+    reader.onloadend = () => setAvatarPreviewUrl(reader.result as string);
+    reader.readAsDataURL(file);
+    // Reset the input so the same file can be re-selected
+    e.target.value = '';
+  };
+
+  const confirmAvatarUpload = async () => {
+    if (!avatarFileToUpload || !avatarUploadUser) return;
+    setUploadingAvatar(true);
+    showToast('Uploading profile picture...', 'loading');
+    try {
+      const fileExt = avatarFileToUpload.name.split('.').pop()?.toLowerCase() || 'jpg';
+      // Use the existing 'avatars' bucket — same as the user/admin profile pages
+      // Path: avatars/{memberId}.{ext}  with upsert:true so re-uploads overwrite cleanly
+      const path = `avatars/${avatarUploadUser.id}.${fileExt}`;
+
+      const { error: storageError } = await supabase.storage
+        .from('avatars')
+        .upload(path, avatarFileToUpload, {
+          upsert: true,
+          contentType: avatarFileToUpload.type,
+          cacheControl: '3600',
+        });
+      if (storageError) throw storageError;
+
+      // Append cache-buster so the browser fetches the fresh image
+      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path);
+      const publicUrl = urlData.publicUrl + `?t=${Date.now()}`;
+
+      const { error: dbError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('id', avatarUploadUser.id);
+      if (dbError) throw dbError;
+
+      // Optimistic local refresh — no full page reload needed
+      setUsers(prev => prev.map(u => u.id === avatarUploadUser.id ? { ...u, avatar: publicUrl } : u));
+
+      // Close upload modal, clear state, show success toast
+      setAvatarUploadUser(null);
+      setAvatarFileToUpload(null);
+      setAvatarPreviewUrl(null);
+      showToast('Profile picture updated successfully.', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to upload profile picture.', 'error');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
   const toggleSection = (moduleIds: ClientServicingModule[]) => {
     setTempPermissions(prev => {
       const allEnabled = moduleIds.every(id => prev[id].view);
@@ -634,13 +726,24 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
                     {/* Member Column */}
                     <td className={styles.td}>
                       <div className={styles.memberFlex} onClick={() => router.push(`/admin/users/${u.id}`)}>
-                        <div className={styles.avatarWrap}>
+                        <div
+                          className={`${styles.avatarWrap} cursor-pointer group/av relative`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setAvatarPreviewModalUser(u);
+                          }}
+                          title="Click to preview avatar"
+                        >
                           <ProfileAvatar
                             avatarUrl={u.avatar}
                             name={u.name}
                             size={36}
                             className={styles.avatarImg}
                           />
+                          {/* Hover overlay hint */}
+                          <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover/av:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                            <Eye size={14} className="text-white" />
+                          </div>
                           {u.presence_status && (
                             <span
                               className={`${styles.presenceIndicator} ${u.presence_status.toLowerCase() === "online"
@@ -770,6 +873,22 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
                           <span>View Profile</span>
                           <ExternalLink size={11} />
                         </button>
+                        {/* NEW: Edit Avatar — Admin only */}
+                        {currentUserRole === 'Admin' && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAvatarUploadUser(u);
+                              setUploadStep(1);
+                              setAvatarFileToUpload(null);
+                              setAvatarPreviewUrl(null);
+                            }}
+                            className={styles.editAvatarBtn}
+                          >
+                            <Camera size={11} />
+                            <span>Edit Avatar</span>
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -882,6 +1001,184 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
           </div>
         </div>
       )}
+
+      {/* ── Avatar Upload Modal (NEW — purely additive) ───────────────────── */}
+      {avatarUploadUser && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-[#121318] border border-slate-200 dark:border-zinc-800/80 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150">
+
+            {/* ── Step 1: Select & Preview ── */}
+            {uploadStep === 1 && (
+              <>
+                <div className="flex justify-between items-center p-5 border-b border-slate-100 dark:border-zinc-800/80 bg-slate-50/50 dark:bg-zinc-900/30">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-[#FFF7D6] dark:bg-[#2E2818] text-[#8a6b10] dark:text-[#F4C542] flex items-center justify-center">
+                      <Camera size={18} />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold text-slate-800 dark:text-zinc-100">Upload Avatar</h3>
+                      <p className="text-xs text-slate-500 dark:text-zinc-400 font-medium mt-0.5">{avatarUploadUser.name}</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setAvatarUploadUser(null)}
+                    className="text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 p-1.5 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-xl transition-all"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                <div className="p-5 space-y-5">
+                  {/* Side-by-side preview */}
+                  <div className="flex gap-4">
+                    {/* Current Avatar */}
+                    <div className="flex-1 flex flex-col items-center gap-2.5 text-center">
+                      <span className="text-[10.5px] font-extrabold text-slate-500 dark:text-zinc-400 tracking-wider uppercase">Current Avatar</span>
+                      <div className="w-20 h-20 rounded-full overflow-hidden shrink-0 ring-2 ring-slate-200 dark:ring-zinc-700">
+                        {avatarUploadUser.avatar ? (
+                          <img src={avatarUploadUser.avatar} alt="Current" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xl">
+                            {avatarUploadUser.name.split(' ').filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase()}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center text-slate-400 dark:text-zinc-500 text-lg font-light">→</div>
+
+                    {/* New Avatar Preview */}
+                    <div className="flex-1 flex flex-col items-center gap-2.5 text-center">
+                      <span className="text-[10.5px] font-extrabold text-slate-500 dark:text-zinc-400 tracking-wider uppercase">New Preview</span>
+                      <div className="w-20 h-20 rounded-full overflow-hidden shrink-0 ring-2 ring-[#F4C542]/60">
+                        {avatarPreviewUrl ? (
+                          <img src={avatarPreviewUrl} alt="New Preview" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full bg-slate-100 dark:bg-zinc-800 border-2 border-dashed border-slate-300 dark:border-zinc-600 flex items-center justify-center text-slate-400 dark:text-zinc-500">
+                            <Camera size={20} opacity={0.5} />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* File Chooser */}
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => avatarFileRef.current?.click()}
+                      className="w-full py-2.5 border-2 border-dashed border-slate-300 dark:border-zinc-700 rounded-xl text-xs font-bold text-slate-500 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800/60 hover:border-[#F4C542]/60 hover:text-[#8a6b10] dark:hover:text-[#F4C542] transition-all flex items-center justify-center gap-2"
+                    >
+                      <Upload size={14} />
+                      Choose Image File
+                    </button>
+                    <p className="text-[10px] text-slate-400 dark:text-zinc-500 text-center mt-2 font-medium">
+                      Supported: JPG, JPEG, PNG, WEBP &nbsp;·&nbsp; Max: 5MB
+                    </p>
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="flex items-center gap-3 p-5 border-t border-slate-100 dark:border-zinc-800/80 bg-slate-50/50 dark:bg-zinc-900/30">
+                  <button
+                    type="button"
+                    onClick={() => setAvatarUploadUser(null)}
+                    className="flex-1 px-4 py-2.5 text-xs font-semibold text-slate-500 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-zinc-200 bg-white dark:bg-zinc-800 hover:bg-slate-100 dark:hover:bg-zinc-700 border border-slate-200 dark:border-zinc-700 rounded-xl transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setUploadStep(2)}
+                    disabled={!avatarPreviewUrl}
+                    className="flex-1 px-4 py-2.5 text-xs font-bold bg-[#F4C542] text-black rounded-xl shadow-sm hover:bg-[#d9af39] hover:shadow transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Continue →
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* ── Step 2: Confirm ── */}
+            {uploadStep === 2 && (
+              <>
+                <div className="p-5 border-b border-slate-100 dark:border-zinc-800/80 bg-slate-50/50 dark:bg-zinc-900/30">
+                  <h3 className="text-base font-bold text-slate-800 dark:text-zinc-100">Confirm Avatar Update</h3>
+                  <p className="text-xs text-slate-500 dark:text-zinc-400 font-medium mt-0.5">Please review before confirming</p>
+                </div>
+
+                <div className="p-5 space-y-4">
+                  <p className="text-xs text-slate-600 dark:text-zinc-300 font-semibold">
+                    Member: <span className="font-extrabold text-slate-900 dark:text-zinc-100">{avatarUploadUser.name}</span>
+                  </p>
+
+                  {/* Comparison */}
+                  <div className="flex items-center justify-center gap-6 py-2">
+                    <div className="flex flex-col items-center gap-2">
+                      <span className="text-[10px] font-extrabold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Current</span>
+                      <div className="w-16 h-16 rounded-full overflow-hidden ring-2 ring-slate-200 dark:ring-zinc-700">
+                        {avatarUploadUser.avatar ? (
+                          <img src={avatarUploadUser.avatar} alt="Current" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-base">
+                            {avatarUploadUser.name.split(' ').filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase()}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="text-slate-400 dark:text-zinc-500 text-xl font-light">→</div>
+
+                    <div className="flex flex-col items-center gap-2">
+                      <span className="text-[10px] font-extrabold text-[#8a6b10] dark:text-[#F4C542] uppercase tracking-wider">New</span>
+                      <div className="w-16 h-16 rounded-full overflow-hidden ring-2 ring-[#F4C542]">
+                        <img src={avatarPreviewUrl!} alt="New Avatar" className="w-full h-full object-cover" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-center text-slate-500 dark:text-zinc-400 font-medium">
+                    Are you sure you want to update this profile picture?
+                  </p>
+                </div>
+
+                {/* Footer */}
+                <div className="flex items-center gap-3 p-5 border-t border-slate-100 dark:border-zinc-800/80 bg-slate-50/50 dark:bg-zinc-900/30">
+                  <button
+                    type="button"
+                    onClick={() => setUploadStep(1)}
+                    disabled={uploadingAvatar}
+                    className="flex-1 px-4 py-2.5 text-xs font-semibold text-slate-500 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-zinc-200 bg-white dark:bg-zinc-800 hover:bg-slate-100 dark:hover:bg-zinc-700 border border-slate-200 dark:border-zinc-700 rounded-xl transition-all disabled:opacity-50"
+                  >
+                    ← Back
+                  </button>
+                  <button
+                    type="button"
+                    onClick={confirmAvatarUpload}
+                    disabled={uploadingAvatar}
+                    className="flex-1 px-4 py-2.5 text-xs font-bold bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-xl shadow-sm hover:bg-slate-700 dark:hover:bg-zinc-200 hover:shadow transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {uploadingAvatar ? (
+                      <><span className="animate-spin inline-block w-3 h-3 border-2 border-white/40 border-t-white rounded-full" /> Uploading...</>
+                    ) : 'Confirm Update'}
+                  </button>
+                </div>
+              </>
+            )}
+
+          </div>
+        </div>
+      )}
+
+      {/* ── Hidden file input for avatar picker ── */}
+      <input
+        ref={avatarFileRef}
+        type="file"
+        accept="image/jpeg,image/jpg,image/png,image/webp"
+        className="hidden"
+        onChange={handleAvatarSelect}
+      />
 
       {/* Custom Confirm Modal */}
       {confirmModal && confirmModal.isOpen && (

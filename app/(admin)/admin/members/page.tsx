@@ -81,6 +81,10 @@ export default async function AdminMembers() {
             };
         });
 
+    // Derive the logged-in admin's role to gate admin-only features (e.g. Edit Avatar)
+    const currentUserProfile = profilesData?.find((p) => p.id === user.id);
+    const currentUserRole: string = currentUserProfile?.role ?? "Member";
+
     const stats = {
         total: users.length,
         verified: users.filter(u => u.status === "Active").length,
@@ -170,7 +174,7 @@ export default async function AdminMembers() {
                     </div>
 
                     {/* Members Interactive Table Component */}
-                    <AdminMembersTable initialUsers={users} />
+                    <AdminMembersTable initialUsers={users} currentUserRole={currentUserRole} />
                 </div>
             </div>
         </div>
