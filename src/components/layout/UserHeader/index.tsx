@@ -44,60 +44,7 @@ const pageConfig: Record<string, { title: string; description: string }> = {
   playground: { title: 'Playground', description: 'Interactive development playground' }
 };
 
-// --- Real brand logo SVGs ---
 
-const ZoomLogo = ({ size = 20 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="12" cy="12" r="12" fill="#0B5CFF" />
-    <path d="M17.5 8.5l-3 2.3v-1.3c0-.8-.7-1.5-1.5-1.5H6c-.8 0-1.5.7-1.5 1.5v5c0 .8.7 1.5 1.5 1.5h7c.8 0 1.5-.7 1.5-1.5v-1.3l3 2.3c.6.4 1.5.1 1.5-.7v-5.6c0-.8-.9-1.1-1.5-.7z" fill="#fff" />
-  </svg>
-);
-
-const GoogleDriveLogo = ({ size = 16 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
-    <path
-      d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z"
-      fill="#0066da"
-    />
-    <path
-      d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z"
-      fill="#00ac47"
-    />
-    <path
-      d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z"
-      fill="#ea4335"
-    />
-    <path
-      d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z"
-      fill="#00832d"
-    />
-    <path
-      d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z"
-      fill="#2684fc"
-    />
-    <path
-      d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z"
-      fill="#ffba00"
-    />
-  </svg>
-);
-
-const quickTools = [
-  {
-    id: 'zoom',
-    label: 'Zoom',
-    url: 'https://bit.ly/4wrEVBg',
-    Logo: ZoomLogo,
-    bg: 'rgba(148, 163, 184, 0.16)',
-  },
-  {
-    id: 'google-drive',
-    label: 'Google Drive',
-    url: 'https://drive.google.com/drive/folders/1ZLNJHFUFYDkVG9pQwMF2hio89j7vp04x?usp=sharing',
-    Logo: GoogleDriveLogo,
-    bg: 'rgba(148, 163, 184, 0.16)',
-  },
-];
 
 export default function UserHeader({ onMenuClick, isSidebarOpen }: UserHeaderProps) {
   const router = useRouter();
@@ -130,7 +77,7 @@ export default function UserHeader({ onMenuClick, isSidebarOpen }: UserHeaderPro
 
   useEffect(() => {
     let channel: any;
-    
+
     const setupSubscription = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) return;
@@ -316,10 +263,9 @@ export default function UserHeader({ onMenuClick, isSidebarOpen }: UserHeaderPro
         />
       </div>
       {showStatusDot && (
-        <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 border border-white dark:border-background rounded-full shadow-2xs ${
-          presenceStatus === 'online' ? 'bg-emerald-500' :
+        <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 border border-white dark:border-background rounded-full shadow-2xs ${presenceStatus === 'online' ? 'bg-emerald-500' :
           presenceStatus === 'busy' ? 'bg-rose-500' : 'bg-slate-400'
-        }`} />
+          }`} />
       )}
     </div>
   );
@@ -353,10 +299,10 @@ export default function UserHeader({ onMenuClick, isSidebarOpen }: UserHeaderPro
         <div className={styles.searchContainerWrapper}>
           <div className={styles.searchContainer}>
             <Search size={14} className={styles.searchIcon} />
-            <input 
-              type="text" 
-              placeholder="Search clients, requests, activities, tasks..." 
-              className={styles.searchInput} 
+            <input
+              type="text"
+              placeholder="Search clients, requests, activities, tasks..."
+              className={styles.searchInput}
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
@@ -390,25 +336,6 @@ export default function UserHeader({ onMenuClick, isSidebarOpen }: UserHeaderPro
       </div>
 
       <div className={styles.rightSection}>
-        <div className="flex items-center gap-1.5 pr-2 mr-1 border-r border-border/60">
-          {quickTools.map((tool) => {
-            const Logo = tool.Logo;
-            return (
-              <button
-                key={tool.id}
-                type="button"
-                onClick={() => window.open(tool.url, "_blank", "noopener,noreferrer")}
-                title={tool.label}
-                className="w-9 h-9 flex items-center justify-center rounded-full transition-all duration-200 cursor-pointer hover:scale-105"
-                style={{
-                  backgroundColor: tool.bg,
-                }}
-              >
-                <Logo size={tool.id === 'zoom' ? 22 : 18} />
-              </button>
-            );
-          })}
-        </div>
 
         <NotificationBell />
 
@@ -422,9 +349,9 @@ export default function UserHeader({ onMenuClick, isSidebarOpen }: UserHeaderPro
               <span className={styles.profileName}>{userData.name}</span>
               <span className={styles.profileRole}>{userData.role}</span>
             </div>
-            <ChevronDown 
-              size={14} 
-              className={`${styles.chevronIcon} ${profileOpen ? styles.chevronIconOpen : ''}`} 
+            <ChevronDown
+              size={14}
+              className={`${styles.chevronIcon} ${profileOpen ? styles.chevronIconOpen : ''}`}
             />
           </button>
 
@@ -437,7 +364,7 @@ export default function UserHeader({ onMenuClick, isSidebarOpen }: UserHeaderPro
                 <p className={styles.dropdownEmail}>{userData.email}</p>
               </div>
             </div>
-            
+
             <div className="border-b border-border/50 py-2 px-4 flex items-center justify-center bg-muted/10 relative">
               <div className="relative w-full">
                 <button
@@ -445,10 +372,9 @@ export default function UserHeader({ onMenuClick, isSidebarOpen }: UserHeaderPro
                   className="w-full flex items-center justify-between pl-3 pr-2.5 py-1.5 bg-muted/30 border border-border rounded-full text-xs font-semibold text-foreground cursor-pointer hover:bg-muted/70 transition-all"
                 >
                   <div className="flex items-center gap-2">
-                    <span className={`w-2 h-2 rounded-full shrink-0 ${
-                      presenceStatus === 'online' ? 'bg-emerald-500' :
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${presenceStatus === 'online' ? 'bg-emerald-500' :
                       presenceStatus === 'busy' ? 'bg-rose-500' : 'bg-slate-400'
-                    }`} />
+                      }`} />
                     <span className="capitalize">{presenceStatus}</span>
                   </div>
                   <ChevronDown size={12} className={`text-muted-foreground transition-transform duration-200 ${statusDropdownOpen ? 'rotate-180' : ''}`} />
@@ -467,9 +393,8 @@ export default function UserHeader({ onMenuClick, isSidebarOpen }: UserHeaderPro
                           handleStatusChange(status.id);
                           setStatusDropdownOpen(false);
                         }}
-                        className={`w-full flex items-center gap-2.5 px-3 py-2 text-left text-xs font-semibold hover:bg-muted transition-colors cursor-pointer ${
-                          presenceStatus === status.id ? 'bg-primary/10 text-primary' : 'text-foreground'
-                        }`}
+                        className={`w-full flex items-center gap-2.5 px-3 py-2 text-left text-xs font-semibold hover:bg-muted transition-colors cursor-pointer ${presenceStatus === status.id ? 'bg-primary/10 text-primary' : 'text-foreground'
+                          }`}
                       >
                         <span className={`w-2 h-2 rounded-full shrink-0 ${status.color}`} />
                         <span>{status.label}</span>
