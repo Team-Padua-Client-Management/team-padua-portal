@@ -44,7 +44,6 @@ CREATE TABLE IF NOT EXISTS public.acr_files (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- Create Indexes for performance optimization
 CREATE INDEX IF NOT EXISTS idx_acr_requests_policy_owner ON public.acr_requests(policy_owner);
 CREATE INDEX IF NOT EXISTS idx_acr_requests_policy_number ON public.acr_requests(policy_number);
 CREATE INDEX IF NOT EXISTS idx_acr_requests_progress_id ON public.acr_requests(progress_id);
