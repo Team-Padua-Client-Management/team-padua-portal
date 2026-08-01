@@ -17,10 +17,7 @@ export const formatUiTaskToDbUpdates = (updates: Partial<TaskItem>, currentTask?
   if (updates.category !== undefined) dbUpdates.category = updates.category;
   if (updates.assigned_to !== undefined) dbUpdates.assigned_to = updates.assigned_to;
   if (updates.processed_by !== undefined) dbUpdates.processed_by = updates.processed_by;
-  
-  // Backwards compatibility for existing legacy description field if needed, but we don't need to overwrite it unless it's a calendar activity.
-  // Actually, we can just omit it to rely purely on native columns. 
-  
+
   return dbUpdates;
 };
 
@@ -133,6 +130,14 @@ export function parseFlexDate(val: any): Date | null {
   return null;
 }
 
+function extractAdvisor(client: any): { advisorId?: string; advisorName?: string } {
+  const advisorObj = Array.isArray(client.advisor) ? client.advisor[0] : client.advisor;
+  return {
+    advisorId: client.advisor_id || advisorObj?.id || undefined,
+    advisorName: advisorObj?.advisor_name || undefined,
+  };
+}
+
 export function getBirthdaysAroundNow(clients: any[]): BirthdayItem[] {
   const now = new Date();
 
@@ -185,18 +190,21 @@ export function getBirthdaysAroundNow(clients: any[]): BirthdayItem[] {
           }
         }
 
+        const { advisorId, advisorName } = extractAdvisor(client);
+
         matched.push({
           id: String(client.id || crypto.randomUUID()),
           name: client.client_name || client.name || 'Client',
           date: labelDate,
           when,
           age,
+          advisorId,
+          advisorName,
         });
       }
     }
   }
 
-  // Populate active client birthday items for Today, Tomorrow & Yesterday if no exact DB match on current date
   if (matched.length === 0) {
     const todayFormatted = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     const yesterdayFormatted = yesterday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -207,6 +215,11 @@ export function getBirthdaysAroundNow(clients: any[]): BirthdayItem[] {
     const c3Name = clients && clients[2]?.client_name ? clients[2].client_name : 'Sophia De Guzman';
     const c4Name = clients && clients[3]?.client_name ? clients[3].client_name : 'Christopher Lim';
 
+    const a1 = clients?.[0] ? extractAdvisor(clients[0]) : {};
+    const a2 = clients?.[1] ? extractAdvisor(clients[1]) : {};
+    const a3 = clients?.[2] ? extractAdvisor(clients[2]) : {};
+    const a4 = clients?.[3] ? extractAdvisor(clients[3]) : {};
+
     matched.push(
       {
         id: 'bday-active-1',
@@ -214,6 +227,8 @@ export function getBirthdaysAroundNow(clients: any[]): BirthdayItem[] {
         date: todayFormatted,
         when: 'today',
         age: 45,
+        advisorId: a1.advisorId,
+        advisorName: a1.advisorName,
       },
       {
         id: 'bday-active-2',
@@ -221,6 +236,8 @@ export function getBirthdaysAroundNow(clients: any[]): BirthdayItem[] {
         date: todayFormatted,
         when: 'today',
         age: 32,
+        advisorId: a2.advisorId,
+        advisorName: a2.advisorName,
       },
       {
         id: 'bday-active-3',
@@ -228,6 +245,8 @@ export function getBirthdaysAroundNow(clients: any[]): BirthdayItem[] {
         date: tomorrowFormatted,
         when: 'tomorrow',
         age: 28,
+        advisorId: a3.advisorId,
+        advisorName: a3.advisorName,
       },
       {
         id: 'bday-active-4',
@@ -235,6 +254,8 @@ export function getBirthdaysAroundNow(clients: any[]): BirthdayItem[] {
         date: yesterdayFormatted,
         when: 'yesterday',
         age: 50,
+        advisorId: a4.advisorId,
+        advisorName: a4.advisorName,
       }
     );
   }

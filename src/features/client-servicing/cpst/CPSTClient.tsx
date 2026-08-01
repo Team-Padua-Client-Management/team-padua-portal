@@ -538,10 +538,18 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
       productsCount: Array.from(new Set(list.map(c => c.product).filter(Boolean))).length
     };
   }, [selectedAdvisor, advisorClients]);
-
   const handleSaveClient = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentClient.clientName || !currentClient.advisorId) return;
+
+    console.log("========== SAVE CLICKED ==========");
+    console.log("Current Client:", currentClient);
+
+    if (!currentClient.clientName || !currentClient.advisorId) {
+      console.log("❌ Validation Failed");
+      console.log("clientName:", currentClient.clientName);
+      console.log("advisorId:", currentClient.advisorId);
+      return;
+    }
 
     try {
       const payload: ClientRecord = {
@@ -566,20 +574,55 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
         id_attachment_url: currentClient.idAttachmentUrl || null,
       };
 
+      console.log("Payload:", payload);
+
+      let result;
+
       if (currentClient.id) {
-        await supabase.from('cpst_clients').update(payload).eq('id', currentClient.id);
+        result = await supabase
+          .from("cpst_clients")
+          .update(payload)
+          .eq("id", currentClient.id)
+          .select();
       } else {
-        const newId = crypto.randomUUID();
-        await supabase.from('cpst_clients').insert([{ ...payload, id: newId }]);
+        result = await supabase
+          .from("cpst_clients")
+          .insert([{ ...payload, id: crypto.randomUUID() }])
+          .select();
       }
 
+      console.log("Supabase Result:", result);
+
+      if (result.error) {
+        console.error("Supabase Error:", result.error);
+        console.log("Code:", result.error?.code);
+        console.log("Message:", result.error?.message);
+        console.log("Details:", result.error?.details);
+        console.log("Hint:", result.error?.hint);
+
+        alert(`
+Code: ${result.error?.code}
+
+Message:
+${result.error?.message}
+
+Details:
+${result.error?.details}
+
+Hint:
+${result.error?.hint}
+`);
+      }
+
+      console.log("✅ Saved Successfully");
+
       setActiveModal(null);
-      fetchData();
+      await fetchData();
+
     } catch (err) {
-      console.error(err);
+      console.error("Catch Error:", err);
     }
   };
-
   const handleIdUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -754,142 +797,219 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
   };
 
   const parseClientRows = (rows: any[][]) => {
-    let headerIndex = -1;
-    const requiredHeaders = ["client name", "email address", "contact number", "location", "date of birth", "age"];
+  let headerIndex = -1;
+  const requiredHeaders = ["client name", "email address", "contact number", "location", "date of birth", "age"];
 
-    for (let i = 0; i < Math.min(rows.length, 30); i++) {
-      const row = rows[i] || [];
-      const lowerCells = row.map(cell => String(cell).toLowerCase().trim());
+  for (let i = 0; i < Math.min(rows.length, 30); i++) {
+    const row = rows[i] || [];
+    const lowerCells = row.map(cell => String(cell).toLowerCase().trim());
 
-      let matchCount = 0;
-      for (const h of requiredHeaders) {
-        if (lowerCells.some(cell => cell.includes(h))) {
-          matchCount++;
-        }
+    let matchCount = 0;
+    for (const h of requiredHeaders) {
+      if (lowerCells.some(cell => cell.includes(h))) {
+        matchCount++;
       }
+    }
 
-      if (matchCount >= 3) {
+    if (matchCount >= 3) {
+      headerIndex = i;
+      break;
+    }
+  }
+
+  if (headerIndex === -1) {
+    for (let i = 0; i < Math.min(rows.length, 20); i++) {
+      const row = rows[i].map(c => String(c).toLowerCase().trim());
+
+      if (
+        row.some(c => c.includes("client name / beneficiary")) &&
+        row.some(c => c.includes("month")) &&
+        row.some(c => c.includes("age"))
+      ) {
         headerIndex = i;
         break;
       }
     }
 
     if (headerIndex === -1) {
-      throw new Error("Could not detect valid header row. Ensure template contains required client columns.");
+      throw new Error(
+        "Could not detect valid header row."
+      );
+    }
+  }
+
+  const headerRow = rows[headerIndex] || [];
+  const findCol = (kw: string[]): number =>
+    headerRow.findIndex((h: any) => kw.some(k => String(h).toLowerCase().includes(k)));
+
+  const nameCol = findCol([
+    'client name',
+    'client name / beneficiary name',
+    'beneficiary name',
+    'name'
+  ]);
+  const emailCol = findCol(['email', 'email address']);
+  const mobCol = findCol(['contact number', 'mobile', 'phone', 'contact']);
+  const addCol = findCol(['location', 'address']);
+  const bdayCol = findCol([
+    'date of birth',
+    'birthday',
+    'dob',
+    'month - birthdate',
+    'birthdate'
+  ]);
+
+  const ageCol = findCol(['age']);
+  const policyCol = findCol(['policy number', 'policy#', 'policy no', 'policy #']);
+  const productCol = findCol(['product', 'plan', 'policy name', 'plan name']);
+  const approvalCol = findCol(['date of approval', 'approval date', 'date_of_approval', 'issue date', 'policy date']);
+  const relationshipCol = findCol(['relationship']);
+
+  let beneficiaryCol = findCol(['beneficiary']);
+  if (beneficiaryCol === nameCol) beneficiaryCol = -1;
+
+  const fundAllocationCol = findCol(['fund allocation', 'allocation', 'fund']);
+  const paymentModeCol = findCol(['mode of payment']);
+  const premiumCol = findCol(['annual premium', 'premium']);
+
+  const MONTH_HEADERS = new Set([
+    "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE",
+    "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"
+  ]);
+
+  const newClients: Partial<ClientManagementRecord & { _matchedName?: string; _matchedPolicy?: string; age?: string }>[] = [];
+  const duplicateClients: Partial<ClientManagementRecord & { _matchedName?: string; _matchedPolicy?: string; age?: string }>[] = [];
+  const invalid: { rowNumber: number; reason: string; rawData: any }[] = [];
+
+  let skippedHeaders = 0;
+  let skippedEmpty = 0;
+  let skippedInvalid = 0;
+
+  for (let i = headerIndex + 1; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row || row.every((cell: any) => !String(cell).trim())) {
+      skippedEmpty++;
+      continue;
     }
 
-    const headerRow = rows[headerIndex] || [];
-    const findCol = (kw: string[]): number =>
-      headerRow.findIndex((h: any) => kw.some(k => String(h).toLowerCase().includes(k)));
+    const rowText = row.join(" ").toLowerCase();
+    if (
+      rowText.includes("report:") ||
+      rowText.includes("date generated:") ||
+      rowText.includes("data privacy act") ||
+      rowText.includes("policy owner")
+    ) {
+      skippedHeaders++;
+      continue;
+    }
 
-    const nameCol = findCol(['client name', 'clientname', 'client', 'name']);
-    const emailCol = findCol(['email', 'email address']);
-    const mobCol = findCol(['contact number', 'mobile', 'phone', 'contact']);
-    const addCol = findCol(['location', 'address']);
-    const bdayCol = findCol(['date of birth', 'birthday', 'dob']);
-    const ageCol = findCol(['age']);
-    const policyCol = findCol(['policy number', 'policy#', 'policy no', 'policy #']);
-    const productCol = findCol(['product', 'plan', 'policy name', 'plan name']);
-    const approvalCol = findCol(['date of approval', 'approval date', 'date_of_approval', 'issue date', 'policy date']);
-    const beneficiaryCol = findCol(['beneficiary']);
-    const fundAllocationCol = findCol(['fund allocation', 'allocation', 'fund']);
-    const paymentModeCol = findCol(['mode of payment']);
-    const premiumCol = findCol(['annual premium', 'premium']);
+    const rowNumber = i + 1;
+    const rawData: Record<string, any> = {};
+    headerRow.forEach((h: any, idx: number) => { rawData[String(h)] = row[idx] ?? ''; });
 
-    const newClients: Partial<ClientManagementRecord & { _matchedName?: string; _matchedPolicy?: string }>[] = [];
-    const duplicateClients: Partial<ClientManagementRecord & { _matchedName?: string; _matchedPolicy?: string }>[] = [];
-    const invalid: { rowNumber: number; reason: string; rawData: any }[] = [];
+    const rawName = nameCol >= 0
+      ? String(row[nameCol] ?? '').trim()
+      : '';
 
-    let skippedHeaders = 0;
-    let skippedEmpty = 0;
-    let skippedInvalid = 0;
+    const normalizedRaw = rawName.replace(/\s+/g, ' ').trim().toUpperCase();
 
-    for (let i = headerIndex + 1; i < rows.length; i++) {
-      const row = rows[i];
-      if (!row || row.every((cell: any) => !String(cell).trim())) {
-        skippedEmpty++;
-        continue;
-      }
+    if (!normalizedRaw) {
+      skippedEmpty++;
+      continue;
+    }
 
-      const rowText = row.join(" ").toLowerCase();
-      if (
-        rowText.includes("report:") ||
-        rowText.includes("date generated:") ||
-        rowText.includes("data privacy act") ||
-        rowText.includes("policy owner")
-      ) {
-        skippedHeaders++;
-        continue;
-      }
+    if (normalizedRaw.includes("CLIENTS & BENEFICIARIES")) {
+      skippedHeaders++;
+      continue;
+    }
 
-      const rowNumber = i + 1;
-      const rawData: Record<string, any> = {};
-      headerRow.forEach((h: any, idx: number) => { rawData[String(h)] = row[idx] ?? ''; });
+    if (normalizedRaw === "CLIENT NAME / BENEFICIARY NAME") {
+      skippedHeaders++;
+      continue;
+    }
 
-      const clientName = nameCol >= 0 ? String(row[nameCol] ?? '').trim() : '';
-      if (clientName === '1') {
-        skippedHeaders++;
-        continue;
-      }
-      const mobileNumber = mobCol >= 0 ? String(row[mobCol] ?? '').trim() : '';
-      const email = emailCol >= 0 ? String(row[emailCol] ?? '').trim() : '';
-      const address = addCol >= 0 ? String(row[addCol] ?? '').trim() : '';
-      const rawBday = bdayCol >= 0 ? String(row[bdayCol] ?? '').trim() : '';
-      const birthdate = rawBday ? (parseDateFlexible(rawBday) || rawBday) : '';
-      const policyNumber = policyCol >= 0 ? String(row[policyCol] ?? '').trim() : '';
-      const product = productCol >= 0 ? String(row[productCol] ?? '').trim() : '';
-      const approvalDate = approvalCol >= 0
-        ? parseDateFlexible(String(row[approvalCol] ?? '').trim()) || ''
-        : '';
-      const beneficiary = beneficiaryCol >= 0 ? String(row[beneficiaryCol] ?? '').trim() : '';
-      const fundAllocation = fundAllocationCol >= 0 ? String(row[fundAllocationCol] ?? '').trim() : '';
-      const modeOfPayment = paymentModeCol >= 0
-        ? String(row[paymentModeCol] ?? '').trim()
-        : 'Annual';
-      const annualPremium = premiumCol >= 0
-        ? parseFloat(String(row[premiumCol] ?? '').replace(/[^0-9.]/g, '')) || 0
-        : 0;
+    if (MONTH_HEADERS.has(normalizedRaw)) {
+      skippedHeaders++;
+      continue;
+    }
 
-      if (!clientName) {
-        skippedInvalid++;
-        invalid.push({ rowNumber, reason: 'Missing Client Name', rawData });
-        continue;
-      }
+    let clientName = rawName;
+    let beneficiary = beneficiaryCol >= 0
+      ? String(row[beneficiaryCol] ?? '').trim()
+      : '';
 
-      const match = clients.find(c =>
-        (policyNumber && c.policyNumber === policyNumber) ||
-        (!policyNumber && c.clientName.toLowerCase() === clientName.toLowerCase() && c.birthdate === birthdate)
-      );
-
-      const record = {
-        clientName,
-        mobileNumber,
-        email,
-        address,
-        birthdate,
-        policyNumber,
-        product,
-        approvalDate,
-        annualPremium,
-        beneficiary,
-        fundAllocation,
-        modeOfPayment
-      };
+    if (!beneficiary && rawName.includes('(') && rawName.endsWith(')')) {
+      const match = rawName.match(/^(.+?)\s*\((.+)\)$/);
 
       if (match) {
-        duplicateClients.push({
-          ...record,
-          _matchedName: match.clientName,
-          _matchedPolicy: match.policyNumber
-        });
-        continue;
+        clientName = match[1].trim();
+        beneficiary = match[2].trim();
       }
-
-      newClients.push(record);
     }
 
-    return { newClients, duplicateClients, invalid, stats: { skippedHeaders, skippedEmpty, skippedInvalid } };
-  };
+    const mobileNumber = mobCol >= 0 ? String(row[mobCol] ?? '').trim() : '';
+    const email = emailCol >= 0 ? String(row[emailCol] ?? '').trim() : '';
+    const address = addCol >= 0 ? String(row[addCol] ?? '').trim() : '';
+    const rawBday = bdayCol >= 0 ? String(row[bdayCol] ?? '').trim() : '';
+    const birthdate = rawBday ? (parseDateFlexible(rawBday) || rawBday) : '';
+    const age = ageCol >= 0 ? String(row[ageCol] ?? '').trim() : '';
+    const relationship = relationshipCol >= 0 ? String(row[relationshipCol] ?? '').trim() : '';
+    const policyNumber = policyCol >= 0 ? String(row[policyCol] ?? '').trim() : '';
+    const product = productCol >= 0 ? String(row[productCol] ?? '').trim() : '';
+    const approvalDate = approvalCol >= 0
+      ? parseDateFlexible(String(row[approvalCol] ?? '').trim()) || ''
+      : '';
+
+    const fundAllocation = fundAllocationCol >= 0 ? String(row[fundAllocationCol] ?? '').trim() : '';
+    const modeOfPayment = paymentModeCol >= 0
+      ? String(row[paymentModeCol] ?? '').trim()
+      : ' ';
+    const annualPremium = premiumCol >= 0
+      ? parseFloat(String(row[premiumCol] ?? '').replace(/[^0-9.]/g, '')) || 0
+      : 0;
+
+    if (!clientName) {
+      skippedInvalid++;
+      invalid.push({ rowNumber, reason: 'Missing Client Name', rawData });
+      continue;
+    }
+
+    const match = clients.find(c =>
+      (policyNumber && c.policyNumber === policyNumber) ||
+      (!policyNumber && c.clientName.toLowerCase() === clientName.toLowerCase() && c.birthdate === birthdate)
+    );
+
+    const record = {
+      clientName,
+      mobileNumber,
+      email,
+      address,
+      birthdate,
+      age,
+      relationship,
+      policyNumber,
+      product,
+      approvalDate,
+      annualPremium,
+      beneficiary,
+      fundAllocation,
+      modeOfPayment
+    };
+
+    if (match) {
+      duplicateClients.push({
+        ...record,
+        _matchedName: match.clientName,
+        _matchedPolicy: match.policyNumber
+      });
+      continue;
+    }
+
+    newClients.push(record);
+  }
+
+  return { newClients, duplicateClients, invalid, stats: { skippedHeaders, skippedEmpty, skippedInvalid } };
+};
 
   const parseAdvisorRows = (rows: any[][]) => {
     let headerIndex = -1;
@@ -919,7 +1039,12 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
     const headerRow = rows[headerIndex] || [];
     const findCol = (kw: string[]): number => headerRow.findIndex((h: any) => kw.some(k => String(h).toLowerCase().includes(k)));
 
-    const nameCol = findCol(['advisor name', 'advisor', 'name']);
+    const nameCol = findCol([
+      'client name',
+      'client name / beneficiary name',
+      'beneficiary name',
+      'name'
+    ]);
     const codeCol = findCol(['advisor code', 'code']);
     const emailCol = findCol(['email', 'email address']);
 
@@ -2180,142 +2305,223 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
               </div>
             )}
 
-            {importState.phase === 'preview' && importState.validation && (
-              <div className="flex flex-col h-full max-h-[60vh] p-6 space-y-4">
-                <div className="text-left">
-                  <h3 className="text-sm font-bold text-text">Preview Valid Records</h3>
-                  <p className="text-xs text-text-secondary mt-1">
-                    Found {importState.validation.newClients.length} new records, {importState.validation.duplicateClients.length} duplicates, and {importState.validation.invalid.length} invalid rows.
-                  </p>
-                </div>
+     {importState.phase === 'preview' && importState.validation && (
+  <div className="flex flex-col h-full max-h-[80vh] p-6 space-y-4 overflow-hidden">
+    <div className="text-left shrink-0">
+      <h3 className="text-sm font-bold text-text">Preview Valid Records</h3>
+      <p className="text-xs text-text-secondary mt-1">
+        Found {importState.validation.newClients.length} new records, {importState.validation.duplicateClients.length} duplicates, and {importState.validation.invalid.length} invalid rows.
+      </p>
+    </div>
 
-                <div className="flex-1 overflow-auto rounded-xl border border-border bg-surface-2 p-0 flex flex-col gap-0">
-                  {importState.validation.newClients.length === 0 && importState.validation.duplicateClients.length === 0 && importState.validation.invalid.length === 0 && (
-                    <div className="py-8 text-center text-text-secondary text-xs">No records to preview.</div>
-                  )}
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 shrink-0">
+      <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-500/25 rounded-2xl p-3.5">
+        <span className="block text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">New</span>
+        <span className="text-xl font-black text-emerald-600 dark:text-emerald-400">{importState.validation.newClients.length}</span>
+      </div>
+      <div className="bg-slate-50 dark:bg-slate-900/30 border border-slate-400/25 rounded-2xl p-3.5">
+        <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Duplicates</span>
+        <span className="text-xl font-black text-slate-500">{importState.validation.duplicateClients.length}</span>
+      </div>
+      <div className="bg-red-50 dark:bg-red-950/20 border border-red-500/25 rounded-2xl p-3.5">
+        <span className="block text-[10px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider">Invalid</span>
+        <span className="text-xl font-black text-red-600 dark:text-red-400">{importState.validation.invalid.length}</span>
+      </div>
+      <div className="bg-primary/10 border border-primary/30 rounded-2xl p-3.5">
+        <span className="block text-[10px] font-bold text-[#A97800] dark:text-[#F4C542] uppercase tracking-wider">Total Rows</span>
+        <span className="text-xl font-black text-[#A97800] dark:text-[#F4C542]">
+          {importState.validation.newClients.length + importState.validation.duplicateClients.length + importState.validation.invalid.length}
+        </span>
+      </div>
+    </div>
 
-                  {importState.validation.newClients.length > 0 && (
-                    <div className="w-full">
-                      <div className="bg-emerald-500/10 border-b border-emerald-500/20 px-4 py-2 sticky top-0 z-10">
-                        <h4 className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                          New clients to import ({importState.validation.newClients.length})
-                        </h4>
-                      </div>
-                      <table className="w-full text-left text-xs whitespace-nowrap">
-                        <thead className="bg-card/50 border-b border-border">
-                          <tr>
-                            <th className="py-2 px-3 font-bold text-text-secondary">#</th>
-                            <th className="py-2 px-3 font-bold text-text-secondary">Name</th>
-                            {importTarget === 'clients' && <th className="py-2 px-3 font-bold text-text-secondary">Policy No</th>}
-                            <th className="py-2 px-3 font-bold text-text-secondary">Email</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {importState.validation.newClients.slice(0, 50).map((r: any, i: number) => (
-                            <tr key={i} className="border-b border-border/40 last:border-0 hover:bg-card/50">
-                              <td className="py-2 px-3 text-text-secondary">{i + 1}</td>
-                              <td className="py-2 px-3 font-semibold text-text">{r.clientName || r.advisorName}</td>
-                              {importTarget === 'clients' && <td className="py-2 px-3 text-text-secondary">{r.policyNumber || '—'}</td>}
-                              <td className="py-2 px-3 text-text-secondary">{r.email || '—'}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
+    <div className="flex-1 overflow-auto rounded-2xl border border-border bg-card">
+      {importState.validation.newClients.length === 0 && importState.validation.duplicateClients.length === 0 && importState.validation.invalid.length === 0 && (
+        <div className="py-8 text-center text-text-secondary text-xs">No records to preview.</div>
+      )}
 
-                  {importState.validation.duplicateClients.length > 0 && (
-                    <div className="w-full">
-                      <details className="group">
-                        <summary className="bg-slate-500/10 border-y border-slate-500/20 px-4 py-2 sticky top-0 z-10 cursor-pointer list-none flex items-center justify-between hover:bg-slate-500/20 transition-colors">
-                          <h4 className="text-xs font-bold text-slate-600 dark:text-slate-400">
-                            Already in your list — will be skipped ({importState.validation.duplicateClients.length})
-                          </h4>
-                          <ChevronRight size={14} className="text-slate-500 transition-transform group-open:rotate-90" />
-                        </summary>
-                        <table className="w-full text-left text-xs whitespace-nowrap">
-                          <thead className="bg-card/50 border-b border-border">
-                            <tr>
-                              <th className="py-2 px-3 font-bold text-text-secondary">#</th>
-                              <th className="py-2 px-3 font-bold text-text-secondary">Name</th>
-                              {importTarget === 'clients' && <th className="py-2 px-3 font-bold text-text-secondary">Policy No</th>}
-                              <th className="py-2 px-3 font-bold text-text-secondary">Match Reason</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {importState.validation.duplicateClients.slice(0, 50).map((r: any, i: number) => (
-                              <tr key={i} className="border-b border-border/40 last:border-0 hover:bg-card/50 opacity-60">
-                                <td className="py-2 px-3 text-text-secondary">{i + 1}</td>
-                                <td className="py-2 px-3 font-semibold text-text">{r.clientName || r.advisorName}</td>
-                                {importTarget === 'clients' && <td className="py-2 px-3 text-text-secondary">{r.policyNumber || '—'}</td>}
-                                <td className="py-2 px-3 text-text-secondary italic text-[10px]">
-                                  Matches existing: {r._matchedName} — Policy {r._matchedPolicy || 'N/A'}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </details>
-                    </div>
-                  )}
+      {importState.validation.newClients.length > 0 && (
+        <div className="w-full">
+          <div className="bg-emerald-50 dark:bg-emerald-950/20 border-b border-emerald-500/20 px-4 py-2.5 sticky top-0 z-30 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <h4 className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+              New Records to Import ({importState.validation.newClients.length})
+            </h4>
+          </div>
 
-                  {importState.validation.invalid.length > 0 && (
-                    <div className="w-full">
-                      <details className="group" open>
-                        <summary className="bg-red-500/10 border-y border-red-500/20 px-4 py-2 sticky top-0 z-10 cursor-pointer list-none flex items-center justify-between hover:bg-red-500/20 transition-colors">
-                          <h4 className="text-xs font-bold text-red-600 dark:text-red-400">
-                            Invalid rows — missing required fields ({importState.validation.invalid.length})
-                          </h4>
-                          <ChevronRight size={14} className="text-red-500 transition-transform group-open:rotate-90" />
-                        </summary>
-                        <table className="w-full text-left text-xs whitespace-nowrap">
-                          <thead className="bg-card/50 border-b border-border">
-                            <tr>
-                              <th className="py-2 px-3 font-bold text-text-secondary">Row</th>
-                              <th className="py-2 px-3 font-bold text-text-secondary">Reason</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {importState.validation.invalid.slice(0, 50).map((r: any, i: number) => (
-                              <tr key={i} className="border-b border-border/40 last:border-0 hover:bg-card/50 opacity-80 text-red-500">
-                                <td className="py-2 px-3 font-mono">{r.rowNumber}</td>
-                                <td className="py-2 px-3">{r.reason}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </details>
-                    </div>
-                  )}
-                </div>
+          {importTarget === 'clients' ? (
+            <div className="overflow-x-auto">
+              <table className="text-left text-[11px] border-collapse table-fixed">
+                <thead>
+                  <tr className="bg-surface-2">
+                    <th className="sticky top-9 left-0 z-20 bg-surface-2 border-b border-r border-border px-3 py-2.5 font-bold text-text-secondary w-[48px]">#</th>
+                    <th className="sticky top-9 left-[48px] z-20 bg-surface-2 border-b border-r border-border px-3 py-2.5 font-bold text-text-secondary w-[190px]">Client Name</th>
+                    <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[170px]">Beneficiary</th>
+                    <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[110px]">Birthday</th>
+                    <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[60px]">Age</th>
+                    <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[110px]">Relationship</th>
+                    <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[130px]">Policy No.</th>
+                    <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[160px]">Product</th>
+                    <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[130px]">Approval Date</th>
+                    <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[130px]">Annual Premium</th>
+                    <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[130px]">Mobile Number</th>
+                    <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[190px]">Email</th>
+                    <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[200px]">Address</th>
+                    <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[140px]">Fund Allocation</th>
+                    <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[130px]">Mode of Payment</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {importState.validation.newClients.slice(0, 200).map((r: any, i: number) => (
+                    <tr key={i} className={`${i % 2 === 0 ? 'bg-card' : 'bg-surface-2/40'} hover:bg-primary/10 transition-colors`}>
+                      <td className={`sticky left-0 z-10 ${i % 2 === 0 ? 'bg-card' : 'bg-surface-2/40'} border-r border-b border-border/40 px-3 py-2 text-text-secondary font-mono`}>{i + 1}</td>
+                      <td className={`sticky left-[48px] z-10 ${i % 2 === 0 ? 'bg-card' : 'bg-surface-2/40'} border-r border-b border-border/40 px-3 py-2 font-bold text-text truncate`} title={r.clientName}>{r.clientName || '—'}</td>
+                      <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate" title={r.beneficiary}>{r.beneficiary || '—'}</td>
+                      <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate">{r.birthdate || '—'}</td>
+                      <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate">{r.age || '—'}</td>
+                      <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate">{r.relationship || '—'}</td>
+                      <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate font-mono">{r.policyNumber || '—'}</td>
+                      <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate">{r.product || '—'}</td>
+                      <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate">{r.approvalDate || '—'}</td>
+                      <td className="border-b border-border/40 px-3 py-2 text-emerald-600 dark:text-emerald-400 font-semibold truncate">{r.annualPremium ? `₱${Number(r.annualPremium).toLocaleString()}` : '—'}</td>
+                      <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate">{r.mobileNumber || '—'}</td>
+                      <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate" title={r.email}>{r.email || '—'}</td>
+                      <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate" title={r.address}>{r.address || '—'}</td>
+                      <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate">{r.fundAllocation || '—'}</td>
+                      <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate">{r.modeOfPayment?.trim() || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <table className="w-full text-left text-xs whitespace-nowrap">
+              <thead className="sticky top-9 bg-card border-b border-border z-10">
+                <tr>
+                  <th className="py-2 px-3 font-bold text-text-secondary">#</th>
+                  <th className="py-2 px-3 font-bold text-text-secondary">Name</th>
+                  <th className="py-2 px-3 font-bold text-text-secondary">Email</th>
+                </tr>
+              </thead>
+              <tbody>
+                {importState.validation.newClients.slice(0, 200).map((r: any, i: number) => (
+                  <tr key={i} className={`${i % 2 === 0 ? 'bg-card' : 'bg-surface-2/40'} hover:bg-primary/10 transition-colors border-b border-border/40`}>
+                    <td className="py-2 px-3 text-text-secondary">{i + 1}</td>
+                    <td className="py-2 px-3 font-semibold text-text">{r.advisorName}</td>
+                    <td className="py-2 px-3 text-text-secondary">{r.email || '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
 
-                <div className="flex gap-3 pt-2 shrink-0">
-                  <button
-                    onClick={() => {
-                      if (importTarget === 'clients') {
-                        processAndImportClients(importState.validation!.newClients, importState.fileName, importState.validation!.stats);
-                      } else {
-                        processAndImportAdvisors(importState.validation!.newClients, importState.fileName, importState.validation!.stats);
-                      }
-                    }}
-                    disabled={importState.validation.newClients.length === 0}
-                    className="flex-1 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-extrabold text-xs py-3 rounded-full transition-all duration-200 cursor-pointer shadow-md active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Import New {importTarget === 'clients' ? 'Clients' : 'Advisors'} ({importState.validation.newClients.length})
-                  </button>
-                  <button
-                    onClick={() => {
-                      resetImportState();
-                      setImportFile(null);
-                      setPastedText('');
-                    }}
-                    className="flex-1 bg-transparent border border-border text-text hover:bg-surface-2 text-xs font-semibold py-3 rounded-full transition-all duration-200 cursor-pointer active:scale-[0.97]"
-                  >
-                    Cancel
-                  </button>
-                </div>
+      {importState.validation.duplicateClients.length > 0 && (
+        <div className="w-full border-t border-border">
+          <details className="group">
+            <summary className="bg-slate-50 dark:bg-slate-900/30 px-4 py-2.5 sticky top-0 z-30 cursor-pointer list-none flex items-center justify-between hover:bg-slate-100 dark:hover:bg-slate-900/50 transition-colors">
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded-full bg-slate-500/15 text-slate-600 dark:text-slate-400 text-[10px] font-bold uppercase">Skipped</span>
+                <h4 className="text-xs font-bold text-slate-600 dark:text-slate-400">
+                  Already in Registry ({importState.validation.duplicateClients.length})
+                </h4>
               </div>
-            )}
+              <ChevronRight size={14} className="text-slate-500 transition-transform group-open:rotate-90" />
+            </summary>
+
+            <div className="overflow-x-auto">
+              <table className="text-left text-[11px] border-collapse table-fixed">
+                <thead>
+                  <tr className="bg-surface-2">
+                    <th className="sticky left-0 z-10 bg-surface-2 border-r border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[48px]">#</th>
+                    <th className="sticky left-[48px] z-10 bg-surface-2 border-r border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[190px]">Client Name</th>
+                    <th className="border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[170px]">Beneficiary</th>
+                    {importTarget === 'clients' && <th className="border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[130px]">Policy No.</th>}
+                    <th className="border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[280px]">Match Reason</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {importState.validation.duplicateClients.slice(0, 200).map((r: any, i: number) => (
+                    <tr key={i} className={`${i % 2 === 0 ? 'bg-card' : 'bg-surface-2/40'} opacity-70 hover:opacity-100 transition-opacity`}>
+                      <td className={`sticky left-0 z-10 ${i % 2 === 0 ? 'bg-card' : 'bg-surface-2/40'} border-r border-b border-border/40 px-3 py-2 text-text-secondary font-mono`}>{i + 1}</td>
+                      <td className={`sticky left-[48px] z-10 ${i % 2 === 0 ? 'bg-card' : 'bg-surface-2/40'} border-r border-b border-border/40 px-3 py-2 font-bold text-text truncate`}>
+                        {importTarget === 'clients' ? (r.clientName || '—') : r.advisorName}
+                      </td>
+                      <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate">{r.beneficiary || '—'}</td>
+                      {importTarget === 'clients' && <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate font-mono">{r.policyNumber || '—'}</td>}
+                      <td className="border-b border-border/40 px-3 py-2 text-text-secondary italic truncate">
+                        Matches: {r._matchedName} — Policy {r._matchedPolicy || 'N/A'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </details>
+        </div>
+      )}
+
+      {importState.validation.invalid.length > 0 && (
+        <div className="w-full border-t border-border">
+          <details className="group" open>
+            <summary className="bg-red-50 dark:bg-red-950/20 px-4 py-2.5 sticky top-0 z-30 cursor-pointer list-none flex items-center justify-between hover:bg-red-100 dark:hover:bg-red-950/40 transition-colors">
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded-full bg-red-500/15 text-red-600 dark:text-red-400 text-[10px] font-bold uppercase">Invalid</span>
+                <h4 className="text-xs font-bold text-red-600 dark:text-red-400">
+                  Missing Required Fields ({importState.validation.invalid.length})
+                </h4>
+              </div>
+              <ChevronRight size={14} className="text-red-500 transition-transform group-open:rotate-90" />
+            </summary>
+            <table className="w-full text-left text-xs whitespace-nowrap">
+              <thead className="sticky top-0 bg-card border-b border-border z-10">
+                <tr>
+                  <th className="py-2 px-3 font-bold text-text-secondary">Row</th>
+                  <th className="py-2 px-3 font-bold text-text-secondary">Reason</th>
+                </tr>
+              </thead>
+              <tbody>
+                {importState.validation.invalid.slice(0, 200).map((r: any, i: number) => (
+                  <tr key={i} className={`${i % 2 === 0 ? 'bg-card' : 'bg-surface-2/40'} border-b border-border/40`}>
+                    <td className="py-2 px-3 font-mono text-red-500">{r.rowNumber}</td>
+                    <td className="py-2 px-3 text-red-500">{r.reason}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </details>
+        </div>
+      )}
+    </div>
+
+    <div className="flex gap-3 pt-1 shrink-0">
+      <button
+        onClick={() => {
+          if (importTarget === 'clients') {
+            processAndImportClients(importState.validation!.newClients, importState.fileName, importState.validation!.stats);
+          } else {
+            processAndImportAdvisors(importState.validation!.newClients, importState.fileName, importState.validation!.stats);
+          }
+        }}
+        disabled={importState.validation.newClients.length === 0}
+        className="flex-1 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-extrabold text-xs py-3 rounded-full transition-all duration-200 cursor-pointer shadow-md active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        Import New {importTarget === 'clients' ? 'Clients' : 'Advisors'} ({importState.validation.newClients.length})
+      </button>
+      <button
+        onClick={() => {
+          resetImportState();
+          setImportFile(null);
+          setPastedText('');
+        }}
+        className="flex-1 bg-transparent border border-border text-text hover:bg-surface-2 text-xs font-semibold py-3 rounded-full transition-all duration-200 cursor-pointer active:scale-[0.97]"
+      >
+        Cancel
+      </button>
+    </div>
+  </div>
+)}
 
             {importState.phase === 'importing' && (
               <div className="p-12 flex flex-col items-center justify-center space-y-4">
@@ -2533,104 +2739,104 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
 
             {/* ── SCROLLABLE BODY ── */}
             <form id="doc-form" onSubmit={handleSaveClient} className="overflow-y-auto flex-1 min-h-0 p-6 space-y-6">
-                <div className="w-full bg-white dark:bg-card border border-slate-200 dark:border-border rounded-3xl p-4 flex flex-col gap-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Valid ID</span>
-                  </div>
+              <div className="w-full bg-white dark:bg-card border border-slate-200 dark:border-border rounded-3xl p-4 flex flex-col gap-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Valid ID</span>
+                </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className={formLabelClass}>ID Type</label>
-                      <select
-                        value={currentClient.idType || ''}
-                        onChange={(e) => setCurrentClient({ ...currentClient, idType: e.target.value })}
-                        className={formInputClass}
-                      >
-                        <option value="">Select ID Type</option>
-                        {["Philippine Passport", "Driver's License", "UMID", "PhilHealth ID", "SSS ID", "PRC ID", "Postal ID", "Voter's ID", "Other"].map(type => (
-                          <option key={type} value={type}>{type}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className={formLabelClass}>ID Number</label>
-                      <input
-                        type="text"
-                        value={currentClient.idNumber || ''}
-                        onChange={(e) => setCurrentClient({ ...currentClient, idNumber: e.target.value })}
-                        className={formInputClass}
-                        placeholder="ID Number"
-                      />
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className={formLabelClass}>Expiration Date</label>
-                      <input
-                        type="date"
-                        value={currentClient.idExpirationDate || ''}
-                        onChange={(e) => setCurrentClient({ ...currentClient, idExpirationDate: e.target.value })}
-                        className={formInputClass}
-                      />
-                    </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className={formLabelClass}>ID Type</label>
+                    <select
+                      value={currentClient.idType || ''}
+                      onChange={(e) => setCurrentClient({ ...currentClient, idType: e.target.value })}
+                      className={formInputClass}
+                    >
+                      <option value="">Select ID Type</option>
+                      {["Philippine Passport", "Driver's License", "UMID", "PhilHealth ID", "SSS ID", "PRC ID", "Postal ID", "Voter's ID", "Other"].map(type => (
+                        <option key={type} value={type}>{type}</option>
+                      ))}
+                    </select>
                   </div>
+                  <div>
+                    <label className={formLabelClass}>ID Number</label>
+                    <input
+                      type="text"
+                      value={currentClient.idNumber || ''}
+                      onChange={(e) => setCurrentClient({ ...currentClient, idNumber: e.target.value })}
+                      className={formInputClass}
+                      placeholder="ID Number"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className={formLabelClass}>Expiration Date</label>
+                    <input
+                      type="date"
+                      value={currentClient.idExpirationDate || ''}
+                      onChange={(e) => setCurrentClient({ ...currentClient, idExpirationDate: e.target.value })}
+                      className={formInputClass}
+                    />
+                  </div>
+                </div>
 
-                  <div className="relative border-2 border-dashed border-slate-200 dark:border-border bg-slate-50/60 dark:bg-surface-2 rounded-2xl min-h-[220px] w-full flex items-center justify-center overflow-hidden transition-colors duration-200">
-                    {uploadingId ? (
-                      <div className="flex flex-col items-center gap-2 text-slate-400">
-                        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                        <span className="text-sm font-medium">Uploading...</span>
+                <div className="relative border-2 border-dashed border-slate-200 dark:border-border bg-slate-50/60 dark:bg-surface-2 rounded-2xl min-h-[220px] w-full flex items-center justify-center overflow-hidden transition-colors duration-200">
+                  {uploadingId ? (
+                    <div className="flex flex-col items-center gap-2 text-slate-400">
+                      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                      <span className="text-sm font-medium">Uploading...</span>
+                    </div>
+                  ) : !currentClient.idAttachmentUrl ? (
+                    <label className="flex flex-col items-center justify-center gap-2 cursor-pointer w-full min-h-[220px] text-slate-400 hover:text-slate-600 transition-all duration-200 rounded-2xl">
+                      <div className="w-11 h-11 rounded-2xl bg-white dark:bg-card border border-slate-200 dark:border-border flex items-center justify-center shadow-sm">
+                        <Upload size={20} />
                       </div>
-                    ) : !currentClient.idAttachmentUrl ? (
-                      <label className="flex flex-col items-center justify-center gap-2 cursor-pointer w-full min-h-[220px] text-slate-400 hover:text-slate-600 transition-all duration-200 rounded-2xl">
-                        <div className="w-11 h-11 rounded-2xl bg-white dark:bg-card border border-slate-200 dark:border-border flex items-center justify-center shadow-sm">
-                          <Upload size={20} />
-                        </div>
-                        <span className="text-sm font-medium">Upload ID Image</span>
-                        <input
-                          type="file"
-                          accept="image/*,.pdf"
-                          className="hidden"
-                          onChange={handleIdUpload}
-                        />
+                      <span className="text-sm font-medium">Upload ID Image</span>
+                      <input
+                        type="file"
+                        accept="image/*,.pdf"
+                        className="hidden"
+                        onChange={handleIdUpload}
+                      />
+                    </label>
+                  ) : (
+                    <div className="relative w-full min-h-[220px] flex flex-col items-center justify-center bg-white dark:bg-card rounded-2xl group overflow-hidden">
+                      {currentClient.idAttachmentUrl.toLowerCase().includes('.pdf') || (currentClient.idAttachmentUrl.startsWith('blob:') && !currentClient.idAttachmentUrl.includes('image')) ? (
+                        <a href={currentClient.idAttachmentUrl} target="_blank" rel="noreferrer" className="flex flex-col items-center gap-2 text-primary hover:text-primary/80 transition-colors">
+                          <FileText size={40} />
+                          <span className="text-xs font-semibold">Document Attached (Click to View)</span>
+                        </a>
+                      ) : (
+                        <a href={currentClient.idAttachmentUrl} target="_blank" rel="noreferrer" className="w-full h-full flex items-center justify-center cursor-zoom-in group-hover:opacity-90 transition-opacity">
+                          <img src={currentClient.idAttachmentUrl} alt="ID Preview" className="max-h-[300px] w-full object-contain" />
+                        </a>
+                      )}
+                      <label className="absolute bottom-3 right-3 bg-black/70 hover:bg-black text-white px-4 py-2 rounded-full text-xs font-bold cursor-pointer backdrop-blur-md transition-colors opacity-0 group-hover:opacity-100 flex items-center gap-2 shadow-lg">
+                        <Upload size={14} /> Replace ID
+                        <input type="file" accept="image/*,.pdf" className="hidden" onChange={handleIdUpload} />
                       </label>
-                    ) : (
-                      <div className="relative w-full min-h-[220px] flex flex-col items-center justify-center bg-white dark:bg-card rounded-2xl group overflow-hidden">
-                        {currentClient.idAttachmentUrl.toLowerCase().includes('.pdf') || (currentClient.idAttachmentUrl.startsWith('blob:') && !currentClient.idAttachmentUrl.includes('image')) ? (
-                          <a href={currentClient.idAttachmentUrl} target="_blank" rel="noreferrer" className="flex flex-col items-center gap-2 text-primary hover:text-primary/80 transition-colors">
-                            <FileText size={40} />
-                            <span className="text-xs font-semibold">Document Attached (Click to View)</span>
-                          </a>
-                        ) : (
-                          <a href={currentClient.idAttachmentUrl} target="_blank" rel="noreferrer" className="w-full h-full flex items-center justify-center cursor-zoom-in group-hover:opacity-90 transition-opacity">
-                            <img src={currentClient.idAttachmentUrl} alt="ID Preview" className="max-h-[300px] w-full object-contain" />
-                          </a>
-                        )}
-                        <label className="absolute bottom-3 right-3 bg-black/70 hover:bg-black text-white px-4 py-2 rounded-full text-xs font-bold cursor-pointer backdrop-blur-md transition-colors opacity-0 group-hover:opacity-100 flex items-center gap-2 shadow-lg">
-                          <Upload size={14} /> Replace ID
-                          <input type="file" accept="image/*,.pdf" className="hidden" onChange={handleIdUpload} />
-                        </label>
-                      </div>
-                    )}
-                  </div>
-
-                  {currentClient.idAttachmentUrl && (
-                    <div className="flex justify-end mt-1">
-                      <button
-                        type="button"
-                        onClick={() => setCurrentClient({ ...currentClient, idAttachmentUrl: '' })}
-                        className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-500 hover:text-red-500 transition-colors duration-200 border border-slate-200 dark:border-border hover:border-red-200 hover:bg-red-50 dark:hover:bg-red-900/20 bg-white dark:bg-card rounded-full"
-                      >
-                        <Trash2 size={13} /> Remove ID
-                      </button>
                     </div>
                   )}
                 </div>
 
-                <div>
-                  <SignaturePad
-                    initialSignature={currentClient.signatureData}
-                    onSignatureChange={(sig) => setCurrentClient({ ...currentClient, signatureData: sig || undefined })}
-                  />
-                </div>
+                {currentClient.idAttachmentUrl && (
+                  <div className="flex justify-end mt-1">
+                    <button
+                      type="button"
+                      onClick={() => setCurrentClient({ ...currentClient, idAttachmentUrl: '' })}
+                      className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-500 hover:text-red-500 transition-colors duration-200 border border-slate-200 dark:border-border hover:border-red-200 hover:bg-red-50 dark:hover:bg-red-900/20 bg-white dark:bg-card rounded-full"
+                    >
+                      <Trash2 size={13} /> Remove ID
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <SignaturePad
+                  initialSignature={currentClient.signatureData}
+                  onSignatureChange={(sig) => setCurrentClient({ ...currentClient, signatureData: sig || undefined })}
+                />
+              </div>
             </form>
 
             <div className="flex gap-3 p-6 border-t border-border bg-card shrink-0">

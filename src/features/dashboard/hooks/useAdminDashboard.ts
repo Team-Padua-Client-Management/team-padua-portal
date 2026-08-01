@@ -4,7 +4,7 @@ import { TaskItem } from '@src/features/dashboard/components/TaskRow';
 import { TodoTask } from '@src/features/dashboard/components/ClientServicingToDo';
 import { ActivityEvent } from '@src/features/dashboard/components/ActivityCard';
 import { CalendarActivityItem } from '@src/features/dashboard/components/CalendarActivityCard';
-import { BirthdayItem } from '@src/features/dashboard/components/BirthdayCard';
+import { BirthdayItem, AdvisorItem } from '@src/features/dashboard/components/BirthdayCard';
 import { UserProfile } from '@src/features/dashboard/components/UserAvatar';
 import { initialActivities, emptyActivityForm } from '@src/features/dashboard/constants';
 import {
@@ -42,6 +42,7 @@ export const useAdminDashboard = () => {
 
   const [allProfiles, setAllProfiles] = useState<UserProfile[]>([]);
   const [bizDevProfiles, setBizDevProfiles] = useState<UserProfile[]>([]);
+  const [advisors, setAdvisors] = useState<AdvisorItem[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userPermissions, setUserPermissions] = useState<any>(null);
@@ -125,9 +126,25 @@ export const useAdminDashboard = () => {
     }
   };
 
+  const loadAdvisors = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('advisors')
+        .select('id, advisor_name, advisor_code')
+        .order('advisor_name');
+
+      if (!error && data) {
+        setAdvisors(data as AdvisorItem[]);
+      }
+    } catch (err) {
+      console.error('Exception loading advisors:', err);
+    }
+  };
+
   const fetchDashboardData = useCallback(async () => {
     try {
       const loadedProfiles = await loadProfiles();
+      await loadAdvisors();
 
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
@@ -171,7 +188,6 @@ export const useAdminDashboard = () => {
           for (const t of resCS.data) {
             let isCal = false;
             try {
-              // Calendar activities store their JSON in `notes` now
               const rawJson = t.notes && t.notes.trim().startsWith('{') ? t.notes : t.description;
               if (rawJson && rawJson.trim().startsWith('{')) {
                 const parsed = JSON.parse(rawJson);
@@ -250,8 +266,21 @@ export const useAdminDashboard = () => {
         }
       }
 
-      const { data: cpstClientsData } = await supabase.from('cpst_clients').select('id, client_name, birthdate');
-      if (cpstClientsData && Array.isArray(cpstClientsData)) {
+      const { data: cpstClientsData, error: cpstErr } = await supabase
+        .from('cpst_clients')
+        .select(`
+          id,
+          client_name,
+          birthdate,
+          advisor_id,
+          advisor:advisors(
+            id,
+            advisor_name,
+            advisor_code
+          )
+        `);
+
+      if (!cpstErr && cpstClientsData && Array.isArray(cpstClientsData)) {
         const matched = getBirthdaysAroundNow(cpstClientsData);
         setClientBirthdays(matched);
       }
@@ -353,7 +382,7 @@ export const useAdminDashboard = () => {
     try {
       let createdTask: TaskItem | null = null;
       const res1 = await supabase.from('client_servicing_tasks').insert([newDbTask]).select().single();
-      
+
       if (res1.error) {
         console.error('Error inserting into client_servicing_tasks:', res1.error);
       } else if (res1.data) {
@@ -419,7 +448,6 @@ export const useAdminDashboard = () => {
           return newList;
         });
       } else {
-        // Fallback optimistic UI update in case the DB doesn't return the row due to select policies
         const optimisticTodo: TodoTask = {
           id: `todo-${Date.now()}`,
           ...newTodo,
@@ -439,7 +467,6 @@ export const useAdminDashboard = () => {
 
   const handleTogglePersonalTodoComplete = async (todo: TodoTask) => {
     try {
-      // Optimistically remove from local state since we only show uncompleted
       setPersonalTodos(prev => {
         const newList = prev.filter(t => t.id !== todo.id);
         savePersonalTodosToCache(newList);
@@ -728,6 +755,7 @@ export const useAdminDashboard = () => {
     personalTodos,
     allProfiles,
     bizDevProfiles,
+    advisors,
     currentUserId,
     selectedTaskIdForModal,
     setSelectedTaskIdForModal,

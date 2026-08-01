@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { Cake, ArrowUpRight, Calendar, Sparkles, ExternalLink } from 'lucide-react';
+import { Cake, Sparkles, ExternalLink } from 'lucide-react';
 import styles from '@/styles/admin/dashboard/page.module.css';
 
 export interface BirthdayItem {
@@ -9,32 +9,51 @@ export interface BirthdayItem {
   date: string;
   when: 'today' | 'yesterday' | 'tomorrow';
   age?: number;
-  advisor?: string;
+  advisorId?: string;
+  advisorName?: string;
   policyNo?: string;
+}
+
+export interface AdvisorItem {
+  id: string;
+  advisor_name: string;
+  advisor_code?: string;
 }
 
 interface BirthdayCardProps {
   birthdays?: BirthdayItem[];
+  advisors?: AdvisorItem[];
 }
 
-export default function BirthdayCard({ birthdays = [] }: BirthdayCardProps) {
+export default function BirthdayCard({
+  birthdays = [],
+  advisors = [],
+}: BirthdayCardProps) {
+
   const [selectedAdvisor, setSelectedAdvisor] = useState('All');
-  
-  const advisors = useMemo(() => {
-    const uniqueAdvisors = new Set(birthdays.map(b => b.advisor).filter(Boolean));
-    return ['All', ...Array.from(uniqueAdvisors)];
-  }, [birthdays]);
+
+  const advisorOptions = useMemo(() => [
+    {
+      id: 'All',
+      name: 'All Advisors',
+    },
+    ...advisors.map((advisor) => ({
+      id: advisor.id,
+      name: advisor.advisor_name,
+    })),
+  ], [advisors]);
 
   const filteredBirthdays = useMemo(() => {
-    if (selectedAdvisor === 'All') return birthdays;
-    return birthdays.filter(b => b.advisor === selectedAdvisor);
+    if (selectedAdvisor === 'All') {
+      return birthdays;
+    }
+    return birthdays.filter(b => b.advisorId === selectedAdvisor);
   }, [birthdays, selectedAdvisor]);
 
   const todayCount = filteredBirthdays.filter(b => b.when === 'today').length;
 
   return (
     <div className={`${styles.dashboardCard} ${styles.birthdayCard}`}>
-      {/* Header Row */}
       <div className={`${styles.dashboardCardHeader} !p-4`}>
         <div className="flex items-center gap-2.5">
           <div className={`${styles.birthdayIconBadge} !w-9 !h-9 !p-2`}>
@@ -48,13 +67,15 @@ export default function BirthdayCard({ birthdays = [] }: BirthdayCardProps) {
         </div>
 
         <div className={`${styles.headerRightActions} flex items-center gap-2`}>
-          <select 
-            className="text-xs border border-border/70 bg-surface text-text-secondary rounded-lg px-2 py-1 outline-none"
+          <select
             value={selectedAdvisor}
             onChange={(e) => setSelectedAdvisor(e.target.value)}
+            className="text-xs border border-border/70 bg-surface text-text-secondary rounded-lg px-2 py-1 outline-none"
           >
-            {advisors.map(adv => (
-              <option key={adv as string} value={adv as string}>{adv}</option>
+            {advisorOptions.map((advisor) => (
+              <option key={advisor.id} value={advisor.id}>
+                {advisor.name}
+              </option>
             ))}
           </select>
           {todayCount > 0 && (
@@ -66,7 +87,6 @@ export default function BirthdayCard({ birthdays = [] }: BirthdayCardProps) {
         </div>
       </div>
 
-      {/* Card Content Body */}
       <div className={styles.dashboardCardBody}>
         {filteredBirthdays.length === 0 ? (
           <div className={styles.birthdayEmptyContainer}>
@@ -111,7 +131,7 @@ export default function BirthdayCard({ birthdays = [] }: BirthdayCardProps) {
                       )}
                     </div>
                     <span className={styles.birthdayDateMeta}>
-                      {item.date} {item.age !== undefined && item.age > 0 ? `• ${item.age} yrs old` : ''} {item.advisor ? `• ${item.advisor}` : ''}
+                      {item.date} {item.age !== undefined && item.age > 0 ? `• ${item.age} yrs old` : ''} {item.advisorName ? `• ${item.advisorName}` : ''}
                     </span>
                   </div>
 
@@ -132,4 +152,3 @@ export default function BirthdayCard({ birthdays = [] }: BirthdayCardProps) {
     </div>
   );
 }
-

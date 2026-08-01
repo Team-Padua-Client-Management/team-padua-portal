@@ -31,7 +31,6 @@ import { AdminSidebar as Sidebar } from "@src/components/layout";
 import styles from "@/styles/admin/dashboard/page.module.css";
 import WelcomeModal from "@src/components/modals/WelcomeModal";
 
-// Modular Dashboard Components
 import DashboardHero from "@src/features/dashboard/components/DashboardHero";
 import ClientServicingStats from "@src/features/dashboard/components/ClientServicingStats";
 import ClientServicingToDo from "@src/features/dashboard/components/ClientServicingToDo";
@@ -46,7 +45,6 @@ import ActivityModal from "@src/features/dashboard/components/ActivityModal";
 import EventDetailsModal from "@src/features/dashboard/components/EventDetailsModal";
 import ConfirmDeleteModal from "@src/features/dashboard/components/ConfirmDeleteModal";
 
-// Extracted Hooks and Constants
 import { useDashboardClock } from '@src/features/dashboard/hooks/useDashboardClock';
 import { usePomodoroTimer } from '@src/features/dashboard/hooks/usePomodoroTimer';
 import { useAdminDashboard } from '@src/features/dashboard/hooks/useAdminDashboard';
@@ -81,6 +79,7 @@ export default function DashboardOverviewPage() {
     userTasks,
     allProfiles,
     bizDevProfiles,
+    advisors,
     currentUserId,
     selectedTaskIdForModal,
     setSelectedTaskIdForModal,
@@ -145,6 +144,7 @@ export default function DashboardOverviewPage() {
     const dateB = new Date(b.date).getTime();
     return dateB - dateA;
   });
+
   const selectedTaskForModal = userTasks.find((t) => t.id === selectedTaskIdForModal) || null;
 
   return (
@@ -191,10 +191,8 @@ export default function DashboardOverviewPage() {
             />
           </motion.section>
 
-          {/* 2. BOARD GRID (3 COLUMNS) */}
           <motion.div variants={fadeVariants} className={styles.boardGrid}>
 
-            {/* Column 1: Client Servicing Monitoring */}
             <div className={styles.boardCol}>
               <TaskList
                 tasks={userTasks}
@@ -205,7 +203,7 @@ export default function DashboardOverviewPage() {
                 onSelectTask={(id) => setSelectedTaskIdForModal(id)}
                 onSaveTaskField={saveTaskField}
                 onDeleteTask={handleDeleteTask}
-              />              {/* To-do Widget with Client Servicing Tasks & Personal To-Dos */}
+              />
               <ClientServicingToDo
                 tasks={userTasks}
                 personalTodos={personalTodos}
@@ -219,9 +217,11 @@ export default function DashboardOverviewPage() {
               />
             </div>
 
-            {/* Column 2: Client Birthdays & Calendar of Activities */}
             <div className={styles.centerCol}>
-              <BirthdayCard birthdays={clientBirthdays} />
+              <BirthdayCard
+                birthdays={clientBirthdays}
+                advisors={advisors}
+              />
 
               <div className={styles.activitiesCard}>
                 <div className={`${styles.dashboardCardHeader} !flex-col !items-stretch !gap-3 !p-4`}>
@@ -238,7 +238,6 @@ export default function DashboardOverviewPage() {
                     </button>
                   </div>
 
-                  {/* Lightweight Role Filter */}
                   <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                     {['All', 'Admin', 'Advisor', 'Bizdev'].map((role) => {
                       const isActive = calendarRoleFilter === role;
@@ -291,7 +290,6 @@ export default function DashboardOverviewPage() {
               </div>
             </div>
 
-            {/* Column 3: Activity Tracker Calendar & Client Servicing Request Forms */}
             <div className={styles.boardCol}>
               <ActivityCalendar
                 activities={activities}
@@ -307,7 +305,6 @@ export default function DashboardOverviewPage() {
             </div>
           </motion.div>
 
-          {/* 5. FOOTER */}
           <motion.footer variants={fadeVariants} className={styles.footer}>
             <span>TeamPadua Operations Control Terminal &bull; 2026</span>
             <div className={styles.footerRight}>
@@ -319,7 +316,6 @@ export default function DashboardOverviewPage() {
         </motion.main>
       </div>
 
-      {/* 6. MODALS */}
       {isMounted && isLogModalOpen && createPortal(
         <ActivityModal
           activityForm={activityForm}
@@ -368,6 +364,5 @@ export default function DashboardOverviewPage() {
         document.body
       )}
     </div>
-
   );
 }
