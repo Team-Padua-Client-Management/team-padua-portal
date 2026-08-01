@@ -34,8 +34,10 @@ export const defaultPortals: Portal[] = [
   { name: 'Advisor Office', logo: '/images/logos/advisor_office.svg', width: 26, url: 'https://advisorhomeoffice.sunlife.com.ph/aho/index.html#/:', manage: '/admin/portals/advisor-office' },
   { name: 'Google Sheets', logo: '/images/logos/google_sheets.svg', width: 22, url: 'https://bit.ly/4f2fpLK', manage: '/admin/portals/google-sheets' },
   { name: 'Task Tracker', logo: '/images/logos/task_tracker.svg', width: 22, url: 'https://teampaduatracker.vercel.app/tasktracker', manage: '/admin/portals/task-tracker' },
-  { name: 'JotForm', logo: '/images/logos/jotform.svg', width: 22, url: 'https://www.jotform.com/', manage: '/admin/portals/jotform' },
-  { name: 'JotForm Intern', logo: '/images/logos/jotform_intern.svg', width: 24, url: 'https://form.jotform.com/261829362405055', manage: '/admin/portals/jotform' },
+  { name: 'Jot Form', logo: '/images/logos/jotform.svg', width: 22, url: 'https://www.jotform.com/', manage: '/admin/portals/jotform' },
+  { name: 'Jot Form Intern', logo: '/images/logos/jotform_intern.svg', width: 24, url: 'https://form.jotform.com/261829362405055', manage: '/admin/portals/jotform' },
   { name: 'Microsoft Teams', logo: '/images/logos/microsoft_teams.svg', width: 22, url: 'https://teams.microsoft.com/', manage: '/admin/portals/microsoft-teams' },
   { name: 'Canva', logo: '/images/logos/canva.svg', width: 26, url: 'https://www.canva.com/', manage: '/admin/portals/canva' },
+  { name: 'Zoom', logo: '/images/logos/zoom.svg', width: 24, url: 'https://bit.ly/4wrEVBg', manage: '/admin/portals/zoom' },
+  { name: 'G-Drive', logo: '/images/logos/google_drive.svg', width: 24, url: 'https://drive.google.com/drive/folders/1ZLNJHFUFYDkVG9pQwMF2hio89j7vp04x?usp=sharing', manage: '/admin/portals/google-drive' },
 ];

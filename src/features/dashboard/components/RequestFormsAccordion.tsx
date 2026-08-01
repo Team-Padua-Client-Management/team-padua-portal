@@ -203,6 +203,15 @@ export default function RequestFormsAccordion({ kpis, userRole, userPermissions 
 
   const accessibleForms = useMemo(() => formsWithAccess.filter(f => f.hasAccess), [formsWithAccess]);
 
+  const formCategories = useMemo(() => [
+    { label: 'Transfers & Policy', color: '#4F46E5' },
+    { label: 'Funds & Investments', color: '#059669' },
+    { label: 'Billing & Payment', color: '#7C3AED' },
+    { label: 'Billing & Reinstatement', color: '#D97706' },
+    { label: 'Compliance & Verification', color: '#099268' },
+    { label: 'Client Profile', color: '#D946EF' },
+  ], []);
+
   const totalActiveRequests = useMemo(() => {
     return accessibleForms.reduce((sum, f) => sum + f.count, 0);
   }, [accessibleForms]);
@@ -253,18 +262,17 @@ export default function RequestFormsAccordion({ kpis, userRole, userPermissions 
           onClick={() => setIsCardExpanded(true)}
           title="Click to expand form tools"
         >
-          <div className={styles.collapsedChip}>
-            <span className={styles.collapsedDot} style={{ background: '#4F46E5' }} />
-            Transfers ({accessibleForms.filter(f => f.category === 'Transfers & Policy').length})
-          </div>
-          <div className={styles.collapsedChip}>
-            <span className={styles.collapsedDot} style={{ background: '#059669' }} />
-            Funds ({accessibleForms.filter(f => f.category === 'Funds & Investments').length})
-          </div>
-          <div className={styles.collapsedChip}>
-            <span className={styles.collapsedDot} style={{ background: '#8B5CF6' }} />
-            Billing & Reinstatement ({accessibleForms.filter(f => f.category === 'Billing & Reinstatement').length})
-          </div>
+          {formCategories.map((category) => {
+            const count = accessibleForms.filter((form) => form.category === category.label).length;
+            if (count === 0) return null;
+
+            return (
+              <div key={category.label} className={styles.collapsedChip}>
+                <span className={styles.collapsedDot} style={{ background: category.color }} />
+                {category.label} ({count})
+              </div>
+            );
+          })}
           <div className={styles.collapsedExpandHint}>
             <span>View All {accessibleForms.length} Forms</span>
             <ArrowUpRight size={13} />

@@ -663,44 +663,61 @@ export default function AdminSettings() {
                   <h2 className="text-lg font-bold mb-2 flex items-center gap-2"><ExternalLink size={20} className="text-amber-500" /> Custom External Portals</h2>
                   <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>Create quick-access shortcuts to primary service domains and external tools for dashboards.</p>
                   
-                  <div className="flex flex-col md:flex-row gap-3 mb-6">
+                  <div className="flex flex-col lg:flex-row gap-3 mb-6">
                     <input
                       type="text"
                       placeholder="Portal Name (e.g. Analytics Tool)"
                       value={newPortalName}
                       onChange={(e) => setNewPortalName(e.target.value)}
-                      className="flex-1 p-3 rounded-xl border focus:ring-2 focus:ring-amber-500 outline-none"
+                      className="flex-1 min-w-0 p-3 rounded-xl border focus:ring-2 focus:ring-amber-500 outline-none text-sm w-full"
                       style={{ backgroundColor: 'var(--surface-2)', borderColor: 'var(--border)', color: 'var(--text)' }}
                     />
                     <input
                       type="text"
-                      placeholder="URL (https://...)"
+                      placeholder="Portal URL (https://...)"
                       value={newPortalUrl}
                       onChange={(e) => setNewPortalUrl(e.target.value)}
-                      className="flex-[1.5] p-3 rounded-xl border focus:ring-2 focus:ring-amber-500 outline-none"
+                      className="flex-1 min-w-0 p-3 rounded-xl border focus:ring-2 focus:ring-amber-500 outline-none text-sm w-full"
+                      style={{ backgroundColor: 'var(--surface-2)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                    />
+                    <input
+                      type="text"
+                      placeholder="Icon Image URL (Optional)"
+                      value={newPortalIconUrl}
+                      onChange={(e) => setNewPortalIconUrl(e.target.value)}
+                      className="flex-1 min-w-0 p-3 rounded-xl border focus:ring-2 focus:ring-amber-500 outline-none text-sm w-full"
                       style={{ backgroundColor: 'var(--surface-2)', borderColor: 'var(--border)', color: 'var(--text)' }}
                     />
                     <button
                       onClick={handleAddCustomPortal}
-                      className="px-5 py-3 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+                      className="px-6 py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold transition-all shadow-md flex items-center gap-2 justify-center shrink-0 cursor-pointer w-full lg:w-auto"
                     >
-                      <Plus size={18} /> Add
+                      <Plus size={16} /> Add Portal
                     </button>
                   </div>
 
                   {customPortals.length > 0 && (
-                    <div className="space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {customPortals.map((portal, idx) => (
-                        <div key={idx} className="flex items-center justify-between p-4 rounded-xl" style={{ backgroundColor: 'var(--surface-2)', border: '1px solid var(--border)' }}>
-                          <div className="flex flex-col">
-                            <span className="font-bold text-sm">{portal.name}</span>
-                            <span className="text-xs opacity-70 mt-0.5">{portal.url}</span>
+                        <div key={idx} className="flex items-center justify-between p-4 rounded-xl transition-all" style={{ backgroundColor: 'var(--surface-2)', border: '1px solid var(--border)' }}>
+                          <div className="flex items-center gap-3 min-w-0">
+                            {portal.iconUrl ? (
+                              <img src={portal.iconUrl} alt="" className="w-8 h-8 rounded-lg object-contain shrink-0" />
+                            ) : (
+                              <div className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0" style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}>
+                                {portal.name.charAt(0).toUpperCase()}
+                              </div>
+                            )}
+                            <div className="min-w-0">
+                              <h4 className="font-bold text-sm truncate">{portal.name}</h4>
+                              <p className="text-xs opacity-60 truncate">{portal.url}</p>
+                            </div>
                           </div>
                           <button
                             onClick={() => handleRemoveCustomPortal(idx)}
-                            className="text-red-500 hover:bg-red-500/10 p-2 rounded-lg transition-colors text-sm font-bold"
+                            className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-500/10 transition-colors shrink-0"
                           >
-                            Remove
+                            <Trash2 size={16} />
                           </button>
                         </div>
                       ))}
