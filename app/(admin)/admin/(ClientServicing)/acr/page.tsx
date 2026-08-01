@@ -186,28 +186,44 @@ export default function AdvisorChangeRequestPage() {
   }, [formData.client_id]);
 
   const getClientNameParts = (fullName: string | undefined | null) => {
-    if (!fullName) return { last: '', first: '', middle: '' };
+    if (!fullName) {
+      return { last: '', first: '', middle: '' };
+    }
 
     if (fullName.includes(',')) {
       const [lastPart, restPart] = fullName.split(',').map(s => s.trim());
+
       const restWords = restPart ? restPart.split(/\s+/) : [];
-      const first = restWords[0] || '';
-      const middle = restWords.slice(1).join(' ');
-      return { last: lastPart, first, middle };
-    } else {
-      const words = fullName.trim().split(/\s+/);
-      if (words.length === 1) {
-        return { last: '', first: words[0], middle: '' };
+
+      let first = '';
+      let middle = '';
+
+      if (restWords.length === 1) {
+        first = restWords[0];
+      } else if (restWords.length > 1) {
+        middle = restWords[restWords.length - 1];
+        first = restWords.slice(0, -1).join(' ');
       }
-      if (words.length === 2) {
-        return { last: words[1], first: words[0], middle: '' };
-      }
+
       return {
-        last: words[words.length - 1],
-        first: words[0],
-        middle: words.slice(1, -1).join(' ')
+        last: lastPart,
+        first,
+        middle,
       };
     }
+
+    // Fallback for names without commas
+    const words = fullName.trim().split(/\s+/);
+
+    if (words.length === 1) {
+      return { last: '', first: words[0], middle: '' };
+    }
+
+    return {
+      last: words[words.length - 1],
+      first: words.slice(0, -1).join(' '),
+      middle: '',
+    };
   };
 
   const fetchRecords = async () => {
@@ -409,8 +425,12 @@ export default function AdvisorChangeRequestPage() {
       const formRec = mapEngineValuesToFormRecord(engineValues) as FormRecord;
       const ownerName = getClientNameParts(selectedClientDetails?.client_name);
       const ownerDob = selectedClientDetails?.birthdate || '';
+      console.log("selectedClientDetails", selectedClientDetails);
+      console.log("ownerDob", ownerDob);
 
       const pdfBytes = await generateAdvisorChangeRequestPdfFromTemplate(formRec, ownerName, ownerDob);
+      console.log(ownerName);
+
 
       const blob = new Blob([pdfBytes as any], { type: 'application/pdf' });
       const downloadUrl = URL.createObjectURL(blob);
@@ -578,7 +598,8 @@ export default function AdvisorChangeRequestPage() {
         <main className={`${styles.div_54} bg-gray-50/60 min-h-screen`}>
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Advisor Change Request</h1>
+              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">THIS IS THE CORRECT PROJECT
+              </h1>
               <p className="text-sm text-gray-500 mt-0.5">Manage and generate Sun Life advisor change request forms using interactive PDF Editor.</p>
             </div>
             <PrimaryButton onClick={() => handleOpenEditor()} className="pl-4 pr-5">

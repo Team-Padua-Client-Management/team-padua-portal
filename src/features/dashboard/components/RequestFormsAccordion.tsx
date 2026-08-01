@@ -56,7 +56,7 @@ function hasFormAccess(
 }
 
 export default function RequestFormsAccordion({ kpis, userRole, userPermissions }: RequestFormsAccordionProps) {
-  const [isCardExpanded, setIsCardExpanded] = useState(true);
+  const [isCardExpanded, setIsCardExpanded] = useState(false);
   const [expandedFormId, setExpandedFormId] = useState<string | null>(null);
 
   const forms: CsrFormItem[] = useMemo(() => [
@@ -220,7 +220,7 @@ export default function RequestFormsAccordion({ kpis, userRole, userPermissions 
             <FileText size={16} strokeWidth={2.2} />
           </div>
           <div className={styles.dashboardCardTitle}>
-            <h3>Client Servicing Request Forms</h3>
+            <h3>Client Servicing Request</h3>
           </div>
         </div>
 

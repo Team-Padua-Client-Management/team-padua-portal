@@ -1,3 +1,5 @@
+console.log("🔥 generateAdvisorChangeRequestPdfFromTemplate CALLED");
+
 /**
  * generateAdvisorChangeRequestPdfFromTemplate.ts
  *
@@ -30,13 +32,43 @@ import { FormRecord } from '@/app/(admin)/admin/(ClientServicing)/acr/page';
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Split "YYYY-MM-DD" (from <input type="date">) into day / month / year parts. */
-function parseISODate(iso: string | null | undefined): { day: string; month: string; year: string } {
-  if (!iso) return { day: '', month: '', year: '' };
-  const [year, month, day] = iso.split('-');
+function parseISODate(
+  iso: string | null | undefined
+): {
+  day: string;
+  month: string;
+  year: string;
+} {
+
+  if (!iso) {
+    return {
+      day: "",
+      month: "",
+      year: ""
+    };
+  }
+
+  const [year, month, day] = iso.split("-");
+
+  const months = [
+    "JAN",
+    "FEB",
+    "MAR",
+    "APR",
+    "MAY",
+    "JUN",
+    "JUL",
+    "AUG",
+    "SEP",
+    "OCT",
+    "NOV",
+    "DEC",
+  ];
+
   return {
-    day:   day   ?? '',
-    month: month ?? '',
-    year:  year  ?? '',
+    day,
+    month: months[Number(month) - 1] || "",
+    year,
   };
 }
 
@@ -160,6 +192,12 @@ export async function generateAdvisorChangeRequestPdfFromTemplate(
   clientNameParts: { last: string; first: string; middle: string },
   clientDob: string,
 ): Promise<Uint8Array> {
+  console.log('🔥 [ACR PDF Generator Executed]', {
+    clientNameParts,
+    clientDob,
+    record
+  });
+
 
   // ── 1. Fetch the blank template ──────────────────────────────────────────
   const res = await fetch('/forms/SLOCPI_Advisor_Change_Request.pdf');
@@ -188,7 +226,7 @@ export async function generateAdvisorChangeRequestPdfFromTemplate(
 
   // ── 4. Embed fonts ────────────────────────────────────────────────────────
   const regular = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  const bold    = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
   // Standard value size for filled fields (adjust globally here if needed)
   const VS = 8.5; // value size in pt
@@ -204,62 +242,61 @@ export async function generateAdvisorChangeRequestPdfFromTemplate(
 
   // ── A.1  Policy Owner Name ────────────────────────────────────────────────
   // Labels at y=533.3;  values sit at y≈518  (label_y − 15)
-  txt(pg1, clientNameParts.last,   35,  518, regular, VS); // COORD A.1 Last Name
-  txt(pg1, clientNameParts.first,  176, 518, regular, VS); // COORD A.1 First Name
+  txt(pg1, clientNameParts.last, 35, 518, regular, VS); // COORD A.1 Last Name
+  txt(pg1, clientNameParts.first, 176, 518, regular, VS); // COORD A.1 First Name
   txt(pg1, clientNameParts.middle, 310, 518, regular, VS); // COORD A.1 Middle Name
-
   // ── A.1  Date of Birth ────────────────────────────────────────────────────
   // Sub-header labels at y=524;  values just below at y≈513
   const dob = parseISODate(clientDob);
-  txt(pg1, dob.day,   475, 513, regular, VS); // COORD A.1 DOB Day
-  txt(pg1, dob.month, 502, 513, regular, VS); // COORD A.1 DOB Month
-  txt(pg1, dob.year,  549, 513, regular, VS); // COORD A.1 DOB Year
+  txt(pg1, dob.day, 472, 510, regular, VS); // COORD A.1 DOB Day
+  txt(pg1, dob.month, 502, 510, regular, VS); // COORD A.1 DOB Month
+  txt(pg1, dob.year, 549, 510, regular, VS); // COORD A.1 DOB Year
 
   // ── A.2  Company Name ─────────────────────────────────────────────────────
   // Label at x=45 y=495.7;  value at y≈480
-  txt(pg1, record.company_name, 45, 480, regular, VS); // COORD A.2 Company Name
+  txt(pg1, record.company_name, 45, 465, regular, VS); // COORD A.2 Company Name
 
   // ── A.2  Designation ─────────────────────────────────────────────────────
   // Label at x=456 y=495.7;  value at y≈480
-  txt(pg1, record.designation, 310, 480, regular, VS); // COORD A.2 Designation
+  txt(pg1, record.designation, 472, 465, regular, VS); // COORD A.2 Designation
 
   // ── B.1  Specific-policy checkbox ────────────────────────────────────────
   // The B.1 radio checkbox square is printed on the template at approx x=51.
   // Label: "B.1 Request a particular policy/plan/account number(s) only."
   // We place the X at y that aligns with B.1 header — tune as needed.
-  checkMark(pg1, record.request_type === 'specific_policy', 51, 435, bold, 9); // COORD B.1 checkbox
+  //checkMark(pg1, record.request_type === 'specific_policy', 51, 435, bold, 9); // COORD B.1 checkbox
 
   // ── B.1  Policy number(s) text area ──────────────────────────────────────
   // "Specify below..." label ends y=408.9; text area starts y≈395
   if (record.request_type === 'specific_policy' && record.policy_numbers) {
-    wrappedTxt(pg1, record.policy_numbers, 55, 395, 500, regular, VS); // COORD B.1 policy numbers
+    wrappedTxt(pg1, record.policy_numbers, 55, 380, 500, regular, VS); // COORD B.1 policy numbers
   }
 
   // ── B.2  All-accounts checkbox ───────────────────────────────────────────
-  checkMark(pg1, record.request_type === 'all_accounts', 51, 350, bold, 9); // COORD B.2 checkbox
+  //checkMark(pg1, record.request_type === 'all_accounts', 51, 350, bold, 9); // COORD B.2 checkbox
 
   // ── B.2  Account-type sub-checkboxes ─────────────────────────────────────
   // Labels measured at specific y values; checkboxes drawn at x≈51, same y.
   const isAll = record.request_type === 'all_accounts';
-  checkMark(pg1, isAll && !!record.account_individual_life, 51, 279.8, bold, 9); // COORD B.2 Individual Life
-  checkMark(pg1, isAll && !!record.account_group_life,      51, 267.8, bold, 9); // COORD B.2 Group Life
-  checkMark(pg1, isAll && !!record.account_mutual_fund,     51, 255.8, bold, 9); // COORD B.2 Mutual Fund
-  checkMark(pg1, isAll && !!record.account_pre_need,        51, 243.8, bold, 9); // COORD B.2 Pre-Need Plans
+  checkMark(pg1, isAll && !!record.account_individual_life, 47, 274.5, bold, 9); // COORD B.2 Individual Life
+  checkMark(pg1, isAll && !!record.account_group_life, 47, 261.8, bold, 9); // COORD B.2 Group Life
+  checkMark(pg1, isAll && !!record.account_mutual_fund, 47, 249.8, bold, 9); // COORD B.2 Mutual Fund
+  checkMark(pg1, isAll && !!record.account_pre_need, 47, 236.8, bold, 9); // COORD B.2 Pre-Need Plans
 
   // ── B.2  Reference policy number (inline underline) ──────────────────────
   // "number:" ends at x=326.9 y=231.8; value starts x≈330, y≈233
   if (isAll && record.reference_policy_number) {
-    txt(pg1, record.reference_policy_number, 330, 233, regular, VS); // COORD B.2 ref policy number
+    txt(pg1, record.reference_policy_number, 330, 226, regular, VS); // COORD B.2 ref policy number
   }
 
   // ── C.  Reason for Change checkboxes ─────────────────────────────────────
-  checkMark(pg1, record.reason_type === 'no_advisor',      51, 188.9, bold, 9); // COORD C "no advisor"
-  checkMark(pg1, record.reason_type === 'prefer_another',  51, 176.9, bold, 9); // COORD C "prefer another"
+  checkMark(pg1, record.reason_type === 'no_advisor', 47, 183.2, bold, 9); // COORD C "no advisor"
+  checkMark(pg1, record.reason_type === 'prefer_another', 47, 171, bold, 9); // COORD C "prefer another"
 
   // ── C.  Reason details text (multi-line) ─────────────────────────────────
   // Below the two C options; approximate y≈158
   if (record.reason_type === 'prefer_another' && record.reason_details) {
-    wrappedTxt(pg1, record.reason_details, 55, 158, 500, regular, VS); // COORD C reason details
+    wrappedTxt(pg1, record.reason_details, 70, 153, 500, regular, VS); // COORD C reason details
   }
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -268,14 +305,14 @@ export async function generateAdvisorChangeRequestPdfFromTemplate(
 
   // ── D.  New Advisor Name ─────────────────────────────────────────────────
   // Labels at y=721.8;  values at y≈707  (label_y − 15)
-  txt(pg2, record.new_advisor_last_name,   35,  707, regular, VS); // COORD D Last Name
-  txt(pg2, record.new_advisor_first_name,  218, 707, regular, VS); // COORD D First Name
-  txt(pg2, record.new_advisor_middle_name, 401, 707, regular, VS); // COORD D Middle Name
+  txt(pg2, record.new_advisor_last_name, 35, 705, regular, VS); // COORD D Last Name
+  txt(pg2, record.new_advisor_first_name, 218, 705, regular, VS); // COORD D First Name
+  txt(pg2, record.new_advisor_middle_name, 401, 705, regular, VS); // COORD D Middle Name
 
   // ── E.1  Complete Name of Policy Owner ───────────────────────────────────
   // Labels at y=482.1;  values at y≈467
-  txt(pg2, clientNameParts.last,   35,  467, regular, VS); // COORD E.1 Last Name
-  txt(pg2, clientNameParts.first,  218, 467, regular, VS); // COORD E.1 First Name
+  txt(pg2, clientNameParts.last, 35, 467, regular, VS); // COORD E.1 Last Name
+  txt(pg2, clientNameParts.first, 218, 467, regular, VS); // COORD E.1 First Name
   txt(pg2, clientNameParts.middle, 401, 467, regular, VS); // COORD E.1 Middle Name
 
   // ── E.1  Place of Signing ────────────────────────────────────────────────
@@ -285,9 +322,9 @@ export async function generateAdvisorChangeRequestPdfFromTemplate(
   // ── E.1  Date of Signing ─────────────────────────────────────────────────
   // Sub-header labels at y=451.1;  values at y≈441
   const sigDate = parseISODate(record.date_of_signing);
-  txt(pg2, sigDate.day,   457, 441, regular, VS); // COORD E.1 Signing Day
-  txt(pg2, sigDate.month, 490, 441, regular, VS); // COORD E.1 Signing Month
-  txt(pg2, sigDate.year,  545, 441, regular, VS); // COORD E.1 Signing Year
+  txt(pg2, sigDate.day, 457, 441.5, regular, VS); // COORD E.1 Signing Day
+  txt(pg2, sigDate.month, 490, 441.5, regular, VS); // COORD E.1 Signing Month
+  txt(pg2, sigDate.year, 545, 441.5, regular, VS); // COORD E.1 Signing Year
 
   // ── E.2  Policy Owner Signature ──────────────────────────────────────────
   // Signature box: roughly x=35–575, y=358–398 (height ~40)
@@ -310,37 +347,39 @@ export async function generateAdvisorChangeRequestPdfFromTemplate(
 
   // ── E.2  Code Number ──────────────────────────────────────────────────────
   // Code Number label x=218.2 y=369.3; value just below at y≈355
-  txt(pg2, record.code_number, 218, 355, regular, VS); // COORD E.2 Code Number
+  txt(pg2, record.code_number, 218, 352, regular, VS); // COORD E.2 Code Number
 
   // ── E.2  NBO / ISO ────────────────────────────────────────────────────────
   // NBO/ISO label x=401.4 y=369.3; value at y≈355
-  txt(pg2, record.nbo_iso, 401, 355, regular, VS); // COORD E.2 NBO/ISO
+  txt(pg2, record.nbo_iso, 401, 352, regular, VS); // COORD E.2 NBO/ISO
 
   // ── F.2  Wants Communication — Yes / No checkboxes ───────────────────────
   // "Yes" label x=142.4 y=167.8 → checkbox just left: x≈130, y≈167
   // "No"  label x=174.4 y=167.8 → checkbox just left: x≈162, y≈167
-  checkMark(pg2, record.wants_communication === true,  130, 167, bold, 9); // COORD F.2 Yes
-  checkMark(pg2, record.wants_communication === false, 162, 167, bold, 9); // COORD F.2 No
+  checkMark(pg2, record.wants_communication === true, 131.2, 161.5, bold, 9); // COORD F.2 Yes
+  checkMark(pg2, record.wants_communication === false, 163.2, 161.5, bold, 9); // COORD F.2 No
 
   // ── G.  For Office Use Only ───────────────────────────────────────────────
 
   // Complete Name of Staff — label x=153.5 y=117.2; value at y≈102
-  txt(pg2, record.received_by_staff, 55, 102, regular, VS); // COORD G Staff Name
+  txt(pg2, record.received_by_staff, 153.5, 100, regular, VS); // COORD G Staff Name
 
   // Receiving Department/Office — label x=367 y=117.2; value at y≈102
-  txt(pg2, record.receiving_department, 320, 102, regular, VS); // COORD G Department
+  txt(pg2, record.receiving_department, 367.7, 100, regular, VS); // COORD G Department
 
   // Date Received — sub-headers at y=85.6; values at y≈74
   const recDate = parseISODate(record.date_received);
-  txt(pg2, recDate.day,   158, 74, regular, VS); // COORD G Date Received Day
+  txt(pg2, recDate.day, 158, 74, regular, VS); // COORD G Date Received Day
   txt(pg2, recDate.month, 201, 74, regular, VS); // COORD G Date Received Month
-  txt(pg2, recDate.year,  270, 74, regular, VS); // COORD G Date Received Year
+  txt(pg2, recDate.year, 270, 74, regular, VS); // COORD G Date Received Year
 
   // Time Received — label x=327 y=77.6; value at y≈62
   txt(pg2, record.time_received, 327, 62, regular, VS); // COORD G Time Received
 
   // ── Serialise and return ──────────────────────────────────────────────────
   return pdfDoc.save();
+
+
 }
 
 

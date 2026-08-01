@@ -50,28 +50,43 @@ export default function AcrStandardForm({
   };
 
   const getClientNameParts = (fullName: string | undefined | null) => {
-    if (!fullName) return { last: '', first: '', middle: '' };
+    if (!fullName) {
+      return { last: '', first: '', middle: '' };
+    }
 
     if (fullName.includes(',')) {
       const [lastPart, restPart] = fullName.split(',').map(s => s.trim());
+
       const restWords = restPart ? restPart.split(/\s+/) : [];
-      const first = restWords[0] || '';
-      const middle = restWords.slice(1).join(' ');
-      return { last: lastPart, first, middle };
-    } else {
-      const words = fullName.trim().split(/\s+/);
-      if (words.length === 1) {
-        return { last: '', first: words[0], middle: '' };
+
+      let first = '';
+      let middle = '';
+
+      if (restWords.length === 1) {
+        first = restWords[0];
+      } else if (restWords.length > 1) {
+        middle = restWords[restWords.length - 1];
+        first = restWords.slice(0, -1).join(' ');
       }
-      if (words.length === 2) {
-        return { last: words[1], first: words[0], middle: '' };
-      }
+
       return {
-        last: words[words.length - 1],
-        first: words[0],
-        middle: words.slice(1, -1).join(' ')
+        last: lastPart,
+        first,
+        middle,
       };
     }
+
+    const words = fullName.trim().split(/\s+/);
+
+    if (words.length === 1) {
+      return { last: '', first: words[0], middle: '' };
+    }
+
+    return {
+      last: words[words.length - 1],
+      first: words.slice(0, -1).join(' '),
+      middle: '',
+    };
   };
 
   const handleClientSelectLocal = async (newClientId: string) => {
@@ -104,13 +119,21 @@ export default function AcrStandardForm({
       setIsPreviewLoading(true);
       try {
         // Need to pass ownerName and ownerDob for literal preview
-        const ownerName = getClientNameParts(clients.find(c => c.id === (formData.client_id || clientId))?.client_name);
-        const ownerDob = clients.find(c => c.id === (formData.client_id || clientId))?.birthdate || '';
+        const selectedClient = clients.find(c => c.id === (formData.client_id || clientId)) || selectedClientDetails;
+        const ownerName = {
+          last: formData.client_last_name ?? getClientNameParts(selectedClient?.client_name).last,
+          first: formData.client_first_name ?? getClientNameParts(selectedClient?.client_name).first,
+          middle: formData.client_middle_name ?? getClientNameParts(selectedClient?.client_name).middle,
+        };
+        const ownerDob = formData.client_dob || selectedClient?.birthdate || '';
 
         const pdfBytes = await generateAdvisorChangeRequestPdfFromTemplate(formData as any, ownerName, ownerDob);
         const blob = new Blob([new Uint8Array(pdfBytes)], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
-        setPdfPreviewUrl(url);
+        setPdfPreviewUrl(prev => {
+          if (prev) URL.revokeObjectURL(prev);
+          return url;
+        });
       } catch (e) {
         console.error(e);
       } finally {
@@ -543,7 +566,7 @@ export default function AcrStandardForm({
                 <p className="text-sm">Generating Literal Display...</p>
               </div>
             ) : pdfPreviewUrl ? (
-              <iframe src={pdfPreviewUrl} className="w-full max-w-5xl h-full bg-white rounded-lg shadow-2xl" />
+              <iframe key={pdfPreviewUrl} src={pdfPreviewUrl} className="w-full max-w-5xl h-full bg-white rounded-lg shadow-2xl" />
             ) : (
               <p className="text-white text-sm">Failed to load PDF preview.</p>
             )}

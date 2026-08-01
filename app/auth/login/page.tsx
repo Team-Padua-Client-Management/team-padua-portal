@@ -9,13 +9,13 @@ import { ChevronLeft } from "lucide-react";
 export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#FFF9EC] via-white to-white dark:from-[#0B0C10] dark:via-slate-950 dark:to-slate-950 px-6 relative overflow-hidden">
-      
+
       {/* Decorative Glow Shapes */}
       <div className="absolute top-[-10%] left-[-10%] w-[35vw] h-[35vw] rounded-full bg-[#FFC72C]/10 blur-[80px] pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[35vw] h-[35vw] rounded-full bg-amber-400/5 blur-[80px] pointer-events-none" />
 
       <div className="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-[32px] shadow-lg p-6 md:p-8 hover:shadow-xl transition-all duration-300 relative z-10">
-        
+
         {/* Back Link */}
         <div className="flex justify-between items-center mb-6">
           <a

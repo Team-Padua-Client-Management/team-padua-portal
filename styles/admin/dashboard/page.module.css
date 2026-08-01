@@ -378,10 +378,21 @@
   box-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
 }
 
-.starTwinkle1 { animation: starTwinkle 2.2s ease-in-out infinite 0.2s; }
-.starTwinkle2 { animation: starTwinkle 3.1s ease-in-out infinite 0.7s; }
-.starTwinkle3 { animation: starTwinkle 2.8s ease-in-out infinite 1.4s; }
-.starTwinkle4 { animation: starTwinkle 3.8s ease-in-out infinite 1.9s; }
+.starTwinkle1 {
+  animation: starTwinkle 2.2s ease-in-out infinite 0.2s;
+}
+
+.starTwinkle2 {
+  animation: starTwinkle 3.1s ease-in-out infinite 0.7s;
+}
+
+.starTwinkle3 {
+  animation: starTwinkle 2.8s ease-in-out infinite 1.4s;
+}
+
+.starTwinkle4 {
+  animation: starTwinkle 3.8s ease-in-out infinite 1.9s;
+}
 
 /* Floating Night Dust */
 .nightDustContainer {
@@ -398,11 +409,35 @@
   box-shadow: 0 0 6px rgba(165, 180, 252, 0.9);
 }
 
-.dust1 { top: 65%; left: 12%; animation: floatUpParticle 6s ease-in-out infinite; }
-.dust2 { top: 75%; left: 34%; animation: floatUpParticle 8s ease-in-out infinite 2s; }
-.dust3 { top: 50%; left: 58%; animation: floatUpParticle 7s ease-in-out infinite 1s; }
-.dust4 { top: 80%; left: 78%; animation: floatUpParticle 9s ease-in-out infinite 3s; }
-.dust5 { top: 40%; left: 88%; animation: floatUpParticle 7.5s ease-in-out infinite 4s; }
+.dust1 {
+  top: 65%;
+  left: 12%;
+  animation: floatUpParticle 6s ease-in-out infinite;
+}
+
+.dust2 {
+  top: 75%;
+  left: 34%;
+  animation: floatUpParticle 8s ease-in-out infinite 2s;
+}
+
+.dust3 {
+  top: 50%;
+  left: 58%;
+  animation: floatUpParticle 7s ease-in-out infinite 1s;
+}
+
+.dust4 {
+  top: 80%;
+  left: 78%;
+  animation: floatUpParticle 9s ease-in-out infinite 3s;
+}
+
+.dust5 {
+  top: 40%;
+  left: 88%;
+  animation: floatUpParticle 7.5s ease-in-out infinite 4s;
+}
 
 /* ----------------------------------------------------------------------------
    MORNING THEME ANIMATIONS
@@ -486,12 +521,41 @@
   box-shadow: 0 0 6px rgba(245, 158, 11, 0.9);
 }
 
-.dew1 { top: 70%; left: 15%; animation: floatUpParticle 5.5s ease-in-out infinite; }
-.dew2 { top: 80%; left: 35%; animation: floatUpParticle 7s ease-in-out infinite 1.5s; }
-.dew3 { top: 60%; left: 55%; animation: floatUpParticle 6.5s ease-in-out infinite 0.8s; }
-.dew4 { top: 75%; left: 72%; animation: floatUpParticle 8s ease-in-out infinite 2.5s; }
-.dew5 { top: 50%; left: 85%; animation: floatUpParticle 6s ease-in-out infinite 3.2s; }
-.dew6 { top: 65%; left: 45%; animation: floatUpParticle 7.5s ease-in-out infinite 4s; }
+.dew1 {
+  top: 70%;
+  left: 15%;
+  animation: floatUpParticle 5.5s ease-in-out infinite;
+}
+
+.dew2 {
+  top: 80%;
+  left: 35%;
+  animation: floatUpParticle 7s ease-in-out infinite 1.5s;
+}
+
+.dew3 {
+  top: 60%;
+  left: 55%;
+  animation: floatUpParticle 6.5s ease-in-out infinite 0.8s;
+}
+
+.dew4 {
+  top: 75%;
+  left: 72%;
+  animation: floatUpParticle 8s ease-in-out infinite 2.5s;
+}
+
+.dew5 {
+  top: 50%;
+  left: 85%;
+  animation: floatUpParticle 6s ease-in-out infinite 3.2s;
+}
+
+.dew6 {
+  top: 65%;
+  left: 45%;
+  animation: floatUpParticle 7.5s ease-in-out infinite 4s;
+}
 
 /* ----------------------------------------------------------------------------
    AFTERNOON THEME ANIMATIONS
@@ -562,20 +626,47 @@
   box-shadow: 0 0 6px rgba(253, 224, 71, 0.9);
 }
 
-.sunParticle1 { top: 35%; left: 20%; animation: floatUpParticle 6s ease-in-out infinite; }
-.sunParticle2 { top: 65%; left: 40%; animation: floatUpParticle 7.5s ease-in-out infinite 1.2s; }
-.sunParticle3 { top: 45%; left: 62%; animation: floatUpParticle 5.8s ease-in-out infinite 2.4s; }
-.sunParticle4 { top: 70%; left: 80%; animation: floatUpParticle 8s ease-in-out infinite 0.5s; }
-.sunParticle5 { top: 25%; left: 90%; animation: floatUpParticle 6.5s ease-in-out infinite 3.5s; }
+.sunParticle1 {
+  top: 35%;
+  left: 20%;
+  animation: floatUpParticle 6s ease-in-out infinite;
+}
+
+.sunParticle2 {
+  top: 65%;
+  left: 40%;
+  animation: floatUpParticle 7.5s ease-in-out infinite 1.2s;
+}
+
+.sunParticle3 {
+  top: 45%;
+  left: 62%;
+  animation: floatUpParticle 5.8s ease-in-out infinite 2.4s;
+}
+
+.sunParticle4 {
+  top: 70%;
+  left: 80%;
+  animation: floatUpParticle 8s ease-in-out infinite 0.5s;
+}
+
+.sunParticle5 {
+  top: 25%;
+  left: 90%;
+  animation: floatUpParticle 6.5s ease-in-out infinite 3.5s;
+}
 
 /* ----------------------------------------------------------------------------
    KEYFRAME ANIMATIONS
    ---------------------------------------------------------------------------- */
 @keyframes starTwinkle {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 0.2;
     transform: scale(0.8);
   }
+
   50% {
     opacity: 1;
     transform: scale(1.35);
@@ -588,13 +679,16 @@
     transform: translate(0, 0) scale(0.5);
     opacity: 0;
   }
+
   10% {
     opacity: 1;
   }
+
   60% {
     transform: translate(-200px, 120px) scale(1);
     opacity: 0.95;
   }
+
   100% {
     transform: translate(-300px, 180px) scale(0.2);
     opacity: 0;
@@ -606,13 +700,16 @@
     transform: translate(0, 0) scale(0.5);
     opacity: 0;
   }
+
   12% {
     opacity: 1;
   }
+
   65% {
     transform: translate(-240px, 140px) scale(1.1);
     opacity: 0.9;
   }
+
   100% {
     transform: translate(-340px, 200px) scale(0.2);
     opacity: 0;
@@ -624,13 +721,16 @@
     transform: translate(0, 0) scale(0.5);
     opacity: 0;
   }
+
   15% {
     opacity: 1;
   }
+
   70% {
     transform: translate(-160px, 95px) scale(0.9);
     opacity: 0.9;
   }
+
   100% {
     transform: translate(-240px, 140px) scale(0.2);
     opacity: 0;
@@ -638,10 +738,13 @@
 }
 
 @keyframes moonGlowPulse {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: scale(1);
     opacity: 0.6;
   }
+
   50% {
     transform: scale(1.22);
     opacity: 0.95;
@@ -653,10 +756,12 @@
     transform: translateX(-12%) translateY(0) scaleY(1);
     opacity: 0.4;
   }
+
   50% {
     transform: translateX(10%) translateY(-10px) scaleY(1.25);
     opacity: 0.8;
   }
+
   100% {
     transform: translateX(-12%) translateY(0) scaleY(1);
     opacity: 0.4;
@@ -668,9 +773,11 @@
     transform: translateY(15px) translateX(0);
     opacity: 0;
   }
+
   50% {
     opacity: 0.95;
   }
+
   100% {
     transform: translateY(-45px) translateX(18px);
     opacity: 0;
@@ -681,6 +788,7 @@
   0% {
     transform: translateX(-140px);
   }
+
   100% {
     transform: translateX(110vw);
   }
@@ -690,6 +798,7 @@
   0% {
     transform: translateX(100vw);
   }
+
   100% {
     transform: translateX(-160px);
   }
@@ -699,6 +808,7 @@
   0% {
     transform: rotate(0deg);
   }
+
   100% {
     transform: rotate(360deg);
   }
@@ -709,6 +819,7 @@
     transform: scale(1);
     opacity: 0.6;
   }
+
   100% {
     transform: scale(1.3);
     opacity: 0.9;
@@ -720,12 +831,15 @@
     transform: translate(-60px, 20px) scale(0.65);
     opacity: 0;
   }
+
   15% {
     opacity: 0.8;
   }
+
   85% {
     opacity: 0.8;
   }
+
   100% {
     transform: translate(600px, -35px) scale(1.1);
     opacity: 0;
@@ -737,6 +851,7 @@
     transform: scale(1);
     opacity: 0.55;
   }
+
   100% {
     transform: scale(1.25);
     opacity: 0.9;
@@ -1318,7 +1433,7 @@
 }
 
 .birthdayCard {
-  min-height: 220px;
+  min-height: 380px;
 }
 
 .trackerCalendarCard {
@@ -1326,6 +1441,7 @@
   max-width: 100%;
   gap: 16px;
   padding: 20px 22px;
+  min-height: 380px;
 }
 
 .dashboardCard {
@@ -1340,18 +1456,23 @@
   color: var(--text);
 }
 
+.dashboardCardHeader h1,
+.dashboardCardHeader h2,
+.dashboardCardHeader h3,
+.dashboardCardTitle h3 {
+  font-size: 15px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.015em !important;
+  color: var(--text) !important;
+  margin: 0 !important;
+  line-height: 1.2 !important;
+}
+
 .dashboardCardTitle {
   display: flex;
   align-items: center;
   gap: 8px;
   color: var(--accent-strong);
-}
-
-.dashboardCardTitle h3 {
-  font-size: 13.5px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  color: var(--text);
 }
 
 .dashboardCardBody {
@@ -1390,9 +1511,22 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-height: 560px;
+  max-height: 250px;
   overflow-y: auto;
-  padding-right: 2px;
+  padding-right: 4px;
+}
+
+.taskWidgetList::-webkit-scrollbar {
+  width: 5px;
+}
+
+.taskWidgetList::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
+}
+
+.taskWidgetList::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .taskListRow {
@@ -2268,9 +2402,22 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  max-height: 620px;
+  max-height: 320px;
   overflow-y: auto;
-  padding-right: 2px;
+  padding-right: 4px;
+}
+
+.csrAccordion::-webkit-scrollbar {
+  width: 5px;
+}
+
+.csrAccordion::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
+}
+
+.csrAccordion::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .csrAccordionItem {
@@ -2456,19 +2603,25 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  max-height: 480px;
+  max-height: 300px;
   overflow-y: auto;
   padding-right: 4px;
 }
 
 .activityList::-webkit-scrollbar {
-  width: 4px;
+  width: 5px;
 }
 
 .activityList::-webkit-scrollbar-thumb {
   background: var(--border-strong);
   border-radius: 999px;
 }
+
+.activityList::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+
 
 .activityCard {
   display: flex;
@@ -3352,6 +3505,22 @@
   margin-top: 4px;
   padding-top: 10px;
   border-top: 1px dashed var(--border);
+  max-height: 250px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.todoListContainer::-webkit-scrollbar {
+  width: 5px;
+}
+
+.todoListContainer::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
+}
+
+.todoListContainer::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .todoEmptyState {
@@ -3679,9 +3848,8 @@
   color: var(--text);
   flex: 1;
   min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  line-height: 1.25;
   letter-spacing: -0.01em;
 }
 
