@@ -1,38 +1,19 @@
 "use client";
 
-/**
- * page.tsx
- *
- * Main component module in features path: app/(user)/profile/page.tsx
- *
- * Responsibilities:
- * - Scopes UI state management and user actions.
- * - Bridges layout rendering with server-side Supabase data connections.
- * - Handles modular presentation logic.
- */
-
-;
-
 import styles from "@/styles/user/profile/page.module.css";
 
-  // ======================================================
-// State Initialization & Hooks
-// ======================================================
-
-  // ======================================================
-// Lifecycle Effects & Data Sync
-// ======================================================
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { supabase } from "@src/lib/supabase/client";
 import ProfileAvatar from "@src/components/shared/ProfileAvatar";
 import UserStatusBadge from "@src/components/shared/UserStatusBadge";
+import { AdminHeader as Header } from "@src/components/layout";
+import { AdminSidebar as Sidebar } from "@src/components/layout";
+
 import {
   Shield, Bell, Lock, Camera, Sparkles, Upload, X, ImageIcon,
   Pencil, User, Phone, Globe, Cake, MapPin, FileText, Plus, Trash2,
   ExternalLink, QrCode, Navigation, Copy, Check,
 } from "lucide-react";
-
-
 
 type AvatarMode = "upload" | "ai" | "initials";
 
@@ -58,12 +39,6 @@ const PLATFORM_META: Record<string, { label: string; color: string; icon: string
 
 const PLATFORM_OPTIONS = Object.entries(PLATFORM_META).map(([id, meta]) => ({ id, ...meta }));
 
-/**
- * Executes operations logic for detectPlatform.
- *
- * @param url: string
- * @returns State operations sequence.
- */
 function detectPlatform(url: string): string {
   const lower = url.toLowerCase();
   if (lower.includes("facebook.com") || lower.includes("fb.com")) return "facebook";
@@ -78,12 +53,6 @@ function detectPlatform(url: string): string {
   return "website";
 }
 
-/**
- * Executes operations logic for PlatformBadge.
- *
- * @param { platform, size = 28 }: { platform: string; size?: number }
- * @returns State operations sequence.
- */
 function PlatformBadge({ platform, size = 28 }: { platform: string; size?: number }) {
   const meta = PLATFORM_META[platform] || PLATFORM_META.website;
   return (
@@ -139,12 +108,6 @@ const SUBDIVISIONS: { city: string; name: string }[] = [
   { city: "Pasig", name: "Valle Verde" },
 ];
 
-/**
- * Executes operations logic for useAddressData.
- *
- * 
- * @returns State operations sequence.
- */
 function useAddressData() {
   const [regions, setRegions] = useState<PSGCRegion[]>([]);
   const [provinces, setProvinces] = useState<PSGCProvince[]>([]);
@@ -153,13 +116,7 @@ function useAddressData() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    /**
- * Executes operations logic for fetchRegions.
- *
- * 
- * @returns State operations sequence.
- */
-const fetchRegions = async () => {
+    const fetchRegions = async () => {
       setLoading(true);
       try {
         const res = await fetch("https://psgc.gitlab.io/api/regions/");
@@ -245,12 +202,6 @@ interface AddressSectionProps {
   compact?: boolean;
 }
 
-/**
- * Executes operations logic for AddressSection.
- *
- * @param { address, onChange, compact = false }: AddressSectionProps
- * @returns State operations sequence.
- */
 function AddressSection({ address, onChange, compact = false }: AddressSectionProps) {
   const { regions, provinces, cities, barangays, fetchProvinces, fetchCities, fetchBarangays } = useAddressData();
   const [subdivisionSearch, setSubdivisionSearch] = useState(address.subdivision || "");
@@ -281,13 +232,7 @@ function AddressSection({ address, onChange, compact = false }: AddressSectionPr
   }, [address.subdivision]);
 
   useEffect(() => {
-    /**
- * Executes operations logic for handleClick.
- *
- * @param e: MouseEvent
- * @returns State operations sequence.
- */
-const handleClick = (e: MouseEvent) => {
+    const handleClick = (e: MouseEvent) => {
       if (subdivisionRef.current && !subdivisionRef.current.contains(e.target as Node)) {
         setShowSubdivisionDropdown(false);
       }
@@ -302,77 +247,35 @@ const handleClick = (e: MouseEvent) => {
     return cityMatch && searchMatch;
   });
 
-  /**
- * Executes operations logic for handleRegionChange.
- *
- * @param name: string
- * @returns State operations sequence.
- */
-const handleRegionChange = (name: string) => {
+  const handleRegionChange = (name: string) => {
     onChange({ ...address, region: name, province: "", city: "", barangay: "" });
   };
 
-  /**
- * Executes operations logic for handleProvinceChange.
- *
- * @param name: string
- * @returns State operations sequence.
- */
-const handleProvinceChange = (name: string) => {
+  const handleProvinceChange = (name: string) => {
     onChange({ ...address, province: name, city: "", barangay: "" });
   };
 
-  /**
- * Executes operations logic for handleCityChange.
- *
- * @param name: string
- * @returns State operations sequence.
- */
-const handleCityChange = (name: string) => {
+  const handleCityChange = (name: string) => {
     onChange({ ...address, city: name, barangay: "" });
   };
 
-  /**
- * Executes operations logic for handleBarangayChange.
- *
- * @param name: string
- * @returns State operations sequence.
- */
-const handleBarangayChange = (name: string) => {
+  const handleBarangayChange = (name: string) => {
     onChange({ ...address, barangay: name });
   };
 
-  /**
- * Executes operations logic for handleSubdivisionInput.
- *
- * @param val: string
- * @returns State operations sequence.
- */
-const handleSubdivisionInput = (val: string) => {
+  const handleSubdivisionInput = (val: string) => {
     setSubdivisionSearch(val);
     onChange({ ...address, subdivision: val });
     setShowSubdivisionDropdown(true);
   };
 
-  /**
- * Executes operations logic for selectSubdivision.
- *
- * @param name: string
- * @returns State operations sequence.
- */
-const selectSubdivision = (name: string) => {
+  const selectSubdivision = (name: string) => {
     setSubdivisionSearch(name);
     onChange({ ...address, subdivision: name });
     setShowSubdivisionDropdown(false);
   };
 
-  /**
- * Executes operations logic for setCurrentLocation.
- *
- * 
- * @returns State operations sequence.
- */
-const setCurrentLocation = () => {
+  const setCurrentLocation = () => {
     setGettingLocation(true);
     setLocationError("");
     if (!navigator.geolocation) {
@@ -395,13 +298,7 @@ const setCurrentLocation = () => {
     );
   };
 
-  /**
- * Executes operations logic for handleLatLngChange.
- *
- * @param field: "latitude" | "longitude", val: string
- * @returns State operations sequence.
- */
-const handleLatLngChange = (field: "latitude" | "longitude", val: string) => {
+  const handleLatLngChange = (field: "latitude" | "longitude", val: string) => {
     const updated = { ...address, [field]: val };
     if (updated.latitude && updated.longitude) {
       updated.map_url = `https://maps.google.com/?q=${updated.latitude},${updated.longitude}`;
@@ -641,18 +538,6 @@ const handleLatLngChange = (field: "latitude" | "longitude", val: string) => {
   );
 }
 
-/**
- * ProfilePage
- *
- * Renders the ProfilePage interface, managing local lifecycles
- * and user interactions.
- */
-/**
- * Executes operations logic for ProfilePage.
- *
- * 
- * @returns State operations sequence.
- */
 export default function ProfilePage() {
   const [user, setUser] = useState<any>(null);
   const [profileLoading, setProfileLoading] = useState(true);
@@ -721,13 +606,7 @@ export default function ProfilePage() {
   const avatarFileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    /**
- * Executes operations logic for loadProfile.
- *
- * 
- * @returns State operations sequence.
- */
-const loadProfile = async () => {
+    const loadProfile = async () => {
       setProfileLoading(true);
       setProfileError("");
       try {
@@ -845,24 +724,12 @@ const loadProfile = async () => {
     };
   }, [user?.id]);
 
-  /**
- * Executes operations logic for copyId.
- *
- * 
- * @returns State operations sequence.
- */
-const copyId = () => {
+  const copyId = () => {
     navigator.clipboard.writeText(user?.id || "");
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  /**
-   * Executes operations logic for handleAvatarSelect.
-   *
-   * @param e: React.ChangeEvent<HTMLInputElement>
-   * @returns State operations sequence.
-   */
   const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -876,9 +743,6 @@ const copyId = () => {
     e.target.value = "";
   };
 
-  /**
-   * Uploads the selected avatar file to Supabase and updates user profile.
-   */
   const confirmAvatarUpload = async () => {
     if (!avatarFileToUpload) return;
     setUploading(true);
@@ -886,7 +750,7 @@ const copyId = () => {
     try {
       const fileExt = avatarFileToUpload.name.split(".").pop()?.toLowerCase() || "png";
       const path = `avatars/${user.id}.${fileExt}`;
-      const { error: storageError } = await supabase.storage.from("avatars").upload(path, avatarFileToUpload, { 
+      const { error: storageError } = await supabase.storage.from("avatars").upload(path, avatarFileToUpload, {
         upsert: true,
         contentType: avatarFileToUpload.type,
         cacheControl: "3600",
@@ -913,12 +777,6 @@ const copyId = () => {
     }
   };
 
-  /**
-  * Executes operations logic for handleGcashSelect.
-  *
-  * @param e: React.ChangeEvent<HTMLInputElement>
-  * @returns State operations sequence.
-  */
   const handleGcashSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -927,7 +785,7 @@ const copyId = () => {
     try {
       const fileExt = file.name.split(".").pop()?.toLowerCase() || "png";
       const path = `gcash-qr/${user.id}.${fileExt}`;
-      const { error: storageError } = await supabase.storage.from("gcash-qr").upload(path, file, { 
+      const { error: storageError } = await supabase.storage.from("gcash-qr").upload(path, file, {
         upsert: true,
         contentType: file.type,
         cacheControl: "3600",
@@ -935,7 +793,7 @@ const copyId = () => {
       if (storageError) throw storageError;
       const { data: urlData } = supabase.storage.from("gcash-qr").getPublicUrl(path);
       const publicUrl = urlData.publicUrl + `?t=${Date.now()}`;
-      await /* Query database records from active repository grid */ supabase.from("profiles").update({
+      await supabase.from("profiles").update({
         gcash_qr: publicUrl,
         updated_at: new Date().toISOString(),
       }).eq("id", user.id);
@@ -948,30 +806,18 @@ const copyId = () => {
     }
   };
 
-  /**
-  * Executes operations logic for removeGcashQr.
-  *
-  * 
-  * @returns State operations sequence.
-  */
   const removeGcashQr = async () => {
-    const { error } = await /* Query database records from active repository grid */ supabase.from("profiles").update({
+    const { error } = await supabase.from("profiles").update({
       gcash_qr: null,
       updated_at: new Date().toISOString(),
     }).eq("id", user.id);
     if (!error) setGcashQr(null);
   };
 
-  /**
-  * Executes operations logic for regenerateAi.
-  *
-  * 
-  * @returns State operations sequence.
-  */
   const regenerateAi = async () => {
     const newSeed = Math.random().toString(36).substring(7);
     const aiUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${newSeed}`;
-    const { error } = await /* Query database records from active repository grid */ supabase.from("profiles").update({
+    const { error } = await supabase.from("profiles").update({
       ai_seed: newSeed,
       avatar_url: aiUrl,
       avatar_mode: "ai",
@@ -986,13 +832,7 @@ const copyId = () => {
     setShowAvatarPanel(false);
   };
 
-  /**
- * Executes operations logic for saveProfile.
- *
- * 
- * @returns State operations sequence.
- */
-const saveProfile = async () => {
+  const saveProfile = async () => {
     if (!user) return;
 
     setSaving(true);
@@ -1028,9 +868,6 @@ const saveProfile = async () => {
       .eq("id", user.id)
       .select();
 
-    console.log("SAVE PROFILE DATA:", data);
-    console.log("SAVE PROFILE ERROR:", error);
-
     if (error) {
       console.error(error);
       alert(error.message);
@@ -1063,52 +900,28 @@ const saveProfile = async () => {
     }
   };
 
-  /**
- * Executes operations logic for openAddLink.
- *
- * 
- * @returns State operations sequence.
- */
-const openAddLink = () => {
+  const openAddLink = () => {
     setEditingLinkId(null);
     setNewLinkUrl("");
     setNewLinkPlatform("website");
     setShowLinkForm(true);
   };
 
-  /**
- * Executes operations logic for openEditLink.
- *
- * @param link: SocialLink
- * @returns State operations sequence.
- */
-const openEditLink = (link: SocialLink) => {
+  const openEditLink = (link: SocialLink) => {
     setEditingLinkId(link.id);
     setNewLinkUrl(link.url);
     setNewLinkPlatform(link.platform);
     setShowLinkForm(true);
   };
 
-  /**
- * Executes operations logic for handleLinkUrlChange.
- *
- * @param val: string
- * @returns State operations sequence.
- */
-const handleLinkUrlChange = (val: string) => {
+  const handleLinkUrlChange = (val: string) => {
     setNewLinkUrl(val);
     if (val.startsWith("http")) {
       setNewLinkPlatform(detectPlatform(val));
     }
   };
 
-  /**
- * Executes operations logic for saveLink.
- *
- * 
- * @returns State operations sequence.
- */
-const saveLink = async () => {
+  const saveLink = async () => {
     if (!newLinkUrl.trim()) return;
     setSavingLinks(true);
 
@@ -1141,14 +954,8 @@ const saveLink = async () => {
     setSavingLinks(false);
   };
 
-  /**
- * Executes operations logic for deleteLink.
- *
- * @param id: string
- * @returns State operations sequence.
- */
-const deleteLink = async (id: string) => {
-    await /* Query database records from active repository grid */ supabase.from("social_links").delete().eq("id", id);
+  const deleteLink = async (id: string) => {
+    await supabase.from("social_links").delete().eq("id", id);
     setSocialLinks(prev => prev.filter(l => l.id !== id));
   };
 
@@ -1217,564 +1024,540 @@ const deleteLink = async (id: string) => {
 
   if (!user) return null;
 
-
-
   return (
-    <div className="flex-1 flex flex-col min-w-0" style={{ backgroundColor: 'var(--background)', color: 'var(--text)' }}>
-      {/* Top Header Card */}
-      <div className="p-4 md:p-8 w-full space-y-6">
-        
-        <div className="mb-6">
-          <h1 className="text-2xl font-black tracking-tight">Profile Settings</h1>
-          <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>Update your digital details, social platforms, and account configs.</p>
-        </div>
+    <div className="flex min-h-screen" style={{ backgroundColor: 'var(--background)', color: 'var(--text)' }}>
+      <Sidebar />
 
-        {/* Banner Preset & Card Wrapper */}
-        <div className="rounded-3xl overflow-hidden border shadow-lg bg-card" style={{ borderColor: 'var(--border)' }}>
-          {/* Banner Container */}
-          <div className="relative h-44 sm:h-56 md:h-64 transition-all duration-500" style={bannerStyle}>
-            <div className="absolute top-4 right-4">
-              <button 
-                type="button" 
-                onClick={() => setShowBgPanel(!showBgPanel)}
-                className="flex items-center gap-1.5 px-4 py-2 text-[10px] font-extrabold uppercase tracking-wider backdrop-blur-md bg-white/20 hover:bg-white/30 border border-white/20 text-white rounded-full transition cursor-pointer shadow-sm"
-              >
-                <ImageIcon size={12} /> Theme Banner
-              </button>
-              {showBgPanel && (
-                <div className="absolute right-0 mt-2 z-50 w-72 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl p-4 animate-in fade-in-50 slide-in-from-top-1">
-                  <div className="flex justify-between items-center mb-3">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Select Banner Preset</span>
-                    <button type="button" onClick={() => setShowBgPanel(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                      <X size={14} />
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {AI_BG_PRESETS.map(preset => (
-                      <button 
-                        key={preset.id} 
-                        type="button"
-                        onClick={async () => {
-                          const { error } = await supabase.from("profiles").update({
-                            banner_theme: preset.style,
-                            updated_at: new Date().toISOString(),
-                          }).eq("id", user.id);
-                          if (!error) {
-                            setBgGradient(preset.style);
-                            setShowBgPanel(false);
-                          }
-                        }}
-                        className={`flex flex-col gap-1.5 p-1.5 rounded-lg border-2 hover:scale-[1.02] transition cursor-pointer text-left ${
-                          bgGradient === preset.style ? 'border-amber-500 bg-amber-500/5' : 'border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700 bg-slate-50 dark:bg-slate-950'
-                        }`}
-                      >
-                        <div className="w-full h-10 rounded-md" style={{ background: preset.style }} />
-                        <span className="text-[9px] font-bold text-center w-full truncate">{preset.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+      <div className="flex-1 flex flex-col min-w-0">
+        <Header />
+
+        <div className="p-4 md:p-8 w-full space-y-6">
+          <div className="mb-6">
+            <h1 className="text-2xl font-black tracking-tight">Profile Settings</h1>
+            <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>Update your digital details, social platforms, and account configs.</p>
           </div>
 
-          {/* Profile Header Details block - Redesigned to match Admin Profile Layout (centered & overlapping) */}
-          <div className="relative z-10 flex flex-col items-center text-center px-8 pb-8 pt-4 border-b" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surface)' }}>
-            <div className="relative shrink-0 -mt-20 sm:-mt-28 z-20">
-              <div className="border-4 border-white dark:border-slate-900 rounded-full shadow-xl bg-background transition-transform duration-300 hover:scale-105 w-28 h-28 group overflow-hidden">
-                <ProfileAvatar avatarUrl={uploadedAvatar} name={displayName} size={112} className="w-full h-full object-cover rounded-full" />
+          <div className="rounded-3xl overflow-hidden border shadow-lg bg-card" style={{ borderColor: 'var(--border)' }}>
+            <div className="relative h-44 sm:h-56 md:h-64 transition-all duration-500" style={bannerStyle}>
+              <div className="absolute top-4 right-4">
                 <button
                   type="button"
-                  onClick={() => setShowAvatarPanel(!showAvatarPanel)}
-                  className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white text-[10px] font-extrabold uppercase tracking-widest transition-opacity cursor-pointer duration-200 z-30"
+                  onClick={() => setShowBgPanel(!showBgPanel)}
+                  className="flex items-center gap-1.5 px-4 py-2 text-[10px] font-extrabold uppercase tracking-wider backdrop-blur-md bg-white/20 hover:bg-white/30 border border-white/20 text-white rounded-full transition cursor-pointer shadow-sm"
                 >
-                  <Camera size={20} className="mb-1" />
-                  Change Photo
+                  <ImageIcon size={12} /> Theme Banner
                 </button>
-              </div>
-              {showAvatarPanel && (
-                <div className="absolute left-1/2 top-full -translate-x-1/2 mt-2 z-[60] w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-3 space-y-1 text-left">
-                  <div className="flex justify-between items-center px-1 pb-2 border-b" style={{ borderColor: 'var(--border)' }}>
-                    <span className="text-[9px] font-bold uppercase text-slate-400">Change Avatar</span>
-                    <button type="button" onClick={() => setShowAvatarPanel(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded transition">
-                      <X size={12} />
-                    </button>
+                {showBgPanel && (
+                  <div className="absolute right-0 mt-2 z-50 w-72 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl p-4 animate-in fade-in-50 slide-in-from-top-1">
+                    <div className="flex justify-between items-center mb-3">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Select Banner Preset</span>
+                      <button type="button" onClick={() => setShowBgPanel(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                        <X size={14} />
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {AI_BG_PRESETS.map(preset => (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={async () => {
+                            const { error } = await supabase.from("profiles").update({
+                              banner_theme: preset.style,
+                              updated_at: new Date().toISOString(),
+                            }).eq("id", user.id);
+                            if (!error) {
+                              setBgGradient(preset.style);
+                              setShowBgPanel(false);
+                            }
+                          }}
+                          className={`flex flex-col gap-1.5 p-1.5 rounded-lg border-2 hover:scale-[1.02] transition cursor-pointer text-left ${bgGradient === preset.style ? 'border-amber-500 bg-amber-500/5' : 'border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700 bg-slate-50 dark:bg-slate-950'
+                            }`}
+                        >
+                          <div className="w-full h-10 rounded-md" style={{ background: preset.style }} />
+                          <span className="text-[9px] font-bold text-center w-full truncate">{preset.label}</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                  <button 
-                    type="button" 
-                    onClick={() => avatarFileRef.current?.click()} 
-                    disabled={uploading}
-                    className="w-full flex items-center gap-2.5 p-2 rounded-lg text-left text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 cursor-pointer disabled:opacity-50 transition"
-                  >
-                    <Upload size={14} className="text-amber-500 shrink-0" />
-                    <div>
-                      <p>{uploading ? "Uploading..." : "Upload Photo"}</p>
-                      <p className="text-[8px] opacity-60">JPG or PNG</p>
-                    </div>
-                  </button>
-                  <button 
-                    type="button" 
-                    onClick={regenerateAi}
-                    className="w-full flex items-center gap-2.5 p-2 rounded-lg text-left text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 cursor-pointer transition"
-                  >
-                    <Sparkles size={14} className="text-amber-500 animate-pulse shrink-0" />
-                    <div>
-                      <p>AI Avatar</p>
-                      <p className="text-[8px] opacity-60">Generate abstract</p>
-                    </div>
-                  </button>
-                  <button 
-                    type="button" 
-                    onClick={async () => {
-                      const { error } = await supabase.from("profiles").update({
-                        avatar_url: null,
-                        avatar_mode: "initials",
-                        updated_at: new Date().toISOString(),
-                      }).eq("id", user.id);
-                      if (!error) {
-                        setUploadedAvatar(null);
-                        setAvatarMode("initials");
-                        window.dispatchEvent(new CustomEvent("profile-updated"));
-                      }
-                      setShowAvatarPanel(false);
-                    }}
-                    className="w-full flex items-center gap-2.5 p-2 rounded-lg text-left text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 cursor-pointer transition"
-                  >
-                    <span className="w-5 h-5 flex items-center justify-center bg-amber-500/10 text-amber-500 rounded text-[9px] font-bold shrink-0">AB</span>
-                    <div>
-                      <p>Use Initials</p>
-                      <p className="text-[8px] opacity-60">Letters from name</p>
-                    </div>
-                  </button>
-                  {uploadError && <p className="text-[10px] text-red-500 text-center font-bold">{uploadError}</p>}
-                  <input ref={avatarFileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarSelect} />
-                </div>
-              )}
-            </div>
-            
-            <div className="mt-4 flex flex-col items-center gap-2">
-              <h2 className="text-2xl font-black text-slate-900 dark:text-white">
-                {displayName}
-              </h2>
-              <p className="text-xs font-bold text-amber-500 uppercase tracking-widest">{profileRole}</p>
-              <div className="py-1">
-                <UserStatusBadge status={userStatus as any} />
+                )}
               </div>
-              <p className="text-xs text-slate-400 dark:text-slate-500 font-semibold">{user.email}</p>
             </div>
-          </div>
 
-          {/* Profile Action Tabs */}
-          <div className="flex gap-1 overflow-x-auto pb-1.5 md:pb-0 px-6 md:px-8 pt-4">
+            <div className="relative z-10 flex flex-col items-center text-center px-8 pb-8 pt-4 border-b" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--surface)' }}>
+              <div className="relative shrink-0 -mt-20 sm:-mt-28 z-20">
+                <div className="border-4 border-white dark:border-slate-900 rounded-full shadow-xl bg-background transition-transform duration-300 hover:scale-105 w-28 h-28 group overflow-hidden">
+                  <ProfileAvatar avatarUrl={uploadedAvatar} name={displayName} size={112} className="w-full h-full object-cover rounded-full" />
+                  <button
+                    type="button"
+                    onClick={() => setShowAvatarPanel(!showAvatarPanel)}
+                    className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white text-[10px] font-extrabold uppercase tracking-widest transition-opacity cursor-pointer duration-200 z-30"
+                  >
+                    <Camera size={20} className="mb-1" />
+                    Change Photo
+                  </button>
+                </div>
+                {showAvatarPanel && (
+                  <div className="absolute left-1/2 top-full -translate-x-1/2 mt-2 z-[60] w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-3 space-y-1 text-left">
+                    <div className="flex justify-between items-center px-1 pb-2 border-b" style={{ borderColor: 'var(--border)' }}>
+                      <span className="text-[9px] font-bold uppercase text-slate-400">Change Avatar</span>
+                      <button type="button" onClick={() => setShowAvatarPanel(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded transition">
+                        <X size={12} />
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => avatarFileRef.current?.click()}
+                      disabled={uploading}
+                      className="w-full flex items-center gap-2.5 p-2 rounded-lg text-left text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 cursor-pointer disabled:opacity-50 transition"
+                    >
+                      <Upload size={14} className="text-amber-500 shrink-0" />
+                      <div>
+                        <p>{uploading ? "Uploading..." : "Upload Photo"}</p>
+                        <p className="text-[8px] opacity-60">JPG or PNG</p>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={regenerateAi}
+                      className="w-full flex items-center gap-2.5 p-2 rounded-lg text-left text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 cursor-pointer transition"
+                    >
+                      <Sparkles size={14} className="text-amber-500 animate-pulse shrink-0" />
+                      <div>
+                        <p>AI Avatar</p>
+                        <p className="text-[8px] opacity-60">Generate abstract</p>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const { error } = await supabase.from("profiles").update({
+                          avatar_url: null,
+                          avatar_mode: "initials",
+                          updated_at: new Date().toISOString(),
+                        }).eq("id", user.id);
+                        if (!error) {
+                          setUploadedAvatar(null);
+                          setAvatarMode("initials");
+                          window.dispatchEvent(new CustomEvent("profile-updated"));
+                        }
+                        setShowAvatarPanel(false);
+                      }}
+                      className="w-full flex items-center gap-2.5 p-2 rounded-lg text-left text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 cursor-pointer transition"
+                    >
+                      <span className="w-5 h-5 flex items-center justify-center bg-amber-500/10 text-amber-500 rounded text-[9px] font-bold shrink-0">AB</span>
+                      <div>
+                        <p>Use Initials</p>
+                        <p className="text-[8px] opacity-60">Letters from name</p>
+                      </div>
+                    </button>
+                    {uploadError && <p className="text-[10px] text-red-500 text-center font-bold">{uploadError}</p>}
+                    <input ref={avatarFileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarSelect} />
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-4 flex flex-col items-center gap-2">
+                <h2 className="text-2xl font-black text-slate-900 dark:text-white">
+                  {displayName}
+                </h2>
+                <p className="text-xs font-bold text-amber-500 uppercase tracking-widest">{profileRole}</p>
+                <div className="py-1">
+                  <UserStatusBadge status={userStatus as any} />
+                </div>
+                <p className="text-xs text-slate-400 dark:text-slate-500 font-semibold">{user.email}</p>
+              </div>
+            </div>
+
+            <div className="flex gap-1 overflow-x-auto pb-1.5 md:pb-0 px-6 md:px-8 pt-4">
               {tabs.map(tab => (
-                <button 
-                  key={tab} 
-                  type="button" 
+                <button
+                  key={tab}
+                  type="button"
                   onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap ${
-                    activeTab === tab
-                      ? "bg-amber-500 text-slate-950 shadow-md shadow-amber-500/15"
-                      : "text-slate-500 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100/50 dark:hover:bg-slate-800/50"
-                  }`}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap ${activeTab === tab
+                    ? "bg-amber-500 text-slate-950 shadow-md shadow-amber-500/15"
+                    : "text-slate-500 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100/50 dark:hover:bg-slate-800/50"
+                    }`}
                 >
                   {tab}
                 </button>
               ))}
             </div>
 
-          {/* TAB CONTENTS CONTAINER */}
-          <div style={{ backgroundColor: 'var(--surface)' }}>
-            
-            {/* OVERVIEW TAB */}
-            {activeTab === "overview" && (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6 md:p-8">
-                
-                {/* Left Column: Personal Info & Credentials */}
-                <div className="lg:col-span-2 space-y-6">
-                  {/* Personal Info Card */}
-                  <div className="rounded-2xl p-6 border bg-slate-50/50 dark:bg-slate-950/20" style={{ borderColor: 'var(--border)' }}>
-                    <div className="flex justify-between items-center mb-6">
-                      <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">Personal Info</h3>
-                      <button 
-                        type="button" 
-                        onClick={() => setIsModalOpen(true)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all hover:opacity-90 cursor-pointer"
-                      >
-                        <Pencil size={10} /> Edit Profile
-                      </button>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {[
-                        { label: "Full Name", value: form.full_name, icon: User },
-                        { label: "Phone", value: form.phone, icon: Phone },
-                        { label: "Website", value: form.website, icon: Globe },
-                        { label: "Birthday", value: form.birthday, icon: Cake },
-                      ].map(({ label, value, icon: Icon }) => (
-                        <div key={label} className="flex gap-3 p-3.5 rounded-xl border bg-card" style={{ borderColor: 'var(--border)' }}>
-                          <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0 border border-amber-500/20">
-                            <Icon size={14} />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">{label}</p>
-                            <p className="text-xs font-semibold text-slate-700 dark:text-slate-200 mt-0.5 truncate">
-                              {value || <span className="text-slate-400 font-normal italic">Not set</span>}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
+            <div style={{ backgroundColor: 'var(--surface)' }}>
 
-                      <div className="flex gap-3 p-3.5 rounded-xl border bg-card md:col-span-2" style={{ borderColor: 'var(--border)' }}>
-                        <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0 border border-amber-500/20">
-                          <MapPin size={14} />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Address</p>
-                          {addressDisplay ? (
-                            <div className="mt-0.5">
-                              <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">{addressDisplay}</p>
-                              {address.map_url && (
-                                <a 
-                                  href={address.map_url} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1 mt-1 text-[10px] text-amber-500 hover:text-amber-600 font-extrabold uppercase tracking-wider"
-                                >
-                                  <ExternalLink size={9} /> View on Map
-                                </a>
-                              )}
-                            </div>
-                          ) : (
-                            <p className="text-xs text-slate-400 italic mt-0.5">Not set</p>
-                          )}
-                        </div>
-                      </div>
+              {activeTab === "overview" && (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6 md:p-8">
 
-                      <div className="flex gap-3 p-3.5 rounded-xl border bg-card md:col-span-2" style={{ borderColor: 'var(--border)' }}>
-                        <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0 border border-amber-500/20">
-                          <FileText size={14} />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Bio</p>
-                          <p className="text-xs font-semibold text-slate-700 dark:text-slate-200 mt-0.5 leading-relaxed">
-                            {form.bio || <span className="text-slate-400 font-normal italic">Not set</span>}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Account Credentials Card */}
-                  <div className="rounded-2xl p-6 border bg-slate-50/50 dark:bg-slate-950/20" style={{ borderColor: 'var(--border)' }}>
-                    <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 mb-6 flex items-center gap-2">
-                      <Shield size={16} className="text-amber-500" /> Account Credentials
-                    </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="p-4 rounded-xl border bg-card" style={{ borderColor: 'var(--border)' }}>
-                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Email Address</p>
-                        <p className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-1 truncate">{user.email}</p>
-                        <span className="inline-flex mt-2 px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                          Verified
-                        </span>
-                      </div>
-                      <div className="p-4 rounded-xl border bg-card" style={{ borderColor: 'var(--border)' }}>
-                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Auth Provider</p>
-                        <p className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-1 capitalize truncate">{provider}</p>
-                      </div>
-                      <div className="p-4 rounded-xl border bg-card" style={{ borderColor: 'var(--border)' }}>
-                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Member Since</p>
-                        <p className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-1 truncate">{joinedDate}</p>
-                      </div>
-                      <div className="p-4 rounded-xl border bg-card flex flex-col justify-between" style={{ borderColor: 'var(--border)' }}>
-                        <div>
-                          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Workspace Account ID</p>
-                          <p className="text-[10px] font-mono text-slate-500 mt-1 truncate">{user.id}</p>
-                        </div>
-                        <button 
-                          type="button" 
-                          onClick={copyId}
-                          className="mt-2 text-left self-start text-[9px] font-bold uppercase tracking-wider text-amber-500 hover:text-amber-600 transition-colors cursor-pointer"
+                  <div className="lg:col-span-2 space-y-6">
+                    <div className="rounded-2xl p-6 border bg-slate-50/50 dark:bg-slate-950/20" style={{ borderColor: 'var(--border)' }}>
+                      <div className="flex justify-between items-center mb-6">
+                        <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">Personal Info</h3>
+                        <button
+                          type="button"
+                          onClick={() => setIsModalOpen(true)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all hover:opacity-90 cursor-pointer"
                         >
-                          {copied ? "✓ Copied ID" : "Copy Account ID"}
+                          <Pencil size={10} /> Edit Profile
                         </button>
                       </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right Column: Social Links, QR Code, Session Info */}
-                <div className="space-y-6">
-                  
-                  {/* Third Party Links Card */}
-                  <div className="rounded-2xl p-6 border bg-slate-50/50 dark:bg-slate-950/20" style={{ borderColor: 'var(--border)' }}>
-                    <div className="flex justify-between items-center mb-6">
-                      <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                        <ExternalLink size={16} className="text-amber-500" /> Web Links
-                      </h3>
-                      <button 
-                        type="button" 
-                        onClick={openAddLink}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all hover:opacity-90 cursor-pointer"
-                      >
-                        <Plus size={10} /> Add Link
-                      </button>
-                    </div>
-
-                    {socialLinks.length === 0 ? (
-                      <div className="text-center py-10 border border-dashed rounded-xl" style={{ borderColor: 'var(--border)' }}>
-                        <ExternalLink size={24} className="mx-auto text-slate-400 mb-2" />
-                        <p className="text-xs text-slate-400 font-bold uppercase tracking-wide">No web links added yet</p>
-                        <button 
-                          type="button" 
-                          onClick={openAddLink}
-                          className="mt-2 text-xs font-bold text-amber-500 hover:text-amber-600 transition-colors cursor-pointer"
-                        >
-                          Add first link
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {socialLinks.map(link => (
-                          <div 
-                            key={link.id} 
-                            className="flex items-center justify-between p-3 rounded-xl border bg-card group relative" 
-                            style={{ borderColor: 'var(--border)' }}
-                          >
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <PlatformBadge platform={link.platform} size={28} />
-                              <div className="min-w-0">
-                                <p className="text-[10px] font-black uppercase tracking-wide">{PLATFORM_META[link.platform]?.label || "Website"}</p>
-                                <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium truncate mt-0.5 max-w-[120px] sm:max-w-[180px]">{link.url}</p>
-                              </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {[
+                          { label: "Full Name", value: form.full_name, icon: User },
+                          { label: "Phone", value: form.phone, icon: Phone },
+                          { label: "Website", value: form.website, icon: Globe },
+                          { label: "Birthday", value: form.birthday, icon: Cake },
+                        ].map(({ label, value, icon: Icon }) => (
+                          <div key={label} className="flex gap-3 p-3.5 rounded-xl border bg-card" style={{ borderColor: 'var(--border)' }}>
+                            <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0 border border-amber-500/20">
+                              <Icon size={14} />
                             </div>
-                            <div className="flex items-center gap-1">
-                              <a 
-                                href={link.url} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-foreground"
-                              >
-                                <ExternalLink size={12} />
-                              </a>
-                              <button 
-                                type="button" 
-                                onClick={() => openEditLink(link)}
-                                className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-amber-500 cursor-pointer"
-                              >
-                                <Pencil size={12} />
-                              </button>
-                              <button 
-                                type="button" 
-                                onClick={() => deleteLink(link.id)}
-                                className="p-1.5 rounded-lg text-slate-500 hover:bg-rose-500/10 hover:text-rose-500 cursor-pointer"
-                              >
-                                <Trash2 size={12} />
-                              </button>
+                            <div className="min-w-0">
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">{label}</p>
+                              <p className="text-xs font-semibold text-slate-700 dark:text-slate-200 mt-0.5 truncate">
+                                {value || <span className="text-slate-400 font-normal italic">Not set</span>}
+                              </p>
                             </div>
                           </div>
                         ))}
+
+                        <div className="flex gap-3 p-3.5 rounded-xl border bg-card md:col-span-2" style={{ borderColor: 'var(--border)' }}>
+                          <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0 border border-amber-500/20">
+                            <MapPin size={14} />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Address</p>
+                            {addressDisplay ? (
+                              <div className="mt-0.5">
+                                <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">{addressDisplay}</p>
+                                {address.map_url && (
+                                  <a
+                                    href={address.map_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 mt-1 text-[10px] text-amber-500 hover:text-amber-600 font-extrabold uppercase tracking-wider"
+                                  >
+                                    <ExternalLink size={9} /> View on Map
+                                  </a>
+                                )}
+                              </div>
+                            ) : (
+                              <p className="text-xs text-slate-400 italic mt-0.5">Not set</p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex gap-3 p-3.5 rounded-xl border bg-card md:col-span-2" style={{ borderColor: 'var(--border)' }}>
+                          <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0 border border-amber-500/20">
+                            <FileText size={14} />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Bio</p>
+                            <p className="text-xs font-semibold text-slate-700 dark:text-slate-200 mt-0.5 leading-relaxed">
+                              {form.bio || <span className="text-slate-400 font-normal italic">Not set</span>}
+                            </p>
+                          </div>
+                        </div>
                       </div>
-                    )}
+                    </div>
+
+                    <div className="rounded-2xl p-6 border bg-slate-50/50 dark:bg-slate-950/20" style={{ borderColor: 'var(--border)' }}>
+                      <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 mb-6 flex items-center gap-2">
+                        <Shield size={16} className="text-amber-500" /> Account Credentials
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="p-4 rounded-xl border bg-card" style={{ borderColor: 'var(--border)' }}>
+                          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Email Address</p>
+                          <p className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-1 truncate">{user.email}</p>
+                          <span className="inline-flex mt-2 px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                            Verified
+                          </span>
+                        </div>
+                        <div className="p-4 rounded-xl border bg-card" style={{ borderColor: 'var(--border)' }}>
+                          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Auth Provider</p>
+                          <p className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-1 capitalize truncate">{provider}</p>
+                        </div>
+                        <div className="p-4 rounded-xl border bg-card" style={{ borderColor: 'var(--border)' }}>
+                          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Member Since</p>
+                          <p className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-1 truncate">{joinedDate}</p>
+                        </div>
+                        <div className="p-4 rounded-xl border bg-card flex flex-col justify-between" style={{ borderColor: 'var(--border)' }}>
+                          <div>
+                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Workspace Account ID</p>
+                            <p className="text-[10px] font-mono text-slate-500 mt-1 truncate">{user.id}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={copyId}
+                            className="mt-2 text-left self-start text-[9px] font-bold uppercase tracking-wider text-amber-500 hover:text-amber-600 transition-colors cursor-pointer"
+                          >
+                            {copied ? "✓ Copied ID" : "Copy Account ID"}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* GCash QR Card */}
-                  <div className="rounded-2xl p-6 border bg-slate-50/50 dark:bg-slate-950/20" style={{ borderColor: 'var(--border)' }}>
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                        <QrCode size={16} className="text-amber-500" /> GCash QR
-                      </h3>
-                      {gcashQr && (
-                        <button 
-                          type="button" 
-                          onClick={removeGcashQr}
-                          className="text-[10px] font-bold text-rose-500 hover:text-rose-600 cursor-pointer"
+                  <div className="space-y-6">
+
+                    <div className="rounded-2xl p-6 border bg-slate-50/50 dark:bg-slate-950/20" style={{ borderColor: 'var(--border)' }}>
+                      <div className="flex justify-between items-center mb-6">
+                        <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                          <ExternalLink size={16} className="text-amber-500" /> Web Links
+                        </h3>
+                        <button
+                          type="button"
+                          onClick={openAddLink}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all hover:opacity-90 cursor-pointer"
                         >
-                          Remove
+                          <Plus size={10} /> Add Link
                         </button>
+                      </div>
+
+                      {socialLinks.length === 0 ? (
+                        <div className="text-center py-10 border border-dashed rounded-xl" style={{ borderColor: 'var(--border)' }}>
+                          <ExternalLink size={24} className="mx-auto text-slate-400 mb-2" />
+                          <p className="text-xs text-slate-400 font-bold uppercase tracking-wide">No web links added yet</p>
+                          <button
+                            type="button"
+                            onClick={openAddLink}
+                            className="mt-2 text-xs font-bold text-amber-500 hover:text-amber-600 transition-colors cursor-pointer"
+                          >
+                            Add first link
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {socialLinks.map(link => (
+                            <div
+                              key={link.id}
+                              className="flex items-center justify-between p-3 rounded-xl border bg-card group relative"
+                              style={{ borderColor: 'var(--border)' }}
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <PlatformBadge platform={link.platform} size={28} />
+                                <div className="min-w-0">
+                                  <p className="text-[10px] font-black uppercase tracking-wide">{PLATFORM_META[link.platform]?.label || "Website"}</p>
+                                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium truncate mt-0.5 max-w-[120px] sm:max-w-[180px]">{link.url}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <a
+                                  href={link.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-foreground"
+                                >
+                                  <ExternalLink size={12} />
+                                </a>
+                                <button
+                                  type="button"
+                                  onClick={() => openEditLink(link)}
+                                  className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-amber-500 cursor-pointer"
+                                >
+                                  <Pencil size={12} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => deleteLink(link.id)}
+                                  className="p-1.5 rounded-lg text-slate-500 hover:bg-rose-500/10 hover:text-rose-500 cursor-pointer"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       )}
                     </div>
 
-                    {gcashQr ? (
-                      <div className="flex flex-col items-center gap-4">
-                        <div className="p-2 border bg-white rounded-xl shadow-inner max-w-[160px]">
-                          <img src={gcashQr} alt="GCash QR" className="w-full object-contain rounded-lg" />
+                    <div className="rounded-2xl p-6 border bg-slate-50/50 dark:bg-slate-950/20" style={{ borderColor: 'var(--border)' }}>
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                          <QrCode size={16} className="text-amber-500" /> GCash QR
+                        </h3>
+                        {gcashQr && (
+                          <button
+                            type="button"
+                            onClick={removeGcashQr}
+                            className="text-[10px] font-bold text-rose-500 hover:text-rose-600 cursor-pointer"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+
+                      {gcashQr ? (
+                        <div className="flex flex-col items-center gap-4">
+                          <div className="p-2 border bg-white rounded-xl shadow-inner max-w-[160px]">
+                            <img src={gcashQr} alt="GCash QR" className="w-full object-contain rounded-lg" />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => gcashFileRef.current?.click()}
+                            className="w-full py-2.5 rounded-xl border font-bold text-xs transition hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer text-center"
+                            style={{ borderColor: 'var(--border)' }}
+                          >
+                            <Upload size={12} className="inline mr-1" /> Replace QR Code
+                          </button>
                         </div>
-                        <button 
-                          type="button" 
-                          onClick={() => gcashFileRef.current?.click()}
-                          className="w-full py-2.5 rounded-xl border font-bold text-xs transition hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer text-center"
+                      ) : (
+                        <div className="text-center py-6 border border-dashed rounded-xl" style={{ borderColor: 'var(--border)' }}>
+                          <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-900 text-slate-400 mx-auto flex items-center justify-center mb-3">
+                            <QrCode size={20} />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => gcashFileRef.current?.click()}
+                            disabled={gcashUploading}
+                            className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs transition cursor-pointer"
+                          >
+                            <Upload size={12} className="inline mr-1" /> {gcashUploading ? "Uploading..." : "Upload QR"}
+                          </button>
+                          <p className="text-[9px] text-slate-400 font-semibold max-w-[200px] mx-auto mt-2 leading-relaxed">
+                            Provide GCash QR so teammates can scan and send details.
+                          </p>
+                        </div>
+                      )}
+                      {gcashError && <p className="text-[10px] text-red-500 text-center font-bold mt-2">{gcashError}</p>}
+                      <input ref={gcashFileRef} type="file" accept="image/*" className="hidden" onChange={handleGcashSelect} />
+                    </div>
+
+                    <div className="rounded-2xl p-6 border bg-slate-50/50 dark:bg-slate-950/20" style={{ borderColor: 'var(--border)' }}>
+                      <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 mb-4">Session Info</h3>
+                      <div className="space-y-3 text-xs">
+                        <div className="flex justify-between py-1 border-b" style={{ borderColor: 'var(--border)' }}>
+                          <span className="text-slate-400 font-semibold">Last Log In</span>
+                          <span className="font-bold text-slate-700 dark:text-slate-200">{lastSignIn}</span>
+                        </div>
+                        <div className="flex justify-between py-1">
+                          <span className="text-slate-400 font-semibold">Platform Access</span>
+                          <span className="font-extrabold text-amber-500 uppercase tracking-widest">{user.role || "intern"}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+
+                </div>
+              )}
+
+              {activeTab === "security" && (
+                <div className="p-6 md:p-8 space-y-6">
+
+                  <div className="rounded-2xl p-6 border bg-slate-50/50 dark:bg-slate-950/20" style={{ borderColor: 'var(--border)' }}>
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <h3 className="font-bold text-sm">Two-Factor Authentication</h3>
+                        <p className="text-xs opacity-75 mt-1">Configure an additional authentication shield for your workspace profile.</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setTwoFactor(!twoFactor)}
+                        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 ${twoFactor ? "bg-amber-500" : "bg-slate-300 dark:bg-slate-700"
+                          }`}
+                      >
+                        <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${twoFactor ? "translate-x-5" : "translate-x-0"
+                          }`} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl p-6 border bg-slate-50/50 dark:bg-slate-950/20 space-y-4" style={{ borderColor: 'var(--border)' }}>
+                    <div className="flex items-center gap-3 border-b pb-3" style={{ borderColor: 'var(--border)' }}>
+                      <div className="p-2 bg-amber-500/10 text-amber-500 rounded-xl border border-amber-500/20 flex items-center justify-center shrink-0">
+                        <Lock size={16} />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-sm">Secure Credentials Vault</h3>
+                        <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mt-0.5">Maintain personal credentials or keys securely in the cloud.</p>
+                      </div>
+                    </div>
+                    <textarea
+                      value={accountNotes}
+                      onChange={(e) => setAccountNotes(e.target.value)}
+                      placeholder="Write emails, passwords, notes or details here securely..."
+                      rows={6}
+                      className="w-full text-sm font-mono bg-card border border-border rounded-xl p-4 focus:outline-none focus:border-amber-500 outline-none transition-all"
+                    />
+                    <div className="flex justify-end pt-2">
+                      <button
+                        type="button"
+                        onClick={saveAccountNotes}
+                        disabled={isSavingNotes}
+                        className="px-6 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-bold rounded-xl hover:opacity-90 transition cursor-pointer"
+                      >
+                        {isSavingNotes ? "Saving Vault..." : "Save Secure Notes"}
+                      </button>
+                    </div>
+                  </div>
+
+                </div>
+              )}
+
+              {activeTab === "notifications" && (
+                <div className="p-6 md:p-8 space-y-4">
+                  <div className="rounded-2xl p-6 border bg-slate-50/50 dark:bg-slate-950/20" style={{ borderColor: 'var(--border)' }}>
+                    <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 mb-6 flex items-center gap-2">
+                      <Bell size={16} className="text-amber-500" /> Notifications Settings
+                    </h3>
+                    <div className="space-y-4">
+                      {[
+                        {
+                          label: "Email Notifications",
+                          desc: "Receive ledger updates, action alerts and automated team summaries.",
+                          state: notifEmail,
+                          toggle: () => setNotifEmail(!notifEmail)
+                        },
+                        {
+                          label: "Push Notifications",
+                          desc: "Receive instant real-time browser prompts and active message alerts.",
+                          state: notifPush,
+                          toggle: () => setNotifPush(!notifPush)
+                        },
+                      ].map(item => (
+                        <div
+                          key={item.label}
+                          className="flex items-center justify-between gap-4 p-4 rounded-xl border bg-card"
                           style={{ borderColor: 'var(--border)' }}
                         >
-                          <Upload size={12} className="inline mr-1" /> Replace QR Code
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="text-center py-6 border border-dashed rounded-xl" style={{ borderColor: 'var(--border)' }}>
-                        <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-900 text-slate-400 mx-auto flex items-center justify-center mb-3">
-                          <QrCode size={20} />
+                          <div>
+                            <h4 className="font-bold text-sm">{item.label}</h4>
+                            <p className="text-xs opacity-75 mt-0.5">{item.desc}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={item.toggle}
+                            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 ${item.state ? "bg-amber-500" : "bg-slate-300 dark:bg-slate-700"
+                              }`}
+                          >
+                            <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${item.state ? "translate-x-5" : "translate-x-0"
+                              }`} />
+                          </button>
                         </div>
-                        <button 
-                          type="button" 
-                          onClick={() => gcashFileRef.current?.click()} 
-                          disabled={gcashUploading}
-                          className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs transition cursor-pointer"
-                        >
-                          <Upload size={12} className="inline mr-1" /> {gcashUploading ? "Uploading..." : "Upload QR"}
-                        </button>
-                        <p className="text-[9px] text-slate-400 font-semibold max-w-[200px] mx-auto mt-2 leading-relaxed">
-                          Provide GCash QR so teammates can scan and send details.
-                        </p>
-                      </div>
-                    )}
-                    {gcashError && <p className="text-[10px] text-red-500 text-center font-bold mt-2">{gcashError}</p>}
-                    <input ref={gcashFileRef} type="file" accept="image/*" className="hidden" onChange={handleGcashSelect} />
-                  </div>
-
-                  {/* Session Details Card */}
-                  <div className="rounded-2xl p-6 border bg-slate-50/50 dark:bg-slate-950/20" style={{ borderColor: 'var(--border)' }}>
-                    <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 mb-4">Session Info</h3>
-                    <div className="space-y-3 text-xs">
-                      <div className="flex justify-between py-1 border-b" style={{ borderColor: 'var(--border)' }}>
-                        <span className="text-slate-400 font-semibold">Last Log In</span>
-                        <span className="font-bold text-slate-700 dark:text-slate-200">{lastSignIn}</span>
-                      </div>
-                      <div className="flex justify-between py-1">
-                        <span className="text-slate-400 font-semibold">Platform Access</span>
-                        <span className="font-extrabold text-amber-500 uppercase tracking-widest">{user.role || "intern"}</span>
-                      </div>
+                      ))}
                     </div>
                   </div>
-
                 </div>
+              )}
 
-              </div>
-            )}
-
-            {/* SECURITY TAB */}
-            {activeTab === "security" && (
-              <div className="p-6 md:p-8 space-y-6">
-                
-                {/* Two-factor authentication Toggle Card */}
-                <div className="rounded-2xl p-6 border bg-slate-50/50 dark:bg-slate-950/20" style={{ borderColor: 'var(--border)' }}>
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <h3 className="font-bold text-sm">Two-Factor Authentication</h3>
-                      <p className="text-xs opacity-75 mt-1">Configure an additional authentication shield for your workspace profile.</p>
-                    </div>
-                    <button 
-                      type="button" 
-                      onClick={() => setTwoFactor(!twoFactor)}
-                      className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 ${
-                        twoFactor ? "bg-amber-500" : "bg-slate-300 dark:bg-slate-700"
-                      }`}
-                    >
-                      <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                        twoFactor ? "translate-x-5" : "translate-x-0"
-                      }`} />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Secure Credentials Vault Notes */}
-                <div className="rounded-2xl p-6 border bg-slate-50/50 dark:bg-slate-950/20 space-y-4" style={{ borderColor: 'var(--border)' }}>
-                  <div className="flex items-center gap-3 border-b pb-3" style={{ borderColor: 'var(--border)' }}>
-                    <div className="p-2 bg-amber-500/10 text-amber-500 rounded-xl border border-amber-500/20 flex items-center justify-center shrink-0">
-                      <Lock size={16} />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-sm">Secure Credentials Vault</h3>
-                      <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mt-0.5">Maintain personal credentials or keys securely in the cloud.</p>
-                    </div>
-                  </div>
-                  <textarea
-                    value={accountNotes}
-                    onChange={(e) => setAccountNotes(e.target.value)}
-                    placeholder="Write emails, passwords, notes or details here securely..."
-                    rows={6}
-                    className="w-full text-sm font-mono bg-card border border-border rounded-xl p-4 focus:outline-none focus:border-amber-500 outline-none transition-all"
-                  />
-                  <div className="flex justify-end pt-2">
-                    <button
-                      type="button"
-                      onClick={saveAccountNotes}
-                      disabled={isSavingNotes}
-                      className="px-6 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-bold rounded-xl hover:opacity-90 transition cursor-pointer"
-                    >
-                      {isSavingNotes ? "Saving Vault..." : "Save Secure Notes"}
-                    </button>
-                  </div>
-                </div>
-
-              </div>
-            )}
-
-            {/* NOTIFICATIONS TAB */}
-            {activeTab === "notifications" && (
-              <div className="p-6 md:p-8 space-y-4">
-                <div className="rounded-2xl p-6 border bg-slate-50/50 dark:bg-slate-950/20" style={{ borderColor: 'var(--border)' }}>
-                  <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 mb-6 flex items-center gap-2">
-                    <Bell size={16} className="text-amber-500" /> Notifications Settings
-                  </h3>
-                  <div className="space-y-4">
-                    {[
-                      { 
-                        label: "Email Notifications", 
-                        desc: "Receive ledger updates, action alerts and automated team summaries.", 
-                        state: notifEmail, 
-                        toggle: () => setNotifEmail(!notifEmail) 
-                      },
-                      { 
-                        label: "Push Notifications", 
-                        desc: "Receive instant real-time browser prompts and active message alerts.", 
-                        state: notifPush, 
-                        toggle: () => setNotifPush(!notifPush) 
-                      },
-                    ].map(item => (
-                      <div 
-                        key={item.label} 
-                        className="flex items-center justify-between gap-4 p-4 rounded-xl border bg-card" 
-                        style={{ borderColor: 'var(--border)' }}
-                      >
-                        <div>
-                          <h4 className="font-bold text-sm">{item.label}</h4>
-                          <p className="text-xs opacity-75 mt-0.5">{item.desc}</p>
-                        </div>
-                        <button 
-                          type="button" 
-                          onClick={item.toggle}
-                          className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 ${
-                            item.state ? "bg-amber-500" : "bg-slate-300 dark:bg-slate-700"
-                          }`}
-                        >
-                          <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                            item.state ? "translate-x-5" : "translate-x-0"
-                          }`} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
+            </div>
           </div>
-        </div>
 
+        </div>
       </div>
 
-      {/* MODALS */}
-      
-      {/* Edit Profile Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-in fade-in-30">
           <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={() => setIsModalOpen(false)}
               className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
             >
               <X size={16} />
             </button>
-            
+
             <div className="mb-4">
               <h3 className="text-lg font-bold">Edit Personal Info</h3>
               <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mt-0.5">Update details visible on your profile.</p>
@@ -1789,25 +1572,25 @@ const deleteLink = async (id: string) => {
               ].map(({ label, key, placeholder, type }) => (
                 <div key={key}>
                   <label className="block text-xs font-bold uppercase text-slate-400 mb-1">{label}</label>
-                  <input 
-                    type={type || "text"} 
+                  <input
+                    type={type || "text"}
                     value={form[key as keyof typeof form]}
                     onChange={e => setForm({ ...form, [key]: e.target.value })}
                     placeholder={placeholder}
                     className="w-full p-2.5 rounded-xl border bg-slate-50 dark:bg-slate-950 focus:outline-none focus:border-amber-500 text-sm"
-                    style={{ borderColor: 'var(--border)' }} 
+                    style={{ borderColor: 'var(--border)' }}
                   />
                 </div>
               ))}
               <div>
                 <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Bio</label>
-                <textarea 
-                  value={form.bio} 
+                <textarea
+                  value={form.bio}
                   onChange={e => setForm({ ...form, bio: e.target.value })}
-                  placeholder="A short bio about yourself..." 
+                  placeholder="A short bio about yourself..."
                   rows={3}
                   className="w-full p-2.5 rounded-xl border bg-slate-50 dark:bg-slate-950 focus:outline-none focus:border-amber-500 text-sm"
-                  style={{ borderColor: 'var(--border)' }} 
+                  style={{ borderColor: 'var(--border)' }}
                 />
               </div>
 
@@ -1817,17 +1600,17 @@ const deleteLink = async (id: string) => {
             </div>
 
             <div className="flex justify-end gap-3 pt-4 border-t" style={{ borderColor: 'var(--border)' }}>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => setIsModalOpen(false)}
                 className="px-5 py-2.5 rounded-xl border text-xs font-bold transition hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
                 style={{ borderColor: 'var(--border)' }}
               >
                 Cancel
               </button>
-              <button 
-                type="button" 
-                onClick={saveProfile} 
+              <button
+                type="button"
+                onClick={saveProfile}
                 disabled={saving}
                 className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs transition cursor-pointer"
               >
@@ -1838,18 +1621,17 @@ const deleteLink = async (id: string) => {
         </div>
       )}
 
-      {/* Add / Edit Social Link Modal */}
       {showLinkForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-in fade-in-30">
           <div className="relative w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col">
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={() => setShowLinkForm(false)}
               className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
             >
               <X size={16} />
             </button>
-            
+
             <div className="mb-4">
               <h3 className="text-lg font-bold">{editingLinkId ? "Edit Web Link" : "Add Web Link"}</h3>
               <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mt-0.5">Link a personal portfolio or web channel.</p>
@@ -1858,29 +1640,28 @@ const deleteLink = async (id: string) => {
             <div className="space-y-4 py-2">
               <div>
                 <label className="block text-xs font-bold uppercase text-slate-400 mb-1">URL</label>
-                <input 
-                  type="url" 
-                  value={newLinkUrl} 
+                <input
+                  type="url"
+                  value={newLinkUrl}
                   onChange={e => handleLinkUrlChange(e.target.value)}
                   placeholder="https://github.com/username"
                   className="w-full p-2.5 rounded-xl border bg-slate-50 dark:bg-slate-950 focus:outline-none focus:border-amber-500 text-sm"
-                  style={{ borderColor: 'var(--border)' }} 
+                  style={{ borderColor: 'var(--border)' }}
                 />
               </div>
               <div>
                 <label className="block text-xs font-bold uppercase text-slate-400 mb-2">Platform</label>
                 <div className="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto p-1 border rounded-xl" style={{ borderColor: 'var(--border)' }}>
                   {PLATFORM_OPTIONS.map(p => (
-                    <button 
-                      key={p.id} 
-                      type="button" 
+                    <button
+                      key={p.id}
+                      type="button"
                       onClick={() => setNewLinkPlatform(p.id)}
                       title={p.label}
-                      className={`flex flex-col items-center justify-center p-2 rounded-lg border text-center transition gap-1 cursor-pointer ${
-                        newLinkPlatform === p.id
-                          ? "border-amber-500 bg-amber-500/5 text-amber-600 dark:text-amber-400"
-                          : "border-border bg-slate-50 dark:bg-slate-950 hover:border-amber-500/30"
-                      }`}
+                      className={`flex flex-col items-center justify-center p-2 rounded-lg border text-center transition gap-1 cursor-pointer ${newLinkPlatform === p.id
+                        ? "border-amber-500 bg-amber-500/5 text-amber-600 dark:text-amber-400"
+                        : "border-border bg-slate-50 dark:bg-slate-950 hover:border-amber-500/30"
+                        }`}
                     >
                       <PlatformBadge platform={p.id} size={20} />
                       <span className="text-[9px] font-bold truncate w-full">{p.label}</span>
@@ -1888,7 +1669,7 @@ const deleteLink = async (id: string) => {
                   ))}
                 </div>
               </div>
-              
+
               {newLinkUrl && (
                 <div className="flex items-center gap-2.5 p-3 rounded-xl border bg-slate-50 dark:bg-slate-950" style={{ borderColor: 'var(--border)' }}>
                   <PlatformBadge platform={newLinkPlatform} size={28} />
@@ -1901,17 +1682,17 @@ const deleteLink = async (id: string) => {
             </div>
 
             <div className="flex justify-end gap-3 pt-4 border-t mt-4" style={{ borderColor: 'var(--border)' }}>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => setShowLinkForm(false)}
                 className="px-5 py-2.5 rounded-xl border text-xs font-bold transition hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
                 style={{ borderColor: 'var(--border)' }}
               >
                 Cancel
               </button>
-              <button 
-                type="button" 
-                onClick={saveLink} 
+              <button
+                type="button"
+                onClick={saveLink}
                 disabled={savingLinks || !newLinkUrl.trim()}
                 className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs transition cursor-pointer"
               >
@@ -1921,29 +1702,29 @@ const deleteLink = async (id: string) => {
           </div>
         </div>
       )}
-      {/* Profile Image Preview Modal */}
+
       {isPreviewModalOpen && avatarPreviewUrl && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-[#121318] border border-zinc-800 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150">
             <div className="flex justify-between items-center p-5 border-b border-zinc-800 bg-zinc-900/30">
               <h3 className="text-sm font-bold text-zinc-100">Check Profile Image</h3>
-              <button 
+              <button
                 onClick={() => {
                   setIsPreviewModalOpen(false);
                   setAvatarFileToUpload(null);
                   setAvatarPreviewUrl(null);
-                }} 
+                }}
                 className="text-zinc-500 hover:text-zinc-300 p-1.5 hover:bg-zinc-800 rounded-xl transition"
               >
                 <X size={16} />
               </button>
             </div>
-            
+
             <div className="p-6 flex flex-col items-center justify-center bg-zinc-950/40">
               <div className="relative w-48 h-48 rounded-full overflow-hidden border-4 border-zinc-800 bg-zinc-900 shadow-inner flex items-center justify-center">
-                <img 
-                  src={avatarPreviewUrl} 
-                  alt="Avatar Preview" 
+                <img
+                  src={avatarPreviewUrl}
+                  alt="Avatar Preview"
                   className="w-full h-full object-cover"
                 />
               </div>
@@ -1977,5 +1758,3 @@ const deleteLink = async (id: string) => {
     </div>
   );
 }
-
-

@@ -167,7 +167,7 @@ export default function DashboardOverviewPage() {
         <Header />
 
         <motion.main className={styles.content} variants={containerVariants} initial="hidden" animate="show">
-          {/* 1. HERO SECTION */}
+
           <motion.section variants={fadeVariants}>
             <DashboardHero
               adminName={adminName}
