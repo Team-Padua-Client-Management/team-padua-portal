@@ -165,8 +165,8 @@ CREATE TABLE IF NOT EXISTS advisor_daily_activity (
 );
 
 -- 2. Add Triggers for updated_at
-CREATE TRIGGER update_premium_payments_updated_at BEFORE UPDATE ON premium_payments FOR EACH ROW EXECUTE PROCEDURE update_modified_column();
 CREATE TRIGGER update_policy_cards_updated_at BEFORE UPDATE ON policy_cards FOR EACH ROW EXECUTE PROCEDURE update_modified_column();
+CREATE TRIGGER update_premium_payments_updated_at BEFORE UPDATE ON premium_payments FOR EACH ROW EXECUTE PROCEDURE update_modified_column();
 CREATE TRIGGER update_social_media_visibility_updated_at BEFORE UPDATE ON social_media_visibility FOR EACH ROW EXECUTE PROCEDURE update_modified_column();
 CREATE TRIGGER update_advisor_change_requests_updated_at BEFORE UPDATE ON advisor_change_requests FOR EACH ROW EXECUTE PROCEDURE update_modified_column();
 CREATE TRIGGER update_beneficiary_change_requests_updated_at BEFORE UPDATE ON beneficiary_change_requests FOR EACH ROW EXECUTE PROCEDURE update_modified_column();
