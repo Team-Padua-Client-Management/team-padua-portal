@@ -309,7 +309,7 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const [activeModal, setActiveModal] = useState<'add' | 'edit' | 'import' | 'addAdvisor' | 'editAdvisor' | 'actions' | 'documents' | 'documentPreview' | null>(null);
+  const [activeModal, setActiveModal] = useState<'add' | 'edit' | 'import' | 'addAdvisor' | 'editAdvisor' | 'actions' | 'documents' | 'documentPreview' | 'basicInfo' | null>(null);
   const [currentClient, setCurrentClient] = useState<Partial<ClientManagementRecord>>({});
   const [currentAdvisor, setCurrentAdvisor] = useState<Partial<AdvisorRecord>>({});
 
@@ -472,6 +472,10 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    console.log("activeModal state:", activeModal);
+  }, [activeModal]);
 
   const advisorStatsMap = useMemo(() => {
     const map = new Map<string, { totalClients: number; activePolicies: number; totalPremium: number }>();
@@ -2692,6 +2696,16 @@ ${result.error?.hint}
                 Select a form to open for <strong className="text-foreground">{currentClient.clientName}</strong>
               </p>
 
+              <button onClick={() => { console.log("Basic Info clicked"); setActiveModal('basicInfo'); }} className="w-full px-4 py-3.5 bg-surface hover:bg-primary/10 border border-border hover:border-primary text-sm font-medium rounded-xl text-foreground flex items-center justify-between transition-colors text-left group">
+                <span className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                    <UserCheck size={16} />
+                  </div>
+                  Basic Info
+                </span>
+                <ChevronRight size={16} className="text-muted-foreground group-hover:text-primary transition-colors" />
+              </button>
+
               <button onClick={() => setActiveModal('documents')} className="w-full px-4 py-3.5 bg-surface hover:bg-primary/10 border border-border hover:border-primary text-sm font-medium rounded-xl text-foreground flex items-center justify-between transition-colors text-left group">
                 <span className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
@@ -2707,8 +2721,8 @@ ${result.error?.hint}
       )}
 
       {activeModal === 'documents' && currentClient && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in duration-200">
-          <div className="bg-card border border-border/80 w-full max-w-3xl rounded-[32px] shadow-[0_32px_80px_rgba(0,0,0,0.25)] relative flex flex-col overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 max-h-[90vh]">
+        <div className="fixed inset-0 z-50 flex items-center justify-end bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <div className="bg-card border border-border/80 w-full max-w-2xl h-full rounded-[32px] shadow-[0_32px_80px_rgba(0,0,0,0.25)] relative flex flex-col overflow-hidden animate-in slide-in-from-right duration-300">
 
             {/* ── HEADER ── */}
             <div className="relative overflow-hidden shrink-0">
@@ -2861,6 +2875,64 @@ ${result.error?.hint}
         variant="danger"
         isLoading={isDeletingAdvisor}
       />
+
+      {activeModal === 'basicInfo' && currentClient && (
+        <div className="fixed inset-0 z-50 flex items-center justify-end bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <div className="bg-card border border-border/80 w-full max-w-md h-full rounded-[32px] shadow-[0_32px_80px_rgba(0,0,0,0.25)] relative flex flex-col overflow-hidden animate-in slide-in-from-right duration-300">
+            <div className="relative overflow-hidden shrink-0">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent pointer-events-none" />
+              <div className="relative flex items-center justify-between px-7 py-5 border-b border-border/60">
+                <div className="flex items-center gap-4">
+                  <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-lg shadow-primary/30">
+                    <UserCheck size={22} className="text-black" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-black text-text tracking-tight">Basic Info</h2>
+                    <p className="text-xs text-text-secondary mt-0.5">
+                      Client details for <span className="font-semibold text-primary">{currentClient.clientName}</span>
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setActiveModal(null)}
+                  className="w-9 h-9 flex items-center justify-center text-muted-foreground hover:text-text hover:bg-surface-2 rounded-full transition-all duration-200 border border-transparent hover:border-border active:scale-95"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+            <div className="overflow-y-auto flex-1 min-h-0 p-6 space-y-6">
+              <div className="flex flex-col gap-5">
+                <div className="bg-surface-2/60 p-4 rounded-2xl border border-border/60">
+                  <label className={formLabelClass}>Client Name</label>
+                  <p className="text-base font-bold text-foreground mt-1">{currentClient.clientName || '—'}</p>
+                </div>
+                <div className="bg-surface-2/60 p-4 rounded-2xl border border-border/60">
+                  <label className={formLabelClass}>Email</label>
+                  <p className="text-sm font-semibold text-foreground mt-1">{currentClient.email || '—'}</p>
+                </div>
+                <div className="bg-surface-2/60 p-4 rounded-2xl border border-border/60">
+                  <label className={formLabelClass}>Mobile Number</label>
+                  <p className="text-sm font-semibold text-foreground mt-1">{currentClient.mobileNumber || '—'}</p>
+                </div>
+                <div className="bg-surface-2/60 p-4 rounded-2xl border border-border/60">
+                  <label className={formLabelClass}>Address</label>
+                  <p className="text-sm font-semibold text-foreground mt-1">{currentClient.address || '—'}</p>
+                </div>
+                <div className="bg-surface-2/60 p-4 rounded-2xl border border-border/60">
+                  <label className={formLabelClass}>Birthdate</label>
+                  <p className="text-sm font-semibold text-foreground mt-1">{currentClient.birthdate || '—'}</p>
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-3 p-6 border-t border-border bg-card shrink-0">
+              <button type="button" onClick={() => setActiveModal(null)} className="flex-1 bg-transparent border border-border text-text hover:bg-surface-2 text-xs font-semibold py-2.5 rounded-full transition-all duration-200 cursor-pointer active:scale-[0.97]">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
