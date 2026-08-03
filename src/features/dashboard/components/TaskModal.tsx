@@ -6,13 +6,21 @@ import {
   Trash2,
   MoreHorizontal,
   Send,
-  Calendar,
   AlertCircle,
   ChevronDown,
   Search,
   Check
 } from 'lucide-react';
 import { TaskItem, formatRelativeTime, TASK_CATEGORIES, normalizeCategory } from './TaskRow';
+import {
+  parseTaskMetadata,
+  buildTaskNotes,
+  INQUIRY_STATUS_OPTIONS,
+  DEFAULT_INQUIRY_STATUS,
+  WORKFLOW_STATUS_OPTIONS,
+  DEFAULT_WORKFLOW_STATUS,
+  PURPLE
+} from './TaskList';
 import UserAvatar, { UserProfile } from './UserAvatar';
 import UserPickerSelect from './UserPickerSelect';
 import StatusBadge, { getTaskStatusMeta, getStatusColorHex } from './StatusBadge';
@@ -32,10 +40,6 @@ interface TaskModalProps {
   isUserView?: boolean;
 }
 
-/**
- * CategoryPickerSelect — mirrors the "Assigned To" UserPickerSelect UI
- * for the Category field in TaskModal.
- */
 function CategoryPickerSelect({
   value,
   onChange,
@@ -150,16 +154,10 @@ export default function TaskModal({
   const activeNoteAuthor = processedAuthor || assignedAuthor;
   const currentStatusColor = getStatusColorHex(task.status);
 
-  /**
-   * A task is considered to be in initial setup ("mag seset pa lang ng task") if:
-   * - it has no timeline notes/updates yet AND its status is default 'Pending'
-   * In this phase, Status selector and badge are hidden as they are not needed yet.
-   */
   const isSettingUpTask =
     (!task.notes || !task.notes.trim()) && (task.status === 'Pending' || !task.status);
 
   const handleClose = () => {
-    // If closing an uncompleted new task that still has no notes and default title/pending status, clean it up if needed
     const isUncompletedNewTask =
       !task.completed &&
       task.status === 'Pending' &&
@@ -177,14 +175,155 @@ export default function TaskModal({
     const authorName = processedAuthor?.full_name || currentUserProfile?.full_name || assignedAuthor?.full_name || 'Admin';
     const timestamp = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
     const formattedEntry = `[${timestamp}] ${authorName}: ${newNoteText.trim()}`;
-    
-    const updatedNotes = task.notes && task.notes.trim().length > 0 
-      ? `${formattedEntry}\n\n${task.notes}`
+
+    const parsed = parseTaskMetadata(task.notes || '');
+    const currentTimeline = parsed.timeline || '';
+    const updatedTimeline = currentTimeline.trim().length > 0
+      ? `${formattedEntry}\n\n${currentTimeline}`
       : formattedEntry;
 
-    onSaveField(task.id, { notes: updatedNotes });
+    onSaveField(task.id, { notes: buildTaskNotes(parsed, updatedTimeline) });
     setNewNoteText('');
   };
+
+  const parsedMeta = parseTaskMetadata(task.notes || '');
+  const isCategoryInquiry = normalizeCategory(task.category) === 'Inquiry';
+
+  const updateMetaField = (key: string, value: string) => {
+    const updatedMeta = { ...parsedMeta, [key]: value };
+    onSaveField(task.id, { notes: buildTaskNotes(updatedMeta, updatedMeta.timeline) });
+  };
+
+  const isNewInquiry = !task.notes || !task.notes.trim();
+
+  const handleSaveInquiry = () => {
+    if (!parsedMeta.workflow_status) {
+      const updatedMeta = { ...parsedMeta, workflow_status: DEFAULT_INQUIRY_STATUS };
+      onSaveField(task.id, { notes: buildTaskNotes(updatedMeta, updatedMeta.timeline) });
+    }
+    handleClose();
+  };
+
+  if (isCategoryInquiry) {
+    return (
+      <div className={styles.taskModalOverlay} onClick={handleClose}>
+        <div
+          className={styles.taskModalCard}
+          style={{ borderTop: `4px solid ${PURPLE}` }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className={styles.taskModalHeader}>
+            <div className={styles.modalTitleGroup}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text)' }}>
+                  {isNewInquiry ? 'Log Inquiry' : 'Inquiry Details'}
+                </span>
+              </div>
+              {!isNewInquiry && (
+                <div className={styles.modalSubTitle}>
+                  <span className={styles.modalSubTitleItem}>
+                    <Clock size={11} />
+                    Updated {formatRelativeTime(task.updated_at)}
+                  </span>
+                  {task.created_at && (
+                    <span className={styles.modalSubTitleItem}>
+                      <History size={11} />
+                      Created {formatDisplayDate(task.created_at.slice(0, 10))}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+            <button
+              type="button"
+              className={styles.modalCloseBtn}
+              onClick={handleClose}
+              aria-label="Close modal"
+            >
+              <X size={15} strokeWidth={2} />
+            </button>
+          </div>
+
+          <div className={styles.modalBodyContent}>
+            <div className={styles.userPickerContainer}>
+              <label className={styles.formFieldLabel}>CMGC Name</label>
+              <input
+                type="text"
+                placeholder="Last Name, First Name"
+                value={parsedMeta.cmgc_name || ''}
+                onChange={(e) => updateMetaField('cmgc_name', e.target.value)}
+                className="px-3 py-2.5 rounded-xl border border-border bg-surface text-sm font-medium w-full"
+              />
+            </div>
+
+            <div className={styles.userPickerContainer}>
+              <label className={styles.formFieldLabel}>Inquiry / Concern</label>
+              <textarea
+                placeholder="Enter client's inquiry or concern..."
+                value={parsedMeta.inquiry_concern || ''}
+                onChange={(e) => updateMetaField('inquiry_concern', e.target.value)}
+                rows={5}
+                className="px-3 py-2.5 rounded-xl border border-border bg-surface text-sm font-medium w-full resize-none"
+              />
+            </div>
+
+            {!isNewInquiry && (
+              <div className={styles.userPickerContainer}>
+                <label className={styles.formFieldLabel}>Workflow Status</label>
+                <select
+                  value={parsedMeta.workflow_status || DEFAULT_INQUIRY_STATUS}
+                  onChange={(e) => updateMetaField('workflow_status', e.target.value)}
+                  className="px-3 py-2.5 rounded-xl border border-border bg-surface text-sm font-semibold"
+                >
+                  {INQUIRY_STATUS_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+
+          <div className={styles.modalFooter}>
+            {!isUserView && !isNewInquiry ? (
+              <button
+                type="button"
+                className={styles.deleteOutlinedBtn}
+                onClick={() => {
+                  onDeleteTask(task.id);
+                  onClose();
+                }}
+              >
+                <Trash2 size={13} strokeWidth={2} />
+                Delete Inquiry
+              </button>
+            ) : (
+              <div />
+            )}
+
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button
+                type="button"
+                className={styles.ghostCancelBtn}
+                onClick={handleClose}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={styles.goldSaveBtn}
+                style={{ background: PURPLE }}
+                onClick={handleSaveInquiry}
+              >
+                Save Inquiry
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.taskModalOverlay} onClick={handleClose}>
@@ -193,7 +332,6 @@ export default function TaskModal({
         style={{ borderTop: `4px solid ${currentStatusColor}` }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Modal Header */}
         <div className={styles.taskModalHeader}>
           <div className={styles.modalTitleGroup}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
@@ -230,9 +368,7 @@ export default function TaskModal({
           </button>
         </div>
 
-        {/* Modal Body */}
         <div className={styles.modalBodyContent}>
-          {/* Segmented Status Selector — hidden while initially setting up a task */}
           {!isSettingUpTask && (
             <div className={styles.modalSection}>
               <label className={styles.formFieldLabel}>Status</label>
@@ -267,14 +403,73 @@ export default function TaskModal({
           )}
 
           <div className={styles.modalTwoCol}>
-            {/* Category — now uses custom picker matching "Assigned To" UI */}
             <CategoryPickerSelect
               value={normalizeCategory(task.category)}
-              onChange={(val) => onSaveField(task.id, { category: val })}
+              onChange={(val) => {
+                onSaveField(task.id, { category: val });
+                if (val === 'Inquiry') {
+                  updateMetaField('workflow_status', DEFAULT_INQUIRY_STATUS);
+                } else {
+                  updateMetaField('workflow_status', DEFAULT_WORKFLOW_STATUS);
+                }
+              }}
             />
+            <div className={styles.userPickerContainer}>
+              <label className={styles.formFieldLabel}>Workflow Status</label>
+              <select
+                value={parsedMeta.workflow_status || DEFAULT_WORKFLOW_STATUS}
+                onChange={(e) => updateMetaField('workflow_status', e.target.value)}
+                className="px-3 py-2.5 rounded-xl border border-border bg-surface text-sm font-semibold"
+              >
+                {WORKFLOW_STATUS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+              </select>
+            </div>
           </div>
 
-          {/* Assignee & Processed By Row */}
+          <div className={styles.modalTwoCol}>
+            <div className={styles.userPickerContainer}>
+              <label className={styles.formFieldLabel}>Policy Owner</label>
+              <input
+                type="text"
+                placeholder="Search or enter manually..."
+                value={parsedMeta.policy_owner || ''}
+                onChange={(e) => updateMetaField('policy_owner', e.target.value)}
+                className="px-3 py-2.5 rounded-xl border border-border bg-surface text-sm font-medium w-full"
+              />
+            </div>
+            <div className={styles.userPickerContainer}>
+              <label className={styles.formFieldLabel}>Date of Request</label>
+              <input
+                type="date"
+                value={parsedMeta.date_of_request || new Date().toISOString().split('T')[0]}
+                onChange={(e) => updateMetaField('date_of_request', e.target.value)}
+                className="px-3 py-2.5 rounded-xl border border-border bg-surface text-sm font-medium w-full"
+              />
+            </div>
+          </div>
+          <div className={styles.modalTwoCol}>
+            <div className={styles.userPickerContainer}>
+              <label className={styles.formFieldLabel}>Number of Policy Insured</label>
+              <select
+                value={parsedMeta.policy_insured_count || '1'}
+                onChange={(e) => updateMetaField('policy_insured_count', e.target.value)}
+                className="px-3 py-2.5 rounded-xl border border-border bg-surface text-sm font-medium"
+              >
+                {['1', '2', '3', '4', '5+'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
+              </select>
+            </div>
+            <div className={styles.userPickerContainer}>
+              <label className={styles.formFieldLabel}>Policy Number</label>
+              <input
+                type="text"
+                placeholder="Enter Policy Number"
+                value={parsedMeta.policy_number || ''}
+                onChange={(e) => updateMetaField('policy_number', e.target.value)}
+                className="px-3 py-2.5 rounded-xl border border-border bg-surface text-sm font-medium w-full"
+              />
+            </div>
+          </div>
+
           {!isUserView ? (
             <div className={styles.modalTwoCol}>
               <div className={styles.userPickerContainer}>
@@ -320,12 +515,13 @@ export default function TaskModal({
             </div>
           )}
 
-          {/* Chat-Style Conversation Bubble Notes Section */}
           <div className={styles.modalSection}>
-            <label className={styles.formFieldLabel}>Messenger Timeline & Notes</label>
-            {task.notes && task.notes.trim().length > 0 && (
+            <label className={styles.formFieldLabel}>
+              Messenger Timeline & Notes
+            </label>
+            {parsedMeta.timeline && parsedMeta.timeline.trim().length > 0 && (
               <div className={styles.notesTimeline} style={{ maxHeight: '220px', overflowY: 'auto' }}>
-                {task.notes.split('\n\n').filter(Boolean).map((noteBlock, idx) => (
+                {parsedMeta.timeline.split('\n\n').filter(Boolean).map((noteBlock: string, idx: number) => (
                   <div key={`note-bubble-${idx}`} className={styles.noteBubble}>
                     <UserAvatar profile={activeNoteAuthor} size={28} />
                     <div className={styles.noteBubbleBody}>
@@ -366,7 +562,6 @@ export default function TaskModal({
           </div>
         </div>
 
-        {/* Modal Footer Actions */}
         <div className={styles.modalFooter}>
           {!isUserView ? (
             <button
@@ -409,4 +604,3 @@ export default function TaskModal({
     </div>
   );
 }
-

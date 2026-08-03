@@ -34,7 +34,7 @@ import WelcomeModal from "@src/components/modals/WelcomeModal";
 import DashboardHero from "@src/features/dashboard/components/DashboardHero";
 import ClientServicingStats from "@src/features/dashboard/components/ClientServicingStats";
 import ClientServicingToDo from "@src/features/dashboard/components/ClientServicingToDo";
-import TaskList from "@src/features/dashboard/components/TaskList";
+import TaskList, { ClientInquiries } from "@src/features/dashboard/components/TaskList";
 import BirthdayCard from "@src/features/dashboard/components/BirthdayCard";
 import CalendarActivityCard from "@src/features/dashboard/components/CalendarActivityCard";
 import CalendarActivityModal from "@src/features/dashboard/components/CalendarActivityModal";
@@ -202,6 +202,12 @@ export default function DashboardOverviewPage() {
                 onToggleComplete={handleToggleCheckbox}
                 onSelectTask={(id) => setSelectedTaskIdForModal(id)}
                 onSaveTaskField={saveTaskField}
+                onDeleteTask={handleDeleteTask}
+              />
+              <ClientInquiries
+                tasks={userTasks}
+                onCreateTask={handleCreateTask}
+                onSelectTask={(id) => setSelectedTaskIdForModal(id)}
                 onDeleteTask={handleDeleteTask}
               />
               <ClientServicingToDo

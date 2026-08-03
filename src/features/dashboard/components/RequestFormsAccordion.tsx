@@ -255,30 +255,6 @@ export default function RequestFormsAccordion({ kpis, userRole, userPermissions 
         </div>
       </div>
 
-      {/* Collapsed State Summary Bar */}
-      {!isCardExpanded && (
-        <div
-          className={styles.collapsedSummaryBar}
-          onClick={() => setIsCardExpanded(true)}
-          title="Click to expand form tools"
-        >
-          {formCategories.map((category) => {
-            const count = accessibleForms.filter((form) => form.category === category.label).length;
-            if (count === 0) return null;
-
-            return (
-              <div key={category.label} className={styles.collapsedChip}>
-                <span className={styles.collapsedDot} style={{ background: category.color }} />
-                {category.label} ({count})
-              </div>
-            );
-          })}
-          <div className={styles.collapsedExpandHint}>
-            <span>View All {accessibleForms.length} Forms</span>
-            <ArrowUpRight size={13} />
-          </div>
-        </div>
-      )}
 
       {/* Expanded State Body */}
       {isCardExpanded && (
