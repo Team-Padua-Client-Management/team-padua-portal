@@ -13,14 +13,9 @@ import { AdminSidebar as Sidebar } from "@src/components/layout";
 import { supabase } from "@src/lib/supabase/client";
 import { useSearchParams } from 'next/navigation';
 import baseStyles from "@/styles/admin/cpst/page.module.css";
+import { useAdvisorClients } from '@src/components/cams/useAdvisorClients';
 
-interface Client {
-  id: string;
-  name: string;
-  relationship: string;
-  birthdate: string;
-  status: 'Prospect' | 'Serviced' | 'Lead';
-}
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type DeliveryChannel = 'Email' | 'Messenger' | 'Instagram' | 'TikTok' | 'WhatsApp' | 'SMS';
 
@@ -40,6 +35,8 @@ interface TemplatePreset {
   subject: string;
   body: string;
 }
+
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const templates: Record<string, TemplatePreset> = {
   Professional: {
@@ -76,6 +73,8 @@ const monthsList = [
   'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER',
 ];
 
+// ─── Icon helpers ─────────────────────────────────────────────────────────────
+
 function TikTokIcon({ size = 13, className = "" }: { size?: number; className?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -94,12 +93,23 @@ function InstagramIcon({ size = 13, className = "" }: { size?: number; className
   );
 }
 
-export default function CGPTPage() {
-  const [clients, setClients] = useState<Client[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
-  const [selectedClientId, setSelectedClientId] = useState('');
+export default function CGPTPage() {
+  // ── Advisor → Client state (reused from CPST architecture) ──────────────────
+  const {
+    advisors,
+    clients,
+    selectedAdvisor,
+    selectedClient,
+    loadingAdvisors,
+    loadingClients,
+    handleSelectAdvisor,
+    handleSelectClient,
+  } = useAdvisorClients();
+
+  // ── UI state ────────────────────────────────────────────────────────────────
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedTemplateName, setSelectedTemplateName] = useState('Friendly');
   const [subjectText, setSubjectText] = useState(templates.Friendly.subject);
   const [editorText, setEditorText] = useState(templates.Friendly.body);
@@ -111,7 +121,6 @@ export default function CGPTPage() {
 
   const [selectedPoster, setSelectedPoster] = useState('Birthday Gold Theme');
   const [customPosterUrl, setCustomPosterUrl] = useState<string | null>(null);
-
   const [tempPosterUrl, setTempPosterUrl] = useState<string | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [imageMeta, setImageMeta] = useState<{ width: number; height: number; name: string } | null>(null);
@@ -126,79 +135,39 @@ export default function CGPTPage() {
   const currentMonthIndex = selectedMonthIdx;
   const currentMonthName = monthsList[selectedMonthIdx];
 
-  const [birthdayRecords, setBirthdayRecords] = useState<any[]>([]);
-  const [loadingBirthdays, setLoadingBirthdays] = useState(true);
-
+  // ── Derived: birthday clients (advisor-scoped, filtered by month) ───────────
+  // `clients` from the hook is already filtered to the selected advisor's clients
+  // (WHERE advisor_id = selectedAdvisor.id). We further filter by selected month.
   const birthdayClients = clients.filter(c => {
     if (!c.birthdate) return false;
-    const d = new Date(c.birthdate);
-    return d.getMonth() === currentMonthIndex;
+    return new Date(c.birthdate + 'T00:00:00').getMonth() === currentMonthIndex;
   });
 
+  // Birthday records for the table: all of the advisor's clients with a birthdate
+  const birthdayRecords = clients.filter(c => !!c.birthdate);
+
+  // ── When advisor changes: reset campaign history + clear status ──────────────
+  // (selectedClient is already reset inside handleSelectAdvisor in the hook)
   useEffect(() => {
-    const fetchBirthdayRecords = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('cpst_clients')
-          .select('id, client_name, birthdate')
-          .order('birthdate', { ascending: true });
-        
-        if (error) throw error;
-        setBirthdayRecords(data || []);
-      } catch (err) {
-        console.error("Failed to fetch birthday records:", err);
-      } finally {
-        setLoadingBirthdays(false);
-      }
-    };
-    fetchBirthdayRecords();
-  }, []);
-
-  useEffect(() => {
-    const fetchClients = async () => {
-      try {
-        const res = await fetch('/api/clients');
-        if (!res.ok) throw new Error('Failed to fetch');
-        const data = await res.json();
-        setClients(data as Client[]);
-
-        const currentMonthIdx = new Date().getMonth();
-        const filtered = (data as Client[]).filter(c => {
-          if (!c.birthdate) return false;
-          return new Date(c.birthdate).getMonth() === currentMonthIdx;
-        });
-
-        if (filtered.length > 0) {
-          setSelectedClientId(filtered[0].id);
-        }
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchClients();
     setHistory([]);
-  }, []);
+    setStatusMessage(null);
+  }, [selectedAdvisor]);
 
-  const searchParams = useSearchParams();
-  const clientIdQuery = searchParams.get('client_id');
+  // ── When month changes: reset client selection ──────────────────────────────
+  const handleMonthChange = (idx: number) => {
+    setSelectedMonthIdx(idx);
+    handleSelectClient('');
+  };
 
+  // ── Auto-populate recipient email from selected client ──────────────────────
   useEffect(() => {
-    if (clientIdQuery && clients.some(c => c.id === clientIdQuery)) {
-      setSelectedClientId(clientIdQuery);
+    if (selectedClient?.email) {
+      setRecipientEmail(selectedClient.email);
     }
-  }, [clientIdQuery, clients]);
+  }, [selectedClient]);
 
-  useEffect(() => {
-    if (birthdayClients.length > 0 && !birthdayClients.some(c => c.id === selectedClientId)) {
-      setSelectedClientId(birthdayClients[0].id);
-    }
-  }, [birthdayClients, selectedClientId]);
-
-  const selectedClient = clients.find(c => c.id === selectedClientId);
-
-  const calculateAge = (birthdate: string | null): number | null => {
+  // ── Utility: age calculation ─────────────────────────────────────────────────
+  const calculateAge = (birthdate: string | null | undefined): number | null => {
     if (!birthdate) return null;
     const today = new Date();
     const bday = new Date(birthdate + 'T00:00:00');
@@ -211,63 +180,63 @@ export default function CGPTPage() {
     return age;
   };
 
+  // ── Birthday records filtered to the selected month and sorted by day ────────
   const sortedBirthdayRecords = React.useMemo(() => {
-    const today = new Date();
-    const todayMonth = today.getMonth();
-    const todayDate = today.getDate();
-
-    return [...birthdayRecords].sort((a, b) => {
-      if (!a.birthdate && !b.birthdate) return 0;
-      if (!a.birthdate) return 1;
-      if (!b.birthdate) return -1;
-
-      const dateA = new Date(a.birthdate + 'T00:00:00');
-      const dateB = new Date(b.birthdate + 'T00:00:00');
-
-      const monthA = dateA.getMonth();
-      const dayA = dateA.getDate();
-      const monthB = dateB.getMonth();
-      const dayB = dateB.getDate();
-
-      const aPassed = monthA < todayMonth || (monthA === todayMonth && dayA < todayDate);
-      const bPassed = monthB < todayMonth || (monthB === todayMonth && dayB < todayDate);
-
-      if (aPassed !== bPassed) return aPassed ? 1 : -1;
-      
-      if (monthA !== monthB) return monthA - monthB;
+    const monthFiltered = birthdayRecords.filter(r => {
+      if (!r.birthdate) return false;
+      return new Date(r.birthdate + 'T00:00:00').getMonth() === selectedMonthIdx;
+    });
+    return monthFiltered.sort((a, b) => {
+      const dayA = new Date(a.birthdate! + 'T00:00:00').getDate();
+      const dayB = new Date(b.birthdate! + 'T00:00:00').getDate();
       return dayA - dayB;
     });
+  }, [birthdayRecords, selectedMonthIdx]);
+
+  // ── Count per month (for month tab badges) ────────────────────────────────
+  const birthdayCountByMonth = React.useMemo(() => {
+    const counts = new Array(12).fill(0);
+    birthdayRecords.forEach(r => {
+      if (!r.birthdate) return;
+      const m = new Date(r.birthdate + 'T00:00:00').getMonth();
+      counts[m]++;
+    });
+    return counts;
   }, [birthdayRecords]);
 
   const thisMonthBirthdaysCount = birthdayRecords.filter(r => {
     if (!r.birthdate) return false;
-    const date = new Date(r.birthdate + 'T00:00:00');
-    return date.getMonth() === selectedMonthIdx;
+    return new Date(r.birthdate + 'T00:00:00').getMonth() === selectedMonthIdx;
   });
 
-  const formatDOB = (birthdate: string | null) => {
+  const formatDOB = (birthdate: string | null | undefined) => {
     if (!birthdate) return "—";
     const date = new Date(birthdate + 'T00:00:00');
     if (isNaN(date.getTime())) return "—";
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
+  // ── Template variable replacement (uses selectedClient from hook) ───────────
   const getReplacedText = (text: string) => {
     if (!selectedClient) return text;
     return text
-      .replaceAll('{Client Name}', selectedClient.name)
-      .replaceAll('{Relationship}', selectedClient.relationship)
+      .replaceAll('{Client Name}', selectedClient.client_name)
+      .replaceAll('{Relationship}', selectedClient.relationship || '')
       .replaceAll('{Age}', (calculateAge(selectedClient.birthdate) ?? 0).toString())
-      .replaceAll('{Birthday}', selectedClient.birthdate ? new Date(selectedClient.birthdate + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' }) : 'Unknown')
+      .replaceAll('{Birthday}', selectedClient.birthdate
+        ? new Date(selectedClient.birthdate + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
+        : 'Unknown')
       .replaceAll('{Assigned Staff}', 'CPST Admin Team');
   };
 
+  // ── Template selection ──────────────────────────────────────────────────────
   const handleTemplateChange = (name: string) => {
     setSelectedTemplateName(name);
     setSubjectText(templates[name].subject);
     setEditorText(templates[name].body);
   };
 
+  // ── Poster upload ───────────────────────────────────────────────────────────
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -275,14 +244,9 @@ export default function CGPTPage() {
       reader.onload = () => {
         const dataUrl = reader.result as string;
         setTempPosterUrl(dataUrl);
-
         const img = new Image();
         img.onload = () => {
-          setImageMeta({
-            width: img.naturalWidth,
-            height: img.naturalHeight,
-            name: file.name
-          });
+          setImageMeta({ width: img.naturalWidth, height: img.naturalHeight, name: file.name });
           setShowConfirmModal(true);
         };
         img.src = dataUrl;
@@ -304,14 +268,13 @@ export default function CGPTPage() {
     setShowConfirmModal(false);
     setTempPosterUrl(null);
     setImageMeta(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  // ── Send campaign ───────────────────────────────────────────────────────────
   const handleSendCampaign = async () => {
     if (!selectedClient) {
-      alert('Please register and select a client');
+      alert('Please select an advisor and a client first.');
       return;
     }
 
@@ -324,13 +287,12 @@ export default function CGPTPage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            name: selectedClient.name,
+            name: selectedClient.client_name,
             to: recipientEmail || 'johnrenzbandianon.teampadua@gmail.com',
             subject: getReplacedText(subjectText),
             body: getReplacedText(editorText)
           })
         });
-
         if (!res.ok) throw new Error('API failed');
       }
 
@@ -338,18 +300,16 @@ export default function CGPTPage() {
       const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
       const { error: dbErr } = await supabase.from('notifications').insert({
-        title: `CPST Campaign: ${selectedClient.name}`,
-        description: `Sent birthday greetings to client "${selectedClient.name}" via ${deliveryChannel} (Preset: ${selectedTemplateName}).`,
+        title: `CPST Campaign: ${selectedClient.client_name}`,
+        description: `Sent birthday greetings to client "${selectedClient.client_name}" via ${deliveryChannel} (Preset: ${selectedTemplateName}).`,
         type: 'campaign'
       });
 
-      if (dbErr) {
-        console.error("Failed to insert database notification:", dbErr);
-      }
+      if (dbErr) console.error("Failed to insert database notification:", dbErr);
 
       const newLog: CampaignHistory = {
         id: Math.random().toString(),
-        clientName: selectedClient.name,
+        clientName: selectedClient.client_name,
         method: deliveryChannel,
         dateSent: todayStr,
         timeSent: timeStr,
@@ -362,8 +322,8 @@ export default function CGPTPage() {
       setStatusMessage({
         type: 'success',
         text: scheduleOption === 'Immediate'
-          ? `Campaign sent successfully to ${selectedClient.name} via ${deliveryChannel}!`
-          : `Campaign scheduled successfully for ${selectedClient.name} at ${scheduleOption}!`
+          ? `Campaign sent successfully to ${selectedClient.client_name} via ${deliveryChannel}!`
+          : `Campaign scheduled successfully for ${selectedClient.client_name} at ${scheduleOption}!`
       });
     } catch (err) {
       console.error(err);
@@ -380,11 +340,13 @@ export default function CGPTPage() {
     setHistory(prev => prev.filter(item => item.id !== id));
   };
 
-  const filteredHistory = history.filter(item => {
-    return item.clientName.toLowerCase().includes(historySearch.toLowerCase()) ||
-      item.method.toLowerCase().includes(historySearch.toLowerCase()) ||
-      item.posterUsed.toLowerCase().includes(historySearch.toLowerCase());
-  });
+  const filteredHistory = history.filter(item =>
+    item.clientName.toLowerCase().includes(historySearch.toLowerCase()) ||
+    item.method.toLowerCase().includes(historySearch.toLowerCase()) ||
+    item.posterUsed.toLowerCase().includes(historySearch.toLowerCase())
+  );
+
+  // ─── Render ─────────────────────────────────────────────────────────────────
 
   return (
     <div className={styles.text_0}>
@@ -394,32 +356,19 @@ export default function CGPTPage() {
         <Header onMenuClick={() => setSidebarOpen(true)} />
 
         <main className={styles.div_2}>
+          {/* ── Page header ── */}
           <div className={styles.div_3}>
             <h1 className={styles.table_4}>CPST Birthday Center</h1>
-            <div className="flex items-center flex-wrap gap-1 mt-0.5">
-              <span className={styles.table_5}>
-                Manage birthday greetings, campaign posters, and client engagement for
-              </span>
-              <select
-                value={selectedMonthIdx}
-                onChange={(e) => {
-                  const idx = parseInt(e.target.value);
-                  setSelectedMonthIdx(idx);
-                  setSelectedClientId('');
-                }}
-                className={styles.monthSelect}
-              >
-                {monthsList.map((m, i) => (
-                  <option key={i} value={i}>{m}</option>
-                ))}
-              </select>
-            </div>
+            <p className={styles.table_5}>
+              Manage birthday greetings, campaign posters, and client engagement
+            </p>
           </div>
 
+          {/* ── Stat cards ── */}
           <div className={`${baseStyles.container_61} mb-6`}>
             <div className="w-full grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
-                { label: 'TOTAL CLIENTS', count: clients.length, link: 'CLIENTS', color: 'text-foreground', icon: Users, isYellowBorder: true },
+                { label: 'ADVISOR CLIENTS', count: clients.length, link: 'CLIENTS', color: 'text-foreground', icon: Users, isYellowBorder: true },
                 { label: 'THIS MONTH BIRTHDAYS', count: thisMonthBirthdaysCount.length, link: 'BIRTHDAYS', color: 'text-green-600 dark:text-green-400', icon: Calendar },
                 { label: 'SENT GREETINGS', count: history.length, link: 'CAMPAIGNS', color: 'text-[#A97800] dark:text-[#F4C542]', icon: CheckCircle2 },
                 { label: 'POSTERS IN USE', count: postersLibrary.length + (customPosterUrl ? 1 : 0), link: 'THEMES', color: 'text-blue-500 dark:text-blue-400', icon: Sparkles },
@@ -428,9 +377,7 @@ export default function CGPTPage() {
                 return (
                   <div
                     key={i}
-                    className={`${baseStyles.card_227} ${
-                      stat.isYellowBorder ? 'border-primary/40 ring-1 ring-[#F4C542]/10' : 'border-border'
-                    } flex flex-col justify-between`}
+                    className={`${baseStyles.card_227} ${stat.isYellowBorder ? 'border-primary/40 ring-1 ring-[#F4C542]/10' : 'border-border'} flex flex-col justify-between`}
                   >
                     <div className={baseStyles.table_63}>
                       <span>{stat.label}</span>
@@ -447,6 +394,7 @@ export default function CGPTPage() {
           </div>
 
           <div className={styles.container_6}>
+            {/* ── Left column: Composer ── */}
             <div className={styles.div_7}>
               <div className={styles.card_8}>
                 <div>
@@ -454,26 +402,65 @@ export default function CGPTPage() {
                   <p className={styles.text_10}>Configure template properties and dynamic fields</p>
                 </div>
 
+                {/* ── Advisor → Client selectors ── */}
                 <div className={styles.container_11}>
+                  {/* Advisor selector */}
                   <div className={styles.div_12}>
-                    <label className={styles.table_13}>Select Client Target</label>
-                    <select
-                      value={selectedClientId}
-                      onChange={e => setSelectedClientId(e.target.value)}
-                      className={styles.text_14}
-                    >
-                      {birthdayClients.length === 0 ? (
-                        <option value="">No client birthdays found in {currentMonthName.charAt(0) + currentMonthName.slice(1).toLowerCase()}</option>
-                      ) : (
-                        birthdayClients.map(c => (
-                          <option key={c.id} value={c.id}>
-                            {c.name} ({calculateAge(c.birthdate)} yrs) - {c.relationship || 'Self'}
+                    <label className={styles.table_13}>Advisor</label>
+                    {loadingAdvisors ? (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground px-3 py-2 border border-border rounded-xl bg-card">
+                        <Loader2 className="animate-spin" size={14} />
+                        Loading advisors...
+                      </div>
+                    ) : (
+                      <select
+                        id="advisor-selector"
+                        value={selectedAdvisor?.id || ''}
+                        onChange={(e) => handleSelectAdvisor(e.target.value)}
+                        className={styles.text_14}
+                      >
+                        <option value="" disabled>Select an advisor...</option>
+                        {advisors.map(adv => (
+                          <option key={adv.id} value={adv.id}>
+                            {adv.advisorName}
                           </option>
-                        ))
+                        ))}
+                      </select>
+                    )}
+                  </div>
+
+                  {/* Client selector (disabled until advisor is selected) */}
+                  <div className={styles.div_12}>
+                    <label className={styles.table_13}>Client</label>
+                    <select
+                      id="client-selector"
+                      value={selectedClient?.id || ''}
+                      onChange={(e) => handleSelectClient(e.target.value)}
+                      disabled={!selectedAdvisor || loadingClients}
+                      className={`${styles.text_14} disabled:opacity-50 disabled:cursor-not-allowed`}
+                    >
+                      {!selectedAdvisor ? (
+                        <option value="">Select an advisor first.</option>
+                      ) : loadingClients ? (
+                        <option value="">Loading clients...</option>
+                      ) : birthdayClients.length === 0 ? (
+                        <option value="">No birthdays in {currentMonthName.charAt(0) + currentMonthName.slice(1).toLowerCase()}</option>
+                      ) : (
+                        <>
+                          <option value="" disabled>Select a client...</option>
+                          {birthdayClients.map(c => (
+                            <option key={c.id} value={c.id}>
+                              {c.client_name} ({calculateAge(c.birthdate)} yrs){c.relationship ? ` — ${c.relationship}` : ''}
+                            </option>
+                          ))}
+                        </>
                       )}
                     </select>
                   </div>
+                </div>
 
+                {/* ── Greeting schedule ── */}
+                <div className={styles.container_11}>
                   <div className={styles.div_15}>
                     <label className={styles.table_16}>Greeting Schedule</label>
                     <select
@@ -485,7 +472,7 @@ export default function CGPTPage() {
                       <option value="Midnight">Birthday - 12:00 AM</option>
                       <option value="Morning8">Birthday - 8:00 AM</option>
                       <option value="Morning9">Birthday - 9:00 AM</option>
-                      <option value="Custom">Custom Date & Time</option>
+                      <option value="Custom">Custom Date &amp; Time</option>
                     </select>
                   </div>
                 </div>
@@ -502,6 +489,7 @@ export default function CGPTPage() {
                   </div>
                 )}
 
+                {/* ── Delivery channel ── */}
                 <div className={styles.div_21}>
                   <label className={styles.table_22}>Select Delivery Channel</label>
                   <div className={styles.container_23}>
@@ -524,9 +512,7 @@ export default function CGPTPage() {
                         {ch.icon}
                         <span className={styles.table_24}>{ch.label}</span>
                         {ch.future && (
-                          <span className={styles.input_25}>
-                            Future
-                          </span>
+                          <span className={styles.input_25}>Future</span>
                         )}
                       </button>
                     ))}
@@ -559,6 +545,7 @@ export default function CGPTPage() {
                   </div>
                 )}
 
+                {/* ── Preset templates ── */}
                 <div className={styles.div_32}>
                   <label className={styles.table_33}>Select Preset Template</label>
                   <div className={styles.container_34}>
@@ -577,6 +564,7 @@ export default function CGPTPage() {
                   </div>
                 </div>
 
+                {/* ── Subject ── */}
                 <div className={styles.div_35}>
                   <label className={styles.table_36}>Live Message Subject Line</label>
                   <input
@@ -588,6 +576,7 @@ export default function CGPTPage() {
                   />
                 </div>
 
+                {/* ── Body editor ── */}
                 <div className={styles.div_38}>
                   <label className={styles.table_39}>Message Body Editor</label>
                   <textarea
@@ -598,6 +587,7 @@ export default function CGPTPage() {
                   />
                 </div>
 
+                {/* ── Live preview ── */}
                 <div className={styles.div_41}>
                   <p className={styles.table_42}>Live Message Preview</p>
                   <div className={styles.text_43}>
@@ -605,6 +595,7 @@ export default function CGPTPage() {
                   </div>
                 </div>
 
+                {/* ── Status message ── */}
                 {statusMessage && (
                   <div className={`${styles.text_130} ${statusMessage.type === 'success'
                     ? 'bg-emerald-50 dark:bg-emerald-950/15 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
@@ -615,10 +606,11 @@ export default function CGPTPage() {
                   </div>
                 )}
 
+                {/* ── Send button ── */}
                 <div className={styles.container_44}>
                   <button
                     onClick={handleSendCampaign}
-                    disabled={isSending || birthdayClients.length === 0}
+                    disabled={isSending || !selectedClient || birthdayClients.length === 0}
                     className={styles.input_45}
                   >
                     {isSending ? (
@@ -637,6 +629,7 @@ export default function CGPTPage() {
               </div>
             </div>
 
+            {/* ── Right column: Poster ── */}
             <div className={styles.div_47}>
               <div className={styles.card_48}>
                 <div>
@@ -650,29 +643,27 @@ export default function CGPTPage() {
                   </div>
                 ) : (
                   <div className={styles.container_53}>
-                    <div className={`${styles.div_131} ${postersLibrary.find(p => p.name === selectedPoster)?.color || 'from-[#FFECA0] to-[#E6A800]'
-                      } z-0`} />
+                    <div className={`${styles.div_131} ${postersLibrary.find(p => p.name === selectedPoster)?.color || 'from-[#FFECA0] to-[#E6A800]'} z-0`} />
 
                     <div className={styles.text_54}>
-                      <span className={styles.table_55}>
-                        CPST GREETING
-                      </span>
-                      <span className={styles.text_56}>
-                        {selectedPoster}
-                      </span>
+                      <span className={styles.table_55}>CPST GREETING</span>
+                      <span className={styles.text_56}>{selectedPoster}</span>
                     </div>
 
                     <div className={styles.text_57}>
                       <h4 className={styles.text_58}>
-                        {selectedClientId && selectedClient ? `Happy Birthday, ${selectedClient.name}!` : 'Happy Birthday!'}
+                        {selectedClient ? `Happy Birthday, ${selectedClient.client_name}!` : 'Happy Birthday!'}
                       </h4>
                       <p className={styles.table_59}>
-                        {selectedClientId && selectedClient ? `Age: ${calculateAge(selectedClient.birthdate)} • ${selectedClient.relationship || 'Self'}` : 'Best Wishes from CPST Team'}
+                        {selectedClient
+                          ? `Age: ${calculateAge(selectedClient.birthdate)} • ${selectedClient.relationship || 'Client'}`
+                          : 'Best Wishes from CPST Team'}
                       </p>
                     </div>
                   </div>
                 )}
 
+                {/* ── Custom poster upload ── */}
                 <div className={styles.div_60}>
                   <label className={styles.table_61}>Upload Custom Graphic Poster</label>
                   <div className={styles.container_62}>
@@ -684,10 +675,7 @@ export default function CGPTPage() {
                       onChange={handleFileChange}
                       className={styles.div_63}
                     />
-                    <label
-                      htmlFor="poster-uploader"
-                      className={styles.input_64}
-                    >
+                    <label htmlFor="poster-uploader" className={styles.input_64}>
                       <ImageIcon size={13} className={styles.text_65} />
                       <span>Choose Image Poster</span>
                     </label>
@@ -709,6 +697,7 @@ export default function CGPTPage() {
                 </div>
               </div>
 
+              {/* ── Poster library ── */}
               <div className={styles.card_68}>
                 <div>
                   <h3 className={styles.table_69}>Standard Poster Library</h3>
@@ -719,9 +708,7 @@ export default function CGPTPage() {
                   {postersLibrary.map(item => (
                     <button
                       key={item.name}
-                      onClick={() => {
-                        setSelectedPoster(item.name);
-                      }}
+                      onClick={() => setSelectedPoster(item.name)}
                       className={`${styles.input_132} ${selectedPoster === item.name
                         ? 'border-primary ring-2 ring-[#F4C542]/20'
                         : 'border-border hover:border-muted-foreground/45'
@@ -741,23 +728,67 @@ export default function CGPTPage() {
             </div>
           </div>
 
+          {/* ── Birthday list table ── */}
           <div className={styles.card_75} style={{ marginBottom: '24px' }}>
             <div className={styles.container_76}>
               <div>
                 <h3 className={styles.table_77}>Client Birthday List</h3>
-                <p className={styles.text_78}>All clients imported from CPST sorted by upcoming birthday</p>
+                <p className={styles.text_78}>
+                  {selectedAdvisor
+                    ? `Clients of ${selectedAdvisor.advisorName} — ${currentMonthName.charAt(0) + currentMonthName.slice(1).toLowerCase()} birthdays`
+                    : 'Select an advisor to view birthday records'}
+                </p>
+              </div>
+            </div>
+
+            {/* ── Month tab strip ── */}
+            <div className="px-4 pb-2 border-b border-border overflow-x-auto">
+              <div className="flex gap-1 min-w-max">
+                {monthsList.map((m, i) => {
+                  const count = birthdayCountByMonth[i];
+                  const isActive = i === selectedMonthIdx;
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => handleMonthChange(i)}
+                      disabled={!selectedAdvisor}
+                      className={`relative flex flex-col items-center gap-0.5 px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed ${
+                        isActive
+                          ? 'bg-primary/10 text-primary border border-primary/30'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-muted/30 border border-transparent'
+                      }`}
+                    >
+                      <span>{m.slice(0, 3)}</span>
+                      {count > 0 && (
+                        <span className={`inline-flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-bold ${
+                          isActive ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                        }`}>
+                          {count}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
             <div className={styles.div_82}>
-              {loadingBirthdays ? (
+              {!selectedAdvisor ? (
+                <div className="p-8 text-center text-muted-foreground text-xs">
+                  Select an advisor to load birthday records.
+                </div>
+              ) : loadingClients ? (
                 <div className="flex items-center justify-center p-8 text-muted-foreground gap-2">
                   <Loader2 className="animate-spin" size={16} />
                   <span>Loading birthday records...</span>
                 </div>
-              ) : birthdayRecords.every(r => !r.birthdate) ? (
-                <div className="p-8 text-center text-muted-foreground">
-                  No birthdate data found — import clients with Date of Birth from CPST first.
+              ) : sortedBirthdayRecords.length === 0 ? (
+                <div className="p-10 text-center">
+                  <Calendar size={28} className="mx-auto mb-2 text-muted-foreground/40" />
+                  <p className="text-xs text-muted-foreground">
+                    No {currentMonthName.charAt(0) + currentMonthName.slice(1).toLowerCase()} birthdays found
+                    {selectedAdvisor ? ` for ${selectedAdvisor.advisorName}` : ''}.
+                  </p>
                 </div>
               ) : (
                 <table className={styles.text_83}>
@@ -765,24 +796,32 @@ export default function CGPTPage() {
                     <tr className={styles.table_84}>
                       <th className={styles.text_85}>Client Name</th>
                       <th className={styles.text_86}>Date of Birth</th>
-                      <th className={styles.text_87}>Age</th>
+                      <th className={styles.text_87}>Age (turns)</th>
                     </tr>
                   </thead>
                   <tbody className={styles.text_93}>
                     {sortedBirthdayRecords.map(item => {
-                      const isMatch = item.birthdate && new Date(item.birthdate + 'T00:00:00').getMonth() === selectedMonthIdx;
+                      const today = new Date();
+                      const bday = new Date(item.birthdate! + 'T00:00:00');
+                      const isToday = bday.getMonth() === today.getMonth() && bday.getDate() === today.getDate();
                       return (
-                        <tr key={item.id} className={`${styles.table_95} group ${isMatch ? 'bg-[#F4C542]/10 dark:bg-[#F4C542]/5' : ''}`}>
+                        <tr key={item.id} className={`${styles.table_95} group bg-[#F4C542]/10 dark:bg-[#F4C542]/5`}>
                           <td className={styles.text_96}>
-                            {item.client_name}
-                            {isMatch && (
-                              <span className="ml-2 inline-flex items-center rounded-full bg-[#F4C542]/20 px-2 py-0.5 text-[10px] font-medium text-[#A97800] dark:text-[#F4C542]">
-                                Selected Month
-                              </span>
-                            )}
+                            <span className="flex items-center gap-2">
+                              {item.client_name}
+                              {isToday && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-[#F4C542] px-2 py-0.5 text-[9px] font-bold text-[#5A3800] uppercase tracking-wider">
+                                  🎂 Today!
+                                </span>
+                              )}
+                            </span>
                           </td>
                           <td className={styles.text_106}>{formatDOB(item.birthdate)}</td>
-                          <td className={styles.text_106}>{item.birthdate ? (calculateAge(item.birthdate) ?? "—") : "—"}</td>
+                          <td className={styles.text_106}>
+                            {item.birthdate ? (
+                              <span className="font-semibold text-foreground">{calculateAge(item.birthdate) ?? '—'}</span>
+                            ) : '—'}
+                          </td>
                         </tr>
                       );
                     })}
@@ -792,6 +831,7 @@ export default function CGPTPage() {
             </div>
           </div>
 
+          {/* ── Campaign history ── */}
           <div className={styles.card_75}>
             <div className={styles.container_76}>
               <div>
@@ -879,6 +919,7 @@ export default function CGPTPage() {
         </main>
       </div>
 
+      {/* ── Poster upload confirm modal ── */}
       {showConfirmModal && tempPosterUrl && imageMeta && (
         <div className={styles.container_113}>
           <div className={styles.card_114}>
@@ -887,21 +928,14 @@ export default function CGPTPage() {
                 <h4 className={styles.table_116}>Confirm Poster Image Upload</h4>
                 <p className={styles.text_117}>Verify real dimensions and visual layout before applying</p>
               </div>
-              <button
-                onClick={handleCancelUpload}
-                className={styles.table_118}
-              >
+              <button onClick={handleCancelUpload} className={styles.table_118}>
                 <X size={14} />
               </button>
             </div>
 
             <div className={styles.container_119}>
               <div className={styles.card_120}>
-                <img
-                  src={tempPosterUrl}
-                  alt="Real-size Upload Preview"
-                  className={styles.div_121}
-                />
+                <img src={tempPosterUrl} alt="Real-size Upload Preview" className={styles.div_121} />
               </div>
               <div className={styles.text_122}>
                 <span>File Name: <span className={styles.text_123}>{imageMeta.name}</span></span>
@@ -911,18 +945,10 @@ export default function CGPTPage() {
             </div>
 
             <div className={styles.card_125}>
-              <button
-                onClick={handleCancelUpload}
-                className={styles.table_126}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirmUpload}
-                className={styles.table_127}
-              >
+              <button onClick={handleCancelUpload} className={styles.table_126}>Cancel</button>
+              <button onClick={handleConfirmUpload} className={styles.table_127}>
                 <Check size={13} />
-                <span>Confirm & Apply Poster</span>
+                <span>Confirm &amp; Apply Poster</span>
               </button>
             </div>
           </div>
@@ -931,6 +957,3 @@ export default function CGPTPage() {
     </div>
   );
 }
-
-
-
