@@ -536,6 +536,7 @@ interface TaskListProps {
   onSaveTaskField?: (taskId: string, updates: Partial<TaskItem>) => void;
   onDeleteTask?: (taskId: string) => void;
   isUserView?: boolean;
+  showCreateButton?: boolean;
 }
 
 export default function TaskList({
@@ -548,6 +549,7 @@ export default function TaskList({
   onSaveTaskField: _onSaveTaskField,
   onDeleteTask,
   isUserView = false,
+  showCreateButton = true,
 }: TaskListProps) {
   const servicingTasks = useMemo(() => {
     return tasks.filter(t => normalizeCategory(t.category) !== 'Inquiry');
@@ -646,7 +648,7 @@ export default function TaskList({
               <History size={15} strokeWidth={2.5} />
               <span className="font-bold">View History</span>
             </Link>
-            {!isUserView && (
+            {showCreateButton && (
               <button
                 type="button"
                 onClick={onCreateTask}
@@ -664,13 +666,13 @@ export default function TaskList({
         {totalLogged === 0 ? (
           <div
             className={styles.emptyStateContainer}
-            onClick={!isUserView ? onCreateTask : undefined}
-            style={{ cursor: !isUserView ? 'pointer' : 'default' }}
+            onClick={showCreateButton ? onCreateTask : undefined}
+            style={{ cursor: showCreateButton ? 'pointer' : 'default' }}
           >
             <div className={styles.emptyStateIcon}>📋</div>
             <div className={styles.emptyStateTitle}>No requests logged yet</div>
             <div className={styles.emptyStateDescription}>
-              {!isUserView
+              {showCreateButton
                 ? 'Click "Log Request" to record your first client servicing request.'
                 : 'No client servicing requests have been logged.'}
             </div>
@@ -1087,6 +1089,7 @@ interface ClientInquiriesProps {
   onSaveTaskField?: (taskId: string, updates: Record<string, unknown>) => void;
   onCreateInquiry?: (payload: NewInquiryPayload) => void | Promise<void>;
   isUserView?: boolean;
+  showCreateButton?: boolean;
 }
 
 export function ClientInquiries({
@@ -1097,6 +1100,7 @@ export function ClientInquiries({
   onSaveTaskField,
   onCreateInquiry,
   isUserView = false,
+  showCreateButton = true,
 }: ClientInquiriesProps) {
   const { activeStage, openStage, cancelClose, scheduleClose, closeNow } = useStageHoverController<InquiryStage>();
 
@@ -1148,7 +1152,7 @@ export function ClientInquiries({
               <History size={15} strokeWidth={2.5} />
               <span className="font-bold">View History</span>
             </Link>
-            {!isUserView && (
+            {showCreateButton && (
               <button
                 type="button"
                 onClick={onCreateTask}
