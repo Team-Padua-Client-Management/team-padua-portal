@@ -16,6 +16,14 @@ import type { UserProfile } from './UserAvatar';
 import UserAvatar from './UserAvatar';
 import styles from '@/styles/admin/dashboard/page.module.css';
 
+export const POLICY_RELATIONSHIP_OPTIONS = ['SAME_AS_OWNER', 'DIFFERENT_FROM_OWNER'] as const;
+export type PolicyInsuredRelationship = typeof POLICY_RELATIONSHIP_OPTIONS[number];
+export const DEFAULT_POLICY_RELATIONSHIP: PolicyInsuredRelationship = 'SAME_AS_OWNER';
+
+export function policyRelationshipLabel(value: string | null | undefined): string {
+  return value === 'DIFFERENT_FROM_OWNER' ? 'DIFFERENT FROM OWNER' : 'SAME AS OWNER';
+}
+
 export function parseTaskMetadata(notes: string) {
   const meta: any = { timeline: notes || '' };
   if (!notes) return meta;
@@ -32,13 +40,38 @@ export function parseTaskMetadata(notes: string) {
       }
     });
   }
+
+  const hasPolicyData =
+    meta.policy_owner !== undefined ||
+    meta.policy_insured !== undefined ||
+    meta.policy_insured_count !== undefined ||
+    meta.policy_insured_relationship !== undefined;
+
+  if (hasPolicyData) {
+    if (meta.policy_insured_count !== undefined && meta.policy_insured_relationship === undefined) {
+      meta.policy_insured_relationship = DEFAULT_POLICY_RELATIONSHIP;
+      meta.policy_insured = meta.policy_owner || '';
+    }
+
+    delete meta.policy_insured_count;
+
+    if (!meta.policy_insured_relationship) {
+      meta.policy_insured_relationship = DEFAULT_POLICY_RELATIONSHIP;
+    }
+
+    if (meta.policy_insured_relationship === 'SAME_AS_OWNER') {
+      meta.policy_insured = meta.policy_owner || '';
+    }
+  }
+
   return meta;
 }
 
 export function buildTaskNotes(meta: any, timeline: string) {
   let yaml = '';
   for (const k in meta) {
-    if (k !== 'timeline' && meta[k] !== undefined && meta[k] !== null) {
+    if (k === 'timeline' || k === 'policy_insured_count') continue;
+    if (meta[k] !== undefined && meta[k] !== null) {
       yaml += `${k}: ${meta[k]}\n`;
     }
   }

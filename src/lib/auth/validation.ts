@@ -160,20 +160,23 @@ export function validateName(raw: unknown): ValidationResult {
 const PH_MOBILE_REGEX = /^(?:\+?63|0)9\d{9}$/;
 
 export function validatePhoneNumber(raw: unknown): ValidationResult {
+  // Optional field
   if (typeof raw !== "string" || !raw) {
-    return { valid: false, error: "Mobile number is required." };
+    return { valid: true, value: "" };
   }
 
   const phone = raw.trim().replace(/[\s\-()]/g, "");
 
   if (!phone) {
-    return { valid: false, error: "Mobile number is required." };
+    return { valid: true, value: "" };
   }
 
   if (!PH_MOBILE_REGEX.test(phone)) {
-    return { valid: false, error: "Please enter a valid PH mobile number (e.g. 09171234567)." };
+    return {
+      valid: false,
+      error: "Please enter a valid PH mobile number (e.g. 09171234567).",
+    };
   }
 
   return { valid: true, value: phone };
 }
-

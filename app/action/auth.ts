@@ -231,6 +231,7 @@ export const SignUp = async (formData: FormData): Promise<AuthActionResult> => {
   });
 
   if (signUpError) {
+    console.log("SIGNUP ERROR:", signUpError);
     return { error: signUpError.message };
   }
 

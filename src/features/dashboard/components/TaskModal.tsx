@@ -19,6 +19,9 @@ import {
   DEFAULT_INQUIRY_STATUS,
   WORKFLOW_STATUS_OPTIONS,
   DEFAULT_WORKFLOW_STATUS,
+  POLICY_RELATIONSHIP_OPTIONS,
+  DEFAULT_POLICY_RELATIONSHIP,
+  policyRelationshipLabel,
   PURPLE
 } from './TaskList';
 import UserAvatar, { UserProfile } from './UserAvatar';
@@ -28,6 +31,220 @@ import { formatDisplayDate } from './ActivityCard';
 import styles from '@/styles/admin/dashboard/page.module.css';
 
 const TASK_STATUSES = ['Pending', 'In Progress', 'Done'];
+
+interface PolicyOwnerGroup {
+  owner: string;
+  insured: string;
+  policyNumber: string;
+}
+
+function parsePolicyGroups(parsedMeta: any): PolicyOwnerGroup[] {
+  if (parsedMeta.policy_groups) {
+    try {
+      const parsed = JSON.parse(parsedMeta.policy_groups);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map((g: any) => ({
+          owner: typeof g?.owner === 'string' ? g.owner : '',
+          insured: typeof g?.insured === 'string'
+            ? g.insured
+            : (Array.isArray(g?.insureds) && typeof g.insureds[0] === 'string' ? g.insureds[0] : ''),
+          policyNumber: typeof g?.policyNumber === 'string'
+            ? g.policyNumber
+            : (typeof g?.policy_number === 'string' ? g.policy_number : ''),
+        }));
+      }
+    } catch {
+      return [
+        {
+          owner: parsedMeta.policy_owner || '',
+          insured: parsedMeta.policy_insured || '',
+          policyNumber: parsedMeta.policy_number || '',
+        },
+      ];
+    }
+  }
+
+  return [
+    {
+      owner: parsedMeta.policy_owner || '',
+      insured: parsedMeta.policy_insured || '',
+      policyNumber: parsedMeta.policy_number || '',
+    },
+  ];
+}
+
+function serializePolicyGroups(groups: PolicyOwnerGroup[]): string {
+  return JSON.stringify(groups.map((g) => ({ owner: g.owner, insured: g.insured, policyNumber: g.policyNumber })));
+}
+
+interface PolicyOwnerGroupCardProps {
+  group: PolicyOwnerGroup;
+  relationship: string;
+  showRemoveGroup: boolean;
+  isSettingUpTask: boolean;
+  onOwnerChange: (val: string) => void;
+  onInsuredChange: (val: string) => void;
+  onPolicyNumberChange: (val: string) => void;
+  onRemoveGroup: () => void;
+}
+
+function PolicyOwnerGroupCard({
+  group,
+  relationship,
+  showRemoveGroup,
+  isSettingUpTask,
+  onOwnerChange,
+  onInsuredChange,
+  onPolicyNumberChange,
+  onRemoveGroup,
+}: PolicyOwnerGroupCardProps) {
+  const isDifferentFromOwner = relationship === 'DIFFERENT_FROM_OWNER';
+  const ownerMissing = !isSettingUpTask && group.owner.trim().length === 0;
+  const insuredMissing = !isSettingUpTask && isDifferentFromOwner && group.insured.trim().length === 0;
+  const policyNumberMissing = !isSettingUpTask && group.policyNumber.trim().length === 0;
+
+  const cardShellStyle: React.CSSProperties = {
+    border: '1px solid var(--border)',
+    borderLeft: `3px solid ${PURPLE}`,
+    borderRadius: '12px',
+    padding: '14px',
+    background: 'var(--bg-muted)',
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      <div style={{ ...cardShellStyle, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
+          <div className={styles.userPickerContainer} style={{ flexGrow: 1 }}>
+            <label className={styles.formFieldLabel}>
+              Policy Owner{!isSettingUpTask && <span style={{ color: '#DC2626' }}> *</span>}
+            </label>
+            <input
+              type="text"
+              placeholder="Enter the Name of the Policy Owner"
+              value={group.owner}
+              onChange={(e) => onOwnerChange(e.target.value)}
+              className="px-3 py-2.5 rounded-xl border border-border bg-surface text-sm font-medium w-full"
+              style={ownerMissing ? { borderColor: '#DC2626' } : undefined}
+            />
+          </div>
+          {showRemoveGroup && (
+            <button
+              type="button"
+              onClick={onRemoveGroup}
+              style={{
+                marginTop: '22px',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--text-tertiary)',
+                padding: '6px',
+                borderRadius: '6px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+              className="hover:text-red-500 hover:bg-red-50"
+              title="Remove Policy Owner Group"
+            >
+              <Trash2 size={15} />
+            </button>
+          )}
+        </div>
+
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateRows: isDifferentFromOwner ? '1fr' : '0fr',
+            opacity: isDifferentFromOwner ? 1 : 0,
+            transform: isDifferentFromOwner ? 'translateY(0)' : 'translateY(-6px)',
+            transition: 'grid-template-rows 0.3s ease, opacity 0.25s ease, transform 0.3s ease',
+          }}
+        >
+          <div style={{ overflow: 'hidden' }}>
+            <div className={styles.userPickerContainer}>
+              <label className={styles.formFieldLabel}>
+                Policy Insured{!isSettingUpTask && <span style={{ color: '#DC2626' }}> *</span>}
+              </label>
+              <input
+                type="text"
+                placeholder="Enter the Name of the Policy Insured"
+                value={group.insured}
+                onChange={(e) => onInsuredChange(e.target.value)}
+                className="px-3 py-2.5 rounded-xl border border-border bg-surface text-sm font-medium w-full"
+                style={insuredMissing ? { borderColor: '#DC2626' } : undefined}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style={cardShellStyle}>
+        <div className={styles.userPickerContainer}>
+          <label className={styles.formFieldLabel}>
+            Policy Number{!isSettingUpTask && <span style={{ color: '#DC2626' }}> *</span>}
+          </label>
+          <input
+            type="number"
+            placeholder="Enter Policy Number"
+            value={group.policyNumber}
+            onChange={(e) => onPolicyNumberChange(e.target.value)}
+            className="px-3 py-2.5 rounded-xl border border-border bg-surface text-sm font-medium w-full"
+            style={policyNumberMissing ? { borderColor: '#DC2626' } : undefined}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface PolicyOwnerSectionProps {
+  relationship: string;
+  groups: PolicyOwnerGroup[];
+  isSettingUpTask: boolean;
+  onGroupsChange: (groups: PolicyOwnerGroup[]) => void;
+}
+
+function PolicyOwnerSection({ relationship, groups, isSettingUpTask, onGroupsChange }: PolicyOwnerSectionProps) {
+  const isSameAsOwner = relationship === 'SAME_AS_OWNER';
+  const visibleGroups = isSameAsOwner ? groups.slice(0, 1) : groups;
+
+  const updateOwner = (groupIdx: number, value: string) => {
+    onGroupsChange(groups.map((g, i) => (i === groupIdx ? { ...g, owner: value } : g)));
+  };
+
+  const updateInsured = (groupIdx: number, value: string) => {
+    onGroupsChange(groups.map((g, i) => (i === groupIdx ? { ...g, insured: value } : g)));
+  };
+
+  const updatePolicyNumber = (groupIdx: number, value: string) => {
+    onGroupsChange(groups.map((g, i) => (i === groupIdx ? { ...g, policyNumber: value } : g)));
+  };
+
+  const removeOwnerGroup = (groupIdx: number) => {
+    const next = groups.filter((_, i) => i !== groupIdx);
+    onGroupsChange(next.length > 0 ? next : [{ owner: '', insured: '', policyNumber: '' }]);
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {visibleGroups.map((group, idx) => (
+        <PolicyOwnerGroupCard
+          key={`owner-group-${idx}`}
+          group={group}
+          relationship={relationship}
+          showRemoveGroup={!isSameAsOwner && groups.length > 1}
+          isSettingUpTask={isSettingUpTask}
+          onOwnerChange={(val) => updateOwner(idx, val)}
+          onInsuredChange={(val) => updateInsured(idx, val)}
+          onPolicyNumberChange={(val) => updatePolicyNumber(idx, val)}
+          onRemoveGroup={() => removeOwnerGroup(idx)}
+        />
+      ))}
+    </div>
+  );
+}
 
 interface TaskModalProps {
   task: TaskItem;
@@ -191,6 +408,38 @@ export default function TaskModal({
 
   const updateMetaField = (key: string, value: string) => {
     const updatedMeta = { ...parsedMeta, [key]: value };
+    onSaveField(task.id, { notes: buildTaskNotes(updatedMeta, updatedMeta.timeline) });
+  };
+
+  const policyRelationship = parsedMeta.policy_insured_relationship || DEFAULT_POLICY_RELATIONSHIP;
+  const policyGroups = useMemo(
+    () => parsePolicyGroups(parsedMeta),
+    [parsedMeta.policy_groups, parsedMeta.policy_owner, parsedMeta.policy_insured, parsedMeta.policy_number]
+  );
+
+  const savePolicyGroups = (newGroups: PolicyOwnerGroup[]) => {
+    const updatedMeta: any = { ...parsedMeta };
+    delete updatedMeta.policy_insured_count;
+    updatedMeta.policy_groups = serializePolicyGroups(newGroups);
+    updatedMeta.policy_owner = newGroups[0]?.owner || '';
+    updatedMeta.policy_insured = newGroups[0]?.insured || '';
+    updatedMeta.policy_number = newGroups[0]?.policyNumber || '';
+    onSaveField(task.id, { notes: buildTaskNotes(updatedMeta, updatedMeta.timeline) });
+  };
+
+  const handlePolicyRelationshipChange = (value: string) => {
+    let nextGroups = policyGroups;
+    if (value === 'SAME_AS_OWNER') {
+      nextGroups = policyGroups.slice(0, 1);
+      if (nextGroups.length === 0) nextGroups = [{ owner: '', insured: '', policyNumber: '' }];
+    }
+    const updatedMeta: any = { ...parsedMeta };
+    delete updatedMeta.policy_insured_count;
+    updatedMeta.policy_insured_relationship = value;
+    updatedMeta.policy_groups = serializePolicyGroups(nextGroups);
+    updatedMeta.policy_owner = nextGroups[0]?.owner || '';
+    updatedMeta.policy_insured = nextGroups[0]?.insured || '';
+    updatedMeta.policy_number = nextGroups[0]?.policyNumber || '';
     onSaveField(task.id, { notes: buildTaskNotes(updatedMeta, updatedMeta.timeline) });
   };
 
@@ -426,48 +675,36 @@ export default function TaskModal({
             </div>
           </div>
 
-          <div className={styles.modalTwoCol}>
-            <div className={styles.userPickerContainer}>
-              <label className={styles.formFieldLabel}>Policy Owner</label>
-              <input
-                type="text"
-                placeholder="Search or enter manually..."
-                value={parsedMeta.policy_owner || ''}
-                onChange={(e) => updateMetaField('policy_owner', e.target.value)}
-                className="px-3 py-2.5 rounded-xl border border-border bg-surface text-sm font-medium w-full"
-              />
-            </div>
-            <div className={styles.userPickerContainer}>
-              <label className={styles.formFieldLabel}>Date of Request</label>
-              <input
-                type="date"
-                value={parsedMeta.date_of_request || new Date().toISOString().split('T')[0]}
-                onChange={(e) => updateMetaField('date_of_request', e.target.value)}
-                className="px-3 py-2.5 rounded-xl border border-border bg-surface text-sm font-medium w-full"
-              />
-            </div>
+          <div className={styles.userPickerContainer}>
+            <label className={styles.formFieldLabel}>Policy Insured Relationship</label>
+            <select
+              value={policyRelationship}
+              onChange={(e) => handlePolicyRelationshipChange(e.target.value)}
+              className="px-3 py-2.5 rounded-xl border border-border bg-surface text-sm font-semibold w-full"
+            >
+              {POLICY_RELATIONSHIP_OPTIONS.map((opt) => (
+                <option key={opt} value={opt}>
+                  {policyRelationshipLabel(opt)}
+                </option>
+              ))}
+            </select>
           </div>
-          <div className={styles.modalTwoCol}>
-            <div className={styles.userPickerContainer}>
-              <label className={styles.formFieldLabel}>Number of Policy Insured</label>
-              <select
-                value={parsedMeta.policy_insured_count || '1'}
-                onChange={(e) => updateMetaField('policy_insured_count', e.target.value)}
-                className="px-3 py-2.5 rounded-xl border border-border bg-surface text-sm font-medium"
-              >
-                {['1', '2', '3', '4', '5+'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
-              </select>
-            </div>
-            <div className={styles.userPickerContainer}>
-              <label className={styles.formFieldLabel}>Policy Number</label>
-              <input
-                type="text"
-                placeholder="Enter Policy Number"
-                value={parsedMeta.policy_number || ''}
-                onChange={(e) => updateMetaField('policy_number', e.target.value)}
-                className="px-3 py-2.5 rounded-xl border border-border bg-surface text-sm font-medium w-full"
-              />
-            </div>
+
+          <PolicyOwnerSection
+            relationship={policyRelationship}
+            groups={policyGroups}
+            isSettingUpTask={isSettingUpTask}
+            onGroupsChange={savePolicyGroups}
+          />
+
+          <div className={styles.userPickerContainer} style={{ maxWidth: '260px' }}>
+            <label className={styles.formFieldLabel}>Date of Request</label>
+            <input
+              type="date"
+              value={parsedMeta.date_of_request || new Date().toISOString().split('T')[0]}
+              onChange={(e) => updateMetaField('date_of_request', e.target.value)}
+              className="px-3 py-2.5 rounded-xl border border-border bg-surface text-sm font-medium w-full"
+            />
           </div>
 
           {!isUserView ? (

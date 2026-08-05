@@ -415,7 +415,7 @@ export const AuthForm = ({ action }: AuthFormProps) => {
         />
 
         <FloatingLabelInput
-          id="password" label="Password" name="password"
+          id="password" label="Password" name="password" 
           type={showPassword ? "text" : "password"} value={password}
           onChange={(value) => {
             setPassword(value);
