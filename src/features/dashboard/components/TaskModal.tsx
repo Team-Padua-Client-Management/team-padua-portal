@@ -26,11 +26,10 @@ import {
 } from './TaskList';
 import UserAvatar, { UserProfile } from './UserAvatar';
 import UserPickerSelect from './UserPickerSelect';
-import StatusBadge, { getTaskStatusMeta, getStatusColorHex } from './StatusBadge';
 import { formatDisplayDate } from './ActivityCard';
 import styles from '@/styles/admin/dashboard/page.module.css';
+import { getStatusColorHex } from './StatusBadge';
 
-const TASK_STATUSES = ['Pending', 'In Progress', 'Done'];
 
 interface PolicyOwnerGroup {
   owner: string;

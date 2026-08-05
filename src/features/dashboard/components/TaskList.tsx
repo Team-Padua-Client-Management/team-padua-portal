@@ -1163,9 +1163,7 @@ export function ClientInquiries({
           <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight m-0 leading-none">
             Client Inquiries
           </h1>
-        </div>
 
-        <div className="flex items-center justify-between mt-0.5">
           <span className="text-[13px] font-bold" style={{ color: 'var(--text-secondary)' }}>
             <span
               className="text-[22px] font-extrabold mr-1.5"
@@ -1175,28 +1173,9 @@ export function ClientInquiries({
             </span>
             Total Logged Inquir{totalLogged !== 1 ? 'ies' : 'y'}
           </span>
-
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <Link
-              href={isUserView ? "/dashboard/history" : "/admin/dashboard/history"}
-              style={{ textDecoration: 'none' }}
-              className={`${styles.newTaskBtn} !py-1.5 !px-4 !text-[13px] !bg-surface-2 !text-text hover:!bg-surface-3 !border-border !border`}
-            >
-              <History size={15} strokeWidth={2.5} />
-              <span className="font-bold">View History</span>
-            </Link>
-            {showCreateButton && (
-              <button
-                type="button"
-                onClick={onCreateTask}
-                className={`${styles.newTaskBtn} !py-1.5 !px-4 !text-[13px]`}
-              >
-                <Plus size={15} strokeWidth={2.5} />
-                <span className="font-bold">Log Inquiry</span>
-              </button>
-            )}
-          </div>
         </div>
+
+
       </div>
 
       <div className={styles.dashboardCardBody} style={{ padding: '0 16px 16px', gap: '8px' }}>
