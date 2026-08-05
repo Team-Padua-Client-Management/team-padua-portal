@@ -592,7 +592,6 @@ export default function TaskModal({
                 placeholder="Untitled Task"
                 autoFocus
               />
-              {!isSettingUpTask && <StatusBadge status={task.status} size="sm" />}
             </div>
             <div className={styles.modalSubTitle}>
               <span className={styles.modalSubTitleItem}>
@@ -618,38 +617,7 @@ export default function TaskModal({
         </div>
 
         <div className={styles.modalBodyContent}>
-          {!isSettingUpTask && (
-            <div className={styles.modalSection}>
-              <label className={styles.formFieldLabel}>Status</label>
-              <div className={styles.segmentedStatusRow}>
-                {TASK_STATUSES.map((st) => {
-                  const { className } = getTaskStatusMeta(st);
-                  const isActive = task.status === st;
-                  const colorHex = getStatusColorHex(st);
 
-                  return (
-                    <button
-                      key={st}
-                      type="button"
-                      className={`${styles.statusSegmentBtn} ${isActive ? styles.statusSegmentActive : ''} ${className}`}
-                      style={isActive ? {
-                        background: colorHex,
-                        color: '#FFFFFF',
-                        borderColor: colorHex,
-                        boxShadow: `0 2px 8px ${colorHex}55`
-                      } : undefined}
-                      onClick={() => onSaveField(task.id, {
-                        status: st,
-                        completed: st === 'Done'
-                      })}
-                    >
-                      {st}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
 
           <div className={styles.modalTwoCol}>
             <CategoryPickerSelect
