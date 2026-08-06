@@ -35,6 +35,15 @@ interface PolicyOwnerGroup {
   policyNumber: string;
 }
 
+export const INQUIRY_TYPE_OPTIONS = ['Address Concern', 'Pending Response', 'Client Servicing'] as const;
+export type InquiryType = typeof INQUIRY_TYPE_OPTIONS[number];
+
+export const INQUIRY_TYPE_TO_WORKFLOW_STATUS: Record<string, string> = {
+  'Address Concern': 'Addressed Concerns',
+  'Pending Response': 'Pending Response',
+  'Client Servicing': 'For Client Servicing',
+};
+
 function parsePolicyGroups(parsedMeta: any): PolicyOwnerGroup[] {
   if (parsedMeta.policy_groups) {
     try {
@@ -374,9 +383,19 @@ function ClientInquiryModal({
     onSaveField(task.id, { notes: buildTaskNotes(updatedMeta, updatedMeta.timeline) });
   };
 
+  const handleInquiryTypeChange = (value: string) => {
+    const mappedStatus = INQUIRY_TYPE_TO_WORKFLOW_STATUS[value] || DEFAULT_INQUIRY_STATUS;
+    const updatedMeta = { ...parsedMeta, inquiry_type: value, workflow_status: mappedStatus };
+    onSaveField(task.id, { notes: buildTaskNotes(updatedMeta, updatedMeta.timeline) });
+  };
+
   const handleSaveInquiry = () => {
-    if (!parsedMeta.workflow_status) {
-      const updatedMeta = { ...parsedMeta, workflow_status: DEFAULT_INQUIRY_STATUS };
+    if (!parsedMeta.inquiry_type) {
+      return;
+    }
+    const mappedStatus = INQUIRY_TYPE_TO_WORKFLOW_STATUS[parsedMeta.inquiry_type] || DEFAULT_INQUIRY_STATUS;
+    if (parsedMeta.workflow_status !== mappedStatus) {
+      const updatedMeta = { ...parsedMeta, workflow_status: mappedStatus };
       onSaveField(task.id, { notes: buildTaskNotes(updatedMeta, updatedMeta.timeline) });
     }
     handleClose();
@@ -434,6 +453,27 @@ function ClientInquiryModal({
           </div>
 
           <div className={styles.userPickerContainer}>
+            <label className={styles.formFieldLabel}>
+              Inquiry Type<span style={{ color: '#DC2626' }}> *</span>
+            </label>
+            <select
+              value={parsedMeta.inquiry_type || ''}
+              onChange={(e) => handleInquiryTypeChange(e.target.value)}
+              className="px-3 py-2.5 rounded-xl border border-border bg-surface text-sm font-semibold w-full"
+              style={!parsedMeta.inquiry_type ? { borderColor: '#DC2626' } : undefined}
+            >
+              <option value="" disabled hidden>
+                Select Inquiry Type
+              </option>
+              {INQUIRY_TYPE_OPTIONS.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className={styles.userPickerContainer}>
             <label className={styles.formFieldLabel}>Inquiry / Concern</label>
             <textarea
               placeholder="Describe the inquiry or concern..."
@@ -473,8 +513,9 @@ function ClientInquiryModal({
             <button
               type="button"
               className={styles.goldSaveBtn}
-              style={{ background: PURPLE }}
+              style={{ background: PURPLE, opacity: parsedMeta.inquiry_type ? 1 : 0.5 }}
               onClick={handleSaveInquiry}
+              disabled={!parsedMeta.inquiry_type}
             >
               Save Inquiry
             </button>

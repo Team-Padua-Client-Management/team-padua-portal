@@ -1,16 +1,18 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { AdminHeader as Header } from "@src/components/layout";
 import { AdminSidebar as Sidebar } from "@src/components/layout";
 import styles from "@/styles/admin/dashboard/page.module.css";
-import { History, ArrowLeft, Search, Filter, ChevronDown } from 'lucide-react';
+import { History, ArrowLeft, Search, Filter, ChevronDown, Pencil } from 'lucide-react';
 import Link from 'next/link';
 
 import { useAdminDashboard } from '@src/features/dashboard/hooks/useAdminDashboard';
 import { containerVariants, itemVariants, itemVariantsReduced } from '@src/features/dashboard/constants';
 import { normalizeCategory } from '@src/features/dashboard/components/TaskRow';
+import TaskModal from '@src/features/dashboard/components/TaskModal';
 import type { UserProfile } from '@src/features/dashboard/components/UserAvatar';
 import {
   parseTaskMetadata,
@@ -103,13 +105,23 @@ function InfoField({ label, value }: { label: string; value: React.ReactNode }) 
 }
 
 export default function HistoryPage() {
-  const { userTasks, allProfiles, bizDevProfiles } = useAdminDashboard();
+  const {
+    userTasks,
+    allProfiles,
+    bizDevProfiles,
+    currentUserId,
+    saveTaskField,
+    handleDeleteTask,
+    isMounted,
+  } = useAdminDashboard();
+
   const prefersReducedMotion = useReducedMotion();
   const fadeVariants = prefersReducedMotion ? itemVariantsReduced : itemVariants;
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('All');
   const [expandedTimelines, setExpandedTimelines] = useState<Record<string, boolean>>({});
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
 
   const workflowTasks = userTasks as WorkflowTaskItem[];
 
@@ -122,6 +134,11 @@ export default function HistoryPage() {
     if (!id) return null;
     return profiles.find((p) => p.id === id) || null;
   };
+
+  const currentUserProfile = useMemo(
+    () => findProfileById(currentUserId),
+    [profiles, currentUserId]
+  );
 
   const servicingTasks = useMemo(
     () => workflowTasks.filter((t) => normalizeCategory(t.category) !== 'Inquiry'),
@@ -151,6 +168,8 @@ export default function HistoryPage() {
   const toggleTimeline = (taskId: string) => {
     setExpandedTimelines((prev) => ({ ...prev, [taskId]: !prev[taskId] }));
   };
+
+  const editingTask = workflowTasks.find((t) => t.id === editingTaskId) || null;
 
   return (
     <div className={styles.shell}>
@@ -324,21 +343,45 @@ export default function HistoryPage() {
                             {categoryMeta.title}
                           </span>
                         </div>
-                        <span
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            padding: '6px 14px',
-                            borderRadius: '999px',
-                            fontSize: '12px',
-                            fontWeight: 700,
-                            background: statusColor.bg,
-                            color: statusColor.color,
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {workflowStatus}
-                        </span>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              padding: '6px 14px',
+                              borderRadius: '999px',
+                              fontSize: '12px',
+                              fontWeight: 700,
+                              background: statusColor.bg,
+                              color: statusColor.color,
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {workflowStatus}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setEditingTaskId(task.id)}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              padding: '6px 12px',
+                              borderRadius: '999px',
+                              fontSize: '12px',
+                              fontWeight: 700,
+                              background: 'var(--bg-muted)',
+                              color: 'var(--text)',
+                              border: '1px solid var(--border)',
+                              cursor: 'pointer',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            <Pencil size={12} strokeWidth={2.5} />
+                            Edit
+                          </button>
+                        </div>
                       </div>
 
                       <div
@@ -434,6 +477,22 @@ export default function HistoryPage() {
           </motion.div>
         </motion.main>
       </div>
+
+      {isMounted && editingTask && createPortal(
+        <TaskModal
+          task={editingTask}
+          allProfiles={allProfiles}
+          bizDevProfiles={bizDevProfiles}
+          currentUserProfile={currentUserProfile}
+          onSaveField={saveTaskField}
+          onDeleteTask={(taskId) => {
+            handleDeleteTask(taskId);
+            setEditingTaskId(null);
+          }}
+          onClose={() => setEditingTaskId(null)}
+        />,
+        document.body
+      )}
     </div>
   );
 }
