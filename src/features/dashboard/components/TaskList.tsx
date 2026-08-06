@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Plus,
   LayoutGrid,
@@ -11,8 +12,9 @@ import {
   History,
 } from 'lucide-react';
 import Link from 'next/link';
-import { TaskItem, normalizeCategory } from './TaskRow';
-import type { UserProfile } from './UserAvatar';
+import { TaskItem, normalizeCategory, formatRelativeTime } from './TaskRow';
+import UserAvatar, { UserProfile } from './UserAvatar';
+import { formatDisplayDate } from './ActivityCard';
 import styles from '@/styles/admin/dashboard/page.module.css';
 
 export const POLICY_RELATIONSHIP_OPTIONS = ['SAME_AS_OWNER', 'DIFFERENT_FROM_OWNER'] as const;
@@ -794,11 +796,17 @@ const INQUIRY_STAGES: StageMeta[] = [
 ];
 
 function getInquiryStage(task: WorkflowTaskItem): InquiryStage {
-  const meta = parseTaskMetadata(task.notes || '');
-  const status = (meta.workflow_status || task.workflow_status || '').toLowerCase();
-  if (status.includes('addressed')) return 'addressed';
-  if (status.includes('pending')) return 'pending';
-  return 'for_servicing';
+  const meta = parseTaskMetadata(task.notes || "");
+
+  const type = (meta.inquiry_type || "").toLowerCase();
+
+  if (type === "address concern")
+    return "addressed";
+
+  if (type === "client servicing")
+    return "for_servicing";
+
+  return "pending";
 }
 
 function inquiryStageToStatus(stage: InquiryStage): string {
@@ -814,24 +822,224 @@ export interface NewInquiryPayload {
   workflow_status: string;
 }
 
+function findProfileInLists(id: string | null | undefined, allProfiles: UserProfile[], bizDevProfiles: UserProfile[]): UserProfile | null {
+  if (!id) return null;
+  return allProfiles.find((p) => p.id === id) || bizDevProfiles.find((p) => p.id === id) || null;
+}
+
+function formatDateLoggedValue(createdAt: string | null | undefined): { datePart: string; timePart: string } | null {
+  if (!createdAt) return null;
+  const datePart = formatDisplayDate(createdAt.slice(0, 10));
+  const timePart = new Date(createdAt).toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+  return { datePart, timePart };
+}
+
+interface PreviewRect {
+  top: number;
+  left: number;
+  right: number;
+  height: number;
+}
+
+const PREVIEW_CARD_WIDTH = 440;
+const PREVIEW_CARD_GAP = 18;
+
+interface InquiryPreviewCardProps {
+  task: WorkflowTaskItem;
+  meta: any;
+  processedProfile: UserProfile | null;
+  loggedByLabel: string;
+  rect: PreviewRect;
+}
+
+function InquiryPreviewCard({ task, meta, processedProfile, loggedByLabel, rect }: InquiryPreviewCardProps) {
+  const [entered, setEntered] = useState(false);
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setEntered(true));
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
+  const spaceRight = window.innerWidth - rect.right;
+  const isRight = spaceRight >= PREVIEW_CARD_WIDTH + PREVIEW_CARD_GAP;
+
+  const top = rect.top + rect.height / 2;
+  const left = isRight ? rect.right + PREVIEW_CARD_GAP : rect.left - PREVIEW_CARD_WIDTH - PREVIEW_CARD_GAP;
+
+  const dateLogged = formatDateLoggedValue(task.created_at);
+  const lastUpdated = task.updated_at ? formatRelativeTime(task.updated_at) : 'N/A';
+
+  const sectionLabelStyle: React.CSSProperties = {
+    fontSize: '11px',
+    fontWeight: 700,
+    textTransform: 'uppercase',
+    letterSpacing: '.08em',
+    color: '#6B7280',
+    marginBottom: '4px',
+  };
+
+  const mainValueStyle: React.CSSProperties = {
+    fontSize: '16px',
+    fontWeight: 700,
+    color: '#111827',
+  };
+
+  const bodyStyle: React.CSSProperties = {
+    fontSize: '14px',
+    fontWeight: 500,
+    lineHeight: 1.7,
+    color: '#374151',
+  };
+
+  const dividerStyle: React.CSSProperties = {
+    borderTop: '1px solid rgba(0,0,0,.06)',
+    margin: '14px 0',
+  };
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        top: `${top}px`,
+        left: `${left}px`,
+        width: `${PREVIEW_CARD_WIDTH}px`,
+        minHeight: '180px',
+        padding: '20px',
+        borderRadius: '16px',
+        background: '#ffffff',
+        border: '1px solid rgba(0,0,0,.06)',
+        boxShadow: '0 18px 40px rgba(15,23,42,.14)',
+        borderLeft: '4px solid #6D28D9',
+        zIndex: 9999,
+        opacity: entered ? 1 : 0,
+        transform: `translateY(-50%) translateX(${entered ? 0 : isRight ? 10 : -10}px)`,
+        transition: 'opacity 0.18s ease-out, transform 0.18s ease-out',
+        pointerEvents: 'none',
+      }}
+    >
+      <div
+        style={{
+          position: 'absolute',
+          top: '50%',
+          ...(isRight ? { left: '-7px' } : { right: '-7px' }),
+          transform: 'translateY(-50%) rotate(45deg)',
+          width: '14px',
+          height: '14px',
+          background: '#ffffff',
+          borderLeft: isRight ? '1px solid rgba(0,0,0,.06)' : 'none',
+          borderBottom: isRight ? '1px solid rgba(0,0,0,.06)' : 'none',
+          borderRight: !isRight ? '1px solid rgba(0,0,0,.06)' : 'none',
+          borderTop: !isRight ? '1px solid rgba(0,0,0,.06)' : 'none',
+        }}
+      />
+
+      <div style={sectionLabelStyle}>CMGC Name</div>
+      <div style={mainValueStyle}>{meta.cmgc_name || 'N/A'}</div>
+
+      <div style={dividerStyle} />
+
+      <div style={sectionLabelStyle}>Inquiry / Concern</div>
+      <div
+        style={{
+          ...bodyStyle,
+          whiteSpace: 'normal',
+          wordBreak: 'break-word',
+          maxHeight: '120px',
+          overflow: 'auto',
+        }}
+      >
+        {meta.inquiry_concern || 'N/A'}
+      </div>
+
+      <div style={dividerStyle} />
+
+      <div style={sectionLabelStyle}>Processed By</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <UserAvatar profile={processedProfile} size={32} />
+        <div style={mainValueStyle}>{loggedByLabel}</div>
+      </div>
+
+      <div style={dividerStyle} />
+
+      <div style={sectionLabelStyle}>Date Logged</div>
+      <div style={bodyStyle}>
+        {dateLogged ? (
+          <>
+            {dateLogged.datePart}
+            <br />
+            {dateLogged.timePart}
+          </>
+        ) : (
+          'N/A'
+        )}
+      </div>
+
+      <div style={dividerStyle} />
+
+      <div style={sectionLabelStyle}>Last Updated</div>
+      <div style={bodyStyle}>{lastUpdated}</div>
+    </div>
+  );
+}
+
 interface InquiryRowProps {
   task: WorkflowTaskItem;
   stage: InquiryStage;
+  allProfiles: UserProfile[];
+  bizDevProfiles: UserProfile[];
   onClick: () => void;
   onDeleteTask?: (taskId: string) => void;
   onSaveTaskField?: (taskId: string, updates: Record<string, unknown>) => void;
 }
 
-function InquiryRow({ task, stage, onClick, onDeleteTask, onSaveTaskField }: InquiryRowProps) {
+function InquiryRow({ task, stage, allProfiles, bizDevProfiles, onClick, onDeleteTask, onSaveTaskField }: InquiryRowProps) {
   const meta = parseTaskMetadata(task.notes || '');
   const currentStatus = inquiryStageToStatus(stage);
   const remainingOptions = getRemainingInquiryOptions(currentStatus);
   const [showPreview, setShowPreview] = useState(false);
+  const [previewRect, setPreviewRect] = useState<PreviewRect | null>(null);
+  const rowRef = useRef<HTMLDivElement>(null);
+
+  const measureRect = () => {
+    if (!rowRef.current) return;
+    const rect = rowRef.current.getBoundingClientRect();
+    setPreviewRect({ top: rect.top, left: rect.left, right: rect.right, height: rect.height });
+  };
+
+  const handleMouseEnter = () => {
+    measureRect();
+    setShowPreview(true);
+  };
+
+  const handleMouseLeave = () => {
+    setShowPreview(false);
+  };
+
+  useEffect(() => {
+    if (!showPreview) return;
+    const handleReposition = () => measureRect();
+    window.addEventListener('scroll', handleReposition, true);
+    window.addEventListener('resize', handleReposition);
+    return () => {
+      window.removeEventListener('scroll', handleReposition, true);
+      window.removeEventListener('resize', handleReposition);
+    };
+  }, [showPreview]);
+
+  const processedProfile = findProfileInLists(task.processed_by, allProfiles, bizDevProfiles);
+  const fallbackCreatedBy = (task as any).created_by_name || (task as any).created_by || null;
+  const loggedByLabel =
+    processedProfile?.full_name || processedProfile?.email || fallbackCreatedBy || 'System';
 
   return (
     <div
-      onMouseEnter={() => setShowPreview(true)}
-      onMouseLeave={() => setShowPreview(false)}
+      ref={rowRef}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       style={{
         position: 'relative',
         display: 'grid',
@@ -905,36 +1113,18 @@ function InquiryRow({ task, stage, onClick, onDeleteTask, onSaveTaskField }: Inq
         </button>
       </div>
 
-      {showPreview && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            marginTop: '6px',
-            width: '300px',
-            background: 'var(--surface)',
-            border: '1px solid var(--border)',
-            borderRadius: '10px',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.15)',
-            padding: '12px 14px',
-            zIndex: 60,
-          }}
-        >
-          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '4px' }}>
-            CMGC Name
-          </div>
-          <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', marginBottom: '10px' }}>
-            {meta.cmgc_name || 'N/A'}
-          </div>
-          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '4px' }}>
-            Inquiry / Concern
-          </div>
-          <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text)', lineHeight: 1.5 }}>
-            {meta.inquiry_concern || task.title || 'N/A'}
-          </div>
-        </div>
-      )}
+      {showPreview && previewRect && typeof document !== 'undefined'
+        ? createPortal(
+          <InquiryPreviewCard
+            task={task}
+            meta={meta}
+            processedProfile={processedProfile}
+            loggedByLabel={loggedByLabel}
+            rect={previewRect}
+          />,
+          document.body
+        )
+        : null}
     </div>
   );
 }
@@ -942,6 +1132,8 @@ function InquiryRow({ task, stage, onClick, onDeleteTask, onSaveTaskField }: Inq
 interface InquiryStagePopoverProps {
   stage: typeof INQUIRY_STAGES[0];
   inquiries: WorkflowTaskItem[];
+  allProfiles: UserProfile[];
+  bizDevProfiles: UserProfile[];
   onSelectTask: (taskId: string) => void;
   onDeleteTask?: (taskId: string) => void;
   onSaveTaskField?: (taskId: string, updates: Record<string, unknown>) => void;
@@ -952,6 +1144,8 @@ interface InquiryStagePopoverProps {
 function InquiryStagePopover({
   stage,
   inquiries,
+  allProfiles,
+  bizDevProfiles,
   onSelectTask,
   onDeleteTask,
   onSaveTaskField,
@@ -1011,6 +1205,8 @@ function InquiryStagePopover({
                 key={task.id}
                 task={task}
                 stage={stage.id as InquiryStage}
+                allProfiles={allProfiles}
+                bizDevProfiles={bizDevProfiles}
                 onClick={() => onSelectTask(task.id)}
                 onDeleteTask={onDeleteTask}
                 onSaveTaskField={onSaveTaskField}
@@ -1024,6 +1220,8 @@ function InquiryStagePopover({
 
 interface ClientInquiriesProps {
   tasks: WorkflowTaskItem[];
+  allProfiles?: UserProfile[];
+  bizDevProfiles?: UserProfile[];
   onCreateTask: () => void;
   onSelectTask: (taskId: string) => void;
   onDeleteTask?: (taskId: string) => void;
@@ -1035,6 +1233,8 @@ interface ClientInquiriesProps {
 
 export function ClientInquiries({
   tasks,
+  allProfiles = [],
+  bizDevProfiles = [],
   onCreateTask,
   onSelectTask,
   onDeleteTask,
@@ -1046,8 +1246,21 @@ export function ClientInquiries({
   const { activeStage, openStage, cancelClose, scheduleClose } = useStageHoverController<InquiryStage>();
 
   const inquiryTasks = useMemo(() => {
-    return tasks.filter(t => normalizeCategory(t.category) === 'Inquiry');
+    return tasks.filter(
+      (t) => normalizeCategory(t.category) === "Inquiry"
+    );
   }, [tasks]);
+
+  const validInquiryTasks = useMemo(() => {
+    return inquiryTasks.filter((task) => {
+      const meta = parseTaskMetadata(task.notes || "");
+
+      return (
+        (meta.cmgc_name ?? "").trim() !== "" &&
+        (meta.inquiry_concern ?? "").trim() !== ""
+      );
+    });
+  }, [inquiryTasks]);
 
   const stageBuckets = useMemo(() => {
     const buckets: Record<InquiryStage, WorkflowTaskItem[]> = {
@@ -1055,13 +1268,15 @@ export function ClientInquiries({
       pending: [],
       for_servicing: [],
     };
-    for (const task of inquiryTasks) {
+
+    for (const task of validInquiryTasks) {
       buckets[getInquiryStage(task)].push(task);
     }
-    return buckets;
-  }, [inquiryTasks]);
 
-  const totalLogged = inquiryTasks.length;
+    return buckets;
+  }, [validInquiryTasks]);
+
+  const totalLogged = validInquiryTasks.length;
 
   return (
     <div className={styles.monitoringCard}>
@@ -1132,6 +1347,8 @@ export function ClientInquiries({
                   <InquiryStagePopover
                     stage={stage}
                     inquiries={stageBuckets[stage.id as InquiryStage]}
+                    allProfiles={allProfiles}
+                    bizDevProfiles={bizDevProfiles}
                     onSelectTask={onSelectTask}
                     onDeleteTask={onDeleteTask}
                     onSaveTaskField={onSaveTaskField}

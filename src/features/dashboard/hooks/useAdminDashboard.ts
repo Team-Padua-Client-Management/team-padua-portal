@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { supabase } from '@src/lib/supabase/client';
 import { TaskItem } from '@src/features/dashboard/components/TaskRow';
 import { TodoTask } from '@src/features/dashboard/components/ClientServicingToDo';
@@ -14,6 +14,7 @@ import {
   formatUiTaskToDbUpdates
 } from '@src/features/dashboard/utils/dashboardUtils';
 import createNotification from '@src/lib/notifications/createNotification';
+import { ClientInquiry } from '@src/features/dashboard/types/inquiry';
 
 export type KpiData = {
   members: number;
@@ -38,6 +39,7 @@ export const useAdminDashboard = () => {
   const [clientBirthdays, setClientBirthdays] = useState<BirthdayItem[]>([]);
 
   const [userTasks, setUserTasks] = useState<TaskItem[]>([]);
+  const [clientInquiries, setClientInquiries] = useState<ClientInquiry[]>([]);
   const [personalTodos, setPersonalTodos] = useState<TodoTask[]>([]);
 
   const [allProfiles, setAllProfiles] = useState<UserProfile[]>([]);
@@ -46,7 +48,9 @@ export const useAdminDashboard = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userPermissions, setUserPermissions] = useState<any>(null);
+
   const [selectedTaskIdForModal, setSelectedTaskIdForModal] = useState<string | null>(null);
+  const [selectedInquiryId, setSelectedInquiryId] = useState<string | null>(null);
 
   const [activities, setActivities] = useState<ActivityEvent[]>(initialActivities);
 
@@ -68,6 +72,11 @@ export const useAdminDashboard = () => {
   });
 
   const currentUserIdRef = useRef<string | null>(null);
+
+  const selectedInquiry = useMemo(() => {
+    if (!selectedInquiryId) return null;
+    return clientInquiries.find(item => item.id === selectedInquiryId) || null;
+  }, [selectedInquiryId, clientInquiries]);
 
   useEffect(() => {
     try {
@@ -91,10 +100,12 @@ export const useAdminDashboard = () => {
 
       let currentAll: UserProfile[] = [];
       if (!allErr && allData) {
-        const cleanProfiles = allData.filter(p =>
-          p.email?.toLowerCase() !== 'admin@teampadua.com' &&
-          p.full_name !== 'User' &&
-          !(p.full_name?.toLowerCase() === 'user' && (p.role === 'Admin' || p.role === 'ADMIN'))
+        const cleanProfiles = allData.filter(
+          p =>
+            !(
+              p.full_name?.toLowerCase() === "user" &&
+              (p.role === "Admin" || p.role === "ADMIN")
+            )
         );
         setAllProfiles(cleanProfiles);
         currentAll = cleanProfiles;
@@ -214,8 +225,16 @@ export const useAdminDashboard = () => {
         });
 
         setUserTasks(filteredTasks);
-
         setCalendarLogs(dbCalendarLogs);
+
+        const resInquiry = await supabase
+          .from('client_inquiries')
+          .select('*')
+          .order('updated_at', { ascending: false });
+
+        if (resInquiry.data) {
+          setClientInquiries(resInquiry.data as ClientInquiry[]);
+        }
 
         try {
           const { data: todoData, error: todoErr } = await supabase
@@ -315,10 +334,6 @@ export const useAdminDashboard = () => {
     }
   }, []);
 
-  useEffect(() => {
-    console.log('Current userTasks:', userTasks);
-  }, [userTasks]);
-
   const savePersonalTodosToCache = (todosList: TodoTask[]) => {
     try {
       localStorage.setItem('tp_personal_todos', JSON.stringify(todosList));
@@ -345,9 +360,65 @@ export const useAdminDashboard = () => {
 
       const res = await supabase.from('client_servicing_tasks').update(dbUpdates).eq('id', taskId);
       if (res.error) console.error('Error updating task in client_servicing_tasks:', res.error);
-      else console.log('Updated Task:', res.data);
     } catch (err) {
       console.error('Error auto-saving task:', err);
+    }
+  };
+
+  const saveInquiryField = async (
+    inquiryId: string,
+    updates: Record<string, any>
+  ) => {
+    setClientInquiries(prev =>
+      prev.map(item =>
+        item.id === inquiryId
+          ? {
+            ...item,
+            ...updates,
+            updated_at: new Date().toISOString(),
+          }
+          : item
+      )
+    );
+
+    try {
+      const dbUpdates: Record<string, any> = {
+        updated_at: new Date().toISOString(),
+      };
+
+      if ("cmgc_name" in updates)
+        dbUpdates.cmgc_name = updates.cmgc_name;
+
+      if ("inquiry_concern" in updates)
+        dbUpdates.inquiry_concern = updates.inquiry_concern;
+
+      if ("inquiry_type" in updates)
+        dbUpdates.inquiry_type = updates.inquiry_type;
+
+      if ("status" in updates)
+        dbUpdates.status = updates.status;
+
+
+      console.log("========== UPDATE INQUIRY ==========");
+      console.log("Inquiry ID:", inquiryId);
+      console.log("Updates:", dbUpdates);
+
+      const { data, error } = await supabase
+        .from("client_inquiries")
+        .update(dbUpdates)
+        .eq("id", inquiryId)
+        .select()
+        .single();
+
+      console.log("Returned Data:", data);
+      console.log("Returned Error:", error);
+
+      if (error) {
+        console.error("Supabase Update Error:", error);
+        throw error;
+      }
+    } catch (err) {
+      console.error("Error auto-saving inquiry:", err);
     }
   };
 
@@ -399,7 +470,6 @@ export const useAdminDashboard = () => {
       );
 
       setUserTasks(prev => [createdTask, ...prev]);
-
       setSelectedTaskIdForModal(createdTask.id);
 
     } catch (err) {
@@ -417,22 +487,19 @@ export const useAdminDashboard = () => {
 
     if (!activeUserId) return;
 
-    const newDbTask = {
-      user_id: activeUserId,
-      title: "Untitled Inquiry",
-      notes: "",
-      category: "Inquiry",
-      status: "Pending",
-      assigned_to: activeUserId,
-      processed_by: activeUserId,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-
     try {
       const { data, error } = await supabase
-        .from("client_servicing_tasks")
-        .insert([newDbTask])
+        .from("client_inquiries")
+        .insert([
+          {
+            user_id: activeUserId,
+            processed_by: activeUserId,
+            cmgc_name: "",
+            inquiry_type: "Pending Response",
+            inquiry_concern: "",
+            status: "Pending"
+          }
+        ])
         .select()
         .single();
 
@@ -441,14 +508,8 @@ export const useAdminDashboard = () => {
         return;
       }
 
-      const createdTask = mapDbTaskToUiTask(
-        data,
-        "client_servicing_tasks"
-      );
-
-      setUserTasks(prev => [createdTask, ...prev]);
-
-      setSelectedTaskIdForModal(createdTask.id);
+      setClientInquiries(prev => [data as ClientInquiry, ...prev]);
+      setSelectedInquiryId(data.id);
 
     } catch (err) {
       console.error(err);
@@ -461,9 +522,19 @@ export const useAdminDashboard = () => {
     try {
       const resCS = await supabase.from('client_servicing_tasks').delete().eq('id', taskId);
       if (resCS.error) console.error('Error deleting from client_servicing_tasks:', resCS.error);
-      else console.log('Deleted Task:', taskId);
     } catch (err) {
       console.error('Error deleting task:', err);
+    }
+  };
+
+  const handleDeleteInquiry = async (inquiryId: string) => {
+    setClientInquiries(prev => prev.filter(item => item.id !== inquiryId));
+
+    try {
+      const resInq = await supabase.from('client_inquiries').delete().eq('id', inquiryId);
+      if (resInq.error) console.error('Error deleting from client_inquiries:', resInq.error);
+    } catch (err) {
+      console.error('Error deleting inquiry:', err);
     }
   };
 
@@ -565,6 +636,7 @@ export const useAdminDashboard = () => {
     const tasksChannel = supabase
       .channel(channelId)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'client_servicing_tasks' }, () => fetchDashboardData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'client_inquiries' }, () => fetchDashboardData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'todo_tasks' }, () => fetchDashboardData())
       .subscribe();
 
@@ -710,7 +782,6 @@ export const useAdminDashboard = () => {
       if (csErr) {
         console.error('Error inserting calendar activity into client_servicing_tasks:', csErr);
       } else if (csData) {
-        console.log('Created Calendar Activity Task:', csData);
         savedId = csData.id;
         savedTable = 'client_servicing_tasks';
       }
@@ -726,7 +797,6 @@ export const useAdminDashboard = () => {
     };
 
     setCalendarLogs(prev => [newItem, ...prev.filter(log => log.id !== newItem.id)]);
-
     setIsCalendarModalOpen(false);
 
     createNotification({
@@ -743,18 +813,13 @@ export const useAdminDashboard = () => {
   const executeDeleteCalendarActivity = async () => {
     if (!activityToDelete) return;
 
-    const targetItem = calendarLogs.find(log => log.id === activityToDelete);
-    const sourceTable = targetItem?._sourceTable;
-
     setCalendarLogs(prev => prev.filter(log => log.id !== activityToDelete));
-
     const idToDelete = activityToDelete;
     setActivityToDelete(null);
 
     try {
       const res = await supabase.from('client_servicing_tasks').delete().eq('id', idToDelete);
       if (res.error) console.error('Error deleting calendar activity from client_servicing_tasks:', res.error);
-      else console.log('Deleted Calendar Activity Task:', idToDelete);
     } catch (err) {
       console.error('Error deleting calendar activity:', err);
     }
@@ -801,6 +866,7 @@ export const useAdminDashboard = () => {
     customPortals,
     clientBirthdays,
     userTasks,
+    clientInquiries,
     personalTodos,
     allProfiles,
     bizDevProfiles,
@@ -808,6 +874,9 @@ export const useAdminDashboard = () => {
     currentUserId,
     selectedTaskIdForModal,
     setSelectedTaskIdForModal,
+    selectedInquiryId,
+    setSelectedInquiryId,
+    selectedInquiry,
     activities,
     calendarLogs,
     isCalendarModalOpen,
@@ -838,10 +907,12 @@ export const useAdminDashboard = () => {
     handleEventClick,
     handleDeleteEvent,
     saveTaskField,
+    saveInquiryField,
     handleToggleCheckbox,
     handleCreateTask,
     handleCreateInquiry,
     handleDeleteTask,
+    handleDeleteInquiry,
     handleCreatePersonalTodo,
     handleTogglePersonalTodoComplete,
     handleDeletePersonalTodo,

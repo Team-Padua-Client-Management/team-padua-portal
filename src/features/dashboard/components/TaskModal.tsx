@@ -9,8 +9,13 @@ import {
   AlertCircle,
   ChevronDown,
   Search,
-  Check
+  Check,
+  ClipboardList,
+  Calendar,
+  Save,
+  AlertTriangle,
 } from 'lucide-react';
+
 import { TaskItem, formatRelativeTime, TASK_CATEGORIES, normalizeCategory } from './TaskRow';
 import {
   parseTaskMetadata,
@@ -362,6 +367,17 @@ function ClientInquiryModal({
   onClose: () => void;
   isUserView?: boolean;
 }) {
+  const GOLD = '#D89B1D';
+  const GOLD_HOVER = '#C58A12';
+  const GOLD_LIGHT = '#FFF8E8';
+  const GOLD_BORDER = '#EAD7AE';
+  const DANGER = '#EF4444';
+
+  const INQUIRY_STATUS_OPTIONS = ['Pending Response', 'Addressed Concerns', 'For Client Servicing'];
+  const TASK_STATUS_OPTIONS = ['Pending', 'In Progress', 'Completed'];
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
   const handleClose = () => {
     const isUncompletedNewTask =
       !task.completed &&
@@ -376,153 +392,503 @@ function ClientInquiryModal({
   };
 
   const parsedMeta = parseTaskMetadata(task.notes || '');
-  const isNewInquiry = !task.notes || !task.notes.trim();
 
   const updateMetaField = (key: string, value: string) => {
     const updatedMeta = { ...parsedMeta, [key]: value };
     onSaveField(task.id, { notes: buildTaskNotes(updatedMeta, updatedMeta.timeline) });
   };
 
-  const handleInquiryTypeChange = (value: string) => {
-    const mappedStatus = INQUIRY_TYPE_TO_WORKFLOW_STATUS[value] || DEFAULT_INQUIRY_STATUS;
-    const updatedMeta = { ...parsedMeta, inquiry_type: value, workflow_status: mappedStatus };
-    onSaveField(task.id, { notes: buildTaskNotes(updatedMeta, updatedMeta.timeline) });
+  const handleInquiryStatusChange = (value: string) => {
+    updateMetaField('workflow_status', value);
   };
 
-  const handleSaveInquiry = () => {
-    if (!parsedMeta.inquiry_type) {
-      return;
-    }
-    const mappedStatus = INQUIRY_TYPE_TO_WORKFLOW_STATUS[parsedMeta.inquiry_type] || DEFAULT_INQUIRY_STATUS;
-    if (parsedMeta.workflow_status !== mappedStatus) {
-      const updatedMeta = { ...parsedMeta, workflow_status: mappedStatus };
-      onSaveField(task.id, { notes: buildTaskNotes(updatedMeta, updatedMeta.timeline) });
-    }
-    handleClose();
+  const currentInquiryStatus = parsedMeta.workflow_status || DEFAULT_INQUIRY_STATUS;
+
+  const confirmDelete = () => {
+    onDeleteTask(task.id);
+    setShowDeleteConfirm(false);
+    onClose();
   };
+
+  const inputBaseClass =
+    'w-full h-11 px-3.5 rounded-xl border text-sm font-medium bg-white transition-all duration-200 outline-none';
+
+  const focusRingStyle = {
+    borderColor: GOLD_BORDER,
+  } as React.CSSProperties;
 
   return (
-    <div className={styles.taskModalOverlay} onClick={handleClose}>
+    <>
+      <style>{`
+        @keyframes ciOverlayIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes ciCardIn { from { opacity: 0; transform: scale(0.96) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+        .ci-input:focus {
+          border-color: ${GOLD} !important;
+          box-shadow: 0 0 0 3px ${GOLD_LIGHT};
+        }
+        .ci-card-hover {
+          transition: border-color 200ms ease, box-shadow 200ms ease, transform 200ms ease;
+        }
+        .ci-card-hover:hover {
+          border-color: ${GOLD_BORDER};
+        }
+        .ci-btn-lift {
+          transition: transform 200ms ease, box-shadow 200ms ease, background 200ms ease, opacity 200ms ease;
+        }
+        .ci-btn-lift:hover {
+          transform: translateY(-1px);
+        }
+      `}</style>
+
       <div
-        className={styles.taskModalCard}
-        style={{ borderTop: `4px solid ${PURPLE}` }}
-        onClick={(e) => e.stopPropagation()}
+        onClick={handleClose}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15, 15, 15, 0.45)',
+          backdropFilter: 'blur(2px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 60,
+          animation: 'ciOverlayIn 200ms ease',
+        }}
       >
-        <div className={styles.taskModalHeader}>
-          <div className={styles.modalTitleGroup}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text)' }}>
-                {isNewInquiry ? 'Log Client Inquiry' : 'Client Inquiry Details'}
-              </span>
-            </div>
-            {!isNewInquiry && (
-              <div className={styles.modalSubTitle}>
-                <span className={styles.modalSubTitleItem}>
-                  <Clock size={11} />
-                  Updated {formatRelativeTime(task.updated_at)}
-                </span>
-                {task.created_at && (
-                  <span className={styles.modalSubTitleItem}>
-                    <History size={11} />
-                    Created {formatDisplayDate(task.created_at.slice(0, 10))}
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-          <button
-            type="button"
-            className={styles.modalCloseBtn}
-            onClick={handleClose}
-            aria-label="Close modal"
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            width: '100%',
+            maxWidth: '760px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            background: '#FFFFFF',
+            borderRadius: '28px',
+            boxShadow: '0 24px 64px rgba(0,0,0,0.18)',
+            animation: 'ciCardIn 220ms cubic-bezier(0.16, 1, 0.3, 1)',
+          }}
+        >
+          {/* Header */}
+          <div
+            style={{
+              padding: '28px 32px 20px 32px',
+              borderBottom: `1px solid ${GOLD_BORDER}`,
+              display: 'flex',
+              alignItems: 'flex-start',
+              justifyContent: 'space-between',
+            }}
           >
-            <X size={15} strokeWidth={2} />
-          </button>
-        </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div
+                style={{
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '14px',
+                  background: `linear-gradient(135deg, ${GOLD}, ${GOLD_HOVER})`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  boxShadow: `0 6px 16px ${GOLD_LIGHT}`,
+                }}
+              >
+                <ClipboardList size={22} color="#FFFFFF" strokeWidth={2} />
+              </div>
+              <div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#1A1A1A', lineHeight: 1.2 }}>
+                  Client Inquiry
+                </div>
+                <div style={{ fontSize: '0.8rem', color: '#8A8A8A', marginTop: '2px', fontWeight: 500 }}>
+                  Log and manage client inquiries.
+                </div>
+              </div>
+            </div>
 
-        <div className={styles.modalBodyContent}>
-          <div className={styles.userPickerContainer}>
-            <label className={styles.formFieldLabel}>CMGC Name</label>
-            <input
-              type="text"
-              placeholder="Last Name, First Name"
-              value={parsedMeta.cmgc_name || ''}
-              onChange={(e) => updateMetaField('cmgc_name', e.target.value)}
-              className="px-3 py-2.5 rounded-xl border border-border bg-surface text-sm font-medium w-full"
-            />
-          </div>
-
-          <div className={styles.userPickerContainer}>
-            <label className={styles.formFieldLabel}>
-              Inquiry Type<span style={{ color: '#DC2626' }}> *</span>
-            </label>
-            <select
-              value={parsedMeta.inquiry_type || ''}
-              onChange={(e) => handleInquiryTypeChange(e.target.value)}
-              className="px-3 py-2.5 rounded-xl border border-border bg-surface text-sm font-semibold w-full"
-              style={!parsedMeta.inquiry_type ? { borderColor: '#DC2626' } : undefined}
-            >
-              <option value="" disabled hidden>
-                Select Inquiry Type
-              </option>
-              {INQUIRY_TYPE_OPTIONS.map((opt) => (
-                <option key={opt} value={opt}>
-                  {opt}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className={styles.userPickerContainer}>
-            <label className={styles.formFieldLabel}>Inquiry / Concern</label>
-            <textarea
-              placeholder="Describe the inquiry or concern..."
-              value={parsedMeta.inquiry_concern || ''}
-              onChange={(e) => updateMetaField('inquiry_concern', e.target.value)}
-              rows={5}
-              className="px-3 py-2.5 rounded-xl border border-border bg-surface text-sm font-medium w-full resize-none"
-            />
-          </div>
-        </div>
-
-        <div className={styles.modalFooter}>
-          {!isNewInquiry ? (
             <button
               type="button"
-              className={styles.deleteOutlinedBtn}
-              onClick={() => {
-                onDeleteTask(task.id);
-                onClose();
+              onClick={handleClose}
+              className="ci-btn-lift"
+              style={{
+                width: '34px',
+                height: '34px',
+                borderRadius: '10px',
+                border: 'none',
+                background: 'transparent',
+                color: '#9A9A9A',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                flexShrink: 0,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = GOLD_LIGHT;
+                e.currentTarget.style.color = GOLD;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = '#9A9A9A';
+              }}
+              aria-label="Close modal"
+            >
+              <X size={16} strokeWidth={2} />
+            </button>
+          </div>
+
+          {/* Body */}
+          <div style={{ padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
+            {/* Client Information */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.06em', color: GOLD_HOVER, textTransform: 'uppercase' }}>
+                Client Information
+              </div>
+              <div>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#4A4A4A', marginBottom: '6px', display: 'block' }}>
+                  CMGC Name
+                </label>
+                <input
+                  type="text"
+                  placeholder="Enter Client Full Name"
+                  value={parsedMeta.cmgc_name || ''}
+                  onChange={(e) => updateMetaField('cmgc_name', e.target.value)}
+                  className={`${inputBaseClass} ci-input`}
+                  style={{ borderColor: GOLD_BORDER, ...focusRingStyle }}
+                />
+              </div>
+            </div>
+
+            {/* Inquiry Details */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.06em', color: GOLD_HOVER, textTransform: 'uppercase' }}>
+                Inquiry Details
+              </div>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gap: '14px',
+                }}
+              >
+                <div>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#4A4A4A', marginBottom: '6px', display: 'block' }}>
+                    Inquiry Status
+                  </label>
+                  <select
+                    value={currentInquiryStatus}
+                    onChange={(e) => handleInquiryStatusChange(e.target.value)}
+                    className={`${inputBaseClass} ci-input`}
+                    style={{ borderColor: GOLD_BORDER, cursor: 'pointer' }}
+                  >
+                    {INQUIRY_STATUS_OPTIONS.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#4A4A4A', marginBottom: '6px', display: 'block' }}>
+                    Status
+                  </label>
+                  <select
+                    value={task.status || 'Pending'}
+                    onChange={(e) => onSaveField(task.id, { status: e.target.value })}
+                    className={`${inputBaseClass} ci-input`}
+                    style={{ borderColor: GOLD_BORDER, cursor: 'pointer' }}
+                  >
+                    {TASK_STATUS_OPTIONS.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#4A4A4A', marginBottom: '6px', display: 'block' }}>
+                    Processed By
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Unassigned"
+                    value={parsedMeta.processed_by_name || ''}
+                    onChange={(e) => updateMetaField('processed_by_name', e.target.value)}
+                    className={`${inputBaseClass} ci-input`}
+                    style={{ borderColor: GOLD_BORDER }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Inquiry Concern */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.06em', color: GOLD_HOVER, textTransform: 'uppercase' }}>
+                Inquiry Concern
+              </div>
+              <textarea
+                placeholder="Describe the client's concern..."
+                value={parsedMeta.inquiry_concern || ''}
+                onChange={(e) => updateMetaField('inquiry_concern', e.target.value)}
+                className="ci-input"
+                style={{
+                  width: '100%',
+                  minHeight: '160px',
+                  padding: '14px',
+                  borderRadius: '12px',
+                  border: `1px solid ${GOLD_BORDER}`,
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  resize: 'vertical',
+                  outline: 'none',
+                  fontFamily: 'inherit',
+                }}
+              />
+            </div>
+
+            {/* Date info cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+              <div
+                className="ci-card-hover"
+                style={{
+                  border: `1px solid ${GOLD_BORDER}`,
+                  borderRadius: '14px',
+                  padding: '14px 16px',
+                  background: '#FFFFFF',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                }}
+              >
+                <div
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '10px',
+                    background: GOLD_LIGHT,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Calendar size={16} color={GOLD_HOVER} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Created
+                  </div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#1A1A1A', marginTop: '2px' }}>
+                    {task.created_at ? formatDisplayDate(task.created_at.slice(0, 10)) : '—'}
+                  </div>
+                </div>
+              </div>
+
+              <div
+                className="ci-card-hover"
+                style={{
+                  border: `1px solid ${GOLD_BORDER}`,
+                  borderRadius: '14px',
+                  padding: '14px 16px',
+                  background: '#FFFFFF',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                }}
+              >
+                <div
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '10px',
+                    background: GOLD_LIGHT,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Clock size={16} color={GOLD_HOVER} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Updated
+                  </div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#1A1A1A', marginTop: '2px' }}>
+                    {formatRelativeTime(task.updated_at)}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div
+            style={{
+              padding: '20px 32px 28px 32px',
+              borderTop: `1px solid ${GOLD_BORDER}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => setShowDeleteConfirm(true)}
+              className="ci-btn-lift"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '10px 18px',
+                borderRadius: '999px',
+                border: `1px solid ${DANGER}`,
+                background: '#FFFFFF',
+                color: DANGER,
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                cursor: 'pointer',
               }}
             >
-              <Trash2 size={13} strokeWidth={2} />
-              Delete Inquiry
+              <Trash2 size={14} strokeWidth={2} />
+              Delete
             </button>
-          ) : (
-            <div />
-          )}
 
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button
-              type="button"
-              className={styles.ghostCancelBtn}
-              onClick={handleClose}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              className={styles.goldSaveBtn}
-              style={{ background: PURPLE, opacity: parsedMeta.inquiry_type ? 1 : 0.5 }}
-              onClick={handleSaveInquiry}
-              disabled={!parsedMeta.inquiry_type}
-            >
-              Save Inquiry
-            </button>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={handleClose}
+                className="ci-btn-lift"
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '999px',
+                  border: '1px solid #E0E0E0',
+                  background: '#FFFFFF',
+                  color: '#4A4A4A',
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleClose}
+                className="ci-btn-lift"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '10px 22px',
+                  borderRadius: '999px',
+                  border: 'none',
+                  background: `linear-gradient(135deg, ${GOLD}, ${GOLD_HOVER})`,
+                  color: '#FFFFFF',
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  boxShadow: `0 4px 14px ${GOLD_LIGHT}`,
+                }}
+              >
+                <Save size={14} strokeWidth={2} />
+                Save Inquiry
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+
+      {/* Inline Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div
+          onClick={() => setShowDeleteConfirm(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 15, 15, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 70,
+            animation: 'ciOverlayIn 180ms ease',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: '380px',
+              background: '#FFFFFF',
+              borderRadius: '24px',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.2)',
+              padding: '28px',
+              textAlign: 'center',
+              animation: 'ciCardIn 200ms cubic-bezier(0.16, 1, 0.3, 1)',
+            }}
+          >
+            <div
+              style={{
+                width: '52px',
+                height: '52px',
+                borderRadius: '16px',
+                background: GOLD_LIGHT,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 16px auto',
+              }}
+            >
+              <AlertTriangle size={24} color={GOLD_HOVER} strokeWidth={2} />
+            </div>
+            <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#1A1A1A' }}>
+              Delete Client Inquiry?
+            </div>
+            <div style={{ fontSize: '0.85rem', color: '#8A8A8A', marginTop: '6px', fontWeight: 500 }}>
+              This action cannot be undone.
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', marginTop: '24px' }}>
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                className="ci-btn-lift"
+                style={{
+                  flex: 1,
+                  padding: '11px 0',
+                  borderRadius: '999px',
+                  border: '1px solid #E0E0E0',
+                  background: '#FFFFFF',
+                  color: '#4A4A4A',
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDelete}
+                className="ci-btn-lift"
+                style={{
+                  flex: 1,
+                  padding: '11px 0',
+                  borderRadius: '999px',
+                  border: 'none',
+                  background: DANGER,
+                  color: '#FFFFFF',
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                Delete Inquiry
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

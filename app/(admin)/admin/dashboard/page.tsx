@@ -1,27 +1,5 @@
 'use client';
 
-/**
- * ============================================================================
- * TEAM PADUA ADMIN DASHBOARD OVERVIEW PAGE ?" MODULAR ENTERPRISE REDESIGN
- * ============================================================================
- * Redesign inspired by Linear, Notion, Stripe, Arc, Framer, and Apple HIG.
- * 
- * Clean component composition:
- * - DashboardHero: Dynamic background decoration, quick portals, clock & Pomodoro
- * - ClientServicingStats: Key metrics (Total, Pending, In Progress, Done, On Hold, Cancelled)
- * - ClientServicingToDo: Status-grouped task board
- * - TaskList: Client Servicing Monitoring task rows and card layout
- * - BirthdayCard: Client birthdays empty state and upcoming list
- * - ActivityCard: Calendar of Activities event cards
- * - RequestFormsAccordion: Enterprise accordion for all CSR request forms
- * - ActivityCalendar: Outlook-style embedded mini calendar
- * - TaskModal, ActivityModal, EventDetailsModal: Centered Notion/Linear modals
- * 
- * All business logic, Supabase integrations, React hooks, Web Audio chimes,
- * and LocalStorage side-effects are preserved 100% unchanged.
- * ============================================================================
- */
-
 import React, { useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, useReducedMotion } from 'framer-motion';
@@ -34,13 +12,15 @@ import WelcomeModal from "@src/components/modals/WelcomeModal";
 import DashboardHero from "@src/features/dashboard/components/DashboardHero";
 import ClientServicingStats from "@src/features/dashboard/components/ClientServicingStats";
 import ClientServicingToDo from "@src/features/dashboard/components/ClientServicingToDo";
-import TaskList, { ClientInquiries } from "@src/features/dashboard/components/TaskList";
+import TaskList from "@src/features/dashboard/components/TaskList";
+import InquiryList from "@src/features/dashboard/components/InquiryList";
 import BirthdayCard from "@src/features/dashboard/components/BirthdayCard";
 import CalendarActivityCard from "@src/features/dashboard/components/CalendarActivityCard";
 import CalendarActivityModal from "@src/features/dashboard/components/CalendarActivityModal";
 import ActivityCalendar from "@src/features/dashboard/components/ActivityCalendar";
 import RequestFormsAccordion from "@src/features/dashboard/components/RequestFormsAccordion";
 import TaskModal from "@src/features/dashboard/components/TaskModal";
+import InquiryModal from "@src/features/dashboard/components/InquiryModal";
 import ActivityModal from "@src/features/dashboard/components/ActivityModal";
 import EventDetailsModal from "@src/features/dashboard/components/EventDetailsModal";
 import ConfirmDeleteModal from "@src/features/dashboard/components/ConfirmDeleteModal";
@@ -58,7 +38,10 @@ import {
 export default function DashboardOverviewPage() {
   const { greeting, dayPeriod, currentDate, currentTime } = useDashboardClock();
 
+
+
   const {
+
     pomoMode,
     pomoSeconds,
     pomoIsRunning,
@@ -77,6 +60,12 @@ export default function DashboardOverviewPage() {
     customPortals,
     clientBirthdays,
     userTasks,
+    clientInquiries = [],
+    saveInquiryField,
+    handleDeleteInquiry,
+    selectedInquiryId,
+    setSelectedInquiryId,
+    selectedInquiry: hookSelectedInquiry,
     allProfiles,
     bizDevProfiles,
     advisors,
@@ -128,6 +117,10 @@ export default function DashboardOverviewPage() {
   const prefersReducedMotion = useReducedMotion();
   const fadeVariants = prefersReducedMotion ? itemVariantsReduced : itemVariants;
 
+  const currentUserProfile = useMemo(() => {
+    return allProfiles.find((p) => p.id === currentUserId) || null;
+  }, [allProfiles, currentUserId]);
+
   const filteredActivities = useMemo(() => {
     if (!selectedMiniDate) return activities;
     return activities.filter((act) => act.date === selectedMiniDate);
@@ -147,6 +140,7 @@ export default function DashboardOverviewPage() {
   });
 
   const selectedTaskForModal = userTasks.find((t) => t.id === selectedTaskIdForModal) || null;
+  const selectedInquiry = hookSelectedInquiry || clientInquiries.find((i: any) => i.id === selectedInquiryId) || null;
 
   return (
     <div className={styles.shell}>
@@ -205,12 +199,13 @@ export default function DashboardOverviewPage() {
                 onSaveTaskField={saveTaskField}
                 onDeleteTask={handleDeleteTask}
               />
-              <ClientInquiries
-                tasks={userTasks}
-                onCreateTask={handleCreateTask}
+              <InquiryList
+                inquiries={clientInquiries}
+                allProfiles={allProfiles}
                 onCreateInquiry={handleCreateInquiry}
-                onSelectTask={(id) => setSelectedTaskIdForModal(id)}
-                onDeleteTask={handleDeleteTask}
+                onDeleteInquiry={handleDeleteInquiry}
+                saveInquiryField={saveInquiryField}
+                onSelectInquiry={(item) => setSelectedInquiryId(item.id)}
               />
               <ClientServicingToDo
                 tasks={userTasks}
@@ -348,10 +343,23 @@ export default function DashboardOverviewPage() {
           task={selectedTaskForModal}
           allProfiles={allProfiles}
           bizDevProfiles={bizDevProfiles}
-          currentUserProfile={allProfiles.find(p => p.id === currentUserId) || null}
+          currentUserProfile={currentUserProfile}
           onSaveField={saveTaskField}
           onDeleteTask={handleDeleteTask}
           onClose={() => setSelectedTaskIdForModal(null)}
+        />,
+        document.body
+      )}
+
+      {isMounted && selectedInquiry && createPortal(
+        <InquiryModal
+          isOpen={true}
+          inquiry={selectedInquiry}
+          allProfiles={allProfiles}
+          currentUserProfile={currentUserProfile}
+          saveInquiryField={saveInquiryField}
+          handleDeleteInquiry={handleDeleteInquiry}
+          onClose={() => setSelectedInquiryId(null)}
         />,
         document.body
       )}
