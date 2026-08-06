@@ -73,6 +73,7 @@ export default function UserPersonalDashboardPage() {
     userTasks,
     allProfiles,
     bizDevProfiles,
+    advisors,
     currentUserId,
     selectedTaskIdForModal,
     setSelectedTaskIdForModal,
@@ -108,6 +109,7 @@ export default function UserPersonalDashboardPage() {
     saveTaskField,
     handleToggleCheckbox,
     handleCreateTask,
+    handleCreateInquiry,
     handleDeleteTask,
     personalTodos,
     handleCreatePersonalTodo,
@@ -199,36 +201,39 @@ export default function UserPersonalDashboardPage() {
               tasks={userTasks}
               allProfiles={allProfiles}
               bizDevProfiles={bizDevProfiles}
-              onSelectTask={(taskId) => setSelectedTaskIdForModal(taskId)}
-              onToggleComplete={handleToggleCheckbox}
               onCreateTask={handleCreateTask}
-              isUserView={true}
-              showCreateButton={true}
+              onToggleComplete={handleToggleCheckbox}
+              onSelectTask={(id) => setSelectedTaskIdForModal(id)}
+              onSaveTaskField={saveTaskField}
+              onDeleteTask={handleDeleteTask}
             />
 
             <ClientInquiries
               tasks={userTasks}
               onCreateTask={handleCreateTask}
-              onSelectTask={(taskId) => setSelectedTaskIdForModal(taskId)}
-              isUserView={true}
-              showCreateButton={true}
+              onCreateInquiry={handleCreateInquiry}
+              onSelectTask={(id) => setSelectedTaskIdForModal(id)}
+              onDeleteTask={handleDeleteTask}
             />
 
             <ClientServicingToDo
-              personalTodos={personalTodos}
               tasks={userTasks}
+              personalTodos={personalTodos}
               allProfiles={allProfiles}
               bizDevProfiles={bizDevProfiles}
               onCreatePersonalTodo={handleCreatePersonalTodo}
+              onToggleComplete={handleToggleCheckbox}
               onTogglePersonalTodoComplete={handleTogglePersonalTodoComplete}
               onDeletePersonalTodo={handleDeletePersonalTodo}
-              onSelectTask={(taskId) => setSelectedTaskIdForModal(taskId)}
-              onToggleComplete={handleToggleCheckbox}
+              onSelectTask={(id) => setSelectedTaskIdForModal(id)}
             />
           </div>
 
           <div className={styles.centerCol}>
-            <BirthdayCard birthdays={clientBirthdays} />
+            <BirthdayCard
+              birthdays={clientBirthdays}
+              advisors={advisors}
+            />
 
             <div className={styles.activitiesCard}>
               <div className={`${styles.dashboardCardHeader} !flex-col !items-stretch !gap-3 !p-4`}>
@@ -307,7 +312,6 @@ export default function UserPersonalDashboardPage() {
               onSelectDate={(dateKey) => setSelectedMiniDate(dateKey)}
               onOpenLogModal={openLogModal}
               onSelectEvent={handleEventClick}
-              calendarUrl="/calendar"
             />
 
             <RequestFormsAccordion kpis={kpis} userRole={userRole} userPermissions={userPermissions} />
@@ -352,7 +356,6 @@ export default function UserPersonalDashboardPage() {
           onSaveField={saveTaskField}
           onDeleteTask={handleDeleteTask}
           onClose={() => setSelectedTaskIdForModal(null)}
-          isUserView={true}
         />,
         document.body
       )}

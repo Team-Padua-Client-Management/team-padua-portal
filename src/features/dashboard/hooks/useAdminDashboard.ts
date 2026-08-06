@@ -195,7 +195,7 @@ export const useAdminDashboard = () => {
                   isCal = true;
                 }
               }
-            } catch (e) {}
+            } catch (e) { }
 
             if (isCal) {
               dbCalendarLogs.push(mapDbTaskToCalendarActivity(t, 'client_servicing_tasks'));
@@ -361,18 +361,20 @@ export const useAdminDashboard = () => {
 
   const handleCreateTask = async () => {
     let activeUserId = currentUserIdRef.current || currentUserId;
+
     if (!activeUserId) {
       const { data: { user } } = await supabase.auth.getUser();
       activeUserId = user?.id || null;
     }
+
     if (!activeUserId) return;
 
     const newDbTask = {
       user_id: activeUserId,
-      title: 'Untitled Task',
-      notes: '',
-      category: 'Others',
-      status: 'Pending',
+      title: "Untitled Task",
+      notes: "",
+      category: "Others",
+      status: "Pending",
       assigned_to: activeUserId,
       processed_by: activeUserId,
       created_at: new Date().toISOString(),
@@ -380,29 +382,76 @@ export const useAdminDashboard = () => {
     };
 
     try {
-      let createdTask: TaskItem | null = null;
-      const res1 = await supabase.from('client_servicing_tasks').insert([newDbTask]).select().single();
+      const { data, error } = await supabase
+        .from("client_servicing_tasks")
+        .insert([newDbTask])
+        .select()
+        .single();
 
-      if (res1.error) {
-        console.error('Error inserting into client_servicing_tasks:', res1.error);
-      } else if (res1.data) {
-        console.log('Created Task:', res1.data);
-        createdTask = mapDbTaskToUiTask(res1.data, 'client_servicing_tasks');
+      if (error) {
+        console.error(error);
+        return;
       }
 
-      if (createdTask) {
-        setUserTasks(prev => {
-          return [createdTask!, ...prev.filter(t => t.id !== createdTask!.id)];
-        });
-        setSelectedTaskIdForModal(createdTask.id);
-        createNotification({
-          title: 'New Task Created',
-          description: `Task "${createdTask.title}" has been created.`,
-          type: 'info',
-        });
-      }
+      const createdTask = mapDbTaskToUiTask(
+        data,
+        "client_servicing_tasks"
+      );
+
+      setUserTasks(prev => [createdTask, ...prev]);
+
+      setSelectedTaskIdForModal(createdTask.id);
+
     } catch (err) {
-      console.error('Error creating new task:', err);
+      console.error(err);
+    }
+  };
+
+  const handleCreateInquiry = async () => {
+    let activeUserId = currentUserIdRef.current || currentUserId;
+
+    if (!activeUserId) {
+      const { data: { user } } = await supabase.auth.getUser();
+      activeUserId = user?.id || null;
+    }
+
+    if (!activeUserId) return;
+
+    const newDbTask = {
+      user_id: activeUserId,
+      title: "Untitled Inquiry",
+      notes: "",
+      category: "Inquiry",
+      status: "Pending",
+      assigned_to: activeUserId,
+      processed_by: activeUserId,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    try {
+      const { data, error } = await supabase
+        .from("client_servicing_tasks")
+        .insert([newDbTask])
+        .select()
+        .single();
+
+      if (error) {
+        console.error(error);
+        return;
+      }
+
+      const createdTask = mapDbTaskToUiTask(
+        data,
+        "client_servicing_tasks"
+      );
+
+      setUserTasks(prev => [createdTask, ...prev]);
+
+      setSelectedTaskIdForModal(createdTask.id);
+
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -791,6 +840,7 @@ export const useAdminDashboard = () => {
     saveTaskField,
     handleToggleCheckbox,
     handleCreateTask,
+    handleCreateInquiry,
     handleDeleteTask,
     handleCreatePersonalTodo,
     handleTogglePersonalTodoComplete,

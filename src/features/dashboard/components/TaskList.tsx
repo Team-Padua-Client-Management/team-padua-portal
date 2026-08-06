@@ -1,19 +1,18 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import Link from 'next/link';
 import {
   Plus,
   LayoutGrid,
   ChevronRight,
+  ChevronDown,
   Trash2,
-  X,
   FileCheck2,
   Hourglass,
   CheckCircle2,
   History,
 } from 'lucide-react';
+import Link from 'next/link';
 import { TaskItem, normalizeCategory } from './TaskRow';
 import type { UserProfile } from './UserAvatar';
-import UserAvatar from './UserAvatar';
 import styles from '@/styles/admin/dashboard/page.module.css';
 
 export const POLICY_RELATIONSHIP_OPTIONS = ['SAME_AS_OWNER', 'DIFFERENT_FROM_OWNER'] as const;
@@ -84,24 +83,23 @@ interface CategoryMeta {
   title: string;
   accent: string;
   tint: string;
-  href: string | null;
 }
 
-const KNOWN_CATEGORIES: CategoryMeta[] = [
-  { badge: 'ACR', title: 'Advisor Change Request', accent: '#4F46E5', tint: 'rgba(79, 70, 229, 0.12)', href: '/admin/acr' },
-  { badge: 'ACICR', title: 'Address and Contact Information Change Request', accent: '#D946EF', tint: 'rgba(217, 70, 239, 0.12)', href: '/admin/acicr' },
-  { badge: 'BCR', title: 'Beneficiary Change Request', accent: '#2563EB', tint: 'rgba(37, 99, 235, 0.12)', href: '/admin/bcr' },
-  { badge: 'FSR', title: 'Fund Switching Request', accent: '#059669', tint: 'rgba(5, 150, 105, 0.12)', href: '/admin/fund-switching' },
-  { badge: 'FW', title: 'Fund Withdrawal Request', accent: '#10B981', tint: 'rgba(16, 185, 129, 0.12)', href: '/admin/fund-withdrawal' },
-  { badge: 'ACA', title: 'Auto Credits Arrangement', accent: '#7C3AED', tint: 'rgba(124, 58, 237, 0.12)', href: '/admin/aca' },
-  { badge: 'ADA / MOA', title: 'Auto Debit Arrangement', accent: '#8B5CF6', tint: 'rgba(139, 92, 246, 0.12)', href: '/admin/ada' },
-  { badge: 'SRO', title: 'Reinstatement (SRO)', accent: '#D97706', tint: 'rgba(217, 119, 6, 0.12)', href: '/admin/reinstatement-sro' },
-  { badge: 'PPI', title: 'Reinstatement (PPI)', accent: '#EA580C', tint: 'rgba(234, 88, 12, 0.12)', href: '/admin/reinstatement-pdi' },
-  { badge: 'CPST', title: 'Client Policy Status Tracking', accent: '#0D9488', tint: 'rgba(13, 148, 136, 0.12)', href: '/admin/cpst' },
-  { badge: 'CSMV', title: 'Client Servicing Monitoring Verification', accent: '#099268', tint: 'rgba(9, 146, 104, 0.12)', href: '/admin/csmv' },
-  { badge: 'CPC', title: 'Client Policy Card', accent: '#0369A1', tint: 'rgba(3, 105, 161, 0.12)', href: null },
-  { badge: 'Inquiry', title: 'Inquiry', accent: '#C9962E', tint: 'rgba(201, 150, 46, 0.12)', href: null },
-  { badge: 'Others', title: 'Others / Miscellaneous', accent: '#71717A', tint: 'rgba(113, 113, 122, 0.12)', href: null },
+export const KNOWN_CATEGORIES: CategoryMeta[] = [
+  { badge: 'ACR', title: 'Advisor Change Request', accent: '#4F46E5', tint: 'rgba(79, 70, 229, 0.12)' },
+  { badge: 'ACICR', title: 'Address and Contact Information Change Request', accent: '#D946EF', tint: 'rgba(217, 70, 239, 0.12)' },
+  { badge: 'BCR', title: 'Beneficiary Change Request', accent: '#2563EB', tint: 'rgba(37, 99, 235, 0.12)' },
+  { badge: 'FSR', title: 'Fund Switching Request', accent: '#059669', tint: 'rgba(5, 150, 105, 0.12)' },
+  { badge: 'FW', title: 'Fund Withdrawal Request', accent: '#10B981', tint: 'rgba(16, 185, 129, 0.12)' },
+  { badge: 'ACA', title: 'Auto Credits Arrangement', accent: '#7C3AED', tint: 'rgba(124, 58, 237, 0.12)' },
+  { badge: 'ADA / MOA', title: 'Auto Debit Arrangement', accent: '#8B5CF6', tint: 'rgba(139, 92, 246, 0.12)' },
+  { badge: 'SRO', title: 'Reinstatement (SRO)', accent: '#D97706', tint: 'rgba(217, 119, 6, 0.12)' },
+  { badge: 'PPI', title: 'Reinstatement (PPI)', accent: '#EA580C', tint: 'rgba(234, 88, 12, 0.12)' },
+  { badge: 'CPST', title: 'Client Policy Status Tracking', accent: '#0D9488', tint: 'rgba(13, 148, 136, 0.12)' },
+  { badge: 'CSMV', title: 'Client Servicing Monitoring Verification', accent: '#099268', tint: 'rgba(9, 146, 104, 0.12)' },
+  { badge: 'CPC', title: 'Client Policy Card', accent: '#0369A1', tint: 'rgba(3, 105, 161, 0.12)' },
+  { badge: 'Inquiry', title: 'Inquiry', accent: '#C9962E', tint: 'rgba(201, 150, 46, 0.12)' },
+  { badge: 'Others', title: 'Others / Miscellaneous', accent: '#71717A', tint: 'rgba(113, 113, 122, 0.12)' },
 ];
 
 function getBadgeFromNormalized(normalized: string): string {
@@ -132,6 +130,11 @@ export const WORKFLOW_STATUS_OPTIONS: WorkflowStatus[] = [
 
 export const DEFAULT_WORKFLOW_STATUS: WorkflowStatus = 'Submitted Request';
 
+export function getRemainingWorkflowOptions(current?: string | null): WorkflowStatus[] {
+  const currentStatus = current || DEFAULT_WORKFLOW_STATUS;
+  return WORKFLOW_STATUS_OPTIONS.filter((opt) => opt !== currentStatus);
+}
+
 type WorkflowStage = 'submitted' | 'pending' | 'approved';
 
 export interface WorkflowTaskItem extends TaskItem {
@@ -144,6 +147,12 @@ function getWorkflowStage(task: WorkflowTaskItem): WorkflowStage {
   if (status.includes('pending')) return 'pending';
   if (status.includes('approv')) return 'approved';
   return 'submitted';
+}
+
+function workflowStageToStatus(stage: WorkflowStage): WorkflowStatus {
+  if (stage === 'pending') return 'Pending Requirements';
+  if (stage === 'approved') return 'Approved Request';
+  return 'Submitted Request';
 }
 
 interface StageMeta {
@@ -206,107 +215,111 @@ function useStageHoverController<T extends string>() {
 interface CategoryRowProps {
   meta: CategoryMeta;
   count: number;
-  assignedProfiles: UserProfile[];
+  stage: WorkflowStage;
   categoryTasks: WorkflowTaskItem[];
+  expanded: boolean;
+  onToggle: () => void;
   onDeleteTask?: (taskId: string) => void;
   onSaveTaskField?: (taskId: string, updates: Record<string, unknown>) => void;
 }
 
-function CategoryRow({ meta, count, categoryTasks, onDeleteTask, onSaveTaskField }: CategoryRowProps) {
+function CategoryRow({
+  meta,
+  count,
+  stage,
+  categoryTasks,
+  expanded,
+  onToggle,
+  onDeleteTask,
+  onSaveTaskField,
+}: CategoryRowProps) {
   const displayTitle = `${meta.title} (${meta.badge})`;
-
-  const rowContent = (
-    <>
-      <span
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '16px 0',
-          fontSize: '28px',
-          fontWeight: 800,
-          color: meta.accent,
-          fontVariantNumeric: 'tabular-nums',
-          letterSpacing: '-0.03em',
-          borderRight: '1px solid var(--border)',
-          backgroundColor: 'rgba(0, 0, 0, 0.01)',
-          alignSelf: 'stretch',
-        }}
-      >
-        {count}
-      </span>
-
-      <span
-        style={{
-          padding: '16px 20px',
-          fontSize: '15.5px',
-          fontWeight: 700,
-          color: 'var(--text)',
-          lineHeight: 1.3,
-          whiteSpace: 'normal',
-          wordBreak: 'break-word',
-        }}
-      >
-        {displayTitle}
-      </span>
-
-      {meta.href && (
-        <span
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '16px 20px',
-            color: 'var(--text-tertiary)',
-            flexShrink: 0,
-            alignSelf: 'stretch',
-            transition: 'color 0.15s ease, transform 0.15s ease',
-          }}
-        >
-          <ChevronRight size={18} strokeWidth={2.5} />
-        </span>
-      )}
-    </>
-  );
-
-  const gridStyle: React.CSSProperties = {
-    display: 'grid',
-    gridTemplateColumns: meta.href ? '68px 1fr auto' : '68px 1fr',
-    alignItems: 'stretch',
-    width: '100%',
-    borderLeft: `4px solid ${meta.accent}`,
-  };
-
-  const wrapperStyle: React.CSSProperties = {
-    borderRadius: '12px',
-    border: '1px solid var(--border)',
-    background: 'var(--surface)',
-    overflow: 'hidden',
-    transition: 'border-color 0.18s ease, box-shadow 0.18s ease',
-  };
-
-  if (meta.href) {
-    return (
-      <div style={wrapperStyle} className="group">
-        <Link
-          href={meta.href}
-          style={{
-            ...gridStyle,
-            textDecoration: 'none',
-            display: 'grid',
-          }}
-          className="hover:bg-surface-2/60 transition-colors"
-        >
-          {rowContent}
-        </Link>
-      </div>
-    );
-  }
+  const currentStatus = workflowStageToStatus(stage);
+  const remainingOptions = getRemainingWorkflowOptions(currentStatus);
 
   return (
-    <div style={wrapperStyle}>
-      <div style={{ ...gridStyle, display: 'grid' }}>{rowContent}</div>
-      {categoryTasks.length > 0 && (
+    <div
+      style={{
+        borderRadius: '12px',
+        border: '1px solid var(--border)',
+        background: 'var(--surface)',
+        overflow: 'hidden',
+      }}
+    >
+      <button
+        type="button"
+        onClick={onToggle}
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '68px 1fr 40px',
+          alignItems: 'stretch',
+          width: '100%',
+          borderLeft: `4px solid ${meta.accent}`,
+          background: 'none',
+          border: 'none',
+          padding: 0,
+          margin: 0,
+          cursor: 'pointer',
+          textAlign: 'left',
+          font: 'inherit',
+          color: 'inherit',
+        }}
+      >
+        <span
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px 0',
+            fontSize: '28px',
+            fontWeight: 800,
+            color: meta.accent,
+            fontVariantNumeric: 'tabular-nums',
+            letterSpacing: '-0.03em',
+            borderRight: '1px solid var(--border)',
+            backgroundColor: 'rgba(0, 0, 0, 0.01)',
+            alignSelf: 'stretch',
+          }}
+        >
+          {count}
+        </span>
+
+        <span
+          style={{
+            padding: '16px 20px',
+            fontSize: '15.5px',
+            fontWeight: 700,
+            color: 'var(--text)',
+            lineHeight: 1.3,
+            whiteSpace: 'normal',
+            wordBreak: 'break-word',
+            display: 'flex',
+            alignItems: 'center',
+          }}
+        >
+          {displayTitle}
+        </span>
+
+        <span
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--text-tertiary)',
+          }}
+        >
+          <ChevronDown
+            size={16}
+            strokeWidth={2.5}
+            style={{
+              transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+              transition: 'transform 0.2s ease',
+            }}
+          />
+        </span>
+      </button>
+
+      {expanded && categoryTasks.length > 0 && (
         <div
           style={{
             borderTop: '1px solid var(--border)',
@@ -317,65 +330,72 @@ function CategoryRow({ meta, count, categoryTasks, onDeleteTask, onSaveTaskField
             background: 'var(--bg-muted)',
           }}
         >
-          {categoryTasks.map((task) => (
-            <div
-              key={task.id}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '6px 10px',
-                borderRadius: '8px',
-                background: 'var(--surface)',
-                border: '1px solid var(--border)',
-              }}
-            >
-              <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text)' }}>
-                {task.title || 'Untitled Task'}
-              </span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {onSaveTaskField && (
-                  <select
-                    value={task.workflow_status || parseTaskMetadata(task.notes || '').workflow_status || 'Submitted Request'}
-                    onChange={(e) => onSaveTaskField(task.id, { workflow_status: e.target.value })}
-                    style={{
-                      padding: '4px 8px',
-                      borderRadius: '6px',
-                      border: '1px solid var(--border)',
-                      fontSize: '11px',
-                      background: 'var(--surface)',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {WORKFLOW_STATUS_OPTIONS.map((opt) => (
-                      <option key={opt} value={opt}>
-                        {opt}
+          {categoryTasks.map((task) => {
+            const taskMeta = parseTaskMetadata(task.notes || '');
+            const clientName = taskMeta.policy_owner || task.title || 'Untitled Task';
+            return (
+              <div
+                key={task.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '6px 10px',
+                  borderRadius: '8px',
+                  background: 'var(--surface)',
+                  border: '1px solid var(--border)',
+                }}
+              >
+                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text)' }}>
+                  {clientName}
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {onSaveTaskField && (
+                    <select
+                      value={currentStatus}
+                      onChange={(e) => onSaveTaskField(task.id, { workflow_status: e.target.value })}
+                      style={{
+                        padding: '4px 8px',
+                        borderRadius: '6px',
+                        border: '1px solid var(--border)',
+                        fontSize: '11px',
+                        background: 'var(--surface)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <option value={currentStatus} disabled hidden>
+                        {currentStatus}
                       </option>
-                    ))}
-                  </select>
-                )}
-                <button
-                  type="button"
-                  onClick={() => onDeleteTask?.(task.id)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: 'var(--text-tertiary)',
-                    padding: '2px',
-                    borderRadius: '4px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                  className="hover:text-red-500 hover:bg-red-50"
-                  title="Delete Task"
-                >
-                  <Trash2 size={13} />
-                </button>
+                      {remainingOptions.map((opt) => (
+                        <option key={opt} value={opt}>
+                          {opt}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => onDeleteTask?.(task.id)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: 'var(--text-tertiary)',
+                      padding: '2px',
+                      borderRadius: '4px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                    className="hover:text-red-500 hover:bg-red-50"
+                    title="Delete Task"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
@@ -450,6 +470,19 @@ interface StagePopoverProps {
 
 function StagePopover({ stage, rows, onDeleteTask, onSaveTaskField, onMouseEnter, onMouseLeave }: StagePopoverProps) {
   const total = rows.reduce((sum, r) => sum + r.count, 0);
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+
+  const toggleCategory = (badge: string) => {
+    setExpandedCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(badge)) {
+        next.delete(badge);
+      } else {
+        next.add(badge);
+      }
+      return next;
+    });
+  };
 
   return (
     <div
@@ -491,19 +524,21 @@ function StagePopover({ stage, rows, onDeleteTask, onSaveTaskField, onMouseEnter
           </p>
         </div>
       </div>
-      <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {rows.length === 0 ? (
           <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '14px' }}>
             No requests in this stage yet.
           </div>
         ) : (
-          rows.map(({ meta, count, assignedProfiles, categoryTasks }) => (
+          rows.map(({ meta, count, categoryTasks }) => (
             <CategoryRow
               key={meta.badge}
               meta={meta}
               count={count}
-              assignedProfiles={assignedProfiles}
+              stage={stage.id as WorkflowStage}
               categoryTasks={categoryTasks}
+              expanded={expandedCategories.has(meta.badge)}
+              onToggle={() => toggleCategory(meta.badge)}
               onDeleteTask={onDeleteTask}
               onSaveTaskField={onSaveTaskField}
             />
@@ -621,7 +656,7 @@ export default function TaskList({
         const profileIds = Array.from(new Set(catTasks.map((t) => t.assigned_to).filter(Boolean))) as string[];
         const profiles = profileIds.map(findProfileById).filter(Boolean) as UserProfile[];
         rows.push({
-          meta: { badge, title: badge, accent: '#C9962E', tint: 'rgba(201, 150, 46, 0.12)', href: null },
+          meta: { badge, title: badge, accent: '#C9962E', tint: 'rgba(201, 150, 46, 0.12)' },
           count: catTasks.length,
           assignedProfiles: profiles,
           categoryTasks: catTasks,
@@ -747,6 +782,11 @@ export type InquiryStage = 'addressed' | 'pending' | 'for_servicing';
 export const INQUIRY_STATUS_OPTIONS = ['Addressed Concerns', 'Pending Response', 'For Client Servicing'];
 export const DEFAULT_INQUIRY_STATUS = 'For Client Servicing';
 
+export function getRemainingInquiryOptions(current?: string | null): string[] {
+  const currentStatus = current || DEFAULT_INQUIRY_STATUS;
+  return INQUIRY_STATUS_OPTIONS.filter((opt) => opt !== currentStatus);
+}
+
 const INQUIRY_STAGES: StageMeta[] = [
   { id: 'addressed', label: 'Addressed Concerns', icon: CheckCircle2 },
   { id: 'pending', label: 'Pending Response', icon: Hourglass },
@@ -776,18 +816,24 @@ export interface NewInquiryPayload {
 
 interface InquiryRowProps {
   task: WorkflowTaskItem;
+  stage: InquiryStage;
   onClick: () => void;
   onDeleteTask?: (taskId: string) => void;
   onSaveTaskField?: (taskId: string, updates: Record<string, unknown>) => void;
 }
 
-function InquiryRow({ task, onClick, onDeleteTask, onSaveTaskField }: InquiryRowProps) {
+function InquiryRow({ task, stage, onClick, onDeleteTask, onSaveTaskField }: InquiryRowProps) {
   const meta = parseTaskMetadata(task.notes || '');
-  const currentStatus = meta.workflow_status || task.workflow_status || DEFAULT_INQUIRY_STATUS;
+  const currentStatus = inquiryStageToStatus(stage);
+  const remainingOptions = getRemainingInquiryOptions(currentStatus);
+  const [showPreview, setShowPreview] = useState(false);
 
   return (
     <div
+      onMouseEnter={() => setShowPreview(true)}
+      onMouseLeave={() => setShowPreview(false)}
       style={{
+        position: 'relative',
         display: 'grid',
         gridTemplateColumns: '1fr auto',
         padding: '16px 20px',
@@ -803,10 +849,10 @@ function InquiryRow({ task, onClick, onDeleteTask, onSaveTaskField }: InquiryRow
     >
       <div onClick={onClick} style={{ cursor: 'pointer', flexGrow: 1 }}>
         <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>
-          CMGC Name: <span style={{ color: 'var(--text)' }}>{meta.cmgc_name || 'N/A'}</span>
+          CMGC Name
         </div>
         <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)' }}>
-          Inquiry / Concern: {meta.inquiry_concern || task.title || 'Untitled Inquiry'}
+          {meta.cmgc_name || task.title || 'Untitled Inquiry'}
         </div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -824,7 +870,10 @@ function InquiryRow({ task, onClick, onDeleteTask, onSaveTaskField }: InquiryRow
               cursor: 'pointer',
             }}
           >
-            {INQUIRY_STATUS_OPTIONS.map((opt) => (
+            <option value={currentStatus} disabled hidden>
+              {currentStatus}
+            </option>
+            {remainingOptions.map((opt) => (
               <option key={opt} value={opt}>
                 {opt}
               </option>
@@ -855,6 +904,37 @@ function InquiryRow({ task, onClick, onDeleteTask, onSaveTaskField }: InquiryRow
           <Trash2 size={13} />
         </button>
       </div>
+
+      {showPreview && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            marginTop: '6px',
+            width: '300px',
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderRadius: '10px',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.15)',
+            padding: '12px 14px',
+            zIndex: 60,
+          }}
+        >
+          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '4px' }}>
+            CMGC Name
+          </div>
+          <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', marginBottom: '10px' }}>
+            {meta.cmgc_name || 'N/A'}
+          </div>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '4px' }}>
+            Inquiry / Concern
+          </div>
+          <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text)', lineHeight: 1.5 }}>
+            {meta.inquiry_concern || task.title || 'N/A'}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -865,10 +945,8 @@ interface InquiryStagePopoverProps {
   onSelectTask: (taskId: string) => void;
   onDeleteTask?: (taskId: string) => void;
   onSaveTaskField?: (taskId: string, updates: Record<string, unknown>) => void;
-  onCreateInquiry?: (payload: NewInquiryPayload) => void | Promise<void>;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
-  onRequestClose?: () => void;
 }
 
 function InquiryStagePopover({
@@ -877,49 +955,9 @@ function InquiryStagePopover({
   onSelectTask,
   onDeleteTask,
   onSaveTaskField,
-  onCreateInquiry,
   onMouseEnter,
   onMouseLeave,
-  onRequestClose,
 }: InquiryStagePopoverProps) {
-  const [cmgcName, setCmgcName] = useState('');
-  const [inquiryConcern, setInquiryConcern] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
-
-  const canSave = cmgcName.trim().length > 0 && inquiryConcern.trim().length > 0 && !isSaving;
-
-  const handleCancel = () => {
-    setCmgcName('');
-    setInquiryConcern('');
-    onRequestClose?.();
-  };
-
-  const handleSave = async () => {
-    if (!canSave) return;
-    const trimmedName = cmgcName.trim();
-    const trimmedConcern = inquiryConcern.trim();
-    const workflow_status = inquiryStageToStatus(stage.id as InquiryStage);
-    const notes = buildTaskNotes(
-      { workflow_status, cmgc_name: trimmedName, inquiry_concern: trimmedConcern },
-      ''
-    );
-
-    setIsSaving(true);
-    try {
-      await onCreateInquiry?.({
-        category: 'Inquiry',
-        title: trimmedConcern,
-        notes,
-        workflow_status,
-      });
-      setCmgcName('');
-      setInquiryConcern('');
-      onRequestClose?.();
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   return (
     <div
       onMouseEnter={onMouseEnter}
@@ -959,142 +997,11 @@ function InquiryStagePopover({
             {inquiries.length} Inquir{inquiries.length !== 1 ? 'ies' : 'y'}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => onRequestClose?.()}
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            color: 'var(--text-tertiary)',
-            padding: '4px',
-            borderRadius: '6px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-          className="hover:text-text hover:bg-surface-2"
-          title="Close"
-        >
-          <X size={16} strokeWidth={2.5} />
-        </button>
       </div>
-      <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {inquiries.length === 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div>
-              <label
-                style={{
-                  display: 'block',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  color: 'var(--text-secondary)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.04em',
-                  marginBottom: '6px',
-                }}
-              >
-                CMGC Name
-              </label>
-              <input
-                type="text"
-                value={cmgcName}
-                onChange={(e) => setCmgcName(e.target.value)}
-                placeholder="Last Name, First Name"
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  borderRadius: '10px',
-                  border: '1px solid var(--border)',
-                  background: 'var(--surface)',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  color: 'var(--text)',
-                  boxSizing: 'border-box',
-                }}
-              />
-            </div>
-            <div>
-              <label
-                style={{
-                  display: 'block',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  color: 'var(--text-secondary)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.04em',
-                  marginBottom: '6px',
-                }}
-              >
-                Inquiry / Concern
-              </label>
-              <textarea
-                value={inquiryConcern}
-                onChange={(e) => setInquiryConcern(e.target.value)}
-                placeholder="Describe the inquiry or concern..."
-                rows={5}
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  borderRadius: '10px',
-                  border: '1px solid var(--border)',
-                  background: 'var(--surface)',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                  color: 'var(--text)',
-                  lineHeight: 1.5,
-                  resize: 'vertical',
-                  minHeight: '110px',
-                  boxSizing: 'border-box',
-                  fontFamily: 'inherit',
-                }}
-              />
-            </div>
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'flex-end',
-                gap: '10px',
-                borderTop: '1px solid var(--border)',
-                paddingTop: '14px',
-              }}
-            >
-              <button
-                type="button"
-                onClick={handleCancel}
-                disabled={isSaving}
-                style={{
-                  padding: '9px 18px',
-                  borderRadius: '10px',
-                  border: '1px solid var(--border)',
-                  background: 'var(--surface)',
-                  color: 'var(--text-secondary)',
-                  fontSize: '13px',
-                  fontWeight: 700,
-                  cursor: isSaving ? 'not-allowed' : 'pointer',
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={!canSave}
-                style={{
-                  padding: '9px 20px',
-                  borderRadius: '10px',
-                  border: 'none',
-                  background: PURPLE,
-                  color: '#fff',
-                  fontSize: '13px',
-                  fontWeight: 700,
-                  cursor: canSave ? 'pointer' : 'not-allowed',
-                  opacity: canSave ? 1 : 0.6,
-                }}
-              >
-                {isSaving ? 'Saving...' : 'Save Inquiry'}
-              </button>
-            </div>
+          <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '14px' }}>
+            No inquiries in this stage yet.
           </div>
         ) : (
           [...inquiries]
@@ -1103,6 +1010,7 @@ function InquiryStagePopover({
               <InquiryRow
                 key={task.id}
                 task={task}
+                stage={stage.id as InquiryStage}
                 onClick={() => onSelectTask(task.id)}
                 onDeleteTask={onDeleteTask}
                 onSaveTaskField={onSaveTaskField}
@@ -1120,7 +1028,7 @@ interface ClientInquiriesProps {
   onSelectTask: (taskId: string) => void;
   onDeleteTask?: (taskId: string) => void;
   onSaveTaskField?: (taskId: string, updates: Record<string, unknown>) => void;
-  onCreateInquiry?: (payload: NewInquiryPayload) => void | Promise<void>;
+  onCreateInquiry?: () => void | Promise<void>;
   isUserView?: boolean;
   showCreateButton?: boolean;
 }
@@ -1135,7 +1043,7 @@ export function ClientInquiries({
   isUserView = false,
   showCreateButton = true,
 }: ClientInquiriesProps) {
-  const { activeStage, openStage, cancelClose, scheduleClose, closeNow } = useStageHoverController<InquiryStage>();
+  const { activeStage, openStage, cancelClose, scheduleClose } = useStageHoverController<InquiryStage>();
 
   const inquiryTasks = useMemo(() => {
     return tasks.filter(t => normalizeCategory(t.category) === 'Inquiry');
@@ -1158,12 +1066,27 @@ export function ClientInquiries({
   return (
     <div className={styles.monitoringCard}>
       <div className={`${styles.dashboardCardHeader} !flex-col !items-stretch !gap-3 !p-4`}>
-        <div className="flex items-center gap-2.5">
-          <LayoutGrid size={20} strokeWidth={2.2} className="text-gray-700 dark:text-gray-300 shrink-0" />
-          <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight m-0 leading-none">
-            Client Inquiries
-          </h1>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <LayoutGrid size={20} strokeWidth={2.2} className="text-gray-700 dark:text-gray-300 shrink-0" />
+            <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight m-0 leading-none">
+              Client Inquiries
+            </h1>
+          </div>
 
+          {showCreateButton && (
+            <button
+              type="button"
+              onClick={onCreateInquiry || onCreateTask}
+              className={`${styles.newTaskBtn} !py-1.5 !px-4 !text-[13px]`}
+            >
+              <Plus size={15} strokeWidth={2.5} />
+              <span className="font-bold">Log Inquiry</span>
+            </button>
+          )}
+        </div>
+
+        <div className="flex items-center mt-0.5">
           <span className="text-[13px] font-bold" style={{ color: 'var(--text-secondary)' }}>
             <span
               className="text-[22px] font-extrabold mr-1.5"
@@ -1174,40 +1097,52 @@ export function ClientInquiries({
             Total Logged Inquir{totalLogged !== 1 ? 'ies' : 'y'}
           </span>
         </div>
-
-
       </div>
 
       <div className={styles.dashboardCardBody} style={{ padding: '0 16px 16px', gap: '8px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {INQUIRY_STAGES.map((stage) => (
-            <div
-              key={stage.id}
-              style={{ position: 'relative' }}
-              onMouseEnter={() => openStage(stage.id as InquiryStage)}
-              onMouseLeave={scheduleClose}
-            >
-              <StageCard
-                meta={stage}
-                count={stageBuckets[stage.id as InquiryStage].length}
-                active={activeStage === stage.id}
-              />
-              {activeStage === stage.id && (
-                <InquiryStagePopover
-                  stage={stage}
-                  inquiries={stageBuckets[stage.id as InquiryStage]}
-                  onSelectTask={onSelectTask}
-                  onDeleteTask={onDeleteTask}
-                  onSaveTaskField={onSaveTaskField}
-                  onCreateInquiry={onCreateInquiry}
-                  onMouseEnter={cancelClose}
-                  onMouseLeave={scheduleClose}
-                  onRequestClose={closeNow}
-                />
-              )}
+        {totalLogged === 0 ? (
+          <div
+            className={styles.emptyStateContainer}
+            onClick={showCreateButton ? (onCreateInquiry || onCreateTask) : undefined}
+            style={{ cursor: showCreateButton ? 'pointer' : 'default' }}
+          >
+            <div className={styles.emptyStateIcon}>📋</div>
+            <div className={styles.emptyStateTitle}>No inquiries logged yet</div>
+            <div className={styles.emptyStateDescription}>
+              {showCreateButton
+                ? 'Click "Log Inquiry" to record your first client inquiry.'
+                : 'No client inquiries have been logged.'}
             </div>
-          ))}
-        </div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {INQUIRY_STAGES.map((stage) => (
+              <div
+                key={stage.id}
+                style={{ position: 'relative' }}
+                onMouseEnter={() => openStage(stage.id as InquiryStage)}
+                onMouseLeave={scheduleClose}
+              >
+                <StageCard
+                  meta={stage}
+                  count={stageBuckets[stage.id as InquiryStage].length}
+                  active={activeStage === stage.id}
+                />
+                {activeStage === stage.id && (
+                  <InquiryStagePopover
+                    stage={stage}
+                    inquiries={stageBuckets[stage.id as InquiryStage]}
+                    onSelectTask={onSelectTask}
+                    onDeleteTask={onDeleteTask}
+                    onSaveTaskField={onSaveTaskField}
+                    onMouseEnter={cancelClose}
+                    onMouseLeave={scheduleClose}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

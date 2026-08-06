@@ -115,6 +115,7 @@ export default function DashboardOverviewPage() {
     saveTaskField,
     handleToggleCheckbox,
     handleCreateTask,
+    handleCreateInquiry,
     handleDeleteTask,
     personalTodos,
     handleCreatePersonalTodo,
@@ -207,6 +208,7 @@ export default function DashboardOverviewPage() {
               <ClientInquiries
                 tasks={userTasks}
                 onCreateTask={handleCreateTask}
+                onCreateInquiry={handleCreateInquiry}
                 onSelectTask={(id) => setSelectedTaskIdForModal(id)}
                 onDeleteTask={handleDeleteTask}
               />

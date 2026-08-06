@@ -15,10 +15,9 @@ import { TaskItem, formatRelativeTime, TASK_CATEGORIES, normalizeCategory } from
 import {
   parseTaskMetadata,
   buildTaskNotes,
-  INQUIRY_STATUS_OPTIONS,
   DEFAULT_INQUIRY_STATUS,
-  WORKFLOW_STATUS_OPTIONS,
   DEFAULT_WORKFLOW_STATUS,
+  getRemainingWorkflowOptions,
   POLICY_RELATIONSHIP_OPTIONS,
   DEFAULT_POLICY_RELATIONSHIP,
   policyRelationshipLabel,
@@ -29,7 +28,6 @@ import UserPickerSelect from './UserPickerSelect';
 import { formatDisplayDate } from './ActivityCard';
 import styles from '@/styles/admin/dashboard/page.module.css';
 import { getStatusColorHex } from './StatusBadge';
-
 
 interface PolicyOwnerGroup {
   owner: string;
@@ -343,7 +341,151 @@ function CategoryPickerSelect({
   );
 }
 
-export default function TaskModal({
+function ClientInquiryModal({
+  task,
+  onSaveField,
+  onDeleteTask,
+  onClose,
+}: {
+  task: TaskItem;
+  onSaveField: (taskId: string, updates: Partial<TaskItem>) => void;
+  onDeleteTask: (taskId: string) => void;
+  onClose: () => void;
+  isUserView?: boolean;
+}) {
+  const handleClose = () => {
+    const isUncompletedNewTask =
+      !task.completed &&
+      task.status === 'Pending' &&
+      (!task.notes || !task.notes.trim()) &&
+      task.title === 'Untitled Task';
+
+    if (isUncompletedNewTask) {
+      onDeleteTask(task.id);
+    }
+    onClose();
+  };
+
+  const parsedMeta = parseTaskMetadata(task.notes || '');
+  const isNewInquiry = !task.notes || !task.notes.trim();
+
+  const updateMetaField = (key: string, value: string) => {
+    const updatedMeta = { ...parsedMeta, [key]: value };
+    onSaveField(task.id, { notes: buildTaskNotes(updatedMeta, updatedMeta.timeline) });
+  };
+
+  const handleSaveInquiry = () => {
+    if (!parsedMeta.workflow_status) {
+      const updatedMeta = { ...parsedMeta, workflow_status: DEFAULT_INQUIRY_STATUS };
+      onSaveField(task.id, { notes: buildTaskNotes(updatedMeta, updatedMeta.timeline) });
+    }
+    handleClose();
+  };
+
+  return (
+    <div className={styles.taskModalOverlay} onClick={handleClose}>
+      <div
+        className={styles.taskModalCard}
+        style={{ borderTop: `4px solid ${PURPLE}` }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className={styles.taskModalHeader}>
+          <div className={styles.modalTitleGroup}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text)' }}>
+                {isNewInquiry ? 'Log Client Inquiry' : 'Client Inquiry Details'}
+              </span>
+            </div>
+            {!isNewInquiry && (
+              <div className={styles.modalSubTitle}>
+                <span className={styles.modalSubTitleItem}>
+                  <Clock size={11} />
+                  Updated {formatRelativeTime(task.updated_at)}
+                </span>
+                {task.created_at && (
+                  <span className={styles.modalSubTitleItem}>
+                    <History size={11} />
+                    Created {formatDisplayDate(task.created_at.slice(0, 10))}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+          <button
+            type="button"
+            className={styles.modalCloseBtn}
+            onClick={handleClose}
+            aria-label="Close modal"
+          >
+            <X size={15} strokeWidth={2} />
+          </button>
+        </div>
+
+        <div className={styles.modalBodyContent}>
+          <div className={styles.userPickerContainer}>
+            <label className={styles.formFieldLabel}>CMGC Name</label>
+            <input
+              type="text"
+              placeholder="Last Name, First Name"
+              value={parsedMeta.cmgc_name || ''}
+              onChange={(e) => updateMetaField('cmgc_name', e.target.value)}
+              className="px-3 py-2.5 rounded-xl border border-border bg-surface text-sm font-medium w-full"
+            />
+          </div>
+
+          <div className={styles.userPickerContainer}>
+            <label className={styles.formFieldLabel}>Inquiry / Concern</label>
+            <textarea
+              placeholder="Describe the inquiry or concern..."
+              value={parsedMeta.inquiry_concern || ''}
+              onChange={(e) => updateMetaField('inquiry_concern', e.target.value)}
+              rows={5}
+              className="px-3 py-2.5 rounded-xl border border-border bg-surface text-sm font-medium w-full resize-none"
+            />
+          </div>
+        </div>
+
+        <div className={styles.modalFooter}>
+          {!isNewInquiry ? (
+            <button
+              type="button"
+              className={styles.deleteOutlinedBtn}
+              onClick={() => {
+                onDeleteTask(task.id);
+                onClose();
+              }}
+            >
+              <Trash2 size={13} strokeWidth={2} />
+              Delete Inquiry
+            </button>
+          ) : (
+            <div />
+          )}
+
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button
+              type="button"
+              className={styles.ghostCancelBtn}
+              onClick={handleClose}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className={styles.goldSaveBtn}
+              style={{ background: PURPLE }}
+              onClick={handleSaveInquiry}
+            >
+              Save Inquiry
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ClientServicingModal({
   task,
   allProfiles,
   bizDevProfiles,
@@ -351,14 +493,18 @@ export default function TaskModal({
   onSaveField,
   onDeleteTask,
   onClose,
-  isUserView = false
-}: TaskModalProps) {
+  isUserView,
+}: {
+  task: TaskItem;
+  allProfiles: UserProfile[];
+  bizDevProfiles: UserProfile[];
+  currentUserProfile?: UserProfile | null;
+  onSaveField: (taskId: string, updates: Partial<TaskItem>) => void;
+  onDeleteTask: (taskId: string) => void;
+  onClose: () => void;
+  isUserView: boolean;
+}) {
   const [newNoteText, setNewNoteText] = useState('');
-
-  const adminProfiles = useMemo(() => {
-    const admins = allProfiles.filter((p) => (p.role || '').toLowerCase() === 'admin');
-    return admins.length > 0 ? admins : allProfiles;
-  }, [allProfiles]);
 
   const findProfileById = (id: string | null): UserProfile | null => {
     if (!id) return null;
@@ -403,7 +549,6 @@ export default function TaskModal({
   };
 
   const parsedMeta = parseTaskMetadata(task.notes || '');
-  const isCategoryInquiry = normalizeCategory(task.category) === 'Inquiry';
 
   const updateMetaField = (key: string, value: string) => {
     const updatedMeta = { ...parsedMeta, [key]: value };
@@ -442,136 +587,8 @@ export default function TaskModal({
     onSaveField(task.id, { notes: buildTaskNotes(updatedMeta, updatedMeta.timeline) });
   };
 
-  const isNewInquiry = !task.notes || !task.notes.trim();
-
-  const handleSaveInquiry = () => {
-    if (!parsedMeta.workflow_status) {
-      const updatedMeta = { ...parsedMeta, workflow_status: DEFAULT_INQUIRY_STATUS };
-      onSaveField(task.id, { notes: buildTaskNotes(updatedMeta, updatedMeta.timeline) });
-    }
-    handleClose();
-  };
-
-  if (isCategoryInquiry) {
-    return (
-      <div className={styles.taskModalOverlay} onClick={handleClose}>
-        <div
-          className={styles.taskModalCard}
-          style={{ borderTop: `4px solid ${PURPLE}` }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className={styles.taskModalHeader}>
-            <div className={styles.modalTitleGroup}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text)' }}>
-                  {isNewInquiry ? 'Log Inquiry' : 'Inquiry Details'}
-                </span>
-              </div>
-              {!isNewInquiry && (
-                <div className={styles.modalSubTitle}>
-                  <span className={styles.modalSubTitleItem}>
-                    <Clock size={11} />
-                    Updated {formatRelativeTime(task.updated_at)}
-                  </span>
-                  {task.created_at && (
-                    <span className={styles.modalSubTitleItem}>
-                      <History size={11} />
-                      Created {formatDisplayDate(task.created_at.slice(0, 10))}
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-            <button
-              type="button"
-              className={styles.modalCloseBtn}
-              onClick={handleClose}
-              aria-label="Close modal"
-            >
-              <X size={15} strokeWidth={2} />
-            </button>
-          </div>
-
-          <div className={styles.modalBodyContent}>
-            <div className={styles.userPickerContainer}>
-              <label className={styles.formFieldLabel}>CMGC Name</label>
-              <input
-                type="text"
-                placeholder="Last Name, First Name"
-                value={parsedMeta.cmgc_name || ''}
-                onChange={(e) => updateMetaField('cmgc_name', e.target.value)}
-                className="px-3 py-2.5 rounded-xl border border-border bg-surface text-sm font-medium w-full"
-              />
-            </div>
-
-            <div className={styles.userPickerContainer}>
-              <label className={styles.formFieldLabel}>Inquiry / Concern</label>
-              <textarea
-                placeholder="Enter client's inquiry or concern..."
-                value={parsedMeta.inquiry_concern || ''}
-                onChange={(e) => updateMetaField('inquiry_concern', e.target.value)}
-                rows={5}
-                className="px-3 py-2.5 rounded-xl border border-border bg-surface text-sm font-medium w-full resize-none"
-              />
-            </div>
-
-            {!isNewInquiry && (
-              <div className={styles.userPickerContainer}>
-                <label className={styles.formFieldLabel}>Workflow Status</label>
-                <select
-                  value={parsedMeta.workflow_status || DEFAULT_INQUIRY_STATUS}
-                  onChange={(e) => updateMetaField('workflow_status', e.target.value)}
-                  className="px-3 py-2.5 rounded-xl border border-border bg-surface text-sm font-semibold"
-                >
-                  {INQUIRY_STATUS_OPTIONS.map((opt) => (
-                    <option key={opt} value={opt}>
-                      {opt}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-          </div>
-
-          <div className={styles.modalFooter}>
-            {!isUserView && !isNewInquiry ? (
-              <button
-                type="button"
-                className={styles.deleteOutlinedBtn}
-                onClick={() => {
-                  onDeleteTask(task.id);
-                  onClose();
-                }}
-              >
-                <Trash2 size={13} strokeWidth={2} />
-                Delete Inquiry
-              </button>
-            ) : (
-              <div />
-            )}
-
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <button
-                type="button"
-                className={styles.ghostCancelBtn}
-                onClick={handleClose}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className={styles.goldSaveBtn}
-                style={{ background: PURPLE }}
-                onClick={handleSaveInquiry}
-              >
-                Save Inquiry
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const currentWorkflowStatus = parsedMeta.workflow_status || DEFAULT_WORKFLOW_STATUS;
+  const remainingWorkflowOptions = getRemainingWorkflowOptions(currentWorkflowStatus);
 
   return (
     <div className={styles.taskModalOverlay} onClick={handleClose}>
@@ -616,8 +633,6 @@ export default function TaskModal({
         </div>
 
         <div className={styles.modalBodyContent}>
-
-
           <div className={styles.modalTwoCol}>
             <CategoryPickerSelect
               value={normalizeCategory(task.category)}
@@ -633,11 +648,18 @@ export default function TaskModal({
             <div className={styles.userPickerContainer}>
               <label className={styles.formFieldLabel}>Workflow Status</label>
               <select
-                value={parsedMeta.workflow_status || DEFAULT_WORKFLOW_STATUS}
+                value={currentWorkflowStatus}
                 onChange={(e) => updateMetaField('workflow_status', e.target.value)}
                 className="px-3 py-2.5 rounded-xl border border-border bg-surface text-sm font-semibold"
               >
-                {WORKFLOW_STATUS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                <option value={currentWorkflowStatus} disabled hidden>
+                  {currentWorkflowStatus}
+                </option>
+                {remainingWorkflowOptions.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
@@ -806,5 +828,43 @@ export default function TaskModal({
         </div>
       </div>
     </div>
+  );
+}
+
+export default function TaskModal({
+  task,
+  allProfiles,
+  bizDevProfiles,
+  currentUserProfile,
+  onSaveField,
+  onDeleteTask,
+  onClose,
+  isUserView = false
+}: TaskModalProps) {
+  const isCategoryInquiry = normalizeCategory(task.category) === 'Inquiry';
+
+  if (isCategoryInquiry) {
+    return (
+      <ClientInquiryModal
+        task={task}
+        onSaveField={onSaveField}
+        onDeleteTask={onDeleteTask}
+        onClose={onClose}
+        isUserView={isUserView}
+      />
+    );
+  }
+
+  return (
+    <ClientServicingModal
+      task={task}
+      allProfiles={allProfiles}
+      bizDevProfiles={bizDevProfiles}
+      currentUserProfile={currentUserProfile}
+      onSaveField={onSaveField}
+      onDeleteTask={onDeleteTask}
+      onClose={onClose}
+      isUserView={isUserView}
+    />
   );
 }
