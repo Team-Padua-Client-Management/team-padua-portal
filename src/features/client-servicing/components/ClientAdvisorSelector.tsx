@@ -16,7 +16,7 @@ export default function ClientAdvisorSelector({
   const [selectedAdvisor, setSelectedAdvisor] = useState<string>('');
   const [advisors, setAdvisors] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
-  
+
   const [isAdvisorsLoading, setIsAdvisorsLoading] = useState(true);
   const [isClientsLoading, setIsClientsLoading] = useState(false);
 
@@ -28,7 +28,7 @@ export default function ClientAdvisorSelector({
         .from('advisors')
         .select('id, advisor_name')
         .order('advisor_name');
-        
+
       if (adData) {
         setAdvisors(adData);
       }
@@ -41,14 +41,14 @@ export default function ClientAdvisorSelector({
           .select('advisor_id')
           .eq('id', selectedClient)
           .single();
-          
+
         if (cData && cData.advisor_id) {
           setSelectedAdvisor(cData.advisor_id);
         }
       }
     }
     loadAdvisorsAndInit();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Fetch clients whenever the selected advisor changes
@@ -58,14 +58,14 @@ export default function ClientAdvisorSelector({
         setClients([]);
         return;
       }
-      
+
       setIsClientsLoading(true);
       const { data } = await supabase
         .from('cpst_clients')
         .select('id, client_name, policy_number, birthdate, mobile_number, email, address, beneficiary')
         .eq('advisor_id', selectedAdvisor)
         .order('client_name');
-        
+
       if (data) {
         setClients(data);
       }
@@ -77,7 +77,7 @@ export default function ClientAdvisorSelector({
   const handleAdvisorSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
     setSelectedAdvisor(val);
-    
+
     // Clear the selected client when advisor changes
     onClientChange('', null);
   };

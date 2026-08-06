@@ -37,7 +37,7 @@ export default function ACICRForm({ initialData, onClose, onSuccess }: ACICRForm
     if (client) {
       updateField('client_id', client.id);
       updateField('policy_number', client.policy_number || '');
-      
+
       // Attempt to split client name to auto-fill
       const parts = (client.client_name || '').split(' ');
       if (parts.length > 1) {
@@ -95,7 +95,7 @@ export default function ACICRForm({ initialData, onClose, onSuccess }: ACICRForm
               <div className="md:col-span-2">
                 <label className={labelClass}>Select Client from CPST</label>
                 <div className="relative">
-                  <select 
+                  <select
                     className={inputClass}
                     value={formData.client_id || ''}
                     onChange={handleClientChange}
@@ -109,7 +109,7 @@ export default function ACICRForm({ initialData, onClose, onSuccess }: ACICRForm
                   {loadingClients && <Loader2 size={14} className="absolute right-3 top-3.5 animate-spin text-slate-400" />}
                 </div>
               </div>
-              
+
               <div className="md:col-span-2">
                 <label className={labelClass}>Policy/Group Contract/Plan/Mutual Fund Account Number(s)</label>
                 <input required type="text" className={inputClass} value={formData.policy_number || ''} onChange={e => updateField('policy_number', e.target.value)} placeholder="e.g. 12345678" />
@@ -133,10 +133,10 @@ export default function ACICRForm({ initialData, onClose, onSuccess }: ACICRForm
 
           <div className={sectionClass}>
             <h3 className={sectionTitleClass}><FileText size={16} className="text-primary" /> B. Address and Contact Information Details</h3>
-            
+
             <div className="space-y-4">
               <label className="text-sm font-semibold text-slate-800 dark:text-white">Address Change to:</label>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="md:col-span-2">
                   <label className={labelClass}>2. Permanent Home Address</label>
@@ -174,7 +174,7 @@ export default function ACICRForm({ initialData, onClose, onSuccess }: ACICRForm
                   <input type="text" className={inputClass} value={formData.work_zip_code || ''} onChange={e => updateField('work_zip_code', e.target.value)} placeholder="Zip Code" />
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="md:col-span-2">
                   <label className={labelClass}>8. Other Address</label>
@@ -284,7 +284,7 @@ export default function ACICRForm({ initialData, onClose, onSuccess }: ACICRForm
                   </div>
                 ))}
               </div>
-              
+
               {formData.citizenship_change === 'Resident' && (
                 <div className="mt-4 p-4 bg-surface-2 rounded-xl border border-border">
                   <label className={labelClass}>Specify Country (Citizen & Resident)</label>
