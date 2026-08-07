@@ -1,6 +1,31 @@
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+/**
+ * generateAdaPdfFromTemplate.ts
+ *
+ * Overlays Auto Debit Arrangement (ADA) form data onto the official templates:
+ * - /forms/ADA_BDO.pdf
+ * - /forms/ADA_BPI.pdf
+ */
 
-export async function generateAdaPdfFromTemplate(record: any, clientName: string, clientDob: string): Promise<Uint8Array> {
+import { PDFDocument, StandardFonts, rgb, PDFFont, PDFPage } from 'pdf-lib';
+
+function txt(
+  page: PDFPage,
+  value: string | null | undefined,
+  x: number,
+  y: number,
+  font: PDFFont,
+  size: number,
+  color = rgb(0, 0, 0),
+): void {
+  if (!value) return;
+  page.drawText(value, { x, y, size, font, color });
+}
+
+export async function generateAdaPdfFromTemplate(
+  record: any,
+  clientName: string,
+  clientDob: string,
+): Promise<Uint8Array> {
   const isBdo = record.bank_type === 'BDO';
   const templatePath = isBdo ? '/forms/ADA_BDO.pdf' : '/forms/ADA_BPI.pdf';
 
@@ -14,22 +39,26 @@ export async function generateAdaPdfFromTemplate(record: any, clientName: string
 
   if (!page1) return pdfDoc.save();
 
+  const policyNum = record.policy_number || record.client?.policy_number || '';
+  const dateSubmitted = record.date_submitted || '';
+
   if (isBdo) {
-    // BDO Approximate Coordinates
-    // Account name
-    page1.drawText(clientName || '', { x: 50, y: 672, size: 10, font });
-    // Enrolled Debit Account No
-    page1.drawText(record.bank_account_number || '', { x: 670, y: 440, size: 10, font });
-    
+    // BDO Layout
+    txt(page1, clientName, 50, 672, font, 10);
+    txt(page1, policyNum, 50, 640, font, 10);
+    txt(page1, record.bank_account_number, 670, 440, font, 10);
+    txt(page1, dateSubmitted, 50, 610, font, 10);
   } else {
-    // BPI Approximate Coordinates
-    // Customer's Name
-    page1.drawText(clientName || '', { x: 120, y: 742, size: 10, font });
-    // Account Number (Boxes)
+    // BPI Layout
+    txt(page1, clientName, 120, 742, font, 10);
+    txt(page1, policyNum, 120, 680, font, 10);
+    txt(page1, dateSubmitted, 400, 742, font, 10);
+
+    // Boxed Account Number
     if (record.bank_account_number) {
       const acct = record.bank_account_number.padEnd(10, ' ').substring(0, 10);
       for (let i = 0; i < acct.length; i++) {
-        page1.drawText(acct[i], { x: 140 + (i * 20), y: 712, size: 10, font }); // Approx boxed spacing
+        txt(page1, acct[i], 140 + (i * 20), 712, font, 10);
       }
     }
   }

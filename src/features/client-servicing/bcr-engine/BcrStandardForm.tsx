@@ -247,42 +247,6 @@ export default function BcrStandardForm({
 
               {/* ─── Client Selection & Status Header ────────────────────────────────────── */}
               <section className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                <div className="flex items-center justify-between border-b pb-3 mb-4">
-                  <div className="flex items-center gap-2">
-                    <User className="text-amber-500" size={20} />
-                    <h2 className="text-base font-bold text-slate-900">Client Selection & Record Linking</h2>
-                  </div>
-                  <span className="text-xs text-slate-400 font-mono">System Database Context</span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">Select Client Record *</label>
-                    <select
-                      value={formData.client_id || clientId}
-                      onChange={(e) => handleClientSelectLocal(e.target.value)}
-                      className="w-full p-2.5 rounded-lg border border-slate-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none text-sm bg-slate-50 focus:bg-white transition-colors"
-                    >
-                      <option value="">-- Select a Client --</option>
-                      {clients.map(c => (
-                        <option key={c.id} value={c.id}>{c.client_name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">Request Status</label>
-                    <select
-                      value={formData.status || status || 'Pending'}
-                      onChange={(e) => handleChange('status', e.target.value)}
-                      className="w-full p-2.5 rounded-lg border border-slate-200 focus:border-amber-500 outline-none text-sm bg-slate-50 focus:bg-white transition-colors font-medium text-slate-800"
-                    >
-                      <option value="Pending">Pending</option>
-                      <option value="In Progress">In Progress</option>
-                      <option value="Completed">Completed</option>
-                      <option value="Rejected">Rejected</option>
-                    </select>
-                  </div>
-                </div>
 
                 {/* Auto-Filled Client Summary Badge */}
                 {selectedClientObj && (

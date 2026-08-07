@@ -1,139 +1,154 @@
-import { PDFDocument, StandardFonts, rgb, PDFFont, PDFPage } from 'pdf-lib';
+/**
+ * generateAcicrPdfFromTemplate.ts
+ *
+ * Fills the official ACICR (Address and Contact Information Change Request) AcroForm PDF
+ * template using pdf-lib.
+ */
 
-function txt(
-  page: PDFPage,
-  value: string | null | undefined,
-  x: number,
-  y: number,
-  font: PDFFont,
-  size: number,
-  color = rgb(0, 0, 0),
-): void {
+import { PDFDocument, PDFForm } from 'pdf-lib';
+
+function setTxt(form: PDFForm, name: string, value: string | null | undefined) {
   if (!value) return;
-  page.drawText(value, { x, y, size, font, color });
+  try {
+    const field = form.getTextField(name);
+    field.setText(value);
+  } catch (e) {
+    console.warn(`Text field "${name}" not found in ACICR PDF`);
+  }
 }
 
-function checkMark(
-  page: PDFPage,
-  checked: boolean,
-  x: number,
-  y: number,
-  boldFont: PDFFont,
-  size = 10,
-): void {
-  if (!checked) return;
-  page.drawText('X', { x, y, size, font: boldFont, color: rgb(0, 0, 0) });
+function setCheck(form: PDFForm, name: string, checked: boolean) {
+  try {
+    const field = form.getCheckBox(name);
+    if (checked) field.check();
+    else field.uncheck();
+  } catch (e) {
+    console.warn(`Checkbox "${name}" not found in ACICR PDF`);
+  }
+}
+
+function formatAcroDate(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const [y, m, d] = iso.split('-');
+  if (!y || !m || !d) return '';
+  const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+  const monthStr = months[parseInt(m, 10) - 1] || '';
+  return `${d}${monthStr}${y}`;
 }
 
 export async function generateAcicrPdfFromTemplate(
   record: any,
-  clientNameParts: { last: string; first: string; middle: string },
+  clientNameParts: { last: string; first: string; middle: string }
 ): Promise<Uint8Array> {
   const res = await fetch('/forms/ACICR.pdf');
   if (!res.ok) {
-    throw new Error(`Failed to load PDF template (HTTP ${res.status}). Ensure /public/forms/ACICR.pdf exists.`);
+    throw new Error(`Failed to load ACICR PDF template. Ensure /public/forms/ACICR.pdf exists.`);
   }
   const templateBytes = await res.arrayBuffer();
-  const pdfDoc = await PDFDocument.create();
+  const pdfDoc = await PDFDocument.load(templateBytes);
+  const form = pdfDoc.getForm();
 
-  // This form has 2 pages
-  const [embedded1, embedded2] = await pdfDoc.embedPdf(templateBytes, [0, 1]);
+  // ─── PAGE 1: Section A & Section B ──────────────────────────────────────────
 
-  const pg1 = pdfDoc.addPage([embedded1.width, embedded1.height]);
-  pg1.drawPage(embedded1, { x: 0, y: 0, width: embedded1.width, height: embedded1.height });
+  // Policy / Group Contract
+  setTxt(form, 'a', record.policy_number);
 
-  const pg2 = pdfDoc.addPage([embedded2.width, embedded2.height]);
-  pg2.drawPage(embedded2, { x: 0, y: 0, width: embedded2.width, height: embedded2.height });
+  // Individual Planholder Name
+  const lastName = record.last_name || clientNameParts.last || '';
+  const firstName = record.first_name || clientNameParts.first || '';
+  const mi = record.middle_initial || (clientNameParts.middle ? clientNameParts.middle.charAt(0) : '');
 
-  const regular = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-  const VS = 8.5; // Value size
+  setTxt(form, 'a1', lastName);
+  setTxt(form, 'a2', firstName);
+  setTxt(form, 'a3', mi);
 
-  // --- PAGE 1 Coordinates (Approximated based on SACR structure) ---
+  // Company Name
+  setTxt(form, 'a4', record.company_name);
 
-  // 1. Policy / Group Contract
-  txt(pg1, record.policy_number, 175, 575, regular, VS);
+  // Addresses
+  setTxt(form, 'a5', record.permanent_address);
+  setTxt(form, 'a9', record.permanent_zip_code);
 
-  // A. Individual Policy Owner
-  txt(pg1, clientNameParts.last, 93, 534.5, regular, VS);
-  txt(pg1, clientNameParts.first, 87, 515.5, regular, VS);
-  txt(pg1, clientNameParts.middle, 530, 515.5, regular, VS);
+  const presentAddr = record.same_as_permanent ? record.permanent_address : record.present_address;
+  const presentZip = record.same_as_permanent ? record.permanent_zip_code : record.present_zip_code;
+  setTxt(form, 'a6', presentAddr);
+  setTxt(form, 'a10', presentZip);
 
-  // A. Company / Business Name
-  txt(pg1, record.company_name, 100, 470, regular, VS);
+  setTxt(form, 'a7', record.work_address);
+  setTxt(form, 'a11', record.work_zip_code);
 
-  // B. Address Details
-  // 2. Permanent Home Address
-  txt(pg1, record.permanent_address, 50, 365, regular, VS);
-  txt(pg1, record.permanent_zip_code, 470, 360, regular, VS);
+  setTxt(form, 'a8', record.other_address);
+  setTxt(form, 'a12', record.other_zip_code);
 
-  // 4. Present Home Address
-  checkMark(pg1, record.same_as_permanent, 47, 327, bold, 10);
-  txt(pg1, record.present_address, 50, 460, regular, VS);
-  txt(pg1, record.present_zip_code, 470, 460, regular, VS);
+  // Preferred Mailing Address Checkboxes
+  setCheck(form, 'Check Box6', record.preferred_mailing_permanent === true);
+  setCheck(form, 'Check Box61', record.preferred_mailing_present === true);
+  setCheck(form, 'Check Box62', record.preferred_mailing_work === true);
+  setCheck(form, 'Check Box63', record.preferred_mailing_other === true);
 
-  // 6. Work Address
-  txt(pg1, record.work_address, 50, 270, regular, VS);
-  txt(pg1, record.work_zip_code, 470, 250, regular, VS);
+  // Update All Existing Accounts?
+  const updateAccounts = record.update_existing_accounts || (record.update_all_policies === 'Yes' ? 'yes' : 'no');
+  setCheck(form, 'Check Box64', updateAccounts === 'yes');
+  setCheck(form, 'Check Box65', updateAccounts === 'no');
 
-  // 8. Other Address
-  txt(pg1, record.other_address, 50, 360, regular, VS);
-  txt(pg1, record.other_zip_code, 470, 360, regular, VS);
+  // Contact Information Change To
+  setCheck(form, 'Check Box66', Boolean(record.change_policy || record.contact_change_policy));
+  setCheck(form, 'Check Box67', Boolean(record.change_group_contract || record.contact_change_group));
+  setCheck(form, 'Check Box68', Boolean(record.change_plan || record.contact_change_plan));
+  setCheck(form, 'Check Box69', Boolean(record.change_mutual_fund || record.contact_change_mutual_fund));
+  setCheck(form, 'Check Box610', Boolean(record.change_all || record.contact_change_all));
 
-  // 10. Preferred Mailing Address
-  checkMark(pg1, record.preferred_mailing_permanent, 55, 305, bold, 10);
-  checkMark(pg1, record.preferred_mailing_present, 55, 292, bold, 10);
-  checkMark(pg1, record.preferred_mailing_work, 165, 305, bold, 10);
-  checkMark(pg1, record.preferred_mailing_other, 165, 292, bold, 10);
+  // Phone Numbers
+  setTxt(form, 'a13', record.mobile_phone);
+  setTxt(form, 'a14', record.home_phone);
+  setTxt(form, 'a15', record.work_phone);
 
-  // 11. Update on all policies?
-  checkMark(pg1, record.update_existing_accounts === 'yes' || record.update_all_policies === 'Yes', 345, 292, bold, 10);
-  checkMark(pg1, record.update_existing_accounts === 'no' || record.update_all_policies === 'No', 390, 292, bold, 10);
+  // ─── PAGE 2: Section B Continuation, Section C & Section D ─────────────────
 
-  // Contact Information Change To:
-  checkMark(pg1, record.change_policy || record.contact_change_policy, 50, 248, bold, 10);
-  checkMark(pg1, record.change_group_contract || record.contact_change_group, 120, 248, bold, 10);
-  checkMark(pg1, record.change_plan || record.contact_change_plan, 220, 248, bold, 10);
-  checkMark(pg1, record.change_mutual_fund || record.contact_change_mutual_fund, 300, 248, bold, 10);
-  checkMark(pg1, record.change_all || record.contact_change_all, 450, 248, bold, 10);
+  // Email Address
+  setTxt(form, 'a16', record.email_address);
 
-  // 12. Mobile Phone, 13. Home Phone
-  txt(pg1, record.mobile_phone, 60, 210, regular, VS);
-  txt(pg1, record.home_phone, 300, 210, regular, VS);
+  // Billing Statement Delivery
+  const billingVal = record.billing_statement_delivery ||
+    (record.billing_preference === 'SMS + Electronic Copy' ? 'sms_electronic' :
+     record.billing_preference === 'SMS + Printed Copy' ? 'sms_printed' :
+     record.billing_preference === 'Printed Copy only' ? 'printed_only' : '');
 
-  // 14. Work Phone
-  txt(pg1, record.work_phone, 60, 175, regular, VS);
+  setCheck(form, 'Check Box611', billingVal === 'sms_electronic');
+  setCheck(form, 'Check Box612', billingVal === 'sms_printed');
+  setCheck(form, 'Check Box613', billingVal === 'printed_only');
 
-  // --- PAGE 2 Coordinates ---
+  // Regulatory Compliance (Citizenship / Residence)
+  const citChange = record.citizenship_change;
+  setCheck(form, 'Check Box614', citChange === 'resident_citizen' || citChange === 'Resident');
+  setCheck(form, 'Check Box615', citChange === 'non_resident_citizen' || citChange === 'Non-Resident');
+  setCheck(form, 'Check Box616', citChange === 'none' || citChange === 'None');
 
-  // 15. Email Address
-  txt(pg2, record.email_address, 50, 740, regular, VS);
+  // Printed Names & Signatures
+  const ownerPrintedName = record.policy_owner_printed_name || `${firstName} ${lastName}`.trim();
+  setTxt(form, 'a17', ownerPrintedName);
+  setTxt(form, 'a18', record.authorized_signatory_1_name);
+  setTxt(form, 'a19', record.authorized_signatory_2_name);
+  setTxt(form, 'a20', record.witness_name);
+  setTxt(form, 'a21', record.place_of_signing);
 
-  // 16. Notifications (Billing)
-  checkMark(pg2, record.billing_statement_delivery === 'sms_electronic' || record.billing_preference === 'SMS + Electronic Copy', 55, 685, bold, 10);
-  checkMark(pg2, record.billing_statement_delivery === 'sms_printed' || record.billing_preference === 'SMS + Printed Copy', 255, 685, bold, 10);
-  checkMark(pg2, record.billing_statement_delivery === 'printed_only' || record.billing_preference === 'Printed Copy only', 455, 685, bold, 10);
+  // Date of Signing (DDMMMYYYY)
+  const dDate = formatAcroDate(record.date_of_signing);
+  if (dDate) {
+    const chars = dDate.split('');
+    const dateFields = ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o'];
+    for (let i = 0; i < Math.min(chars.length, dateFields.length); i++) {
+      setTxt(form, dateFields[i], chars[i]);
+    }
+  }
 
-  // 17. Regulatory Compliance
-  checkMark(pg2, record.citizenship_change === 'resident_citizen' || record.citizenship_change === 'Resident', 55, 610, bold, 10);
-  txt(pg2, record.citizenship_country, 280, 610, regular, VS);
-  checkMark(pg2, record.citizenship_change === 'non_resident_citizen' || record.citizenship_change === 'Non-Resident', 55, 595, bold, 10);
-  txt(pg2, record.citizenship_country, 200, 595, regular, VS); // Citizen of
-  txt(pg2, record.legal_residence_country || record.residence_country, 350, 595, regular, VS); // Reside in
-  checkMark(pg2, record.citizenshnvmip_change === 'none' || record.citizenship_change === 'None', 55, 580, bold, 10);
+  // Marketing Consent
+  const mConsent = record.marketing_consent || (record.receive_offers === 'Yes' ? 'yes' : 'no');
+  setCheck(form, 'Check Box617', mConsent === 'yes');
+  setCheck(form, 'Check Box618', mConsent === 'no');
 
-  // Signatures Area
-  const ownerPrintedName = record.policy_owner_printed_name || `${clientNameParts.first || ''} ${clientNameParts.last || ''}`.trim();
-  txt(pg2, ownerPrintedName, 280, 290, regular, VS); // Policy Owner Printed Name
-  txt(pg2, record.authorized_signatory_1_name, 50, 240, regular, VS); // Authorized Signatory #1 Name & Title
-  txt(pg2, record.authorized_signatory_2_name, 280, 240, regular, VS); // Authorized Signatory #2 Name & Title
-  txt(pg2, record.witness_name, 50, 200, regular, VS); // Witness Name
-  txt(pg2, record.place_of_signing, 280, 200, regular, VS); // Place of Signing
-  txt(pg2, record.date_of_signing, 450, 200, regular, VS); // Date of Signing
-
-  // 28. Receive communication / Marketing Consent
-  checkMark(pg2, record.marketing_consent === 'yes' || record.receive_offers === 'Yes', 225, 140, bold, 10);
-  checkMark(pg2, record.marketing_consent === 'no' || record.receive_offers === 'No', 270, 140, bold, 10);
+  // Flatten the AcroForm controls into final PDF graphics
+  form.flatten();
 
   return pdfDoc.save();
 }

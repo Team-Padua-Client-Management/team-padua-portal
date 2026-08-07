@@ -53,6 +53,25 @@ function formatAcroDate(iso: string | null | undefined): string {
   return `${d}${monthStr}${y}`;
 }
 
+/** Helper to parse a full name string into { last, first, mi } */
+function parseFullName(fullName: string | undefined | null) {
+  if (!fullName) return { last: '', first: '', mi: '' };
+  if (fullName.includes(',')) {
+    const [lastPart, restPart] = fullName.split(',').map((s: string) => s.trim());
+    const restWords = restPart ? restPart.split(/\s+/) : [];
+    const last = lastPart || '';
+    const first = restWords[0] || '';
+    const mi = restWords.length > 1 ? restWords[restWords.length - 1].charAt(0) + '.' : '';
+    return { last, first, mi };
+  }
+  const words = fullName.trim().split(/\s+/);
+  if (words.length === 1) return { last: '', first: words[0], mi: '' };
+  const last = words[words.length - 1];
+  const first = words[0];
+  const mi = words.length > 2 ? words[1].charAt(0) + '.' : '';
+  return { last, first, mi };
+}
+
 /** Embeds an image signature (pdf-lib forms don't support native base64 embedding in fields easily) */
 async function embedSignature(
   pdfDoc: PDFDocument,
@@ -105,15 +124,30 @@ export async function generateBeneficiaryChangeRequestPdfFromTemplate(record: Bc
   const holderType = record.planholder_type || 'individual';
 
   if (holderType === 'company') {
-    // Company planholder: fill company name fields
-    setTxt(form, 'For CompanyBusiness Planholder', record.company_name);
+    // Company planholder: fill company name fields (undefined_3 and undefined_4)
+    setTxt(form, 'undefined_3', record.company_name);
     setTxt(form, 'undefined_4', record.company_name);
   } else {
-    // Individual planholder — PDF field order: Last Name, First Name, MI
-    // NOTE: PDF AcroForm field order on page 1 is: undefined_2 = Last Name, undefined_3 = First Name, MI = Middle Initial
-    setTxt(form, 'undefined_2', record.planholder_last_name);
-    setTxt(form, 'undefined_3', record.planholder_first_name);
-    setTxt(form, 'MI', record.planholder_mi);
+    // Individual planholder
+    let lastName = record.planholder_last_name || '';
+    let firstName = record.planholder_first_name || '';
+    let mi = record.planholder_mi || '';
+
+    // Fallback if individual names are not separately specified but full name exists
+    if (!lastName && !firstName && record.planholder_printed_name) {
+      const parsed = parseFullName(record.planholder_printed_name);
+      lastName = parsed.last;
+      firstName = parsed.first;
+      mi = parsed.mi;
+    }
+
+    // PDF field mapping based on template bounding box coordinates:
+    // 'MI' -> Last Name box (y=505, x=144, w=426)
+    // 'For CompanyBusiness Planholder' -> First Name box (y=487, x=144, w=344)
+    // 'undefined_2' -> M.I. box (y=487, x=516, w=53)
+    setTxt(form, 'MI', lastName);
+    setTxt(form, 'For CompanyBusiness Planholder', firstName);
+    setTxt(form, 'undefined_2', mi);
   }
 
   // ─── Section B: Change Type ─────────────────────────────────────────────────
@@ -124,19 +158,20 @@ export async function generateBeneficiaryChangeRequestPdfFromTemplate(record: Bc
 
   // ─── Section B.1: Add Beneficiary ───────────────────────────────────────────
 
-  if (record.change_type === 'add') {
+  if (record.change_type === 'add' || !record.change_type) {
 
-    // ── Beneficiary #1 ──────────────────────────────────────────────────────
+    // ── Beneficiary #1 (PDF Page 1) ──────────────────────────────────────────
 
-    setTxt(form, '12 Name Last Name First Name Middle NameCompany or Business Name', record.beneficiary1_name);
+    setTxt(
+      form,
+      'Kindly complete the needed information below to add beneficiaryies to your plan If there are more than 2 additional beneficiaries',
+      record.beneficiary1_name
+    );
 
-    // Sex at birth — try dedicated checkboxes; fall back silently if absent
-    setCheck(form, 'Male', record.beneficiary1_sex === 'Male');
-    setCheck(form, 'Female', record.beneficiary1_sex === 'Female');
-
-    // Birthdate (DD MMM YYYY character boxes)
+    // Birthdate (DD MMM YYYY character boxes + text field)
     const b1Date = formatAcroDate(record.beneficiary1_birthdate);
     if (b1Date) {
+      setTxt(form, '4 Birthdate eg 01FEB2026', b1Date);
       setCharBoxes(form, ['Day', 'Day1'], b1Date.substring(0, 2));
       setCharBoxes(form, ['Month', 'Month1', 'Month2'], b1Date.substring(2, 5));
       setCharBoxes(form, ['Year1', 'Year2', 'Year', 'Year3'], b1Date.substring(5, 9));
@@ -144,90 +179,87 @@ export async function generateBeneficiaryChangeRequestPdfFromTemplate(record: Bc
 
     setTxt(form, '15 Country of BirthIncorporation or Business Registration', record.beneficiary1_country_birth);
 
-    // Citizenships — the PDF has two differently-named fields on page 1 and page 2
+    // Citizenships — the PDF has two fields on page 1 and page 2
     setTxt(form, '6 CitizenshipsNationalityies', record.beneficiary1_citizenships);
-    setTxt(form, '16 CitizenshipsNationalityies', record.beneficiary1_citizenships);
 
-    // Relationship checkboxes
-    // handleRelationshipSelect sets beneficiary1_relationship = 'Others' for Spouse/Child/Sibling
-    // and stores the actual label in beneficiary1_relationship_others
-    setCheck(form, 'Father', record.beneficiary1_relationship === 'Father');
-    setCheck(form, 'Mother', record.beneficiary1_relationship === 'Mother');
-    setCheck(form, 'Employer', record.beneficiary1_relationship === 'Employer');
-    setCheck(form, 'undefined_10', record.beneficiary1_relationship === 'Others'); // Others checkbox
+    // Relationship checkboxes & text on Page 1
+    const rel1 = record.beneficiary1_relationship;
+    const rel1Others = record.beneficiary1_relationship_others || '';
+    setCheck(form, 'Mother1', rel1 === 'Father');
+    setCheck(form, 'Father', rel1 === 'Father');
+    setCheck(form, 'Mother', rel1 === 'Mother');
+    setCheck(form, 'Employer', rel1 === 'Employer');
+    setCheck(form, 'undefined_10', rel1 === 'Others' || Boolean(rel1Others));
 
-    // "Others specify" text field — filled whenever relationship is Others
-    setTxt(form, '7 Relationship to the planholder', record.beneficiary1_relationship_others || (
-      ['Father', 'Mother', 'Employer'].includes(record.beneficiary1_relationship)
-        ? record.beneficiary1_relationship
-        : record.beneficiary1_relationship_others
-    ));
-    setTxt(form, 'Others specify', record.beneficiary1_relationship_others);
+    const rel1Display = ['Father', 'Mother', 'Employer'].includes(rel1)
+      ? rel1
+      : rel1Others || (rel1 === 'Others' ? 'Others' : rel1);
+    setTxt(form, '7 Relationship to the planholder', rel1Display);
+    setTxt(form, 'Others specify', rel1Others);
 
-    // Beneficiary Type
-    setCheck(form, 'Primary', record.beneficiary1_type === 'Primary');
+    // Beneficiary Type — Ben 1
+    setCheck(form, 'Primary', record.beneficiary1_type === 'Primary' || !record.beneficiary1_type);
     setCheck(form, 'Contingent in the event of death of all primary beneficiaryies', record.beneficiary1_type === 'Contingent');
 
-    // Designation
-    setCheck(form, 'undefined_11', record.beneficiary1_designation === 'Revocable');
+    // Designation — Ben 1
+    setCheck(form, 'undefined_11', record.beneficiary1_designation === 'Revocable' || !record.beneficiary1_designation);
     setCheck(form, 'undefined_12', record.beneficiary1_designation === 'Irrevocable');
 
-    // Contact and Address
+    // Contact and Address — Ben 1
     setTxt(form, '10 Home PhoneMobile No country code area code  tel no', record.beneficiary1_phone);
     setTxt(form, '11 Address No Street VillageSubdivision Barangay CityMunicipality ProvinceState Country PO Box is not acceptable', record.beneficiary1_address);
 
     // ── Beneficiary #2 (PDF Page 2) ─────────────────────────────────────────
 
-    setTxt(form, '12 Name Last Name First Name Middle NameCompany or Business Name_2', record.beneficiary2_name);
+    if (record.beneficiary2_name) {
+      setTxt(form, '12 Name Last Name First Name Middle NameCompany or Business Name', record.beneficiary2_name);
 
-    // Sex at birth — Ben 2
-    setCheck(form, 'Male_2', record.beneficiary2_sex === 'Male');
-    setCheck(form, 'Female_2', record.beneficiary2_sex === 'Female');
+      // Birthdate — Ben 2
+      const b2Date = formatAcroDate(record.beneficiary2_birthdate);
+      if (b2Date) {
+        setCharBoxes(form, ['Day2', 'Day3'], b2Date.substring(0, 2));
+        setCharBoxes(form, ['Month3', 'Month4', 'Month5'], b2Date.substring(2, 5));
+        setCharBoxes(form, ['Year4', 'Year5', 'Year6', 'Year7'], b2Date.substring(5, 9));
+      }
 
-    // Birthdate — Ben 2
-    const b2Date = formatAcroDate(record.beneficiary2_birthdate);
-    if (b2Date) {
-      setCharBoxes(form, ['Day2', 'Day3'], b2Date.substring(0, 2));
-      setCharBoxes(form, ['Month3', 'Month4', 'Month5'], b2Date.substring(2, 5));
-      setCharBoxes(form, ['Year5', 'Year6', 'Year4', 'Year7'], b2Date.substring(5, 9));
+      setTxt(form, '15 Country of BirthIncorporation or Business Registration', record.beneficiary2_country_birth);
+      setTxt(form, '16 CitizenshipsNationalityies', record.beneficiary2_citizenships);
+
+      // Relationship checkboxes — Ben 2 (Page 2)
+      const rel2 = record.beneficiary2_relationship;
+      const rel2Others = record.beneficiary2_relationship_others || '';
+      setCheck(form, 'Father', rel2 === 'Father');
+      setCheck(form, 'Mother_2', rel2 === 'Mother');
+      setCheck(form, 'Employer_2', rel2 === 'Employer');
+      setCheck(form, 'undefined_13', rel2 === 'Others' || Boolean(rel2Others));
+
+      const rel2Display = ['Father', 'Mother', 'Employer'].includes(rel2)
+        ? rel2
+        : rel2Others || (rel2 === 'Others' ? 'Others' : rel2);
+      setTxt(form, '17 Relationship to the planholder', rel2Display);
+      setTxt(form, 'Others specify_2', rel2Others);
+
+      // Beneficiary Type — Ben 2
+      setCheck(form, 'Primary_2', record.beneficiary2_type === 'Primary');
+      setCheck(form, 'Contingent in the event of death of all primary beneficiaryies_2', record.beneficiary2_type === 'Contingent');
+
+      // Designation — Ben 2
+      setCheck(form, 'undefined_14', record.beneficiary2_designation === 'Revocable');
+      setCheck(form, 'undefined_15', record.beneficiary2_designation === 'Irrevocable');
+
+      // Contact and Address — Ben 2
+      setTxt(form, '20 Home PhoneMobile No country code area code  tel no', record.beneficiary2_phone);
+      setTxt(form, '21 Address No Street VillageSubdivision Barangay CityMunicipality ProvinceState Country PO Box is not acceptable', record.beneficiary2_address);
     }
-
-    setTxt(form, '15 Country of BirthIncorporation or Business Registration_2', record.beneficiary2_country_birth);
-    setTxt(form, '16 CitizenshipsNationalityies_2', record.beneficiary2_citizenships);
-
-    // Relationship checkboxes — Ben 2
-    setCheck(form, 'Father_2', record.beneficiary2_relationship === 'Father');
-    setCheck(form, 'Mother_2', record.beneficiary2_relationship === 'Mother');
-    setCheck(form, 'Employer_2', record.beneficiary2_relationship === 'Employer');
-    setCheck(form, 'undefined_13', record.beneficiary2_relationship === 'Others');
-
-    setTxt(form, '17 Relationship to the planholder', record.beneficiary2_relationship_others || (
-      ['Father', 'Mother', 'Employer'].includes(record.beneficiary2_relationship)
-        ? record.beneficiary2_relationship
-        : record.beneficiary2_relationship_others
-    ));
-    setTxt(form, 'Others specify_2', record.beneficiary2_relationship_others);
-
-    // Beneficiary Type — Ben 2
-    setCheck(form, 'Primary_2', record.beneficiary2_type === 'Primary');
-    setCheck(form, 'Contingent in the event of death of all primary beneficiaryies_2', record.beneficiary2_type === 'Contingent');
-
-    // Designation — Ben 2
-    setCheck(form, 'undefined_14', record.beneficiary2_designation === 'Revocable');
-    setCheck(form, 'undefined_15', record.beneficiary2_designation === 'Irrevocable');
-
-    // Contact and Address — Ben 2
-    setTxt(form, '20 Home PhoneMobile No country code area code  tel no', record.beneficiary2_phone);
-    setTxt(form, '21 Address No Street VillageSubdivision Barangay CityMunicipality ProvinceState Country PO Box is not acceptable', record.beneficiary2_address);
   }
 
   // ─── Section B.2: Remove Beneficiary ────────────────────────────────────────
 
   if (record.change_type === 'remove') {
-    // Primary removal field (Ben 1)
-    setTxt(form, '23 Name Last Name First Name Middle NameCompany or Business Name', record.remove_beneficiary1_name);
-    // Second removal field (Ben 2) — if the PDF provides a second field
-    setTxt(form, '23 Name Last Name First Name Middle NameCompany or Business Name_2', record.remove_beneficiary2_name);
+    const removalList = [record.remove_beneficiary1_name, record.remove_beneficiary2_name]
+      .filter(Boolean)
+      .join(', ');
+    setTxt(form, '23 Name Last Name First Name Middle NameCompany or Business Name', removalList);
   }
 
   // ─── Section B.3: Change Beneficiary Information ────────────────────────────
@@ -246,8 +278,6 @@ export async function generateBeneficiaryChangeRequestPdfFromTemplate(record: Bc
 
     // Sex at birth change
     setCheck(form, 'Sex at birth', record.check_sex);
-    setCheck(form, 'Male_3', record.change_sex === 'Male');
-    setCheck(form, 'Female_3', record.change_sex === 'Female');
 
     // Birthdate change
     setCheck(form, 'Birthdate eg 01APR2020', record.check_birthdate);
@@ -255,7 +285,7 @@ export async function generateBeneficiaryChangeRequestPdfFromTemplate(record: Bc
     if (cbDate) {
       setCharBoxes(form, ['Day4', 'Day5'], cbDate.substring(0, 2));
       setCharBoxes(form, ['Month6', 'Month7', 'Month8'], cbDate.substring(2, 5));
-      setCharBoxes(form, ['Year9', 'Year10', 'Year8', 'Year11'], cbDate.substring(5, 9));
+      setCharBoxes(form, ['Year8', 'Year9', 'Year10', 'Year11'], cbDate.substring(5, 9));
     }
 
     // Country of birth change
@@ -276,7 +306,7 @@ export async function generateBeneficiaryChangeRequestPdfFromTemplate(record: Bc
 
     // Relationship change
     setCheck(form, 'Relationship to the planholder', record.check_relationship);
-    setCheck(form, 'Father_3', record.change_relationship === 'Father');
+    setCheck(form, 'Father_2', record.change_relationship === 'Father');
     setCheck(form, 'Mother_3', record.change_relationship === 'Mother');
     setCheck(form, 'undefined_25', record.change_relationship === 'Employer');
     setCheck(form, 'undefined_27', record.change_relationship === 'Others');
@@ -325,29 +355,29 @@ export async function generateBeneficiaryChangeRequestPdfFromTemplate(record: Bc
   setTxt(form, 'undefined_33', record.compliance_citizen_country);
   setTxt(form, 'specify country but I legally reside in', record.compliance_legally_reside_country);
 
-  setCheck(form, 'None', record.compliance_type === 'none');
+  setCheck(form, 'None', record.compliance_type === 'none' || !record.compliance_type);
 
   // ─── Section D: Signatures & Dates ──────────────────────────────────────────
 
-  // 35. Date of Signing (Page 3) — DO NOT MODIFY these character-box mappings
+  // 35. Date of Signing (Page 3)
   const dDate = formatAcroDate(record.date_of_signing);
   if (dDate) {
     setCharBoxes(form, ['Day6', 'Day7'], dDate.substring(0, 2));
     setCharBoxes(form, ['Month9', 'Month10', 'Month11'], dDate.substring(2, 5));
-    setCharBoxes(form, ['Year13', 'Year14', 'Year12', 'Year15'], dDate.substring(5, 9));
+    setCharBoxes(form, ['Year12', 'Year13', 'Year14', 'Year15'], dDate.substring(5, 9));
 
-    // 41. Date of Signing (Page 4 - Irrevocable Beneficiary) — DO NOT MODIFY
+    // 41. Date of Signing (Page 4 - Irrevocable Beneficiary)
     setCharBoxes(form, ['Day8', 'Day9'], dDate.substring(0, 2));
     setCharBoxes(form, ['Month12', 'Month13', 'Month14'], dDate.substring(2, 5));
-    setCharBoxes(form, ['Year17', 'Year18', 'Year16', 'Year19'], dDate.substring(5, 9));
+    setCharBoxes(form, ['Year16', 'Year17', 'Year18', 'Year19'], dDate.substring(5, 9));
 
-    // 47. Date of Signing (Page 4 - Witness) — DO NOT MODIFY
+    // 47. Date of Signing (Page 4 - Witness)
     setCharBoxes(form, ['Day10', 'Day11'], dDate.substring(0, 2));
     setCharBoxes(form, ['Month15', 'Month16', 'Month17'], dDate.substring(2, 5));
-    setCharBoxes(form, ['Year21', 'Year22', 'Year20', 'Year23'], dDate.substring(5, 9));
+    setCharBoxes(form, ['Year20', 'Year21', 'Year22', 'Year23'], dDate.substring(5, 9));
   }
 
-  // 34. Place of Signing — DO NOT MODIFY this existing mapping
+  // 34. Place of Signing
   setTxt(form, '46 Place of Signing', record.place_of_signing);
 
   // 27. Planholder Printed Name (Page 3)
@@ -365,22 +395,13 @@ export async function generateBeneficiaryChangeRequestPdfFromTemplate(record: Bc
   }
 
   // Page 4 — Irrevocable Beneficiary Consent Block
-  // 39. Irrevocable Beneficiary #1 Printed Name
   setTxt(form, '39 Printed Name', record.irrevocable_ben1_name);
-
-  // Irrevocable Beneficiary #1 Witness Printed Name
-  setTxt(form, '43 Printed Name', record.irrevocable_ben1_witness_name);
-
-  // Irrevocable Beneficiary #2 Printed Name (if applicable)
-  setTxt(form, '39 Printed Name_2', record.irrevocable_ben2_name);
-
-  // 45. Second Witness Printed Name (Page 4)
+  setTxt(form, '44 Signature of Witness a thirdparty or anyone who is not the planholder or beneficiary', record.irrevocable_ben1_witness_name);
   setTxt(form, '45 Printed Name', record.witness2_name);
 
   // Electronic Communication Consent (Page 4)
-  // The form uses a Yes/No pair; the checkbox in the form is checked=true for Yes
-  setCheck(form, 'Yes', record.wants_communication === true);
-  setCheck(form, 'No', record.wants_communication === false);
+  setCheck(form, 'Yes', record.wants_communication !== false);
+  setCheck(form, 'Yes1', record.wants_communication === false);
 
   // Flatten the form fields into the PDF graphics layer
   form.flatten();
