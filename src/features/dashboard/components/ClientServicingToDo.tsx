@@ -18,8 +18,8 @@ export interface TodoTask {
 }
 
 interface ClientServicingToDoProps {
-  tasks: TaskItem[]; // Client Servicing tasks
-  personalTodos?: TodoTask[]; // Personal todo items
+  tasks: TaskItem[];
+  personalTodos?: TodoTask[];
   allProfiles: UserProfile[];
   bizDevProfiles: UserProfile[];
   onCreatePersonalTodo?: (todo: { title: string; description?: string; due_date?: string }) => void;

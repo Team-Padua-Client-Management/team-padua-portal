@@ -70,7 +70,7 @@ export default function WelcomeModal({ userName, role }: WelcomeModalProps) {
           {isReturning ? 'Welcome back, ' : 'Welcome, '}
           <span className={styles.username}>{userName}</span>!
         </h2>
-        
+
         <p className={styles.desc}>
           {isAdmin ? (
             isReturning ? (

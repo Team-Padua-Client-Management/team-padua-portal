@@ -44,7 +44,7 @@ function HeroDecoration({ period }: { period: DayPeriod }) {
       <div className={styles.heroDecorationContainer} aria-hidden="true">
         {/* Deep Night Atmosphere Overlay */}
         <div className={styles.heroNightOverlay} />
-        
+
         {/* Cosmic Aurora Wave */}
         <div className={styles.heroAuroraWave} />
 
@@ -223,13 +223,15 @@ export default function DashboardHero({
 
       {/* Left side: Greeting badge, Welcome title, Role badge, Portal shortcuts */}
       <div className={styles.heroLeft}>
-        <div className={styles.greetingBadge}>
-          {periodIcon}
-          <span>{greeting}</span>
-        </div>
+        <h1 className={styles.heroGreeting}>
+          <span className={styles.heroGreetingBadge}>
+            {periodIcon}
+            {greeting},
+          </span>
 
-        <h1 className={styles.welcomeText}>
-          Welcome, <span className={styles.usernameHighlight}>{adminName}</span>
+          <span className={styles.heroGreetingName}>
+            {adminName}
+          </span>
         </h1>
 
         <div className={styles.memberBadge}>

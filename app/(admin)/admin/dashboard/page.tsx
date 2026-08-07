@@ -11,7 +11,7 @@ import WelcomeModal from "@src/components/modals/WelcomeModal";
 
 import DashboardHero from "@src/features/dashboard/components/DashboardHero";
 import ClientServicingStats from "@src/features/dashboard/components/ClientServicingStats";
-import ClientServicingToDo from "@src/features/dashboard/components/ClientServicingToDo";
+// import ClientServicingToDo from "@src/features/dashboard/components/ClientServicingToDo";
 import TaskList from "@src/features/dashboard/components/TaskList";
 import InquiryList from "@src/features/dashboard/components/InquiryList";
 import BirthdayCard from "@src/features/dashboard/components/BirthdayCard";
@@ -106,10 +106,10 @@ export default function DashboardOverviewPage() {
     handleCreateTask,
     handleCreateInquiry,
     handleDeleteTask,
-    personalTodos,
-    handleCreatePersonalTodo,
-    handleTogglePersonalTodoComplete,
-    handleDeletePersonalTodo,
+    // personalTodos,
+    // handleCreatePersonalTodo,
+    // handleTogglePersonalTodoComplete,
+    // handleDeletePersonalTodo,
     userRole,
     userPermissions
   } = useAdminDashboard();
@@ -207,7 +207,7 @@ export default function DashboardOverviewPage() {
                 saveInquiryField={saveInquiryField}
                 onSelectInquiry={(item) => setSelectedInquiryId(item.id)}
               />
-              <ClientServicingToDo
+              {/* <ClientServicingToDo
                 tasks={userTasks}
                 personalTodos={personalTodos}
                 allProfiles={allProfiles}
@@ -217,7 +217,7 @@ export default function DashboardOverviewPage() {
                 onTogglePersonalTodoComplete={handleTogglePersonalTodoComplete}
                 onDeletePersonalTodo={handleDeletePersonalTodo}
                 onSelectTask={(id) => setSelectedTaskIdForModal(id)}
-              />
+              /> */}
             </div>
 
             <div className={styles.centerCol}>
