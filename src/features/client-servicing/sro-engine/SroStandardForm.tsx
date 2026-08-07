@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Save, Download, Loader2, Eye, FileEdit } from 'lucide-react';
 import { supabase } from '@src/lib/supabase/client';
 import { generateSroPdfFromTemplate } from '@src/features/client-servicing/pdf/generateSroPdfFromTemplate';
+import ClientServicingLayout from '@src/features/client-servicing/components/ClientServicingLayout';
 
 interface SroStandardFormProps {
   initialValues: Record<string, any>;
@@ -48,7 +49,7 @@ export default function SroStandardForm({
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleClientSelectLocal = async (newClientId: string) => {
+  const handleClientSelectLocal = async (newClientId: string, selectedClientFromSelector?: any) => {
     handleChange('client_id', newClientId);
     onClientSelect(newClientId);
   };
@@ -122,30 +123,20 @@ export default function SroStandardForm({
         </div>
       </header>
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-hidden relative">
-        <div className={`absolute inset-0 transition-opacity duration-300 ${viewMode === 'form' ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'}`}>
-          <div className="h-full overflow-y-auto p-8">
-            <div className="max-w-4xl mx-auto space-y-8 pb-12">
-              
-              <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                <div className="bg-slate-900 px-6 py-4">
-                  <h2 className="text-sm font-bold text-white uppercase tracking-wider">1. General Information</h2>
-                </div>
-                <div className="p-6 space-y-6">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Select Client</label>
-                    <select
-                      value={formData.client_id || ''}
-                      onChange={(e) => handleClientSelectLocal(e.target.value)}
-                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
-                    >
-                      <option value="">-- Select Client --</option>
-                      {clients.map(c => (
-                        <option key={c.id} value={c.id}>{c.client_name} ({c.policy_number || 'No Policy'})</option>
-                      ))}
-                    </select>
+      <ClientServicingLayout
+        selectedClient={formData.client_id || clientId || ''}
+        onClientChange={handleClientSelectLocal}
+      >
+        <div className="flex-1 overflow-hidden relative">
+          <div className={`absolute inset-0 transition-opacity duration-300 ${viewMode === 'form' ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'}`}>
+            <div className="h-full overflow-y-auto p-8">
+              <div className="max-w-4xl mx-auto space-y-8 pb-12">
+                
+                <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                  <div className="bg-slate-900 px-6 py-4">
+                    <h2 className="text-sm font-bold text-white uppercase tracking-wider">1. General Information</h2>
                   </div>
+                  <div className="p-6 space-y-6">
 
                   <div className="grid grid-cols-2 gap-6">
                     <div>
@@ -208,6 +199,7 @@ export default function SroStandardForm({
           </div>
         </div>
       </div>
+    </ClientServicingLayout>
     </div>
   );
 }

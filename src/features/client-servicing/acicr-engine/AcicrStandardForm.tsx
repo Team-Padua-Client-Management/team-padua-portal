@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Save, Download, Loader2, Eye, FileEdit } from 'lucide-react';
 import { supabase } from '@src/lib/supabase/client';
 import { generateAcicrPdfFromTemplate } from '@src/features/client-servicing/pdf/generateAcicrPdfFromTemplate';
-import ClientAdvisorSelector from '@src/features/client-servicing/components/ClientAdvisorSelector';
+import ClientServicingLayout from '@src/features/client-servicing/components/ClientServicingLayout';
 
 interface AcicrStandardFormProps {
   initialValues: Record<string, any>;
@@ -164,16 +164,11 @@ export default function AcicrStandardForm({
         </div>
       </header>
 
-      <div className="flex-1 flex overflow-hidden relative">
-        <div className="w-72 shrink-0 bg-white border-r border-slate-200 overflow-y-auto hidden md:block">
-          <div className="p-6">
-            <ClientAdvisorSelector
-              selectedClient={formData.client_id || clientId || ''}
-              onClientChange={handleClientSelectLocal}
-            />
-          </div>
-        </div>
-
+      {/* Main Container — Centralized Sidebar Layout */}
+      <ClientServicingLayout
+        selectedClient={formData.client_id || clientId || ''}
+        onClientChange={handleClientSelectLocal}
+      >
         <div className="flex-1 overflow-y-auto bg-slate-50">
           {viewMode === 'literal' ? (
             <div className="h-full flex items-center justify-center p-6 bg-slate-200/50">
@@ -760,7 +755,7 @@ export default function AcicrStandardForm({
             </div>
           )}
         </div>
-      </div>
+      </ClientServicingLayout>
     </div>
   );
 }

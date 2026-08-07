@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Save, Download, Loader2, Eye, FileEdit, PlusCircle, MinusCircle, X } from 'lucide-react';
 import { generateFundSwitchingPdf } from '@src/features/client-servicing/pdf/generateFundSwitchingPdf';
 import SignaturePad from '@src/components/ui/SignaturePad';
-import ClientSelector from '@src/components/shared/ClientSelector';
+import ClientServicingLayout from '@src/features/client-servicing/components/ClientServicingLayout';
 
 export interface FundSwitchRow {
   from_fund: string;
@@ -110,7 +110,7 @@ export default function FundSwitchingStandardForm({
     }
   };
 
-  const handleClientSelectLocal = (newClientId: string) => {
+  const handleClientSelectLocal = (newClientId: string, selectedClientFromSelector?: any) => {
     handleChange('client_id', newClientId);
     onClientSelect(newClientId);
   };
@@ -229,19 +229,18 @@ export default function FundSwitchingStandardForm({
         </div>
       </header>
 
-      <main className="flex-1 overflow-hidden flex">
+      <ClientServicingLayout
+        selectedClient={formData.client_id || clientId || ''}
+        onClientChange={handleClientSelectLocal}
+      >
         {viewMode === 'form' ? (
           <div className="flex-1 overflow-y-auto p-6 md:p-8">
             <div className="max-w-4xl mx-auto space-y-8 pb-12">
           
               <div className={cardClass}>
-                <h3 className="text-base font-bold text-slate-900 mb-4 border-b pb-2">Client Selection</h3>
-                <ClientSelector
-                  onChange={handleClientSelectLocal}
-                  value={formData.client_id || clientId}
-                />
+                <h3 className="text-base font-bold text-slate-900 mb-4 border-b pb-2">Client Selection & Request Status</h3>
                 
-                <div className="mt-4">
+                <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1">Request Status</label>
                   <select
                     value={formData.status || 'Pending'}
@@ -581,7 +580,7 @@ export default function FundSwitchingStandardForm({
             )}
           </div>
         )}
-      </main>
+      </ClientServicingLayout>
     </div>
   );
 }

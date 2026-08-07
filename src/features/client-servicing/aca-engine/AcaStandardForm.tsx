@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Save, Download, Loader2, Eye, FileEdit } from 'lucide-react';
 import { supabase } from '@src/lib/supabase/client';
 import { generateAcaPdfFromTemplate } from '@src/features/client-servicing/pdf/generateAcaPdfFromTemplate';
+import ClientServicingLayout from '@src/features/client-servicing/components/ClientServicingLayout';
 
 interface AcaStandardFormProps {
   initialValues: Record<string, any>;
@@ -48,7 +49,7 @@ export default function AcaStandardForm({
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleClientSelectLocal = async (newClientId: string) => {
+  const handleClientSelectLocal = async (newClientId: string, selectedClientFromSelector?: any) => {
     handleChange('client_id', newClientId);
     onClientSelect(newClientId);
   };
@@ -123,39 +124,27 @@ export default function AcaStandardForm({
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-hidden flex">
+      <ClientServicingLayout
+        selectedClient={formData.client_id || clientId || ''}
+        onClientChange={handleClientSelectLocal}
+      >
         {viewMode === 'form' ? (
           <div className="flex-1 overflow-y-auto p-6 md:p-8">
             <div className="max-w-4xl mx-auto space-y-8 pb-12">
               <section className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                <h2 className="text-base font-bold text-slate-900 mb-4 border-b pb-2">Client Selection</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">Select Client *</label>
-                    <select
-                      value={formData.client_id || clientId}
-                      onChange={(e) => handleClientSelectLocal(e.target.value)}
-                      className="w-full p-2.5 rounded-lg border border-slate-200 focus:border-amber-500 outline-none text-sm bg-slate-50 focus:bg-white transition-colors"
-                    >
-                      <option value="">-- Select a Client --</option>
-                      {clients.map(c => (
-                        <option key={c.id} value={c.id}>{c.client_name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">Request Status</label>
-                    <select
-                      value={formData.status || 'Pending'}
-                      onChange={(e) => handleChange('status', e.target.value)}
-                      className="w-full p-2.5 rounded-lg border border-slate-200 focus:border-amber-500 outline-none text-sm bg-slate-50 focus:bg-white transition-colors"
-                    >
-                      <option value="Pending">Pending</option>
-                      <option value="Approved">Approved</option>
-                      <option value="Completed">Completed</option>
-                      <option value="Rejected">Rejected</option>
-                    </select>
-                  </div>
+                <h2 className="text-base font-bold text-slate-900 mb-4 border-b pb-2">Request Status</h2>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Request Status</label>
+                  <select
+                    value={formData.status || 'Pending'}
+                    onChange={(e) => handleChange('status', e.target.value)}
+                    className="w-full p-2.5 rounded-lg border border-slate-200 focus:border-amber-500 outline-none text-sm bg-slate-50 focus:bg-white transition-colors"
+                  >
+                    <option value="Pending">Pending</option>
+                    <option value="Approved">Approved</option>
+                    <option value="Completed">Completed</option>
+                    <option value="Rejected">Rejected</option>
+                  </select>
                 </div>
               </section>
 
@@ -199,7 +188,7 @@ export default function AcaStandardForm({
             )}
           </div>
         )}
-      </main>
+      </ClientServicingLayout>
     </div>
   );
 }

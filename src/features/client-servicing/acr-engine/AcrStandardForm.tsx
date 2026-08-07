@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Save, Download, Loader2, Eye, FileEdit } from 'lucide-react';
 import { supabase } from '@src/lib/supabase/client';
 import { generateAdvisorChangeRequestPdfFromTemplate } from '@src/features/client-servicing/pdf/generateAdvisorChangeRequestPdfFromTemplate';
+import ClientServicingLayout from '@src/features/client-servicing/components/ClientServicingLayout';
 
 interface AcrStandardFormProps {
   initialValues: Record<string, any>;
@@ -89,14 +90,14 @@ export default function AcrStandardForm({
     };
   };
 
-  const handleClientSelectLocal = async (newClientId: string) => {
+  const handleClientSelectLocal = async (newClientId: string, selectedClientFromSelector?: any) => {
     handleChange('client_id', newClientId);
     onClientSelect(newClientId);
 
     if (!newClientId) return;
 
-    // Find the client from the already-loaded list
-    const selectedClient = clients.find(c => c.id === newClientId);
+    // Use client data from sidebar selector if available, otherwise fall back to local list
+    const selectedClient = selectedClientFromSelector || clients.find(c => c.id === newClientId);
     if (!selectedClient) return;
 
     const nameParts = getClientNameParts(selectedClient.client_name);
@@ -191,8 +192,11 @@ export default function AcrStandardForm({
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-hidden flex">
+      {/* Main Content — Centralized Sidebar Layout */}
+      <ClientServicingLayout
+        selectedClient={formData.client_id || clientId || ''}
+        onClientChange={handleClientSelectLocal}
+      >
         {viewMode === 'form' ? (
           <div className="flex-1 overflow-y-auto p-6 md:p-8">
             <div className="max-w-4xl mx-auto space-y-8 pb-12">
@@ -572,7 +576,7 @@ export default function AcrStandardForm({
             )}
           </div>
         )}
-      </main>
+      </ClientServicingLayout>
     </div>
   );
 }

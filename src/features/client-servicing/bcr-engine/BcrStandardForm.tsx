@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@src/lib/supabase/client';
 import { generateBeneficiaryChangeRequestPdfFromTemplate } from '@src/features/client-servicing/pdf/generateBeneficiaryChangeRequestPdfFromTemplate';
+import ClientServicingLayout from '@src/features/client-servicing/components/ClientServicingLayout';
 
 interface BcrStandardFormProps {
   initialValues: Record<string, any>;
@@ -55,13 +56,13 @@ export default function BcrStandardForm({
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleClientSelectLocal = async (newClientId: string) => {
+  const handleClientSelectLocal = async (newClientId: string, selectedClientFromSelector?: any) => {
     handleChange('client_id', newClientId);
     onClientSelect(newClientId);
 
     if (!newClientId) return;
 
-    const selectedClient = clients.find(c => c.id === newClientId);
+    const selectedClient = selectedClientFromSelector || clients.find(c => c.id === newClientId);
     if (!selectedClient) return;
 
     const clientName = selectedClient.client_name || '';
@@ -235,8 +236,11 @@ export default function BcrStandardForm({
         </div>
       </header>
 
-      {/* Main Container */}
-      <main className="flex-1 overflow-hidden flex">
+      {/* Main Container — Centralized Sidebar Layout */}
+      <ClientServicingLayout
+        selectedClient={formData.client_id || clientId || ''}
+        onClientChange={handleClientSelectLocal}
+      >
         {viewMode === 'form' ? (
           <div className="flex-1 overflow-y-auto p-6 md:p-8">
             <div className="max-w-4xl mx-auto space-y-8 pb-16">
@@ -1299,7 +1303,7 @@ export default function BcrStandardForm({
             )}
           </div>
         )}
-      </main>
+      </ClientServicingLayout>
     </div>
   );
 }

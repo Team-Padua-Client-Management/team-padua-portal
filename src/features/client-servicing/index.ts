@@ -8,4 +8,5 @@ export { generateAdvisorChangeRequestPdf } from './pdf/generateAdvisorChangeRequ
 export { generateAdvisorChangeRequestPdfFromTemplate } from './pdf/generateAdvisorChangeRequestPdfFromTemplate';
 export { generateBeneficiaryChangeRequestPdfFromTemplate } from './pdf/generateBeneficiaryChangeRequestPdfFromTemplate';
 export { generateFundSwitchingPdf } from './pdf/generateFundSwitchingPdf';
+export { default as ClientServicingLayout } from './components/ClientServicingLayout';
 
