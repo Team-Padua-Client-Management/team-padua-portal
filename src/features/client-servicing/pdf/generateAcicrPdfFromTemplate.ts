@@ -29,9 +29,9 @@ export async function generateAcicrPdfFromTemplate(
   record: any,
   clientNameParts: { last: string; first: string; middle: string },
 ): Promise<Uint8Array> {
-  const res = await fetch('/forms/SACR.08.24.pdf');
+  const res = await fetch('/forms/ACICR.pdf');
   if (!res.ok) {
-    throw new Error(`Failed to load PDF template (HTTP ${res.status}). Ensure /public/forms/SACR.08.24.pdf exists.`);
+    throw new Error(`Failed to load PDF template (HTTP ${res.status}). Ensure /public/forms/ACICR.pdf exists.`);
   }
   const templateBytes = await res.arrayBuffer();
   const pdfDoc = await PDFDocument.create();
