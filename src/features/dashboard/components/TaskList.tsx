@@ -9,12 +9,14 @@ import {
   FileCheck2,
   Hourglass,
   CheckCircle2,
+  Clock,
   History,
 } from 'lucide-react';
 import Link from 'next/link';
 import { TaskItem, normalizeCategory, formatRelativeTime } from './TaskRow';
 import UserAvatar, { UserProfile } from './UserAvatar';
 import { formatDisplayDate } from './ActivityCard';
+import ClientServicingPreview, { PreviewRect } from './ClientServicingPreview';
 import styles from '@/styles/admin/dashboard/page.module.css';
 
 export const POLICY_RELATIONSHIP_OPTIONS = ['SAME_AS_OWNER', 'DIFFERENT_FROM_OWNER'] as const;
@@ -88,73 +90,103 @@ interface CategoryMeta {
 }
 
 export const KNOWN_CATEGORIES: CategoryMeta[] = [
-  { badge: 'ACR', title: 'Advisor Change Request', accent: '#4F46E5', tint: 'rgba(79, 70, 229, 0.12)' },
-  { badge: 'ACICR', title: 'Address and Contact Information Change Request', accent: '#D946EF', tint: 'rgba(217, 70, 239, 0.12)' },
-  { badge: 'BCR', title: 'Beneficiary Change Request', accent: '#2563EB', tint: 'rgba(37, 99, 235, 0.12)' },
-  { badge: 'FSR', title: 'Fund Switching Request', accent: '#059669', tint: 'rgba(5, 150, 105, 0.12)' },
-  { badge: 'FW', title: 'Fund Withdrawal Request', accent: '#10B981', tint: 'rgba(16, 185, 129, 0.12)' },
   { badge: 'ACA', title: 'Auto Credits Arrangement', accent: '#7C3AED', tint: 'rgba(124, 58, 237, 0.12)' },
+  { badge: 'ACICR', title: 'Address and Contact Information Change Request', accent: '#D946EF', tint: 'rgba(217, 70, 239, 0.12)' },
+  { badge: 'ACR', title: 'Advisor Change Request', accent: '#4F46E5', tint: 'rgba(79, 70, 229, 0.12)' },
   { badge: 'ADA / MOA', title: 'Auto Debit Arrangement', accent: '#8B5CF6', tint: 'rgba(139, 92, 246, 0.12)' },
-  { badge: 'SRO', title: 'Reinstatement (SRO)', accent: '#D97706', tint: 'rgba(217, 119, 6, 0.12)' },
-  { badge: 'PPI', title: 'Reinstatement (PPI)', accent: '#EA580C', tint: 'rgba(234, 88, 12, 0.12)' },
+  { badge: 'BCR', title: 'Beneficiary Change Request', accent: '#2563EB', tint: 'rgba(37, 99, 235, 0.12)' },
+  { badge: 'CPC', title: 'Client Policy Card', accent: '#0369A1', tint: 'rgba(3, 105, 161, 0.12)' },
   { badge: 'CPST', title: 'Client Policy Status Tracking', accent: '#0D9488', tint: 'rgba(13, 148, 136, 0.12)' },
   { badge: 'CSMV', title: 'Client Servicing Monitoring Verification', accent: '#099268', tint: 'rgba(9, 146, 104, 0.12)' },
-  { badge: 'CPC', title: 'Client Policy Card', accent: '#0369A1', tint: 'rgba(3, 105, 161, 0.12)' },
-  { badge: 'Inquiry', title: 'Inquiry', accent: '#C9962E', tint: 'rgba(201, 150, 46, 0.12)' },
+  { badge: 'FSR', title: 'Fund Switching Request', accent: '#059669', tint: 'rgba(5, 150, 105, 0.12)' },
+  { badge: 'FW', title: 'Fund Withdrawal Request', accent: '#10B981', tint: 'rgba(16, 185, 129, 0.12)' },
   { badge: 'Others', title: 'Others / Miscellaneous', accent: '#71717A', tint: 'rgba(113, 113, 122, 0.12)' },
+  { badge: 'PPI', title: 'Reinstatement (PPI)', accent: '#EA580C', tint: 'rgba(234, 88, 12, 0.12)' },
+  { badge: 'SRO', title: 'Reinstatement (SRO)', accent: '#D97706', tint: 'rgba(217, 119, 6, 0.12)' },
 ];
 
 function getBadgeFromNormalized(normalized: string): string {
-  if (normalized.startsWith('ACR')) return 'ACR';
-  if (normalized.startsWith('BCR')) return 'BCR';
-  if (normalized.startsWith('FSR')) return 'FSR';
-  if (normalized.startsWith('FW')) return 'FW';
   if (normalized.startsWith('ACA')) return 'ACA';
+  if (normalized.startsWith('ACICR')) return 'ACICR';
+  if (normalized.startsWith('ACR')) return 'ACR';
   if (normalized.startsWith('ADA') || normalized.startsWith('MOA')) return 'ADA / MOA';
-  if (normalized.startsWith('SRO')) return 'SRO';
-  if (normalized.startsWith('PPI') || normalized.startsWith('PDI')) return 'PPI';
+  if (normalized.startsWith('BCR')) return 'BCR';
+  if (normalized.startsWith('CPC') || normalized.startsWith('PLT')) return 'CPC';
   if (normalized.startsWith('CPST')) return 'CPST';
   if (normalized.startsWith('CSMV') || normalized.startsWith('UID')) return 'CSMV';
-  if (normalized.startsWith('ACICR')) return 'ACICR';
-  if (normalized.startsWith('CPC') || normalized.startsWith('PLT')) return 'CPC';
-  if (normalized.startsWith('INQUIRY')) return 'Inquiry';
-  if (normalized.toLowerCase().startsWith('inquiry')) return 'Inquiry';
+  if (normalized.startsWith('FSR')) return 'FSR';
+  if (normalized.startsWith('FW')) return 'FW';
+  if (normalized.startsWith('PPI') || normalized.startsWith('PDI')) return 'PPI';
+  if (normalized.startsWith('SRO')) return 'SRO';
+
   return normalized.split(' - ')[0].trim() || normalized;
 }
 
-export type WorkflowStatus = 'Submitted Request' | 'Pending Requirements' | 'Approved Request';
+export type WorkflowStatus =
+  | 'Pending for Submission'
+  | 'Submitted Requests'
+  | 'Submitted with Pending Requirements'
+  | 'Approved Requests';
 
 export const WORKFLOW_STATUS_OPTIONS: WorkflowStatus[] = [
-  'Submitted Request',
-  'Pending Requirements',
-  'Approved Request',
+  'Pending for Submission',
+  'Submitted Requests',
+  'Submitted with Pending Requirements',
+  'Approved Requests',
 ];
 
-export const DEFAULT_WORKFLOW_STATUS: WorkflowStatus = 'Submitted Request';
+export const DEFAULT_WORKFLOW_STATUS: WorkflowStatus = 'Pending for Submission';
 
 export function getRemainingWorkflowOptions(current?: string | null): WorkflowStatus[] {
-  const currentStatus = current || DEFAULT_WORKFLOW_STATUS;
+  const currentStatus = (current as WorkflowStatus) || DEFAULT_WORKFLOW_STATUS;
   return WORKFLOW_STATUS_OPTIONS.filter((opt) => opt !== currentStatus);
 }
 
-type WorkflowStage = 'submitted' | 'pending' | 'approved';
+type WorkflowStage = 'pending_submission' | 'submitted' | 'submitted_pending' | 'approved';
 
 export interface WorkflowTaskItem extends TaskItem {
   workflow_status?: string | null;
 }
 
+export function buildWorkflowStatusUpdate(
+  task: WorkflowTaskItem,
+  nextStatus: WorkflowStatus
+): Partial<WorkflowTaskItem> {
+  const meta = parseTaskMetadata(task.notes || '');
+  const updatedMeta = { ...meta, workflow_status: nextStatus };
+  const notes = buildTaskNotes(updatedMeta, updatedMeta.timeline || '');
+  return { notes, workflow_status: nextStatus };
+}
+
 function getWorkflowStage(task: WorkflowTaskItem): WorkflowStage {
   const meta = parseTaskMetadata(task.notes || '');
-  const status = (meta.workflow_status || task.workflow_status || '').toLowerCase();
-  if (status.includes('pending')) return 'pending';
-  if (status.includes('approv')) return 'approved';
-  return 'submitted';
+  const rawStatus = (meta.workflow_status || task.workflow_status || DEFAULT_WORKFLOW_STATUS) as string;
+  const status = rawStatus.trim().toLowerCase();
+  switch (status) {
+    case 'submitted requests':
+      return 'submitted';
+    case 'submitted with pending requirements':
+      return 'submitted_pending';
+    case 'approved requests':
+      return 'approved';
+    case 'pending for submission':
+    default:
+      return 'pending_submission';
+  }
 }
 
 function workflowStageToStatus(stage: WorkflowStage): WorkflowStatus {
-  if (stage === 'pending') return 'Pending Requirements';
-  if (stage === 'approved') return 'Approved Request';
-  return 'Submitted Request';
+  switch (stage) {
+    case 'submitted':
+      return 'Submitted Requests';
+    case 'submitted_pending':
+      return 'Submitted with Pending Requirements';
+    case 'approved':
+      return 'Approved Requests';
+    case 'pending_submission':
+    default:
+      return 'Pending for Submission';
+  }
 }
 
 interface StageMeta {
@@ -164,8 +196,9 @@ interface StageMeta {
 }
 
 const WORKFLOW_STAGES: StageMeta[] = [
+  { id: 'pending_submission', label: 'Pending for Submission', icon: Clock },
   { id: 'submitted', label: 'Submitted Requests', icon: FileCheck2 },
-  { id: 'pending', label: 'With Pending Requirements', icon: Hourglass },
+  { id: 'submitted_pending', label: 'Submitted with Pending Requirements', icon: Hourglass },
   { id: 'approved', label: 'Approved Requests', icon: CheckCircle2 },
 ];
 
@@ -214,12 +247,160 @@ function useStageHoverController<T extends string>() {
   return { activeStage, openStage, cancelClose, scheduleClose, closeNow };
 }
 
+function findProfileInLists(id: string | null | undefined, allProfiles: UserProfile[], bizDevProfiles: UserProfile[]): UserProfile | null {
+  if (!id) return null;
+  return allProfiles.find((p) => p.id === id) || bizDevProfiles.find((p) => p.id === id) || null;
+}
+
+interface ServicingTaskRowProps {
+  task: WorkflowTaskItem;
+  stage: WorkflowStage;
+  allProfiles: UserProfile[];
+  bizDevProfiles: UserProfile[];
+  onDeleteTask?: (taskId: string) => void;
+  onSaveTaskField?: (taskId: string, updates: Record<string, unknown>) => void;
+}
+
+function ServicingTaskRow({
+  task,
+  stage,
+  allProfiles,
+  bizDevProfiles,
+  onDeleteTask,
+  onSaveTaskField,
+}: ServicingTaskRowProps) {
+  const meta = parseTaskMetadata(task.notes || '');
+  const clientName = meta.policy_owner || task.title || 'Untitled Task';
+  const currentStatus = workflowStageToStatus(stage);
+  const remainingOptions = getRemainingWorkflowOptions(currentStatus);
+
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewRect, setPreviewRect] = useState<PreviewRect | null>(null);
+  const rowRef = useRef<HTMLDivElement>(null);
+
+  const measureRect = () => {
+    if (!rowRef.current) return;
+    const rect = rowRef.current.getBoundingClientRect();
+    setPreviewRect({ top: rect.top, left: rect.left, right: rect.right, height: rect.height });
+  };
+
+  const handleMouseEnter = () => {
+    measureRect();
+    setShowPreview(true);
+  };
+
+  const handleMouseLeave = () => {
+    setShowPreview(false);
+  };
+
+  useEffect(() => {
+    if (!showPreview) return;
+    const handleReposition = () => measureRect();
+    window.addEventListener('scroll', handleReposition, true);
+    window.addEventListener('resize', handleReposition);
+    return () => {
+      window.removeEventListener('scroll', handleReposition, true);
+      window.removeEventListener('resize', handleReposition);
+    };
+  }, [showPreview]);
+
+  const assignedProfile = findProfileInLists(task.assigned_to, allProfiles, bizDevProfiles);
+  const processedProfile = findProfileInLists(task.processed_by, allProfiles, bizDevProfiles);
+
+  return (
+    <div
+      ref={rowRef}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      style={{
+        position: 'relative',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '6px 10px',
+        borderRadius: '8px',
+        background: 'var(--surface)',
+        border: '1px solid var(--border)',
+      }}
+    >
+      <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text)' }}>
+        {clientName}
+      </span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        {onSaveTaskField && (
+          <select
+            value={currentStatus}
+            onClick={(e) => e.stopPropagation()}
+            onChange={(e) =>
+              onSaveTaskField(task.id, buildWorkflowStatusUpdate(task, e.target.value as WorkflowStatus))
+            }
+            style={{
+              padding: '4px 8px',
+              borderRadius: '6px',
+              border: '1px solid var(--border)',
+              fontSize: '11px',
+              background: 'var(--surface)',
+              cursor: 'pointer',
+            }}
+          >
+            <option value={currentStatus} disabled hidden>
+              {currentStatus}
+            </option>
+            {remainingOptions.map((opt) => (
+              <option key={opt} value={opt}>
+                {opt}
+              </option>
+            ))}
+          </select>
+        )}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDeleteTask?.(task.id);
+          }}
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            color: 'var(--text-tertiary)',
+            padding: '2px',
+            borderRadius: '4px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+          className="hover:text-red-500 hover:bg-red-50"
+          title="Delete Task"
+        >
+          <Trash2 size={13} />
+        </button>
+      </div>
+
+      {showPreview && previewRect && typeof document !== 'undefined'
+        ? createPortal(
+          <ClientServicingPreview
+            task={task}
+            meta={meta}
+            assignedProfile={assignedProfile}
+            processedProfile={processedProfile}
+            rect={previewRect}
+          />,
+          document.body
+        )
+        : null}
+    </div>
+  );
+}
+
 interface CategoryRowProps {
   meta: CategoryMeta;
   count: number;
   stage: WorkflowStage;
   categoryTasks: WorkflowTaskItem[];
   expanded: boolean;
+  allProfiles: UserProfile[];
+  bizDevProfiles: UserProfile[];
   onToggle: () => void;
   onDeleteTask?: (taskId: string) => void;
   onSaveTaskField?: (taskId: string, updates: Record<string, unknown>) => void;
@@ -231,13 +412,13 @@ function CategoryRow({
   stage,
   categoryTasks,
   expanded,
+  allProfiles,
+  bizDevProfiles,
   onToggle,
   onDeleteTask,
   onSaveTaskField,
 }: CategoryRowProps) {
   const displayTitle = `${meta.title} (${meta.badge})`;
-  const currentStatus = workflowStageToStatus(stage);
-  const remainingOptions = getRemainingWorkflowOptions(currentStatus);
 
   return (
     <div
@@ -332,72 +513,17 @@ function CategoryRow({
             background: 'var(--bg-muted)',
           }}
         >
-          {categoryTasks.map((task) => {
-            const taskMeta = parseTaskMetadata(task.notes || '');
-            const clientName = taskMeta.policy_owner || task.title || 'Untitled Task';
-            return (
-              <div
-                key={task.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '6px 10px',
-                  borderRadius: '8px',
-                  background: 'var(--surface)',
-                  border: '1px solid var(--border)',
-                }}
-              >
-                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text)' }}>
-                  {clientName}
-                </span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  {onSaveTaskField && (
-                    <select
-                      value={currentStatus}
-                      onChange={(e) => onSaveTaskField(task.id, { workflow_status: e.target.value })}
-                      style={{
-                        padding: '4px 8px',
-                        borderRadius: '6px',
-                        border: '1px solid var(--border)',
-                        fontSize: '11px',
-                        background: 'var(--surface)',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <option value={currentStatus} disabled hidden>
-                        {currentStatus}
-                      </option>
-                      {remainingOptions.map((opt) => (
-                        <option key={opt} value={opt}>
-                          {opt}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => onDeleteTask?.(task.id)}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      color: 'var(--text-tertiary)',
-                      padding: '2px',
-                      borderRadius: '4px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                    className="hover:text-red-500 hover:bg-red-50"
-                    title="Delete Task"
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+          {categoryTasks.map((task) => (
+            <ServicingTaskRow
+              key={task.id}
+              task={task}
+              stage={stage}
+              allProfiles={allProfiles}
+              bizDevProfiles={bizDevProfiles}
+              onDeleteTask={onDeleteTask}
+              onSaveTaskField={onSaveTaskField}
+            />
+          ))}
         </div>
       )}
     </div>
@@ -464,13 +590,24 @@ interface CategoryRowGroup {
 interface StagePopoverProps {
   stage: StageMeta;
   rows: CategoryRowGroup[];
+  allProfiles: UserProfile[];
+  bizDevProfiles: UserProfile[];
   onDeleteTask?: (taskId: string) => void;
   onSaveTaskField?: (taskId: string, updates: Record<string, unknown>) => void;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
 }
 
-function StagePopover({ stage, rows, onDeleteTask, onSaveTaskField, onMouseEnter, onMouseLeave }: StagePopoverProps) {
+function StagePopover({
+  stage,
+  rows,
+  allProfiles,
+  bizDevProfiles,
+  onDeleteTask,
+  onSaveTaskField,
+  onMouseEnter,
+  onMouseLeave,
+}: StagePopoverProps) {
   const total = rows.reduce((sum, r) => sum + r.count, 0);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
@@ -540,6 +677,8 @@ function StagePopover({ stage, rows, onDeleteTask, onSaveTaskField, onMouseEnter
               stage={stage.id as WorkflowStage}
               categoryTasks={categoryTasks}
               expanded={expandedCategories.has(meta.badge)}
+              allProfiles={allProfiles}
+              bizDevProfiles={bizDevProfiles}
               onToggle={() => toggleCategory(meta.badge)}
               onDeleteTask={onDeleteTask}
               onSaveTaskField={onSaveTaskField}
@@ -671,8 +810,9 @@ export default function TaskList({
 
   const stageBuckets = useMemo(() => {
     const buckets: Record<WorkflowStage, WorkflowTaskItem[]> = {
+      pending_submission: [],
       submitted: [],
-      pending: [],
+      submitted_pending: [],
       approved: [],
     };
     for (const task of servicingTasks) {
@@ -765,6 +905,8 @@ export default function TaskList({
                   <StagePopover
                     stage={stage}
                     rows={activeStageRows}
+                    allProfiles={allProfiles}
+                    bizDevProfiles={bizDevProfiles}
                     onDeleteTask={onDeleteTask}
                     onSaveTaskField={_onSaveTaskField}
                     onMouseEnter={cancelClose}
@@ -822,11 +964,6 @@ export interface NewInquiryPayload {
   workflow_status: string;
 }
 
-function findProfileInLists(id: string | null | undefined, allProfiles: UserProfile[], bizDevProfiles: UserProfile[]): UserProfile | null {
-  if (!id) return null;
-  return allProfiles.find((p) => p.id === id) || bizDevProfiles.find((p) => p.id === id) || null;
-}
-
 function formatDateLoggedValue(createdAt: string | null | undefined): { datePart: string; timePart: string } | null {
   if (!createdAt) return null;
   const datePart = formatDisplayDate(createdAt.slice(0, 10));
@@ -838,7 +975,7 @@ function formatDateLoggedValue(createdAt: string | null | undefined): { datePart
   return { datePart, timePart };
 }
 
-interface PreviewRect {
+interface InquiryPreviewRect {
   top: number;
   left: number;
   right: number;
@@ -853,7 +990,7 @@ interface InquiryPreviewCardProps {
   meta: any;
   processedProfile: UserProfile | null;
   loggedByLabel: string;
-  rect: PreviewRect;
+  rect: InquiryPreviewRect;
 }
 
 function InquiryPreviewCard({ task, meta, processedProfile, loggedByLabel, rect }: InquiryPreviewCardProps) {
@@ -1001,7 +1138,7 @@ function InquiryRow({ task, stage, allProfiles, bizDevProfiles, onClick, onDelet
   const currentStatus = inquiryStageToStatus(stage);
   const remainingOptions = getRemainingInquiryOptions(currentStatus);
   const [showPreview, setShowPreview] = useState(false);
-  const [previewRect, setPreviewRect] = useState<PreviewRect | null>(null);
+  const [previewRect, setPreviewRect] = useState<InquiryPreviewRect | null>(null);
   const rowRef = useRef<HTMLDivElement>(null);
 
   const measureRect = () => {

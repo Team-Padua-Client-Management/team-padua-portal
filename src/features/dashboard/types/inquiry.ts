@@ -8,7 +8,6 @@ export interface ClientInquiry {
     inquiry_type?:
     | "Address Concern"
     | "Pending Response"
-    | "Client Servicing"
     | string
     | null;
 

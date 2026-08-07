@@ -18,7 +18,7 @@ const GOLD_LIGHT = '#FFF8E8';
 const GOLD_BORDER = '#EAD7AE';
 const DANGER = '#EF4444';
 
-const INQUIRY_STATUS_OPTIONS = ['Pending Response', 'Addressed Concerns', 'For Client Servicing'];
+const INQUIRY_STATUS_OPTIONS = ['Pending Response', 'Addressed Concerns'];
 const TASK_STATUS_OPTIONS = ['Pending', 'Done'];
 
 export const InquiryModal: React.FC<InquiryModalProps> = ({
@@ -256,10 +256,6 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({
 
                                         <option value="Pending Response">
                                             Pending Response
-                                        </option>
-
-                                        <option value="Client Servicing">
-                                            For Client Servicing
                                         </option>
                                     </select>
                                 </div>

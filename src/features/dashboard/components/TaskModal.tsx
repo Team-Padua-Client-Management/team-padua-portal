@@ -10,29 +10,78 @@ import {
   ChevronDown,
   Search,
   Check,
-  ClipboardList,
-  Calendar,
-  Save,
-  AlertTriangle,
 } from 'lucide-react';
 
 import { TaskItem, formatRelativeTime, TASK_CATEGORIES, normalizeCategory } from './TaskRow';
 import {
   parseTaskMetadata,
   buildTaskNotes,
+  buildWorkflowStatusUpdate,
+  WorkflowTaskItem,
+  WorkflowStatus,
   DEFAULT_INQUIRY_STATUS,
   DEFAULT_WORKFLOW_STATUS,
   getRemainingWorkflowOptions,
   POLICY_RELATIONSHIP_OPTIONS,
   DEFAULT_POLICY_RELATIONSHIP,
   policyRelationshipLabel,
-  PURPLE
 } from './TaskList';
 import UserAvatar, { UserProfile } from './UserAvatar';
 import UserPickerSelect from './UserPickerSelect';
 import { formatDisplayDate } from './ActivityCard';
 import styles from '@/styles/admin/dashboard/page.module.css';
 import { getStatusColorHex } from './StatusBadge';
+
+const ACCENT = '#D69E00';
+const ACCENT_STRONG = '#92650A';
+const ACCENT_SOFT_BG = '#FFFBEB';
+const ACCENT_SOFT_BORDER = '#F3E3B9';
+const RADIUS = '16px';
+
+const cardShellStyle: React.CSSProperties = {
+  border: `1px solid ${ACCENT_SOFT_BORDER}`,
+  borderRadius: RADIUS,
+  padding: '14px',
+  background: '#FFFFFF',
+};
+
+const inputStyle: React.CSSProperties = {
+  borderRadius: RADIUS,
+};
+
+function FieldLabel({ children, required }: { children: React.ReactNode; required?: boolean }) {
+  return (
+    <label
+      style={{
+        fontSize: '11px',
+        fontWeight: 700,
+        letterSpacing: '0.04em',
+        textTransform: 'uppercase',
+        color: ACCENT_STRONG,
+        marginBottom: '6px',
+        display: 'block',
+      }}
+    >
+      {children}
+      {required && <span style={{ color: '#DC2626' }}> *</span>}
+    </label>
+  );
+}
+
+function StageBadge({ active }: { active: boolean }) {
+  return (
+    <span
+      style={{
+        width: '10px',
+        height: '10px',
+        borderRadius: '50%',
+        display: 'inline-block',
+        background: active ? ACCENT : '#E5E7EB',
+        flexShrink: 0,
+      }}
+    />
+  );
+}
 
 interface PolicyOwnerGroup {
   owner: string;
@@ -46,8 +95,14 @@ export type InquiryType = typeof INQUIRY_TYPE_OPTIONS[number];
 export const INQUIRY_TYPE_TO_WORKFLOW_STATUS: Record<string, string> = {
   'Address Concern': 'Addressed Concerns',
   'Pending Response': 'Pending Response',
-  'Client Servicing': 'For Client Servicing',
 };
+
+const WORKFLOW_STAGES = [
+  'Pending for Submission',
+  'Submitted Requests',
+  'Submitted with Pending Requirements',
+  'Approved Requests',
+] as const;
 
 function parsePolicyGroups(parsedMeta: any): PolicyOwnerGroup[] {
   if (parsedMeta.policy_groups) {
@@ -114,29 +169,19 @@ function PolicyOwnerGroupCard({
   const insuredMissing = !isSettingUpTask && isDifferentFromOwner && group.insured.trim().length === 0;
   const policyNumberMissing = !isSettingUpTask && group.policyNumber.trim().length === 0;
 
-  const cardShellStyle: React.CSSProperties = {
-    border: '1px solid var(--border)',
-    borderLeft: `3px solid ${PURPLE}`,
-    borderRadius: '12px',
-    padding: '14px',
-    background: 'var(--bg-muted)',
-  };
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
       <div style={{ ...cardShellStyle, display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
           <div className={styles.userPickerContainer} style={{ flexGrow: 1 }}>
-            <label className={styles.formFieldLabel}>
-              Policy Owner{!isSettingUpTask && <span style={{ color: '#DC2626' }}> *</span>}
-            </label>
+            <FieldLabel required={!isSettingUpTask}>Policy Owner</FieldLabel>
             <input
               type="text"
               placeholder="Enter the Name of the Policy Owner"
               value={group.owner}
               onChange={(e) => onOwnerChange(e.target.value)}
-              className="px-3 py-2.5 rounded-xl border border-border bg-surface text-sm font-medium w-full"
-              style={ownerMissing ? { borderColor: '#DC2626' } : undefined}
+              className="px-3 py-2.5 border border-border bg-surface text-sm font-medium w-full"
+              style={{ ...inputStyle, borderColor: ownerMissing ? '#DC2626' : undefined }}
             />
           </div>
           {showRemoveGroup && (
@@ -150,7 +195,7 @@ function PolicyOwnerGroupCard({
                 cursor: 'pointer',
                 color: 'var(--text-tertiary)',
                 padding: '6px',
-                borderRadius: '6px',
+                borderRadius: RADIUS,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -175,16 +220,14 @@ function PolicyOwnerGroupCard({
         >
           <div style={{ overflow: 'hidden' }}>
             <div className={styles.userPickerContainer}>
-              <label className={styles.formFieldLabel}>
-                Policy Insured{!isSettingUpTask && <span style={{ color: '#DC2626' }}> *</span>}
-              </label>
+              <FieldLabel required={!isSettingUpTask}>Policy Insured</FieldLabel>
               <input
                 type="text"
                 placeholder="Enter the Name of the Policy Insured"
                 value={group.insured}
                 onChange={(e) => onInsuredChange(e.target.value)}
-                className="px-3 py-2.5 rounded-xl border border-border bg-surface text-sm font-medium w-full"
-                style={insuredMissing ? { borderColor: '#DC2626' } : undefined}
+                className="px-3 py-2.5 border border-border bg-surface text-sm font-medium w-full"
+                style={{ ...inputStyle, borderColor: insuredMissing ? '#DC2626' : undefined }}
               />
             </div>
           </div>
@@ -193,16 +236,14 @@ function PolicyOwnerGroupCard({
 
       <div style={cardShellStyle}>
         <div className={styles.userPickerContainer}>
-          <label className={styles.formFieldLabel}>
-            Policy Number{!isSettingUpTask && <span style={{ color: '#DC2626' }}> *</span>}
-          </label>
+          <FieldLabel required={!isSettingUpTask}>Policy Number</FieldLabel>
           <input
             type="number"
             placeholder="Enter Policy Number"
             value={group.policyNumber}
             onChange={(e) => onPolicyNumberChange(e.target.value)}
-            className="px-3 py-2.5 rounded-xl border border-border bg-surface text-sm font-medium w-full"
-            style={policyNumberMissing ? { borderColor: '#DC2626' } : undefined}
+            className="px-3 py-2.5 border border-border bg-surface text-sm font-medium w-full"
+            style={{ ...inputStyle, borderColor: policyNumberMissing ? '#DC2626' : undefined }}
           />
         </div>
       </div>
@@ -300,10 +341,11 @@ function CategoryPickerSelect({
 
   return (
     <div ref={containerRef} className={styles.userPickerContainer}>
-      <label className={styles.formFieldLabel}>Category</label>
+      <FieldLabel>Category</FieldLabel>
       <button
         type="button"
         className={styles.userPickerTrigger}
+        style={inputStyle}
         onClick={() => setIsOpen(!isOpen)}
       >
         <span className={styles.userPickerName} style={{ fontWeight: 500 }}>
@@ -313,7 +355,7 @@ function CategoryPickerSelect({
       </button>
 
       {isOpen && (
-        <div className={styles.userPickerDropdown}>
+        <div className={styles.userPickerDropdown} style={{ borderRadius: RADIUS, overflow: 'hidden' }}>
           <div className={styles.userPickerSearchRow}>
             <Search size={13} style={{ color: 'var(--text-tertiary)' }} />
             <input
@@ -332,6 +374,7 @@ function CategoryPickerSelect({
                 <div
                   key={cat}
                   className={`${styles.userPickerOption} ${isSelected ? styles.userPickerOptionSelected : ''}`}
+                  style={isSelected ? { background: ACCENT_SOFT_BG } : undefined}
                   onClick={() => {
                     onChange(cat);
                     setIsOpen(false);
@@ -341,7 +384,7 @@ function CategoryPickerSelect({
                   <div className={styles.userInfoCol}>
                     <span className={styles.userName}>{cat}</span>
                   </div>
-                  {isSelected && <Check size={13} style={{ color: 'var(--amber-500, #f59e0b)', flexShrink: 0 }} />}
+                  {isSelected && <Check size={13} style={{ color: ACCENT, flexShrink: 0 }} />}
                 </div>
               );
             })}
@@ -355,540 +398,70 @@ function CategoryPickerSelect({
   );
 }
 
-function ClientInquiryModal({
-  task,
-  onSaveField,
-  onDeleteTask,
-  onClose,
+function WorkflowStatusDropdown({
+  current,
+  onSelect,
 }: {
-  task: TaskItem;
-  onSaveField: (taskId: string, updates: Partial<TaskItem>) => void;
-  onDeleteTask: (taskId: string) => void;
-  onClose: () => void;
-  isUserView?: boolean;
+  current: string;
+  onSelect: (val: string) => void;
 }) {
-  const GOLD = '#D89B1D';
-  const GOLD_HOVER = '#C58A12';
-  const GOLD_LIGHT = '#FFF8E8';
-  const GOLD_BORDER = '#EAD7AE';
-  const DANGER = '#EF4444';
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const currentIndex = WORKFLOW_STAGES.indexOf(current as typeof WORKFLOW_STAGES[number]);
 
-  const INQUIRY_STATUS_OPTIONS = ['Pending Response', 'Addressed Concerns', 'For Client Servicing'];
-  const TASK_STATUS_OPTIONS = ['Pending', 'In Progress', 'Completed'];
-
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-
-  const handleClose = () => {
-    const isUncompletedNewTask =
-      !task.completed &&
-      task.status === 'Pending' &&
-      (!task.notes || !task.notes.trim()) &&
-      task.title === 'Untitled Task';
-
-    if (isUncompletedNewTask) {
-      onDeleteTask(task.id);
-    }
-    onClose();
-  };
-
-  const parsedMeta = parseTaskMetadata(task.notes || '');
-
-  const updateMetaField = (key: string, value: string) => {
-    const updatedMeta = { ...parsedMeta, [key]: value };
-    onSaveField(task.id, { notes: buildTaskNotes(updatedMeta, updatedMeta.timeline) });
-  };
-
-  const handleInquiryStatusChange = (value: string) => {
-    updateMetaField('workflow_status', value);
-  };
-
-  const currentInquiryStatus = parsedMeta.workflow_status || DEFAULT_INQUIRY_STATUS;
-
-  const confirmDelete = () => {
-    onDeleteTask(task.id);
-    setShowDeleteConfirm(false);
-    onClose();
-  };
-
-  const inputBaseClass =
-    'w-full h-11 px-3.5 rounded-xl border text-sm font-medium bg-white transition-all duration-200 outline-none';
-
-  const focusRingStyle = {
-    borderColor: GOLD_BORDER,
-  } as React.CSSProperties;
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   return (
-    <>
-      <style>{`
-        @keyframes ciOverlayIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes ciCardIn { from { opacity: 0; transform: scale(0.96) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-        .ci-input:focus {
-          border-color: ${GOLD} !important;
-          box-shadow: 0 0 0 3px ${GOLD_LIGHT};
-        }
-        .ci-card-hover {
-          transition: border-color 200ms ease, box-shadow 200ms ease, transform 200ms ease;
-        }
-        .ci-card-hover:hover {
-          border-color: ${GOLD_BORDER};
-        }
-        .ci-btn-lift {
-          transition: transform 200ms ease, box-shadow 200ms ease, background 200ms ease, opacity 200ms ease;
-        }
-        .ci-btn-lift:hover {
-          transform: translateY(-1px);
-        }
-      `}</style>
-
-      <div
-        onClick={handleClose}
-        style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(15, 15, 15, 0.45)',
-          backdropFilter: 'blur(2px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 60,
-          animation: 'ciOverlayIn 200ms ease',
-        }}
+    <div ref={containerRef} className={styles.userPickerContainer}>
+      <FieldLabel>Workflow Status</FieldLabel>
+      <button
+        type="button"
+        className={styles.userPickerTrigger}
+        style={inputStyle}
+        onClick={() => setIsOpen(!isOpen)}
       >
-        <div
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            width: '100%',
-            maxWidth: '760px',
-            maxHeight: '90vh',
-            overflowY: 'auto',
-            background: '#FFFFFF',
-            borderRadius: '28px',
-            boxShadow: '0 24px 64px rgba(0,0,0,0.18)',
-            animation: 'ciCardIn 220ms cubic-bezier(0.16, 1, 0.3, 1)',
-          }}
-        >
-          {/* Header */}
-          <div
-            style={{
-              padding: '28px 32px 20px 32px',
-              borderBottom: `1px solid ${GOLD_BORDER}`,
-              display: 'flex',
-              alignItems: 'flex-start',
-              justifyContent: 'space-between',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-              <div
-                style={{
-                  width: '48px',
-                  height: '48px',
-                  borderRadius: '14px',
-                  background: `linear-gradient(135deg, ${GOLD}, ${GOLD_HOVER})`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                  boxShadow: `0 6px 16px ${GOLD_LIGHT}`,
-                }}
-              >
-                <ClipboardList size={22} color="#FFFFFF" strokeWidth={2} />
-              </div>
-              <div>
-                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#1A1A1A', lineHeight: 1.2 }}>
-                  Client Inquiry
-                </div>
-                <div style={{ fontSize: '0.8rem', color: '#8A8A8A', marginTop: '2px', fontWeight: 500 }}>
-                  Log and manage client inquiries.
-                </div>
-              </div>
-            </div>
+        <span className={styles.userPickerName} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 500 }}>
+          <StageBadge active />
+          {current}
+        </span>
+        <ChevronDown size={14} className={styles.userPickerChevron} />
+      </button>
 
-            <button
-              type="button"
-              onClick={handleClose}
-              className="ci-btn-lift"
-              style={{
-                width: '34px',
-                height: '34px',
-                borderRadius: '10px',
-                border: 'none',
-                background: 'transparent',
-                color: '#9A9A9A',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                flexShrink: 0,
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = GOLD_LIGHT;
-                e.currentTarget.style.color = GOLD;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent';
-                e.currentTarget.style.color = '#9A9A9A';
-              }}
-              aria-label="Close modal"
-            >
-              <X size={16} strokeWidth={2} />
-            </button>
-          </div>
-
-          {/* Body */}
-          <div style={{ padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
-            {/* Client Information */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.06em', color: GOLD_HOVER, textTransform: 'uppercase' }}>
-                Client Information
-              </div>
-              <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#4A4A4A', marginBottom: '6px', display: 'block' }}>
-                  CMGC Name
-                </label>
-                <input
-                  type="text"
-                  placeholder="Enter Client Full Name"
-                  value={parsedMeta.cmgc_name || ''}
-                  onChange={(e) => updateMetaField('cmgc_name', e.target.value)}
-                  className={`${inputBaseClass} ci-input`}
-                  style={{ borderColor: GOLD_BORDER, ...focusRingStyle }}
-                />
-              </div>
-            </div>
-
-            {/* Inquiry Details */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.06em', color: GOLD_HOVER, textTransform: 'uppercase' }}>
-                Inquiry Details
-              </div>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(3, 1fr)',
-                  gap: '14px',
-                }}
-              >
-                <div>
-                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#4A4A4A', marginBottom: '6px', display: 'block' }}>
-                    Inquiry Status
-                  </label>
-                  <select
-                    value={currentInquiryStatus}
-                    onChange={(e) => handleInquiryStatusChange(e.target.value)}
-                    className={`${inputBaseClass} ci-input`}
-                    style={{ borderColor: GOLD_BORDER, cursor: 'pointer' }}
-                  >
-                    {INQUIRY_STATUS_OPTIONS.map((opt) => (
-                      <option key={opt} value={opt}>
-                        {opt}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#4A4A4A', marginBottom: '6px', display: 'block' }}>
-                    Status
-                  </label>
-                  <select
-                    value={task.status || 'Pending'}
-                    onChange={(e) => onSaveField(task.id, { status: e.target.value })}
-                    className={`${inputBaseClass} ci-input`}
-                    style={{ borderColor: GOLD_BORDER, cursor: 'pointer' }}
-                  >
-                    {TASK_STATUS_OPTIONS.map((opt) => (
-                      <option key={opt} value={opt}>
-                        {opt}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#4A4A4A', marginBottom: '6px', display: 'block' }}>
-                    Processed By
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Unassigned"
-                    value={parsedMeta.processed_by_name || ''}
-                    onChange={(e) => updateMetaField('processed_by_name', e.target.value)}
-                    className={`${inputBaseClass} ci-input`}
-                    style={{ borderColor: GOLD_BORDER }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Inquiry Concern */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.06em', color: GOLD_HOVER, textTransform: 'uppercase' }}>
-                Inquiry Concern
-              </div>
-              <textarea
-                placeholder="Describe the client's concern..."
-                value={parsedMeta.inquiry_concern || ''}
-                onChange={(e) => updateMetaField('inquiry_concern', e.target.value)}
-                className="ci-input"
-                style={{
-                  width: '100%',
-                  minHeight: '160px',
-                  padding: '14px',
-                  borderRadius: '12px',
-                  border: `1px solid ${GOLD_BORDER}`,
-                  fontSize: '0.875rem',
-                  fontWeight: 500,
-                  resize: 'vertical',
-                  outline: 'none',
-                  fontFamily: 'inherit',
-                }}
-              />
-            </div>
-
-            {/* Date info cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-              <div
-                className="ci-card-hover"
-                style={{
-                  border: `1px solid ${GOLD_BORDER}`,
-                  borderRadius: '14px',
-                  padding: '14px 16px',
-                  background: '#FFFFFF',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                }}
-              >
+      {isOpen && (
+        <div className={styles.userPickerDropdown} style={{ borderRadius: RADIUS, overflow: 'hidden' }}>
+          <div className={styles.userPickerList}>
+            {WORKFLOW_STAGES.map((stage, idx) => {
+              const isSelected = stage === current;
+              return (
                 <div
-                  style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '10px',
-                    background: GOLD_LIGHT,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
+                  key={stage}
+                  className={`${styles.userPickerOption} ${isSelected ? styles.userPickerOptionSelected : ''}`}
+                  style={isSelected ? { background: ACCENT_SOFT_BG } : undefined}
+                  onClick={() => {
+                    onSelect(stage);
+                    setIsOpen(false);
                   }}
                 >
-                  <Calendar size={16} color={GOLD_HOVER} />
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    Created
+                  <div className={styles.userInfoCol} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <StageBadge active={isSelected} />
+                    <span className={styles.userName}>{stage}</span>
                   </div>
-                  <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#1A1A1A', marginTop: '2px' }}>
-                    {task.created_at ? formatDisplayDate(task.created_at.slice(0, 10)) : '—'}
-                  </div>
+                  {isSelected && <Check size={13} style={{ color: ACCENT, flexShrink: 0 }} />}
                 </div>
-              </div>
-
-              <div
-                className="ci-card-hover"
-                style={{
-                  border: `1px solid ${GOLD_BORDER}`,
-                  borderRadius: '14px',
-                  padding: '14px 16px',
-                  background: '#FFFFFF',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                }}
-              >
-                <div
-                  style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '10px',
-                    background: GOLD_LIGHT,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                  }}
-                >
-                  <Clock size={16} color={GOLD_HOVER} />
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#9A9A9A', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    Updated
-                  </div>
-                  <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#1A1A1A', marginTop: '2px' }}>
-                    {formatRelativeTime(task.updated_at)}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Footer */}
-          <div
-            style={{
-              padding: '20px 32px 28px 32px',
-              borderTop: `1px solid ${GOLD_BORDER}`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => setShowDeleteConfirm(true)}
-              className="ci-btn-lift"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '10px 18px',
-                borderRadius: '999px',
-                border: `1px solid ${DANGER}`,
-                background: '#FFFFFF',
-                color: DANGER,
-                fontSize: '0.82rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-              }}
-            >
-              <Trash2 size={14} strokeWidth={2} />
-              Delete
-            </button>
-
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button
-                type="button"
-                onClick={handleClose}
-                className="ci-btn-lift"
-                style={{
-                  padding: '10px 20px',
-                  borderRadius: '999px',
-                  border: '1px solid #E0E0E0',
-                  background: '#FFFFFF',
-                  color: '#4A4A4A',
-                  fontSize: '0.82rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleClose}
-                className="ci-btn-lift"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '10px 22px',
-                  borderRadius: '999px',
-                  border: 'none',
-                  background: `linear-gradient(135deg, ${GOLD}, ${GOLD_HOVER})`,
-                  color: '#FFFFFF',
-                  fontSize: '0.82rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  boxShadow: `0 4px 14px ${GOLD_LIGHT}`,
-                }}
-              >
-                <Save size={14} strokeWidth={2} />
-                Save Inquiry
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Inline Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div
-          onClick={() => setShowDeleteConfirm(false)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(15, 15, 15, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 70,
-            animation: 'ciOverlayIn 180ms ease',
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              width: '100%',
-              maxWidth: '380px',
-              background: '#FFFFFF',
-              borderRadius: '24px',
-              boxShadow: '0 20px 50px rgba(0,0,0,0.2)',
-              padding: '28px',
-              textAlign: 'center',
-              animation: 'ciCardIn 200ms cubic-bezier(0.16, 1, 0.3, 1)',
-            }}
-          >
-            <div
-              style={{
-                width: '52px',
-                height: '52px',
-                borderRadius: '16px',
-                background: GOLD_LIGHT,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 16px auto',
-              }}
-            >
-              <AlertTriangle size={24} color={GOLD_HOVER} strokeWidth={2} />
-            </div>
-            <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#1A1A1A' }}>
-              Delete Client Inquiry?
-            </div>
-            <div style={{ fontSize: '0.85rem', color: '#8A8A8A', marginTop: '6px', fontWeight: 500 }}>
-              This action cannot be undone.
-            </div>
-
-            <div style={{ display: 'flex', gap: '10px', marginTop: '24px' }}>
-              <button
-                type="button"
-                onClick={() => setShowDeleteConfirm(false)}
-                className="ci-btn-lift"
-                style={{
-                  flex: 1,
-                  padding: '11px 0',
-                  borderRadius: '999px',
-                  border: '1px solid #E0E0E0',
-                  background: '#FFFFFF',
-                  color: '#4A4A4A',
-                  fontSize: '0.82rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={confirmDelete}
-                className="ci-btn-lift"
-                style={{
-                  flex: 1,
-                  padding: '11px 0',
-                  borderRadius: '999px',
-                  border: 'none',
-                  background: DANGER,
-                  color: '#FFFFFF',
-                  fontSize: '0.82rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
-                Delete Inquiry
-              </button>
-            </div>
+              );
+            })}
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
 
@@ -962,6 +535,10 @@ function ClientServicingModal({
     onSaveField(task.id, { notes: buildTaskNotes(updatedMeta, updatedMeta.timeline) });
   };
 
+  const updateWorkflowStatus = (nextStatus: string) => {
+    onSaveField(task.id, buildWorkflowStatusUpdate(task as WorkflowTaskItem, nextStatus as WorkflowStatus));
+  };
+
   const policyRelationship = parsedMeta.policy_insured_relationship || DEFAULT_POLICY_RELATIONSHIP;
   const policyGroups = useMemo(
     () => parsePolicyGroups(parsedMeta),
@@ -996,12 +573,32 @@ function ClientServicingModal({
 
   const currentWorkflowStatus = parsedMeta.workflow_status || DEFAULT_WORKFLOW_STATUS;
   const remainingWorkflowOptions = getRemainingWorkflowOptions(currentWorkflowStatus);
+  const usesFourStageWorkflow = WORKFLOW_STAGES.includes(currentWorkflowStatus as typeof WORKFLOW_STAGES[number]);
 
   return (
     <div className={styles.taskModalOverlay} onClick={handleClose}>
+      <style jsx>{`
+        .modalScrollArea {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(214, 158, 0, 0.35) transparent;
+        }
+        .modalScrollArea::-webkit-scrollbar {
+          width: 6px;
+        }
+        .modalScrollArea::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .modalScrollArea::-webkit-scrollbar-thumb {
+          background-color: rgba(214, 158, 0, 0.35);
+          border-radius: 999px;
+        }
+        .modalScrollArea::-webkit-scrollbar-thumb:hover {
+          background-color: rgba(214, 158, 0, 0.55);
+        }
+      `}</style>
       <div
         className={styles.taskModalCard}
-        style={{ borderTop: `4px solid ${currentStatusColor}` }}
+        style={{ borderTop: `4px solid ${currentStatusColor}`, borderRadius: RADIUS, background: '#FFFFFF' }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className={styles.taskModalHeader}>
@@ -1010,6 +607,7 @@ function ClientServicingModal({
               <input
                 type="text"
                 className={styles.modalTitleInput}
+                style={inputStyle}
                 value={task.title}
                 onChange={(e) => onSaveField(task.id, { title: e.target.value })}
                 placeholder="Untitled Task"
@@ -1032,6 +630,7 @@ function ClientServicingModal({
           <button
             type="button"
             className={styles.modalCloseBtn}
+            style={{ borderRadius: RADIUS, background: ACCENT_SOFT_BG }}
             onClick={handleClose}
             aria-label="Close modal"
           >
@@ -1039,7 +638,7 @@ function ClientServicingModal({
           </button>
         </div>
 
-        <div className={styles.modalBodyContent}>
+        <div className={`${styles.modalBodyContent} modalScrollArea`}>
           <div className={styles.modalTwoCol}>
             <CategoryPickerSelect
               value={normalizeCategory(task.category)}
@@ -1048,35 +647,41 @@ function ClientServicingModal({
                 if (val === 'Inquiry') {
                   updateMetaField('workflow_status', DEFAULT_INQUIRY_STATUS);
                 } else {
-                  updateMetaField('workflow_status', DEFAULT_WORKFLOW_STATUS);
+                  updateWorkflowStatus(DEFAULT_WORKFLOW_STATUS);
                 }
               }}
             />
-            <div className={styles.userPickerContainer}>
-              <label className={styles.formFieldLabel}>Workflow Status</label>
-              <select
-                value={currentWorkflowStatus}
-                onChange={(e) => updateMetaField('workflow_status', e.target.value)}
-                className="px-3 py-2.5 rounded-xl border border-border bg-surface text-sm font-semibold"
-              >
-                <option value={currentWorkflowStatus} disabled hidden>
-                  {currentWorkflowStatus}
-                </option>
-                {remainingWorkflowOptions.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
+            {usesFourStageWorkflow ? (
+              <WorkflowStatusDropdown current={currentWorkflowStatus} onSelect={updateWorkflowStatus} />
+            ) : (
+              <div className={styles.userPickerContainer}>
+                <FieldLabel>Workflow Status</FieldLabel>
+                <select
+                  value={currentWorkflowStatus}
+                  onChange={(e) => updateWorkflowStatus(e.target.value)}
+                  className="px-3 py-2.5 border border-border bg-surface text-sm font-semibold"
+                  style={inputStyle}
+                >
+                  <option value={currentWorkflowStatus} disabled hidden>
+                    {currentWorkflowStatus}
                   </option>
-                ))}
-              </select>
-            </div>
+                  {remainingWorkflowOptions.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
           <div className={styles.userPickerContainer}>
-            <label className={styles.formFieldLabel}>Policy Insured Relationship</label>
+            <FieldLabel>Policy Insured Relationship</FieldLabel>
             <select
               value={policyRelationship}
               onChange={(e) => handlePolicyRelationshipChange(e.target.value)}
-              className="px-3 py-2.5 rounded-xl border border-border bg-surface text-sm font-semibold w-full"
+              className="px-3 py-2.5 border border-border bg-surface text-sm font-semibold w-full"
+              style={inputStyle}
             >
               {POLICY_RELATIONSHIP_OPTIONS.map((opt) => (
                 <option key={opt} value={opt}>
@@ -1094,27 +699,31 @@ function ClientServicingModal({
           />
 
           <div className={styles.userPickerContainer} style={{ maxWidth: '260px' }}>
-            <label className={styles.formFieldLabel}>Date of Request</label>
+            <FieldLabel>Date of Request</FieldLabel>
             <input
               type="date"
               value={parsedMeta.date_of_request || new Date().toISOString().split('T')[0]}
               onChange={(e) => updateMetaField('date_of_request', e.target.value)}
-              className="px-3 py-2.5 rounded-xl border border-border bg-surface text-sm font-medium w-full"
+              className="px-3 py-2.5 border border-border bg-surface text-sm font-medium w-full"
+              style={inputStyle}
             />
           </div>
 
           {!isUserView ? (
             <div className={styles.modalTwoCol}>
               <div className={styles.userPickerContainer}>
-                <label className={styles.formFieldLabel}>Processed By</label>
-                <div className={styles.fixedUserTrigger}>
+                <FieldLabel>Processed By</FieldLabel>
+                <div className={styles.fixedUserTrigger} style={inputStyle}>
                   <div className={styles.userPickerBadge}>
                     <UserAvatar profile={processedAuthor} size={20} />
                     <span className={styles.userPickerName}>
                       {processedAuthor?.full_name || processedAuthor?.email || 'Admin'}
                     </span>
                   </div>
-                  <span className="text-[10px] font-semibold text-muted-foreground px-1.5 py-0.5 rounded bg-muted border border-border">
+                  <span
+                    className="text-[10px] font-semibold px-1.5 py-0.5 border border-border"
+                    style={{ borderRadius: RADIUS, background: ACCENT_SOFT_BG, color: ACCENT_STRONG }}
+                  >
                     {processedAuthor?.role || 'Admin'}
                   </span>
                 </div>
@@ -1128,7 +737,10 @@ function ClientServicingModal({
               />
             </div>
           ) : (
-            <div className="p-3 bg-muted/20 border border-border/50 rounded-xl flex items-center justify-between my-2 text-xs">
+            <div
+              className="p-3 border border-border/50 flex items-center justify-between my-2 text-xs"
+              style={{ borderRadius: RADIUS, background: ACCENT_SOFT_BG }}
+            >
               <div className="flex items-center gap-2">
                 <UserAvatar profile={assignedAuthor} size={24} />
                 <div>
@@ -1149,13 +761,15 @@ function ClientServicingModal({
           )}
 
           <div className={styles.modalSection}>
-            <label className={styles.formFieldLabel}>
-              Messenger Timeline & Notes
-            </label>
+            <FieldLabel>Messenger Timeline &amp; Notes</FieldLabel>
             {parsedMeta.timeline && parsedMeta.timeline.trim().length > 0 && (
-              <div className={styles.notesTimeline} style={{ maxHeight: '220px', overflowY: 'auto' }}>
+              <div className={`${styles.notesTimeline} modalScrollArea`} style={{ maxHeight: '220px', overflowY: 'auto' }}>
                 {parsedMeta.timeline.split('\n\n').filter(Boolean).map((noteBlock: string, idx: number) => (
-                  <div key={`note-bubble-${idx}`} className={styles.noteBubble}>
+                  <div
+                    key={`note-bubble-${idx}`}
+                    className={styles.noteBubble}
+                    style={{ borderRadius: RADIUS, background: ACCENT_SOFT_BG }}
+                  >
                     <UserAvatar profile={activeNoteAuthor} size={28} />
                     <div className={styles.noteBubbleBody}>
                       <div className={styles.noteBubbleHeader}>
@@ -1177,6 +791,7 @@ function ClientServicingModal({
             <div className="relative mt-2">
               <textarea
                 className={styles.appleNotesTextarea}
+                style={inputStyle}
                 value={newNoteText}
                 onChange={(e) => setNewNoteText(e.target.value)}
                 placeholder="Type a new update note message..."
@@ -1186,7 +801,8 @@ function ClientServicingModal({
                 type="button"
                 onClick={handleAddNote}
                 disabled={!newNoteText.trim()}
-                className="absolute right-3 bottom-3 px-3 py-1.5 bg-primary text-primary-foreground text-xs font-semibold rounded-lg flex items-center gap-1.5 disabled:opacity-40 hover:bg-primary/90 transition-colors cursor-pointer"
+                className="absolute right-3 bottom-3 px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 disabled:opacity-40 transition-colors cursor-pointer"
+                style={{ borderRadius: RADIUS, background: ACCENT, color: '#FFFFFF' }}
               >
                 <Send size={12} />
                 Send Note
@@ -1200,6 +816,7 @@ function ClientServicingModal({
             <button
               type="button"
               className={styles.deleteOutlinedBtn}
+              style={{ borderRadius: RADIUS }}
               onClick={() => {
                 onDeleteTask(task.id);
                 onClose();
@@ -1219,6 +836,7 @@ function ClientServicingModal({
             <button
               type="button"
               className={styles.ghostCancelBtn}
+              style={{ borderRadius: RADIUS }}
               onClick={handleClose}
             >
               Cancel
@@ -1226,7 +844,7 @@ function ClientServicingModal({
             <button
               type="button"
               className={styles.goldSaveBtn}
-              style={{ background: currentStatusColor }}
+              style={{ background: currentStatusColor, borderRadius: RADIUS }}
               onClick={handleClose}
             >
               Save Changes
@@ -1248,20 +866,6 @@ export default function TaskModal({
   onClose,
   isUserView = false
 }: TaskModalProps) {
-  const isCategoryInquiry = normalizeCategory(task.category) === 'Inquiry';
-
-  if (isCategoryInquiry) {
-    return (
-      <ClientInquiryModal
-        task={task}
-        onSaveField={onSaveField}
-        onDeleteTask={onDeleteTask}
-        onClose={onClose}
-        isUserView={isUserView}
-      />
-    );
-  }
-
   return (
     <ClientServicingModal
       task={task}

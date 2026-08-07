@@ -23,19 +23,18 @@ export type TaskItem = {
 };
 
 export const TASK_CATEGORIES = [
-  'ACR - Advisor Change Request',
-  'BCR - Beneficiary Change Request',
-  'FSR - Fund Switching Request',
-  'FW - Fund Withdrawal Request',
   'ACA - Auto Credits Arrangement',
+  'ACICR - Address and Contact Information Change Request',
+  'ACR - Advisor Change Request',
   'ADA - Auto Debit Arrangement (MOA)',
-  'SRO - Reinstatement (SRO)',
-  'PPI - Reinstatement (PPI)',
+  'BCR - Beneficiary Change Request',
   'CPST - Client Policy Status Tracking',
   'CSMV - Client Servicing Monitoring Verification',
-  'ACICR - Address and Contact Information Change Request',
-  'Inquiry',
-  'Others'
+  'FSR - Fund Switching Request',
+  'FW - Fund Withdrawal Request',
+  'Others',
+  'PPI - Reinstatement (PPI)',
+  'SRO - Reinstatement (SRO)',
 ];
 
 export function normalizeCategory(cat?: string | null): string {
@@ -55,7 +54,6 @@ export function normalizeCategory(cat?: string | null): string {
   if (c === 'CSMV' || c === 'UID' || c.startsWith('CSMV -')) return 'CSMV - Client Servicing Monitoring Verification';
   if (c === 'ACICR' || c.startsWith('ACICR -') || c.includes('ADDRESS')) return 'ACICR - Address and Contact Information Change Request';
   if (c === 'PLT') return 'CPC - Client Policy Card';
-  if (c === 'INQUIRY' || c.startsWith('INQUIRY')) return 'Inquiry';
 
   return cat.trim();
 }
@@ -137,8 +135,8 @@ export default function TaskRow({
   const userName = activeProfile ? (activeProfile.full_name || activeProfile.email) : 'Unassigned';
   const processedName = processedProfile ? (processedProfile.full_name || processedProfile.email) : null;
   const isDone = task.status === 'Done' || task.completed;
-  const timestampText = isDone 
-    ? formatFormattedTime(task.updated_at) 
+  const timestampText = isDone
+    ? formatFormattedTime(task.updated_at)
     : `Created: ${formatFormattedTime(task.created_at || task.updated_at)}`;
 
   const isSettingUpTask = (!task.notes || !task.notes.trim()) && task.status === 'Pending' && (task.title === 'Untitled Task' || !task.title);

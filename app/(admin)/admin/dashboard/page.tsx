@@ -304,6 +304,7 @@ export default function DashboardOverviewPage() {
                 onOpenLogModal={openLogModal}
                 onSelectEvent={handleEventClick}
               />
+
               <RequestFormsAccordion kpis={kpis} userRole={userRole} userPermissions={userPermissions} />
             </div>
           </motion.div>
