@@ -23,7 +23,7 @@ export type TaskItem = {
 };
 
 export const TASK_CATEGORIES = [
-  'ACA - Auto Credits Arrangement',
+  'ACA - Auto Charging Arrangement',
   'ACICR - Address and Contact Information Change Request',
   'ACR - Advisor Change Request',
   'ADA - Auto Debit Arrangement (MOA)',
@@ -41,11 +41,11 @@ export function normalizeCategory(cat?: string | null): string {
   if (!cat) return 'Others';
   const c = cat.trim().toUpperCase();
 
-  if (c === 'ACR' || c.startsWith('ACR -') || c.includes('ADVISOR')) return 'ACR - Advisor Change Request';
+  if (c === 'ACR' || c.startsWith('ACR -') || c.includes('ADVISOR')) return 'ACR - Advisor Charging Request';
   if (c === 'BCR' || c.startsWith('BCR -') || c.includes('BENEFICIARY')) return 'BCR - Beneficiary Change Request';
   if (c === 'FSR' || c === 'FST' || c.startsWith('FSR -') || c.includes('SWITCHING')) return 'FSR - Fund Switching Request';
   if (c === 'FW' || c === 'FWR' || c === 'PPU' || c.startsWith('FW -') || c.startsWith('FWR -') || c.includes('WITHDRAWAL')) return 'FW - Fund Withdrawal Request';
-  if (c === 'ACA' || c.startsWith('ACA -') || c.includes('CREDITS')) return 'ACA - Auto Credits Arrangement';
+  if (c === 'ACA' || c.startsWith('ACA -') || c.includes('CHARGING')) return 'ACA - Auto Charging Arrangement';
   if (c === 'ADA' || c === 'MOA' || c.startsWith('ADA -') || c.startsWith('MOA -') || c.includes('DEBIT')) return 'ADA - Auto Debit Arrangement (MOA)';
   if (c === 'SRO' || c.startsWith('SRO -')) return 'SRO - Reinstatement (SRO)';
   if (c === 'PPI' || c === 'PDI' || c.startsWith('PPI -') || c.startsWith('PDI -')) return 'PPI - Reinstatement (PPI)';

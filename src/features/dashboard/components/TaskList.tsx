@@ -90,7 +90,7 @@ interface CategoryMeta {
 }
 
 export const KNOWN_CATEGORIES: CategoryMeta[] = [
-  { badge: 'ACA', title: 'Auto Credits Arrangement', accent: '#7C3AED', tint: 'rgba(124, 58, 237, 0.12)' },
+  { badge: 'ACA', title: 'Auto Charging Arrangement', accent: '#7C3AED', tint: 'rgba(124, 58, 237, 0.12)' },
   { badge: 'ACICR', title: 'Address and Contact Information Change Request', accent: '#D946EF', tint: 'rgba(217, 70, 239, 0.12)' },
   { badge: 'ACR', title: 'Advisor Change Request', accent: '#4F46E5', tint: 'rgba(79, 70, 229, 0.12)' },
   { badge: 'ADA / MOA', title: 'Auto Debit Arrangement', accent: '#8B5CF6', tint: 'rgba(139, 92, 246, 0.12)' },
@@ -270,7 +270,12 @@ function ServicingTaskRow({
   onSaveTaskField,
 }: ServicingTaskRowProps) {
   const meta = parseTaskMetadata(task.notes || '');
-  const clientName = meta.policy_owner || task.title || 'Untitled Task';
+
+  const clientName =
+    meta.policy_insured ||
+    meta.policy_owner ||
+    task.title ||
+    'Untitled Task';
   const currentStatus = workflowStageToStatus(stage);
   const remainingOptions = getRemainingWorkflowOptions(currentStatus);
 
