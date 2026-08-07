@@ -8,8 +8,9 @@
   background: var(--surface);
   flex-shrink: 0;
   position: sticky;
-  top: 2rem;
-  height: calc(100vh - 64px);
+  top: 20px;
+  align-self: flex-start;
+  height: calc(100vh - 40px);
   border-radius: 24px;
   border: 1px solid var(--border) !important;
   box-shadow: var(--shadow-theme);
@@ -31,7 +32,8 @@
 
 /* Sidebar Drawer (Mobile) */
 .sidebarDrawer {
-  @apply relative flex h-full w-[min(90vw,320px)] flex-col bg-surface;
+  @apply relative flex h-full flex-col bg-surface;
+  width: min(90vw, 320px);
   border-right: 1px solid var(--border) !important;
   box-shadow: var(--shadow-theme);
   overflow-x: hidden;
@@ -94,6 +96,7 @@
 }
 
 @media (min-width: 700px) {
+
   .mobileSidebarOpenBtn,
   .sidebarMobileWrapper {
     display: none !important;
