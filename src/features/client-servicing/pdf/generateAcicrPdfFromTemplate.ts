@@ -64,17 +64,17 @@ export async function generateAcicrPdfFromTemplate(
 
   // B. Address Details
   // 2. Permanent Home Address
-  txt(pg1, record.permanent_address, 50, 510, regular, VS);
-  txt(pg1, record.permanent_zip_code, 470, 510, regular, VS);
+  txt(pg1, record.permanent_address, 50, 365, regular, VS);
+  txt(pg1, record.permanent_zip_code, 470, 360, regular, VS);
 
   // 4. Present Home Address
-  checkMark(pg1, record.same_as_permanent, 50, 480, bold, 10);
+  checkMark(pg1, record.same_as_permanent, 47, 327, bold, 10);
   txt(pg1, record.present_address, 50, 460, regular, VS);
   txt(pg1, record.present_zip_code, 470, 460, regular, VS);
 
   // 6. Work Address
-  txt(pg1, record.work_address, 50, 410, regular, VS);
-  txt(pg1, record.work_zip_code, 470, 410, regular, VS);
+  txt(pg1, record.work_address, 50, 270, regular, VS);
+  txt(pg1, record.work_zip_code, 470, 250, regular, VS);
 
   // 8. Other Address
   txt(pg1, record.other_address, 50, 360, regular, VS);
@@ -120,7 +120,7 @@ export async function generateAcicrPdfFromTemplate(
   checkMark(pg2, record.citizenship_change === 'non_resident_citizen' || record.citizenship_change === 'Non-Resident', 55, 595, bold, 10);
   txt(pg2, record.citizenship_country, 200, 595, regular, VS); // Citizen of
   txt(pg2, record.legal_residence_country || record.residence_country, 350, 595, regular, VS); // Reside in
-  checkMark(pg2, record.citizenship_change === 'none' || record.citizenship_change === 'None', 55, 580, bold, 10);
+  checkMark(pg2, record.citizenshnvmip_change === 'none' || record.citizenship_change === 'None', 55, 580, bold, 10);
 
   // Signatures Area
   const ownerPrintedName = record.policy_owner_printed_name || `${clientNameParts.first || ''} ${clientNameParts.last || ''}`.trim();
