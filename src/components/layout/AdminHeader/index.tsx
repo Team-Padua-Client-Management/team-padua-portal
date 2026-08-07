@@ -13,7 +13,7 @@ import ProfileAvatar from "@src/components/shared/ProfileAvatar";
 import { applyThemeWithTransition, isDarkTheme } from "@src/lib/theme";
 
 // Search hook & dropdown
-import { useAdminSearch } from '@src/lib/search/useAdminSearch';
+// import { useAdminSearch } from '@src/lib/search/useAdminSearch';
 import AdminSearchDropdown from '@src/components/admin/AdminHeader/AdminSearchDropdown';
 
 interface HeaderProps {
@@ -75,13 +75,13 @@ export default function AdminHeader({ onMenuClick }: HeaderProps) {
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
-  const {
-    query: searchQuery,
-    setQuery: setSearchQuery,
-    groupedResults,
-    isLoading: isSearchLoading,
-    hasResults: hasSearchResults,
-  } = useAdminSearch(300);
+  // const {
+  //   query: searchQuery,
+  //   setQuery: setSearchQuery,
+  //   groupedResults,
+  //   isLoading: isSearchLoading,
+  //   hasResults: hasSearchResults,
+  // } = useAdminSearch(300);
 
   const [userData, setUserData] = useState<UserData>({
     name: '',
@@ -304,7 +304,7 @@ export default function AdminHeader({ onMenuClick }: HeaderProps) {
           </div>
         </div>
 
-        <div className={styles.centerSection}>
+        {/* <div className={styles.centerSection}>
           <div className={styles.searchContainerWrapper}>
             <div className={styles.searchContainer}>
               <Search size={18} className={styles.searchIcon} />
@@ -342,7 +342,7 @@ export default function AdminHeader({ onMenuClick }: HeaderProps) {
               onSelectResult={() => setSearchQuery('')}
             />
           </div>
-        </div>
+        </div> */}
 
         <div className={styles.rightSection}>
 
