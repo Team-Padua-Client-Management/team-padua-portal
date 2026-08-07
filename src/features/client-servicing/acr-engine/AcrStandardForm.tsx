@@ -203,21 +203,7 @@ export default function AcrStandardForm({
 
               {/* Client Selection */}
               <section className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                <h2 className="text-base font-bold text-slate-900 mb-4 border-b pb-2">Client Selection</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">Select Client *</label>
-                    <select
-                      value={formData.client_id || clientId}
-                      onChange={(e) => handleClientSelectLocal(e.target.value)}
-                      className="w-full p-2.5 rounded-lg border border-slate-200 focus:border-amber-500 outline-none text-sm bg-slate-50 focus:bg-white transition-colors"
-                    >
-                      <option value="">-- Select a Client --</option>
-                      {clients.map(c => (
-                        <option key={c.id} value={c.id}>{c.client_name}</option>
-                      ))}
-                    </select>
-                  </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-600 mb-1">Request Status</label>
                     <select
