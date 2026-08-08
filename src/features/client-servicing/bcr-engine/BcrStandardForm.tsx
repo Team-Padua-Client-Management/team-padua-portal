@@ -281,8 +281,10 @@ export default function BcrStandardForm({
                 )}
               </section>
 
-              {/* ─── SECTION A: GENERAL INFORMATION ─────────────────────────────────────── */}
-              <section className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+              {formData.client_id && (
+                <>
+                  {/* ─── SECTION A: GENERAL INFORMATION ─────────────────────────────────────── */}
+                  <section className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
                 <div className="flex items-center justify-between border-b pb-2">
                   <div className="flex items-center gap-2">
                     <span className="px-2 py-0.5 text-xs font-bold bg-slate-900 text-white rounded">Section A</span>
@@ -1237,9 +1239,11 @@ export default function BcrStandardForm({
                   </label>
                 </div>
               </section>
+            </>
+          )}
 
-            </div>
-          </div>
+        </div>
+      </div>
         ) : (
           /* PDF Literal Display Container */
           <div className="flex-1 h-full relative bg-slate-900 flex flex-col items-center justify-center p-4">

@@ -132,72 +132,78 @@ export default function AdaStandardForm({
             <div className="h-full overflow-y-auto p-8">
               <div className="max-w-4xl mx-auto space-y-8 pb-12">
                 
-                <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                  <div className="bg-slate-900 px-6 py-4">
-                    <h2 className="text-sm font-bold text-white uppercase tracking-wider">1. General Information</h2>
-                  </div>
-                  <div className="p-6 space-y-6">
-                  
-                  <div className="grid grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Bank Type</label>
-                      <select
-                        value={formData.bank_type || 'BPI'}
-                        onChange={(e) => handleChange('bank_type', e.target.value)}
-                        className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
-                      >
-                        <option value="BPI">BPI - Bank of the Philippine Islands</option>
-                        <option value="BDO">BDO - Banco De Oro</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Bank Account Number</label>
-                      <input
-                        type="text"
-                        value={formData.bank_account_number || ''}
-                        onChange={(e) => handleChange('bank_account_number', e.target.value)}
-                        className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
-                        placeholder="e.g. 1234567890"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Date Submitted</label>
-                      <input
-                        type="date"
-                        value={formData.date_submitted || ''}
-                        onChange={(e) => handleChange('date_submitted', e.target.value)}
-                        className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
-                      <select
-                        value={formData.status || 'Pending'}
-                        onChange={(e) => handleChange('status', e.target.value)}
-                        className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
-                      >
-                        <option value="Pending">Pending</option>
-                        <option value="Approved">Approved</option>
-                        <option value="Rejected">Rejected</option>
-                      </select>
-                    </div>
-                  </div>
-                  
+                <section className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                  <h2 className="text-base font-bold text-slate-900 mb-4 border-b pb-2">Request Status</h2>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Comments / Remarks</label>
-                    <textarea
-                      rows={3}
-                      value={formData.comments || ''}
-                      onChange={(e) => handleChange('comments', e.target.value)}
-                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all resize-y"
-                      placeholder="Enter any additional notes..."
-                    />
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Request Status</label>
+                    <select
+                      value={formData.status || 'Pending'}
+                      onChange={(e) => handleChange('status', e.target.value)}
+                      className="w-full md:w-1/2 p-2.5 rounded-lg border border-slate-200 focus:border-amber-500 outline-none text-sm bg-slate-50 focus:bg-white transition-colors"
+                    >
+                      <option value="Pending">Pending</option>
+                      <option value="Approved">Approved</option>
+                      <option value="Rejected">Rejected</option>
+                    </select>
                   </div>
-                </div>
-              </section>
+                </section>
+
+                {formData.client_id && (
+                  <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div className="bg-slate-900 px-6 py-4">
+                      <h2 className="text-sm font-bold text-white uppercase tracking-wider">1. General Information</h2>
+                    </div>
+                    <div className="p-6 space-y-6">
+                    
+                    <div className="grid grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Bank Type</label>
+                        <select
+                          value={formData.bank_type || 'BPI'}
+                          onChange={(e) => handleChange('bank_type', e.target.value)}
+                          className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
+                        >
+                          <option value="BPI">BPI - Bank of the Philippine Islands</option>
+                          <option value="BDO">BDO - Banco De Oro</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Bank Account Number</label>
+                        <input
+                          type="text"
+                          value={formData.bank_account_number || ''}
+                          onChange={(e) => handleChange('bank_account_number', e.target.value)}
+                          className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
+                          placeholder="e.g. 1234567890"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Date Submitted</label>
+                        <input
+                          type="date"
+                          value={formData.date_submitted || ''}
+                          onChange={(e) => handleChange('date_submitted', e.target.value)}
+                          className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Comments / Remarks</label>
+                      <textarea
+                        rows={3}
+                        value={formData.comments || ''}
+                        onChange={(e) => handleChange('comments', e.target.value)}
+                        className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all resize-y"
+                        placeholder="Enter any additional notes..."
+                      />
+                    </div>
+                  </div>
+                </section>
+                )}
 
             </div>
           </div>

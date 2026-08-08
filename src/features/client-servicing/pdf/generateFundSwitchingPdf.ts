@@ -197,7 +197,7 @@ export async function generateFundSwitchingPdf(
 
   // ── 4. Embed fonts ────────────────────────────────────────────────────────
   const regular = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  const bold    = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
   const VS = 8.5; // standard value font size (pt)
 
@@ -205,17 +205,17 @@ export async function generateFundSwitchingPdf(
   // SECTION 1 — General Information (Page 1)
   // ══════════════════════════════════════════════════════════════════════════
 
-  txt(pages, S1.policyOwnerLast,   clientNameParts.last,   regular, VS);
-  txt(pages, S1.policyOwnerFirst,  clientNameParts.first,  regular, VS);
+  txt(pages, S1.policyOwnerLast, clientNameParts.last, regular, VS);
+  txt(pages, S1.policyOwnerFirst, clientNameParts.first, regular, VS);
   txt(pages, S1.policyOwnerMiddle, clientNameParts.middle, regular, VS);
 
-  txt(pages, S1.policyNumber,     record.policy_number,            regular, VS);
-  txt(pages, S1.lifeInsured,      record.life_insured,             regular, VS);
-  txt(pages, S1.citizenship,      record.citizenship,              regular, VS);
-  txt(pages, S1.emailAddress,     record.email_address,            regular, VS);
-  txt(pages, S1.mobilePhone,      record.mobile_phone,             regular, VS);
-  txt(pages, S1.homePhone,        record.home_phone,               regular, VS);
-  txt(pages, S1.workPhone,        record.work_phone,               regular, VS);
+  txt(pages, S1.policyNumber, record.policy_number, regular, VS);
+  txt(pages, S1.lifeInsured, record.life_insured, regular, VS);
+  txt(pages, S1.citizenship, record.citizenship, regular, VS);
+  txt(pages, S1.emailAddress, record.email_address, regular, VS);
+  txt(pages, S1.mobilePhone, record.mobile_phone, regular, VS);
+  txt(pages, S1.homePhone, record.home_phone, regular, VS);
+  txt(pages, S1.workPhone, record.work_phone, regular, VS);
 
   // Address fields — word-wrapped to fit in the form box (~480 pt wide)
   if (record.present_address && pages[S1.presentAddress.page - 1]) {
@@ -256,8 +256,8 @@ export async function generateFundSwitchingPdf(
       const rowY = S2.rowStartY - idx * S2.rowHeight;
       if (rowY < 40) return; // don't write below the page bottom
 
-      txtAt(s2Page, row.from_fund, S2.colFromFund,  rowY, regular, VS);
-      txtAt(s2Page, row.to_fund,   S2.colToFund,    rowY, regular, VS);
+      txtAt(s2Page, row.from_fund, S2.colFromFund, rowY, regular, VS);
+      txtAt(s2Page, row.to_fund, S2.colToFund, rowY, regular, VS);
 
       // Full / Partial checkmark
       if (row.switch_type === 'full') {
@@ -268,7 +268,7 @@ export async function generateFundSwitchingPdf(
 
       // Amount or Percentage (only one should be filled for each row)
       if (row.amount) {
-        txtAt(s2Page, String(row.amount), S2.colAmount,  rowY, regular, VS);
+        txtAt(s2Page, String(row.amount), S2.colAmount, rowY, regular, VS);
       }
       if (row.percentage) {
         txtAt(s2Page, String(row.percentage) + '%', S2.colPercent, rowY, regular, VS);
@@ -287,7 +287,7 @@ export async function generateFundSwitchingPdf(
     pesoAlloc.forEach((alloc, idx) => {
       const rowY = S3.pesoRowStartY - idx * S3.pesoRowHeight;
       if (rowY < 40) return;
-      txtAt(pesoPage, alloc.fund_name,  S3.colPesoFundName, rowY, regular, VS);
+      txtAt(pesoPage, alloc.fund_name, S3.colPesoFundName, rowY, regular, VS);
       txtAt(pesoPage, alloc.percentage ? alloc.percentage + '%' : '', S3.colPesoPercent, rowY, regular, VS);
     });
   }
@@ -299,7 +299,7 @@ export async function generateFundSwitchingPdf(
     dollarAlloc.forEach((alloc, idx) => {
       const rowY = S3.dollarRowStartY - idx * S3.dollarRowHeight;
       if (rowY < 40) return;
-      txtAt(dollarPage, alloc.fund_name,  S3.colDollarFundName, rowY, regular, VS);
+      txtAt(dollarPage, alloc.fund_name, S3.colDollarFundName, rowY, regular, VS);
       txtAt(dollarPage, alloc.percentage ? alloc.percentage + '%' : '', S3.colDollarPercent, rowY, regular, VS);
     });
   }
@@ -308,7 +308,7 @@ export async function generateFundSwitchingPdf(
   // SECTION 4 — Excess Premium Changes
   // ══════════════════════════════════════════════════════════════════════════
 
-  checkMark(pages, S4.checkAddPremium,    record.excess_premium_option === 'add',    bold);
+  checkMark(pages, S4.checkAddPremium, record.excess_premium_option === 'add', bold);
   checkMark(pages, S4.checkChangePremium, record.excess_premium_option === 'change', bold);
   checkMark(pages, S4.checkCancelPremium, record.excess_premium_option === 'cancel', bold);
 
@@ -324,11 +324,11 @@ export async function generateFundSwitchingPdf(
   txt(pages, S5.placeOfSigning, record.place_of_signing, regular, VS);
 
   const sigDate = parseISODate(record.date_of_signing);
-  txt(pages, S5.sigDay,   sigDate.day,   regular, VS);
+  txt(pages, S5.sigDay, sigDate.day, regular, VS);
   txt(pages, S5.sigMonth, sigDate.month, regular, VS);
-  txt(pages, S5.sigYear,  sigDate.year,  regular, VS);
+  txt(pages, S5.sigYear, sigDate.year, regular, VS);
 
-  txt(pages, S5.witnessName,    record.witness_name,    regular, VS);
+  txt(pages, S5.witnessName, record.witness_name, regular, VS);
   txt(pages, S5.witnessAddress, record.witness_address, regular, VS);
 
   // Signatures — embedded as images into their rectangular areas

@@ -148,30 +148,32 @@ export default function AcaStandardForm({
                 </div>
               </section>
 
-              <section className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-                <h2 className="text-base font-bold text-slate-900 border-b pb-2">1. Enrollment Details</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">Date Submitted</label>
-                    <input
-                      type="date"
-                      value={formData.date_submitted || ''}
-                      onChange={(e) => handleChange('date_submitted', e.target.value)}
-                      className="w-full p-2.5 rounded-lg border border-slate-200 text-sm"
-                    />
+              {formData.client_id && (
+                <section className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                  <h2 className="text-base font-bold text-slate-900 border-b pb-2">1. Enrollment Details</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">Date Submitted</label>
+                      <input
+                        type="date"
+                        value={formData.date_submitted || ''}
+                        onChange={(e) => handleChange('date_submitted', e.target.value)}
+                        className="w-full p-2.5 rounded-lg border border-slate-200 text-sm"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">Comments / Instructions</label>
+                      <textarea
+                        value={formData.comments || ''}
+                        onChange={(e) => handleChange('comments', e.target.value)}
+                        rows={3}
+                        className="w-full p-2.5 rounded-lg border border-slate-200 text-sm"
+                        placeholder="Optional details..."
+                      />
+                    </div>
                   </div>
-                  <div className="col-span-2">
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">Comments / Instructions</label>
-                    <textarea
-                      value={formData.comments || ''}
-                      onChange={(e) => handleChange('comments', e.target.value)}
-                      rows={3}
-                      className="w-full p-2.5 rounded-lg border border-slate-200 text-sm"
-                      placeholder="Optional details..."
-                    />
-                  </div>
-                </div>
-              </section>
+                </section>
+              )}
             </div>
           </div>
         ) : (

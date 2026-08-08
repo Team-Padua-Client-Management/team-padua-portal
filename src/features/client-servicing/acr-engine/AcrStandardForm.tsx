@@ -257,30 +257,32 @@ export default function AcrStandardForm({
                 })()}
               </section>
 
-              {/* Section A */}
-              <section className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-                <h2 className="text-base font-bold text-slate-900 border-b pb-2">A. General Information</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">Company Name</label>
-                    <input
-                      type="text"
-                      value={formData.company_name || 'Sun Life of Canada (Philippines), Inc.'}
-                      onChange={(e) => handleChange('company_name', e.target.value)}
-                      className="w-full p-2.5 rounded-lg border border-slate-200 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">Designation</label>
-                    <input
-                      type="text"
-                      value={formData.designation || ''}
-                      onChange={(e) => handleChange('designation', e.target.value)}
-                      className="w-full p-2.5 rounded-lg border border-slate-200 text-sm"
-                    />
-                  </div>
-                </div>
-              </section>
+              {formData.client_id && (
+                <>
+                  {/* Section A */}
+                  <section className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                    <h2 className="text-base font-bold text-slate-900 border-b pb-2">A. General Information</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Company Name</label>
+                        <input
+                          type="text"
+                          value={formData.company_name || 'Sun Life of Canada (Philippines), Inc.'}
+                          onChange={(e) => handleChange('company_name', e.target.value)}
+                          className="w-full p-2.5 rounded-lg border border-slate-200 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Designation</label>
+                        <input
+                          type="text"
+                          value={formData.designation || ''}
+                          onChange={(e) => handleChange('designation', e.target.value)}
+                          className="w-full p-2.5 rounded-lg border border-slate-200 text-sm"
+                        />
+                      </div>
+                    </div>
+                  </section>
 
               {/* Section B */}
               <section className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
@@ -545,10 +547,11 @@ export default function AcrStandardForm({
                   </div>
                 </div>
               </section>
-
-            </div>
-          </div>
-        ) : (
+            </>
+          )}
+        </div>
+      </div>
+    ) : (
           <div className="flex-1 h-full relative bg-slate-900 flex flex-col items-center justify-center p-4">
             {isPreviewLoading ? (
               <div className="flex flex-col items-center gap-3 text-white">

@@ -187,9 +187,29 @@ export default function AcicrStandardForm({
             </div>
           ) : (
             <div className="p-8 max-w-4xl mx-auto space-y-6">
-              {/* Section A */}
-              <section className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-                <h2 className="text-base font-bold text-slate-900 border-b border-slate-200 pb-2">A. General Information</h2>
+              {/* Request Status */}
+              <section className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                <h3 className="text-base font-bold text-slate-900 mb-4 border-b pb-2">Request Status</h3>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Request Status</label>
+                  <select
+                    value={formData.status || 'Pending'}
+                    onChange={(e) => handleChange('status', e.target.value)}
+                    className="w-full md:w-1/2 p-2.5 rounded-lg border border-slate-200 focus:border-amber-500 outline-none text-sm bg-slate-50 focus:bg-white transition-colors"
+                  >
+                    <option value="Pending">Pending</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Completed">Completed</option>
+                    <option value="Rejected">Rejected</option>
+                  </select>
+                </div>
+              </section>
+
+              {formData.client_id && (
+                <>
+                  {/* Section A */}
+                  <section className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                    <h2 className="text-base font-bold text-slate-900 border-b border-slate-200 pb-2">A. General Information</h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="md:col-span-3">
                     <label className="block text-xs font-semibold text-slate-600 mb-1">Policy / Group Contract / Mutual Fund Account Number</label>
@@ -752,7 +772,9 @@ export default function AcicrStandardForm({
                   </div>
                 </div>
               </section>
-            </div>
+            </>
+          )}
+        </div>
           )}
         </div>
       </ClientServicingLayout>
