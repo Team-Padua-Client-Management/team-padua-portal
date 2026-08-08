@@ -253,6 +253,28 @@ export interface ClientManagementRecord {
   created_at?: string;
 }
 
+export interface ClientDisplayRecord {
+  id: string;
+  clientId: string;
+  recordType: 'CLIENT' | 'BENEFICIARY';
+  name: string;
+  clientName: string;
+  relationship: string;
+  policyNumber: string;
+  product: string;
+  approvalDate: string;
+  annualPremium: number;
+  mobileNumber: string;
+  email: string;
+  address: string;
+  beneficiary: string;
+  fundAllocation: string;
+  modeOfPayment: string;
+  birthdate?: string;
+  created_at?: string;
+  rawClient: ClientManagementRecord;
+}
+
 export interface ClientRecord {
   id?: string;
   advisor_id: string;
@@ -304,6 +326,7 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
   const [advisorSearch, setAdvisorSearch] = useState('');
   const [clientSearch, setClientSearch] = useState('');
   const [productFilter, setProductFilter] = useState('ALL');
+  const [recordTypeFilter, setRecordTypeFilter] = useState<'ALL' | 'CLIENTS' | 'BENEFICIARIES'>('ALL');
   const [sortBy, setSortBy] = useState('newest');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -510,23 +533,100 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
     return clients.filter(c => c.advisorId === selectedAdvisor.id);
   }, [clients, selectedAdvisor]);
 
-  const filteredClients = useMemo(() => {
-    return advisorClients.filter(c => {
-      if (productFilter !== 'ALL' && c.product !== productFilter) return false;
+  const advisorDisplayRecords = useMemo(() => {
+    if (!selectedAdvisor) return [];
+    const records: ClientDisplayRecord[] = [];
+
+    advisorClients.forEach(c => {
+      // Primary CLIENT record
+      records.push({
+        id: `${c.id}-client`,
+        clientId: c.id,
+        recordType: 'CLIENT',
+        name: c.clientName,
+        clientName: c.clientName,
+        relationship: c.relationship || 'Self',
+        policyNumber: c.policyNumber || '',
+        product: c.product || '',
+        approvalDate: c.approvalDate || '',
+        annualPremium: c.annualPremium || 0,
+        mobileNumber: c.mobileNumber || '',
+        email: c.email || '',
+        address: c.address || '',
+        beneficiary: c.beneficiary || '',
+        fundAllocation: c.fundAllocation || '',
+        modeOfPayment: c.modeOfPayment || 'Annual',
+        birthdate: c.birthdate || '',
+        created_at: c.created_at || '',
+        rawClient: c
+      });
+
+      // BENEFICIARY display record(s)
+      if (c.beneficiary && c.beneficiary.trim()) {
+        const beneficiaries = c.beneficiary
+          .split(/[,;\n\/]+/)
+          .map(b => b.trim())
+          .filter(Boolean);
+
+        beneficiaries.forEach((benName, idx) => {
+          records.push({
+            id: `${c.id}-ben-${idx}`,
+            clientId: c.id,
+            recordType: 'BENEFICIARY',
+            name: benName,
+            clientName: c.clientName,
+            relationship: 'Beneficiary',
+            policyNumber: c.policyNumber || '',
+            product: c.product || '',
+            approvalDate: c.approvalDate || '',
+            annualPremium: c.annualPremium || 0,
+            mobileNumber: c.mobileNumber || '',
+            email: c.email || '',
+            address: c.address || '',
+            beneficiary: c.beneficiary || '',
+            fundAllocation: c.fundAllocation || '',
+            modeOfPayment: c.modeOfPayment || 'Annual',
+            birthdate: c.birthdate || '',
+            created_at: c.created_at || '',
+            rawClient: c
+          });
+        });
+      }
+    });
+
+    return records;
+  }, [advisorClients, selectedAdvisor]);
+
+  const filteredDisplayRecords = useMemo(() => {
+    return advisorDisplayRecords.filter(r => {
+      if (recordTypeFilter === 'CLIENTS' && r.recordType !== 'CLIENT') return false;
+      if (recordTypeFilter === 'BENEFICIARIES' && r.recordType !== 'BENEFICIARY') return false;
+
+      if (productFilter !== 'ALL' && r.product !== productFilter) return false;
+
       if (clientSearch.trim()) {
         const s = clientSearch.toLowerCase();
-        if (!c.clientName?.toLowerCase().includes(s) && !c.policyNumber?.toLowerCase().includes(s)) return false;
+        if (r.recordType === 'CLIENT') {
+          const matchName = r.name?.toLowerCase().includes(s);
+          const matchPolicy = r.policyNumber?.toLowerCase().includes(s);
+          if (!matchName && !matchPolicy) return false;
+        } else {
+          const matchBenName = r.name?.toLowerCase().includes(s);
+          const matchClientName = r.clientName?.toLowerCase().includes(s);
+          const matchPolicy = r.policyNumber?.toLowerCase().includes(s);
+          if (!matchBenName && !matchClientName && !matchPolicy) return false;
+        }
       }
       return true;
     }).sort((a, b) => {
       if (sortBy === 'newest') return new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime();
       if (sortBy === 'oldest') return new Date(a.created_at || '').getTime() - new Date(b.created_at || '').getTime();
-      if (sortBy === 'name') return (a.clientName || '').localeCompare(b.clientName || '');
+      if (sortBy === 'name') return (a.name || '').localeCompare(b.name || '');
       return 0;
     });
-  }, [advisorClients, productFilter, clientSearch, sortBy]);
+  }, [advisorDisplayRecords, recordTypeFilter, productFilter, clientSearch, sortBy]);
 
-  const isAllClientsSelected = filteredClients.length > 0 && selectedIds.length === filteredClients.length;
+  const isAllClientsSelected = filteredDisplayRecords.length > 0 && selectedIds.length === filteredDisplayRecords.length;
 
   const totalClientsCount = clients.length;
   const totalActivePoliciesCount = clients.filter(c => c.policyNumber).length;
@@ -715,7 +815,16 @@ ${result.error?.hint}
     setIsDeleting(true);
     try {
       if (clientToDelete === 'bulk') {
-        await supabase.from('cpst_clients').delete().in('id', selectedIds);
+        const targetClientIds = Array.from(
+          new Set(
+            filteredDisplayRecords
+              .filter(r => selectedIds.includes(r.id))
+              .map(r => r.clientId)
+          )
+        );
+        if (targetClientIds.length > 0) {
+          await supabase.from('cpst_clients').delete().in('id', targetClientIds);
+        }
         setSelectedIds([]);
       } else {
         await supabase.from('cpst_clients').delete().eq('id', clientToDelete);
@@ -801,219 +910,219 @@ ${result.error?.hint}
   };
 
   const parseClientRows = (rows: any[][]) => {
-  let headerIndex = -1;
-  const requiredHeaders = ["client name", "email address", "contact number", "location", "date of birth", "age"];
+    let headerIndex = -1;
+    const requiredHeaders = ["client name", "email address", "contact number", "location", "date of birth", "age"];
 
-  for (let i = 0; i < Math.min(rows.length, 30); i++) {
-    const row = rows[i] || [];
-    const lowerCells = row.map(cell => String(cell).toLowerCase().trim());
+    for (let i = 0; i < Math.min(rows.length, 30); i++) {
+      const row = rows[i] || [];
+      const lowerCells = row.map(cell => String(cell).toLowerCase().trim());
 
-    let matchCount = 0;
-    for (const h of requiredHeaders) {
-      if (lowerCells.some(cell => cell.includes(h))) {
-        matchCount++;
+      let matchCount = 0;
+      for (const h of requiredHeaders) {
+        if (lowerCells.some(cell => cell.includes(h))) {
+          matchCount++;
+        }
       }
-    }
 
-    if (matchCount >= 3) {
-      headerIndex = i;
-      break;
-    }
-  }
-
-  if (headerIndex === -1) {
-    for (let i = 0; i < Math.min(rows.length, 20); i++) {
-      const row = rows[i].map(c => String(c).toLowerCase().trim());
-
-      if (
-        row.some(c => c.includes("client name / beneficiary")) &&
-        row.some(c => c.includes("month")) &&
-        row.some(c => c.includes("age"))
-      ) {
+      if (matchCount >= 3) {
         headerIndex = i;
         break;
       }
     }
 
     if (headerIndex === -1) {
-      throw new Error(
-        "Could not detect valid header row."
-      );
-    }
-  }
+      for (let i = 0; i < Math.min(rows.length, 20); i++) {
+        const row = rows[i].map(c => String(c).toLowerCase().trim());
 
-  const headerRow = rows[headerIndex] || [];
-  const findCol = (kw: string[]): number =>
-    headerRow.findIndex((h: any) => kw.some(k => String(h).toLowerCase().includes(k)));
+        if (
+          row.some(c => c.includes("client name / beneficiary")) &&
+          row.some(c => c.includes("month")) &&
+          row.some(c => c.includes("age"))
+        ) {
+          headerIndex = i;
+          break;
+        }
+      }
 
-  const nameCol = findCol([
-    'client name',
-    'client name / beneficiary name',
-    'beneficiary name',
-    'name'
-  ]);
-  const emailCol = findCol(['email', 'email address']);
-  const mobCol = findCol(['contact number', 'mobile', 'phone', 'contact']);
-  const addCol = findCol(['location', 'address']);
-  const bdayCol = findCol([
-    'date of birth',
-    'birthday',
-    'dob',
-    'month - birthdate',
-    'birthdate'
-  ]);
-
-  const ageCol = findCol(['age']);
-  const policyCol = findCol(['policy number', 'policy#', 'policy no', 'policy #']);
-  const productCol = findCol(['product', 'plan', 'policy name', 'plan name']);
-  const approvalCol = findCol(['date of approval', 'approval date', 'date_of_approval', 'issue date', 'policy date']);
-  const relationshipCol = findCol(['relationship']);
-
-  let beneficiaryCol = findCol(['beneficiary']);
-  if (beneficiaryCol === nameCol) beneficiaryCol = -1;
-
-  const fundAllocationCol = findCol(['fund allocation', 'allocation', 'fund']);
-  const paymentModeCol = findCol(['mode of payment']);
-  const premiumCol = findCol(['annual premium', 'premium']);
-
-  const MONTH_HEADERS = new Set([
-    "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE",
-    "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"
-  ]);
-
-  const newClients: Partial<ClientManagementRecord & { _matchedName?: string; _matchedPolicy?: string; age?: string }>[] = [];
-  const duplicateClients: Partial<ClientManagementRecord & { _matchedName?: string; _matchedPolicy?: string; age?: string }>[] = [];
-  const invalid: { rowNumber: number; reason: string; rawData: any }[] = [];
-
-  let skippedHeaders = 0;
-  let skippedEmpty = 0;
-  let skippedInvalid = 0;
-
-  for (let i = headerIndex + 1; i < rows.length; i++) {
-    const row = rows[i];
-    if (!row || row.every((cell: any) => !String(cell).trim())) {
-      skippedEmpty++;
-      continue;
-    }
-
-    const rowText = row.join(" ").toLowerCase();
-    if (
-      rowText.includes("report:") ||
-      rowText.includes("date generated:") ||
-      rowText.includes("data privacy act") ||
-      rowText.includes("policy owner")
-    ) {
-      skippedHeaders++;
-      continue;
-    }
-
-    const rowNumber = i + 1;
-    const rawData: Record<string, any> = {};
-    headerRow.forEach((h: any, idx: number) => { rawData[String(h)] = row[idx] ?? ''; });
-
-    const rawName = nameCol >= 0
-      ? String(row[nameCol] ?? '').trim()
-      : '';
-
-    const normalizedRaw = rawName.replace(/\s+/g, ' ').trim().toUpperCase();
-
-    if (!normalizedRaw) {
-      skippedEmpty++;
-      continue;
-    }
-
-    if (normalizedRaw.includes("CLIENTS & BENEFICIARIES")) {
-      skippedHeaders++;
-      continue;
-    }
-
-    if (normalizedRaw === "CLIENT NAME / BENEFICIARY NAME") {
-      skippedHeaders++;
-      continue;
-    }
-
-    if (MONTH_HEADERS.has(normalizedRaw)) {
-      skippedHeaders++;
-      continue;
-    }
-
-    let clientName = rawName;
-    let beneficiary = beneficiaryCol >= 0
-      ? String(row[beneficiaryCol] ?? '').trim()
-      : '';
-
-    if (!beneficiary && rawName.includes('(') && rawName.endsWith(')')) {
-      const match = rawName.match(/^(.+?)\s*\((.+)\)$/);
-
-      if (match) {
-        clientName = match[1].trim();
-        beneficiary = match[2].trim();
+      if (headerIndex === -1) {
+        throw new Error(
+          "Could not detect valid header row."
+        );
       }
     }
 
-    const mobileNumber = mobCol >= 0 ? String(row[mobCol] ?? '').trim() : '';
-    const email = emailCol >= 0 ? String(row[emailCol] ?? '').trim() : '';
-    const address = addCol >= 0 ? String(row[addCol] ?? '').trim() : '';
-    const rawBday = bdayCol >= 0 ? String(row[bdayCol] ?? '').trim() : '';
-    const birthdate = rawBday ? (parseDateFlexible(rawBday) || rawBday) : '';
-    const age = ageCol >= 0 ? String(row[ageCol] ?? '').trim() : '';
-    const relationship = relationshipCol >= 0 ? String(row[relationshipCol] ?? '').trim() : '';
-    const policyNumber = policyCol >= 0 ? String(row[policyCol] ?? '').trim() : '';
-    const product = productCol >= 0 ? String(row[productCol] ?? '').trim() : '';
-    const approvalDate = approvalCol >= 0
-      ? parseDateFlexible(String(row[approvalCol] ?? '').trim()) || ''
-      : '';
+    const headerRow = rows[headerIndex] || [];
+    const findCol = (kw: string[]): number =>
+      headerRow.findIndex((h: any) => kw.some(k => String(h).toLowerCase().includes(k)));
 
-    const fundAllocation = fundAllocationCol >= 0 ? String(row[fundAllocationCol] ?? '').trim() : '';
-    const modeOfPayment = paymentModeCol >= 0
-      ? String(row[paymentModeCol] ?? '').trim()
-      : ' ';
-    const annualPremium = premiumCol >= 0
-      ? parseFloat(String(row[premiumCol] ?? '').replace(/[^0-9.]/g, '')) || 0
-      : 0;
+    const nameCol = findCol([
+      'client name',
+      'client name / beneficiary name',
+      'beneficiary name',
+      'name'
+    ]);
+    const emailCol = findCol(['email', 'email address']);
+    const mobCol = findCol(['contact number', 'mobile', 'phone', 'contact']);
+    const addCol = findCol(['location', 'address']);
+    const bdayCol = findCol([
+      'date of birth',
+      'birthday',
+      'dob',
+      'month - birthdate',
+      'birthdate'
+    ]);
 
-    if (!clientName) {
-      skippedInvalid++;
-      invalid.push({ rowNumber, reason: 'Missing Client Name', rawData });
-      continue;
+    const ageCol = findCol(['age']);
+    const policyCol = findCol(['policy number', 'policy#', 'policy no', 'policy #']);
+    const productCol = findCol(['product', 'plan', 'policy name', 'plan name']);
+    const approvalCol = findCol(['date of approval', 'approval date', 'date_of_approval', 'issue date', 'policy date']);
+    const relationshipCol = findCol(['relationship']);
+
+    let beneficiaryCol = findCol(['beneficiary']);
+    if (beneficiaryCol === nameCol) beneficiaryCol = -1;
+
+    const fundAllocationCol = findCol(['fund allocation', 'allocation', 'fund']);
+    const paymentModeCol = findCol(['mode of payment']);
+    const premiumCol = findCol(['annual premium', 'premium']);
+
+    const MONTH_HEADERS = new Set([
+      "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE",
+      "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"
+    ]);
+
+    const newClients: Partial<ClientManagementRecord & { _matchedName?: string; _matchedPolicy?: string; age?: string }>[] = [];
+    const duplicateClients: Partial<ClientManagementRecord & { _matchedName?: string; _matchedPolicy?: string; age?: string }>[] = [];
+    const invalid: { rowNumber: number; reason: string; rawData: any }[] = [];
+
+    let skippedHeaders = 0;
+    let skippedEmpty = 0;
+    let skippedInvalid = 0;
+
+    for (let i = headerIndex + 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row || row.every((cell: any) => !String(cell).trim())) {
+        skippedEmpty++;
+        continue;
+      }
+
+      const rowText = row.join(" ").toLowerCase();
+      if (
+        rowText.includes("report:") ||
+        rowText.includes("date generated:") ||
+        rowText.includes("data privacy act") ||
+        rowText.includes("policy owner")
+      ) {
+        skippedHeaders++;
+        continue;
+      }
+
+      const rowNumber = i + 1;
+      const rawData: Record<string, any> = {};
+      headerRow.forEach((h: any, idx: number) => { rawData[String(h)] = row[idx] ?? ''; });
+
+      const rawName = nameCol >= 0
+        ? String(row[nameCol] ?? '').trim()
+        : '';
+
+      const normalizedRaw = rawName.replace(/\s+/g, ' ').trim().toUpperCase();
+
+      if (!normalizedRaw) {
+        skippedEmpty++;
+        continue;
+      }
+
+      if (normalizedRaw.includes("CLIENTS & BENEFICIARIES")) {
+        skippedHeaders++;
+        continue;
+      }
+
+      if (normalizedRaw === "CLIENT NAME / BENEFICIARY NAME") {
+        skippedHeaders++;
+        continue;
+      }
+
+      if (MONTH_HEADERS.has(normalizedRaw)) {
+        skippedHeaders++;
+        continue;
+      }
+
+      let clientName = rawName;
+      let beneficiary = beneficiaryCol >= 0
+        ? String(row[beneficiaryCol] ?? '').trim()
+        : '';
+
+      if (!beneficiary && rawName.includes('(') && rawName.endsWith(')')) {
+        const match = rawName.match(/^(.+?)\s*\((.+)\)$/);
+
+        if (match) {
+          clientName = match[1].trim();
+          beneficiary = match[2].trim();
+        }
+      }
+
+      const mobileNumber = mobCol >= 0 ? String(row[mobCol] ?? '').trim() : '';
+      const email = emailCol >= 0 ? String(row[emailCol] ?? '').trim() : '';
+      const address = addCol >= 0 ? String(row[addCol] ?? '').trim() : '';
+      const rawBday = bdayCol >= 0 ? String(row[bdayCol] ?? '').trim() : '';
+      const birthdate = rawBday ? (parseDateFlexible(rawBday) || rawBday) : '';
+      const age = ageCol >= 0 ? String(row[ageCol] ?? '').trim() : '';
+      const relationship = relationshipCol >= 0 ? String(row[relationshipCol] ?? '').trim() : '';
+      const policyNumber = policyCol >= 0 ? String(row[policyCol] ?? '').trim() : '';
+      const product = productCol >= 0 ? String(row[productCol] ?? '').trim() : '';
+      const approvalDate = approvalCol >= 0
+        ? parseDateFlexible(String(row[approvalCol] ?? '').trim()) || ''
+        : '';
+
+      const fundAllocation = fundAllocationCol >= 0 ? String(row[fundAllocationCol] ?? '').trim() : '';
+      const modeOfPayment = paymentModeCol >= 0
+        ? String(row[paymentModeCol] ?? '').trim()
+        : ' ';
+      const annualPremium = premiumCol >= 0
+        ? parseFloat(String(row[premiumCol] ?? '').replace(/[^0-9.]/g, '')) || 0
+        : 0;
+
+      if (!clientName) {
+        skippedInvalid++;
+        invalid.push({ rowNumber, reason: 'Missing Client Name', rawData });
+        continue;
+      }
+
+      const match = clients.find(c =>
+        (policyNumber && c.policyNumber === policyNumber) ||
+        (!policyNumber && c.clientName.toLowerCase() === clientName.toLowerCase() && c.birthdate === birthdate)
+      );
+
+      const record = {
+        clientName,
+        mobileNumber,
+        email,
+        address,
+        birthdate,
+        age,
+        relationship,
+        policyNumber,
+        product,
+        approvalDate,
+        annualPremium,
+        beneficiary,
+        fundAllocation,
+        modeOfPayment
+      };
+
+      if (match) {
+        duplicateClients.push({
+          ...record,
+          _matchedName: match.clientName,
+          _matchedPolicy: match.policyNumber
+        });
+        continue;
+      }
+
+      newClients.push(record);
     }
 
-    const match = clients.find(c =>
-      (policyNumber && c.policyNumber === policyNumber) ||
-      (!policyNumber && c.clientName.toLowerCase() === clientName.toLowerCase() && c.birthdate === birthdate)
-    );
-
-    const record = {
-      clientName,
-      mobileNumber,
-      email,
-      address,
-      birthdate,
-      age,
-      relationship,
-      policyNumber,
-      product,
-      approvalDate,
-      annualPremium,
-      beneficiary,
-      fundAllocation,
-      modeOfPayment
-    };
-
-    if (match) {
-      duplicateClients.push({
-        ...record,
-        _matchedName: match.clientName,
-        _matchedPolicy: match.policyNumber
-      });
-      continue;
-    }
-
-    newClients.push(record);
-  }
-
-  return { newClients, duplicateClients, invalid, stats: { skippedHeaders, skippedEmpty, skippedInvalid } };
-};
+    return { newClients, duplicateClients, invalid, stats: { skippedHeaders, skippedEmpty, skippedInvalid } };
+  };
 
   const parseAdvisorRows = (rows: any[][]) => {
     let headerIndex = -1;
@@ -1414,10 +1523,22 @@ ${result.error?.hint}
   };
 
   const exportToCSV = () => {
-    if (!canExport || filteredClients.length === 0) return;
-    const headers = ['Client Name', 'Advisor', 'Relationship', 'Policy Number', 'Product', 'Approval Date', 'Annual Premium', 'Mobile', 'Email', 'Address', 'Beneficiary', 'Payment Mode'];
-    const rows = filteredClients.map(c => [
-      c.clientName, c.advisor?.advisorName || selectedAdvisor?.advisorName || '', c.relationship, c.policyNumber, c.product, c.approvalDate, c.annualPremium, c.mobileNumber, c.email, c.address, c.beneficiary, c.modeOfPayment
+    if (!canExport || filteredDisplayRecords.length === 0) return;
+    const headers = ['Record Type', 'Name', 'Associated Client', 'Relationship', 'Policy Number', 'Product', 'Approval Date', 'Annual Premium', 'Mobile', 'Email', 'Address', 'Beneficiary', 'Payment Mode'];
+    const rows = filteredDisplayRecords.map(c => [
+      c.recordType,
+      c.name,
+      c.recordType === 'BENEFICIARY' ? c.clientName : '',
+      c.relationship,
+      c.policyNumber,
+      c.product,
+      c.approvalDate,
+      c.annualPremium,
+      c.mobileNumber,
+      c.email,
+      c.address,
+      c.beneficiary,
+      c.modeOfPayment
     ]);
     const csvContent = [headers.join(','), ...rows.map(r => r.map(v => '"' + String(v || '') + '"').join(','))].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -1429,10 +1550,19 @@ ${result.error?.hint}
   };
 
   const handleExportPDF = () => {
-    if (!canExport || filteredClients.length === 0) return;
-    const headers = ['Client Name', 'Policy Number', 'Product', 'Approval Date', 'Premium', 'Mobile Number', 'Email', 'Beneficiary', 'Payment Mode'];
-    const rows = filteredClients.map(c => [
-      c.clientName, c.policyNumber, c.product, c.approvalDate, `PHP ${c.annualPremium?.toLocaleString()}`, c.mobileNumber, c.email, c.beneficiary, c.modeOfPayment
+    if (!canExport || filteredDisplayRecords.length === 0) return;
+    const headers = ['Type', 'Name', 'Associated Client', 'Policy Number', 'Product', 'Approval Date', 'Premium', 'Mobile Number', 'Email', 'Payment Mode'];
+    const rows = filteredDisplayRecords.map(c => [
+      c.recordType,
+      c.name,
+      c.recordType === 'BENEFICIARY' ? c.clientName : '—',
+      c.policyNumber || '—',
+      c.product || '—',
+      c.approvalDate || '—',
+      `PHP ${c.annualPremium?.toLocaleString()}`,
+      c.mobileNumber || '—',
+      c.email || '—',
+      c.modeOfPayment || '—'
     ]);
     exportToPDF({
       title: `${selectedAdvisor ? selectedAdvisor.advisorName : 'Advisor'} - Client Registry`,
@@ -1441,24 +1571,33 @@ ${result.error?.hint}
       rows,
       filename: `${selectedAdvisor ? selectedAdvisor.advisorName.toLowerCase().replace(/\s+/g, '_') : 'advisor'}_clients_${new Date().toISOString().slice(0, 10)}.pdf`,
       stats: [
-        { label: 'Total Clients', value: filteredClients.length },
-        { label: 'Active Policies', value: filteredClients.filter(c => c.policyNumber).length },
-        { label: 'Total Premiums', value: `PHP ${filteredClients.reduce((acc, curr) => acc + (curr.annualPremium || 0), 0).toLocaleString()}` }
+        { label: 'Total Clients', value: selectedAdvisorStats.totalClients },
+        { label: 'Active Policies', value: selectedAdvisorStats.activePolicies },
+        { label: 'Total Premiums', value: `PHP ${selectedAdvisorStats.totalPremium.toLocaleString()}` }
       ]
     });
   };
 
   const handleExport = (format: 'csv' | 'pdf' | 'word') => {
-    if (!canExport || filteredClients.length === 0) return;
-    const headers = ['Client Name', 'Policy Number', 'Product', 'Approval Date', 'Premium', 'Mobile Number', 'Email', 'Beneficiary', 'Payment Mode'];
+    if (!canExport || filteredDisplayRecords.length === 0) return;
+    const headers = ['Type', 'Name', 'Associated Client', 'Policy Number', 'Product', 'Approval Date', 'Premium', 'Mobile Number', 'Email', 'Payment Mode'];
 
     if (format === 'csv') {
       exportToCSV();
     } else if (format === 'pdf') {
       handleExportPDF();
     } else if (format === 'word') {
-      const rows = filteredClients.map(c => [
-        c.clientName, c.policyNumber, c.product, c.approvalDate, `PHP ${c.annualPremium?.toLocaleString()}`, c.mobileNumber, c.email, c.beneficiary, c.modeOfPayment
+      const rows = filteredDisplayRecords.map(c => [
+        c.recordType,
+        c.name,
+        c.recordType === 'BENEFICIARY' ? c.clientName : '—',
+        c.policyNumber || '—',
+        c.product || '—',
+        c.approvalDate || '—',
+        `PHP ${c.annualPremium?.toLocaleString()}`,
+        c.mobileNumber || '—',
+        c.email || '—',
+        c.modeOfPayment || '—'
       ]);
       exportToDOCS(
         `${selectedAdvisor ? selectedAdvisor.advisorName : 'Advisor'} - Client Registry`,
@@ -1756,6 +1895,11 @@ ${result.error?.hint}
                   />
                 </div>
                 <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                  <select value={recordTypeFilter} onChange={e => setRecordTypeFilter(e.target.value as any)} className="h-10 px-4 bg-surface border border-border rounded-xl text-[11.5px] font-semibold text-text focus:outline-none focus:border-primary">
+                    <option value="ALL">All Records</option>
+                    <option value="CLIENTS">Clients Only</option>
+                    <option value="BENEFICIARIES">Beneficiaries Only</option>
+                  </select>
                   <select value={productFilter} onChange={e => setProductFilter(e.target.value)} className="h-10 px-4 bg-surface border border-border rounded-xl text-[11.5px] font-semibold text-text focus:outline-none focus:border-primary">
                     <option value="ALL">All Products</option>
                     {PRODUCTS.map(p => <option key={p} value={p}>{p}</option>)}
@@ -1789,13 +1933,14 @@ ${result.error?.hint}
                             type="checkbox"
                             checked={isAllClientsSelected}
                             onChange={(e) => {
-                              if (e.target.checked) setSelectedIds(filteredClients.map(c => c.id));
+                              if (e.target.checked) setSelectedIds(filteredDisplayRecords.map(c => c.id));
                               else setSelectedIds([]);
                             }}
                             className="rounded border-border/50 bg-transparent text-primary focus:ring-primary focus:ring-offset-surface cursor-pointer w-4 h-4"
                           />
                         </th>
-                        <th className="py-4 px-4 font-bold text-[10.5px] uppercase tracking-wider text-text-secondary">Client Name</th>
+                        <th className="py-4 px-4 font-bold text-[10.5px] uppercase tracking-wider text-text-secondary">Type</th>
+                        <th className="py-4 px-4 font-bold text-[10.5px] uppercase tracking-wider text-text-secondary">Name</th>
                         <th className="py-4 px-4 font-bold text-[10.5px] uppercase tracking-wider text-text-secondary">Relationship</th>
                         <th className="py-4 px-4 font-bold text-[10.5px] uppercase tracking-wider text-text-secondary">Policy Number</th>
                         <th className="py-4 px-4 font-bold text-[10.5px] uppercase tracking-wider text-text-secondary">Product</th>
@@ -1812,49 +1957,67 @@ ${result.error?.hint}
                     </thead>
                     <tbody className="divide-y divide-border/40">
                       {loading ? (
-                        <tr><td colSpan={14} className="py-8 text-center text-text-secondary text-[11.5px]">Loading clients...</td></tr>
-                      ) : filteredClients.map((client, i) => (
-                        <tr key={client.id} className="group hover:bg-surface-2/40 transition-colors">
+                        <tr><td colSpan={15} className="py-8 text-center text-text-secondary text-[11.5px]">Loading records...</td></tr>
+                      ) : filteredDisplayRecords.map((record, i) => (
+                        <tr key={record.id} className="group hover:bg-surface-2/40 transition-colors">
                           <td className="py-3 px-4">
                             <div className="flex items-center gap-3">
                               <input
                                 type="checkbox"
-                                checked={selectedIds.includes(client.id)}
+                                checked={selectedIds.includes(record.id)}
                                 onChange={(e) => {
-                                  if (e.target.checked) setSelectedIds([...selectedIds, client.id]);
-                                  else setSelectedIds(selectedIds.filter(id => id !== client.id));
+                                  if (e.target.checked) setSelectedIds([...selectedIds, record.id]);
+                                  else setSelectedIds(selectedIds.filter(id => id !== record.id));
                                 }}
                                 className="rounded border-border/50 bg-transparent text-primary focus:ring-primary focus:ring-offset-surface cursor-pointer w-4 h-4"
                               />
                               <span className="text-[11.5px] text-text-secondary font-mono">{i + 1}</span>
                             </div>
                           </td>
-                          <td className="py-3 px-4 font-bold text-text text-[12px]">{client.clientName}</td>
-                          <td className="py-3 px-4 text-text-secondary text-[11.5px]">{client.relationship || '—'}</td>
-                          <td className="py-3 px-4 font-mono font-semibold text-text text-[11.5px]">
-                            {client.policyNumber ? <span className="bg-surface border border-border px-2 py-0.5 rounded-md">{client.policyNumber}</span> : '—'}
+                          <td className="py-3 px-4">
+                            {record.recordType === 'CLIENT' ? (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                                CLIENT
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                                BENEFICIARY
+                              </span>
+                            )}
                           </td>
-                          <td className="py-3 px-4 text-text-secondary text-[11.5px]">{client.product || '—'}</td>
-                          <td className="py-3 px-4 text-text-secondary text-[11.5px]">{client.approvalDate || '—'}</td>
-                          <td className="py-3 px-4 font-bold text-green-600 dark:text-green-400 text-[12px]">₱{client.annualPremium?.toLocaleString() || '0'}</td>
-                          <td className="py-3 px-4 text-text-secondary text-[11.5px]">{client.mobileNumber || '—'}</td>
-                          <td className="py-3 px-4 text-text-secondary text-[11.5px]">{client.email || '—'}</td>
-                          <td className="py-3 px-4 text-text-secondary text-[11.5px] max-w-[200px] truncate" title={client.address}>{client.address || '—'}</td>
-                          <td className="py-3 px-4 text-text-secondary text-[11.5px]">{client.beneficiary || '—'}</td>
-                          <td className="py-3 px-4 text-text-secondary text-[11.5px]">{client.fundAllocation || '—'}</td>
-                          <td className="py-3 px-4 text-text-secondary text-[11.5px]">{client.modeOfPayment || '—'}</td>
+                          <td className="py-3 px-4 font-bold text-text text-[12px]">
+                            <div>{record.name}</div>
+                            {record.recordType === 'BENEFICIARY' && (
+                              <div className="text-[10.5px] text-text-secondary font-normal mt-0.5">
+                                Client: <span className="font-semibold text-text">{record.clientName}</span>
+                              </div>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 text-text-secondary text-[11.5px]">{record.relationship || '—'}</td>
+                          <td className="py-3 px-4 font-mono font-semibold text-text text-[11.5px]">
+                            {record.policyNumber ? <span className="bg-surface border border-border px-2 py-0.5 rounded-md">{record.policyNumber}</span> : '—'}
+                          </td>
+                          <td className="py-3 px-4 text-text-secondary text-[11.5px]">{record.product || '—'}</td>
+                          <td className="py-3 px-4 text-text-secondary text-[11.5px]">{record.approvalDate || '—'}</td>
+                          <td className="py-3 px-4 font-bold text-green-600 dark:text-green-400 text-[12px]">₱{record.annualPremium?.toLocaleString() || '0'}</td>
+                          <td className="py-3 px-4 text-text-secondary text-[11.5px]">{record.mobileNumber || '—'}</td>
+                          <td className="py-3 px-4 text-text-secondary text-[11.5px]">{record.email || '—'}</td>
+                          <td className="py-3 px-4 text-text-secondary text-[11.5px] max-w-[200px] truncate" title={record.address}>{record.address || '—'}</td>
+                          <td className="py-3 px-4 text-text-secondary text-[11.5px]">{record.beneficiary || '—'}</td>
+                          <td className="py-3 px-4 text-text-secondary text-[11.5px]">{record.fundAllocation || '—'}</td>
+                          <td className="py-3 px-4 text-text-secondary text-[11.5px]">{record.modeOfPayment || '—'}</td>
                           <td className="py-2.5 px-4 text-right sticky right-0 bg-card group-hover:bg-surface-2/40 transition-colors">
                             <div className="flex justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                              <button onClick={() => { setCurrentClient(client); setActiveModal('actions'); }} className="p-2 text-muted hover:text-blue-500 transition-colors duration-200 bg-card border border-transparent hover:border-blue-500 rounded-full shadow-sm" title="Forms & Services">
+                              <button onClick={() => { setCurrentClient(record.rawClient); setActiveModal('actions'); }} className="p-2 text-muted hover:text-blue-500 transition-colors duration-200 bg-card border border-transparent hover:border-blue-500 rounded-full shadow-sm" title="Forms & Services">
                                 <MoreVertical size={14} />
                               </button>
                               {canEdit && (
-                                <button onClick={() => { setCurrentClient(client); setActiveModal('edit'); }} className="p-2 text-muted hover:text-[#F4C542] transition-colors duration-200 bg-card border border-transparent hover:border-primary rounded-full shadow-sm" title="Edit">
+                                <button onClick={() => { setCurrentClient(record.rawClient); setActiveModal('edit'); }} className="p-2 text-muted hover:text-[#F4C542] transition-colors duration-200 bg-card border border-transparent hover:border-primary rounded-full shadow-sm" title="Edit">
                                   <Edit2 size={14} />
                                 </button>
                               )}
                               {canDelete && (
-                                <button onClick={() => confirmDeleteClient(client.id)} className="p-2 text-muted hover:text-red-500 transition-colors duration-200 bg-card border border-transparent hover:border-red-500 rounded-full shadow-sm" title="Delete">
+                                <button onClick={() => confirmDeleteClient(record.clientId)} className="p-2 text-muted hover:text-red-500 transition-colors duration-200 bg-card border border-transparent hover:border-red-500 rounded-full shadow-sm" title="Delete">
                                   <Trash2 size={14} />
                                 </button>
                               )}
@@ -1862,9 +2025,9 @@ ${result.error?.hint}
                           </td>
                         </tr>
                       ))}
-                      {!loading && filteredClients.length === 0 && (
+                      {!loading && filteredDisplayRecords.length === 0 && (
                         <tr>
-                          <td colSpan={14} className="py-8 text-center text-text-secondary text-sm">No clients assigned to this advisor matching search criteria.</td>
+                          <td colSpan={15} className="py-8 text-center text-text-secondary text-sm">No records assigned to this advisor matching search criteria.</td>
                         </tr>
                       )}
                     </tbody>
@@ -2309,223 +2472,223 @@ ${result.error?.hint}
               </div>
             )}
 
-     {importState.phase === 'preview' && importState.validation && (
-  <div className="flex flex-col h-full max-h-[80vh] p-6 space-y-4 overflow-hidden">
-    <div className="text-left shrink-0">
-      <h3 className="text-sm font-bold text-text">Preview Valid Records</h3>
-      <p className="text-xs text-text-secondary mt-1">
-        Found {importState.validation.newClients.length} new records, {importState.validation.duplicateClients.length} duplicates, and {importState.validation.invalid.length} invalid rows.
-      </p>
-    </div>
+            {importState.phase === 'preview' && importState.validation && (
+              <div className="flex flex-col h-full max-h-[80vh] p-6 space-y-4 overflow-hidden">
+                <div className="text-left shrink-0">
+                  <h3 className="text-sm font-bold text-text">Preview Valid Records</h3>
+                  <p className="text-xs text-text-secondary mt-1">
+                    Found {importState.validation.newClients.length} new records, {importState.validation.duplicateClients.length} duplicates, and {importState.validation.invalid.length} invalid rows.
+                  </p>
+                </div>
 
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 shrink-0">
-      <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-500/25 rounded-2xl p-3.5">
-        <span className="block text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">New</span>
-        <span className="text-xl font-black text-emerald-600 dark:text-emerald-400">{importState.validation.newClients.length}</span>
-      </div>
-      <div className="bg-slate-50 dark:bg-slate-900/30 border border-slate-400/25 rounded-2xl p-3.5">
-        <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Duplicates</span>
-        <span className="text-xl font-black text-slate-500">{importState.validation.duplicateClients.length}</span>
-      </div>
-      <div className="bg-red-50 dark:bg-red-950/20 border border-red-500/25 rounded-2xl p-3.5">
-        <span className="block text-[10px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider">Invalid</span>
-        <span className="text-xl font-black text-red-600 dark:text-red-400">{importState.validation.invalid.length}</span>
-      </div>
-      <div className="bg-primary/10 border border-primary/30 rounded-2xl p-3.5">
-        <span className="block text-[10px] font-bold text-[#A97800] dark:text-[#F4C542] uppercase tracking-wider">Total Rows</span>
-        <span className="text-xl font-black text-[#A97800] dark:text-[#F4C542]">
-          {importState.validation.newClients.length + importState.validation.duplicateClients.length + importState.validation.invalid.length}
-        </span>
-      </div>
-    </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 shrink-0">
+                  <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-500/25 rounded-2xl p-3.5">
+                    <span className="block text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">New</span>
+                    <span className="text-xl font-black text-emerald-600 dark:text-emerald-400">{importState.validation.newClients.length}</span>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-900/30 border border-slate-400/25 rounded-2xl p-3.5">
+                    <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Duplicates</span>
+                    <span className="text-xl font-black text-slate-500">{importState.validation.duplicateClients.length}</span>
+                  </div>
+                  <div className="bg-red-50 dark:bg-red-950/20 border border-red-500/25 rounded-2xl p-3.5">
+                    <span className="block text-[10px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider">Invalid</span>
+                    <span className="text-xl font-black text-red-600 dark:text-red-400">{importState.validation.invalid.length}</span>
+                  </div>
+                  <div className="bg-primary/10 border border-primary/30 rounded-2xl p-3.5">
+                    <span className="block text-[10px] font-bold text-[#A97800] dark:text-[#F4C542] uppercase tracking-wider">Total Rows</span>
+                    <span className="text-xl font-black text-[#A97800] dark:text-[#F4C542]">
+                      {importState.validation.newClients.length + importState.validation.duplicateClients.length + importState.validation.invalid.length}
+                    </span>
+                  </div>
+                </div>
 
-    <div className="flex-1 overflow-auto rounded-2xl border border-border bg-card">
-      {importState.validation.newClients.length === 0 && importState.validation.duplicateClients.length === 0 && importState.validation.invalid.length === 0 && (
-        <div className="py-8 text-center text-text-secondary text-xs">No records to preview.</div>
-      )}
+                <div className="flex-1 overflow-auto rounded-2xl border border-border bg-card">
+                  {importState.validation.newClients.length === 0 && importState.validation.duplicateClients.length === 0 && importState.validation.invalid.length === 0 && (
+                    <div className="py-8 text-center text-text-secondary text-xs">No records to preview.</div>
+                  )}
 
-      {importState.validation.newClients.length > 0 && (
-        <div className="w-full">
-          <div className="bg-emerald-50 dark:bg-emerald-950/20 border-b border-emerald-500/20 px-4 py-2.5 sticky top-0 z-30 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-            <h4 className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-              New Records to Import ({importState.validation.newClients.length})
-            </h4>
-          </div>
+                  {importState.validation.newClients.length > 0 && (
+                    <div className="w-full">
+                      <div className="bg-emerald-50 dark:bg-emerald-950/20 border-b border-emerald-500/20 px-4 py-2.5 sticky top-0 z-30 flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        <h4 className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                          New Records to Import ({importState.validation.newClients.length})
+                        </h4>
+                      </div>
 
-          {importTarget === 'clients' ? (
-            <div className="overflow-x-auto">
-              <table className="text-left text-[11px] border-collapse table-fixed">
-                <thead>
-                  <tr className="bg-surface-2">
-                    <th className="sticky top-9 left-0 z-20 bg-surface-2 border-b border-r border-border px-3 py-2.5 font-bold text-text-secondary w-[48px]">#</th>
-                    <th className="sticky top-9 left-[48px] z-20 bg-surface-2 border-b border-r border-border px-3 py-2.5 font-bold text-text-secondary w-[190px]">Client Name</th>
-                    <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[170px]">Beneficiary</th>
-                    <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[110px]">Birthday</th>
-                    <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[60px]">Age</th>
-                    <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[110px]">Relationship</th>
-                    <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[130px]">Policy No.</th>
-                    <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[160px]">Product</th>
-                    <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[130px]">Approval Date</th>
-                    <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[130px]">Annual Premium</th>
-                    <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[130px]">Mobile Number</th>
-                    <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[190px]">Email</th>
-                    <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[200px]">Address</th>
-                    <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[140px]">Fund Allocation</th>
-                    <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[130px]">Mode of Payment</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {importState.validation.newClients.slice(0, 200).map((r: any, i: number) => (
-                    <tr key={i} className={`${i % 2 === 0 ? 'bg-card' : 'bg-surface-2/40'} hover:bg-primary/10 transition-colors`}>
-                      <td className={`sticky left-0 z-10 ${i % 2 === 0 ? 'bg-card' : 'bg-surface-2/40'} border-r border-b border-border/40 px-3 py-2 text-text-secondary font-mono`}>{i + 1}</td>
-                      <td className={`sticky left-[48px] z-10 ${i % 2 === 0 ? 'bg-card' : 'bg-surface-2/40'} border-r border-b border-border/40 px-3 py-2 font-bold text-text truncate`} title={r.clientName}>{r.clientName || '—'}</td>
-                      <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate" title={r.beneficiary}>{r.beneficiary || '—'}</td>
-                      <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate">{r.birthdate || '—'}</td>
-                      <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate">{r.age || '—'}</td>
-                      <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate">{r.relationship || '—'}</td>
-                      <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate font-mono">{r.policyNumber || '—'}</td>
-                      <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate">{r.product || '—'}</td>
-                      <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate">{r.approvalDate || '—'}</td>
-                      <td className="border-b border-border/40 px-3 py-2 text-emerald-600 dark:text-emerald-400 font-semibold truncate">{r.annualPremium ? `₱${Number(r.annualPremium).toLocaleString()}` : '—'}</td>
-                      <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate">{r.mobileNumber || '—'}</td>
-                      <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate" title={r.email}>{r.email || '—'}</td>
-                      <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate" title={r.address}>{r.address || '—'}</td>
-                      <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate">{r.fundAllocation || '—'}</td>
-                      <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate">{r.modeOfPayment?.trim() || '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <table className="w-full text-left text-xs whitespace-nowrap">
-              <thead className="sticky top-9 bg-card border-b border-border z-10">
-                <tr>
-                  <th className="py-2 px-3 font-bold text-text-secondary">#</th>
-                  <th className="py-2 px-3 font-bold text-text-secondary">Name</th>
-                  <th className="py-2 px-3 font-bold text-text-secondary">Email</th>
-                </tr>
-              </thead>
-              <tbody>
-                {importState.validation.newClients.slice(0, 200).map((r: any, i: number) => (
-                  <tr key={i} className={`${i % 2 === 0 ? 'bg-card' : 'bg-surface-2/40'} hover:bg-primary/10 transition-colors border-b border-border/40`}>
-                    <td className="py-2 px-3 text-text-secondary">{i + 1}</td>
-                    <td className="py-2 px-3 font-semibold text-text">{r.advisorName}</td>
-                    <td className="py-2 px-3 text-text-secondary">{r.email || '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      )}
+                      {importTarget === 'clients' ? (
+                        <div className="overflow-x-auto">
+                          <table className="text-left text-[11px] border-collapse table-fixed">
+                            <thead>
+                              <tr className="bg-surface-2">
+                                <th className="sticky top-9 left-0 z-20 bg-surface-2 border-b border-r border-border px-3 py-2.5 font-bold text-text-secondary w-[48px]">#</th>
+                                <th className="sticky top-9 left-[48px] z-20 bg-surface-2 border-b border-r border-border px-3 py-2.5 font-bold text-text-secondary w-[190px]">Client Name</th>
+                                <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[170px]">Beneficiary</th>
+                                <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[110px]">Birthday</th>
+                                <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[60px]">Age</th>
+                                <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[110px]">Relationship</th>
+                                <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[130px]">Policy No.</th>
+                                <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[160px]">Product</th>
+                                <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[130px]">Approval Date</th>
+                                <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[130px]">Annual Premium</th>
+                                <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[130px]">Mobile Number</th>
+                                <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[190px]">Email</th>
+                                <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[200px]">Address</th>
+                                <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[140px]">Fund Allocation</th>
+                                <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[130px]">Mode of Payment</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {importState.validation.newClients.slice(0, 200).map((r: any, i: number) => (
+                                <tr key={i} className={`${i % 2 === 0 ? 'bg-card' : 'bg-surface-2/40'} hover:bg-primary/10 transition-colors`}>
+                                  <td className={`sticky left-0 z-10 ${i % 2 === 0 ? 'bg-card' : 'bg-surface-2/40'} border-r border-b border-border/40 px-3 py-2 text-text-secondary font-mono`}>{i + 1}</td>
+                                  <td className={`sticky left-[48px] z-10 ${i % 2 === 0 ? 'bg-card' : 'bg-surface-2/40'} border-r border-b border-border/40 px-3 py-2 font-bold text-text truncate`} title={r.clientName}>{r.clientName || '—'}</td>
+                                  <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate" title={r.beneficiary}>{r.beneficiary || '—'}</td>
+                                  <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate">{r.birthdate || '—'}</td>
+                                  <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate">{r.age || '—'}</td>
+                                  <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate">{r.relationship || '—'}</td>
+                                  <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate font-mono">{r.policyNumber || '—'}</td>
+                                  <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate">{r.product || '—'}</td>
+                                  <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate">{r.approvalDate || '—'}</td>
+                                  <td className="border-b border-border/40 px-3 py-2 text-emerald-600 dark:text-emerald-400 font-semibold truncate">{r.annualPremium ? `₱${Number(r.annualPremium).toLocaleString()}` : '—'}</td>
+                                  <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate">{r.mobileNumber || '—'}</td>
+                                  <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate" title={r.email}>{r.email || '—'}</td>
+                                  <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate" title={r.address}>{r.address || '—'}</td>
+                                  <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate">{r.fundAllocation || '—'}</td>
+                                  <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate">{r.modeOfPayment?.trim() || '—'}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <table className="w-full text-left text-xs whitespace-nowrap">
+                          <thead className="sticky top-9 bg-card border-b border-border z-10">
+                            <tr>
+                              <th className="py-2 px-3 font-bold text-text-secondary">#</th>
+                              <th className="py-2 px-3 font-bold text-text-secondary">Name</th>
+                              <th className="py-2 px-3 font-bold text-text-secondary">Email</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {importState.validation.newClients.slice(0, 200).map((r: any, i: number) => (
+                              <tr key={i} className={`${i % 2 === 0 ? 'bg-card' : 'bg-surface-2/40'} hover:bg-primary/10 transition-colors border-b border-border/40`}>
+                                <td className="py-2 px-3 text-text-secondary">{i + 1}</td>
+                                <td className="py-2 px-3 font-semibold text-text">{r.advisorName}</td>
+                                <td className="py-2 px-3 text-text-secondary">{r.email || '—'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                  )}
 
-      {importState.validation.duplicateClients.length > 0 && (
-        <div className="w-full border-t border-border">
-          <details className="group">
-            <summary className="bg-slate-50 dark:bg-slate-900/30 px-4 py-2.5 sticky top-0 z-30 cursor-pointer list-none flex items-center justify-between hover:bg-slate-100 dark:hover:bg-slate-900/50 transition-colors">
-              <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded-full bg-slate-500/15 text-slate-600 dark:text-slate-400 text-[10px] font-bold uppercase">Skipped</span>
-                <h4 className="text-xs font-bold text-slate-600 dark:text-slate-400">
-                  Already in Registry ({importState.validation.duplicateClients.length})
-                </h4>
+                  {importState.validation.duplicateClients.length > 0 && (
+                    <div className="w-full border-t border-border">
+                      <details className="group">
+                        <summary className="bg-slate-50 dark:bg-slate-900/30 px-4 py-2.5 sticky top-0 z-30 cursor-pointer list-none flex items-center justify-between hover:bg-slate-100 dark:hover:bg-slate-900/50 transition-colors">
+                          <div className="flex items-center gap-2">
+                            <span className="px-2 py-0.5 rounded-full bg-slate-500/15 text-slate-600 dark:text-slate-400 text-[10px] font-bold uppercase">Skipped</span>
+                            <h4 className="text-xs font-bold text-slate-600 dark:text-slate-400">
+                              Already in Registry ({importState.validation.duplicateClients.length})
+                            </h4>
+                          </div>
+                          <ChevronRight size={14} className="text-slate-500 transition-transform group-open:rotate-90" />
+                        </summary>
+
+                        <div className="overflow-x-auto">
+                          <table className="text-left text-[11px] border-collapse table-fixed">
+                            <thead>
+                              <tr className="bg-surface-2">
+                                <th className="sticky left-0 z-10 bg-surface-2 border-r border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[48px]">#</th>
+                                <th className="sticky left-[48px] z-10 bg-surface-2 border-r border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[190px]">Client Name</th>
+                                <th className="border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[170px]">Beneficiary</th>
+                                {importTarget === 'clients' && <th className="border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[130px]">Policy No.</th>}
+                                <th className="border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[280px]">Match Reason</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {importState.validation.duplicateClients.slice(0, 200).map((r: any, i: number) => (
+                                <tr key={i} className={`${i % 2 === 0 ? 'bg-card' : 'bg-surface-2/40'} opacity-70 hover:opacity-100 transition-opacity`}>
+                                  <td className={`sticky left-0 z-10 ${i % 2 === 0 ? 'bg-card' : 'bg-surface-2/40'} border-r border-b border-border/40 px-3 py-2 text-text-secondary font-mono`}>{i + 1}</td>
+                                  <td className={`sticky left-[48px] z-10 ${i % 2 === 0 ? 'bg-card' : 'bg-surface-2/40'} border-r border-b border-border/40 px-3 py-2 font-bold text-text truncate`}>
+                                    {importTarget === 'clients' ? (r.clientName || '—') : r.advisorName}
+                                  </td>
+                                  <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate">{r.beneficiary || '—'}</td>
+                                  {importTarget === 'clients' && <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate font-mono">{r.policyNumber || '—'}</td>}
+                                  <td className="border-b border-border/40 px-3 py-2 text-text-secondary italic truncate">
+                                    Matches: {r._matchedName} — Policy {r._matchedPolicy || 'N/A'}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </details>
+                    </div>
+                  )}
+
+                  {importState.validation.invalid.length > 0 && (
+                    <div className="w-full border-t border-border">
+                      <details className="group" open>
+                        <summary className="bg-red-50 dark:bg-red-950/20 px-4 py-2.5 sticky top-0 z-30 cursor-pointer list-none flex items-center justify-between hover:bg-red-100 dark:hover:bg-red-950/40 transition-colors">
+                          <div className="flex items-center gap-2">
+                            <span className="px-2 py-0.5 rounded-full bg-red-500/15 text-red-600 dark:text-red-400 text-[10px] font-bold uppercase">Invalid</span>
+                            <h4 className="text-xs font-bold text-red-600 dark:text-red-400">
+                              Missing Required Fields ({importState.validation.invalid.length})
+                            </h4>
+                          </div>
+                          <ChevronRight size={14} className="text-red-500 transition-transform group-open:rotate-90" />
+                        </summary>
+                        <table className="w-full text-left text-xs whitespace-nowrap">
+                          <thead className="sticky top-0 bg-card border-b border-border z-10">
+                            <tr>
+                              <th className="py-2 px-3 font-bold text-text-secondary">Row</th>
+                              <th className="py-2 px-3 font-bold text-text-secondary">Reason</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {importState.validation.invalid.slice(0, 200).map((r: any, i: number) => (
+                              <tr key={i} className={`${i % 2 === 0 ? 'bg-card' : 'bg-surface-2/40'} border-b border-border/40`}>
+                                <td className="py-2 px-3 font-mono text-red-500">{r.rowNumber}</td>
+                                <td className="py-2 px-3 text-red-500">{r.reason}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </details>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex gap-3 pt-1 shrink-0">
+                  <button
+                    onClick={() => {
+                      if (importTarget === 'clients') {
+                        processAndImportClients(importState.validation!.newClients, importState.fileName, importState.validation!.stats);
+                      } else {
+                        processAndImportAdvisors(importState.validation!.newClients, importState.fileName, importState.validation!.stats);
+                      }
+                    }}
+                    disabled={importState.validation.newClients.length === 0}
+                    className="flex-1 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-extrabold text-xs py-3 rounded-full transition-all duration-200 cursor-pointer shadow-md active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Import New {importTarget === 'clients' ? 'Clients' : 'Advisors'} ({importState.validation.newClients.length})
+                  </button>
+                  <button
+                    onClick={() => {
+                      resetImportState();
+                      setImportFile(null);
+                      setPastedText('');
+                    }}
+                    className="flex-1 bg-transparent border border-border text-text hover:bg-surface-2 text-xs font-semibold py-3 rounded-full transition-all duration-200 cursor-pointer active:scale-[0.97]"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
-              <ChevronRight size={14} className="text-slate-500 transition-transform group-open:rotate-90" />
-            </summary>
-
-            <div className="overflow-x-auto">
-              <table className="text-left text-[11px] border-collapse table-fixed">
-                <thead>
-                  <tr className="bg-surface-2">
-                    <th className="sticky left-0 z-10 bg-surface-2 border-r border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[48px]">#</th>
-                    <th className="sticky left-[48px] z-10 bg-surface-2 border-r border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[190px]">Client Name</th>
-                    <th className="border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[170px]">Beneficiary</th>
-                    {importTarget === 'clients' && <th className="border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[130px]">Policy No.</th>}
-                    <th className="border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[280px]">Match Reason</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {importState.validation.duplicateClients.slice(0, 200).map((r: any, i: number) => (
-                    <tr key={i} className={`${i % 2 === 0 ? 'bg-card' : 'bg-surface-2/40'} opacity-70 hover:opacity-100 transition-opacity`}>
-                      <td className={`sticky left-0 z-10 ${i % 2 === 0 ? 'bg-card' : 'bg-surface-2/40'} border-r border-b border-border/40 px-3 py-2 text-text-secondary font-mono`}>{i + 1}</td>
-                      <td className={`sticky left-[48px] z-10 ${i % 2 === 0 ? 'bg-card' : 'bg-surface-2/40'} border-r border-b border-border/40 px-3 py-2 font-bold text-text truncate`}>
-                        {importTarget === 'clients' ? (r.clientName || '—') : r.advisorName}
-                      </td>
-                      <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate">{r.beneficiary || '—'}</td>
-                      {importTarget === 'clients' && <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate font-mono">{r.policyNumber || '—'}</td>}
-                      <td className="border-b border-border/40 px-3 py-2 text-text-secondary italic truncate">
-                        Matches: {r._matchedName} — Policy {r._matchedPolicy || 'N/A'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </details>
-        </div>
-      )}
-
-      {importState.validation.invalid.length > 0 && (
-        <div className="w-full border-t border-border">
-          <details className="group" open>
-            <summary className="bg-red-50 dark:bg-red-950/20 px-4 py-2.5 sticky top-0 z-30 cursor-pointer list-none flex items-center justify-between hover:bg-red-100 dark:hover:bg-red-950/40 transition-colors">
-              <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded-full bg-red-500/15 text-red-600 dark:text-red-400 text-[10px] font-bold uppercase">Invalid</span>
-                <h4 className="text-xs font-bold text-red-600 dark:text-red-400">
-                  Missing Required Fields ({importState.validation.invalid.length})
-                </h4>
-              </div>
-              <ChevronRight size={14} className="text-red-500 transition-transform group-open:rotate-90" />
-            </summary>
-            <table className="w-full text-left text-xs whitespace-nowrap">
-              <thead className="sticky top-0 bg-card border-b border-border z-10">
-                <tr>
-                  <th className="py-2 px-3 font-bold text-text-secondary">Row</th>
-                  <th className="py-2 px-3 font-bold text-text-secondary">Reason</th>
-                </tr>
-              </thead>
-              <tbody>
-                {importState.validation.invalid.slice(0, 200).map((r: any, i: number) => (
-                  <tr key={i} className={`${i % 2 === 0 ? 'bg-card' : 'bg-surface-2/40'} border-b border-border/40`}>
-                    <td className="py-2 px-3 font-mono text-red-500">{r.rowNumber}</td>
-                    <td className="py-2 px-3 text-red-500">{r.reason}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </details>
-        </div>
-      )}
-    </div>
-
-    <div className="flex gap-3 pt-1 shrink-0">
-      <button
-        onClick={() => {
-          if (importTarget === 'clients') {
-            processAndImportClients(importState.validation!.newClients, importState.fileName, importState.validation!.stats);
-          } else {
-            processAndImportAdvisors(importState.validation!.newClients, importState.fileName, importState.validation!.stats);
-          }
-        }}
-        disabled={importState.validation.newClients.length === 0}
-        className="flex-1 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-extrabold text-xs py-3 rounded-full transition-all duration-200 cursor-pointer shadow-md active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        Import New {importTarget === 'clients' ? 'Clients' : 'Advisors'} ({importState.validation.newClients.length})
-      </button>
-      <button
-        onClick={() => {
-          resetImportState();
-          setImportFile(null);
-          setPastedText('');
-        }}
-        className="flex-1 bg-transparent border border-border text-text hover:bg-surface-2 text-xs font-semibold py-3 rounded-full transition-all duration-200 cursor-pointer active:scale-[0.97]"
-      >
-        Cancel
-      </button>
-    </div>
-  </div>
-)}
+            )}
 
             {importState.phase === 'importing' && (
               <div className="p-12 flex flex-col items-center justify-center space-y-4">
