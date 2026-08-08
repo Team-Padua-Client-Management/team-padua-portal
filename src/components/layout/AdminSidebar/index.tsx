@@ -9,7 +9,8 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Users, CalendarCheck,
   ChevronDown, ChevronRight, ChevronLeft, X,
-  Briefcase, Globe, Menu
+  Briefcase, Globe, Menu,
+  PaintBucket
 } from 'lucide-react';
 import { useAdminLayoutContext } from '@src/components/layout';
 
@@ -170,24 +171,21 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
   const menuItems = [
     { name: 'Members', href: '/admin/members', icon: Users },
     { name: 'Calendar', href: '/admin/calendar', icon: CalendarCheck },
+    { name: 'Design', href: '/admin/Design', icon: PaintBucket },
   ];
 
   const sidebarContent = (
     <div className={styles.sidebarInner}>
       <div className={`pt-10 pb-5 border-b border-slate-100 dark:border-slate-800/50 flex flex-col items-center ${styles.sidebarHeader} ${isEffectivelyCollapsed ? styles.sidebarHeaderCollapsed : ''}`}>
         <div className={`${styles.sidebarHeaderContainer} ${isEffectivelyCollapsed ? styles.sidebarHeaderContainerCollapsed : ''}`}>
-          <Link href="/admin/dashboard" className={`flex items-center gap-3 ${isEffectivelyCollapsed ? styles.headerBrandCollapsed : ''}`}>
+          <Link href="/admin/dashboard" className="flex items-center justify-center p-1" title="Team Padua Dashboard">
             <Image
               src="/Image/icon/TPC.png"
               alt="Team Padua Logo"
-              width={32}
-              height={32}
-              className={`object-contain shrink-0 ${styles.logoFade} ${isEffectivelyCollapsed ? styles.logoFadeHidden : ''}`}
+              width={34}
+              height={34}
+              className="object-contain shrink-0 opacity-100 block"
             />
-            <div className={`${styles.textFade} ${isEffectivelyCollapsed ? styles.textFadeHidden : ''}`}>
-              <h1 className={styles.sidebarTitle}>Team Padua</h1>
-              <p className={styles.sidebarSubtitle}>Control Terminal</p>
-            </div>
           </Link>
         </div>
 
@@ -255,7 +253,6 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
 
           {!isEffectivelyCollapsed && camsOpen && (
             <div className={`${styles.sidebarSubNav} flex flex-col gap-1.5`}>
-              {/* Category 1: Client Servicing */}
               <div className="flex flex-col">
                 <button
                   type="button"
@@ -284,36 +281,6 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                 )}
               </div>
 
-              {/* Category 2: Trackers */}
-              {/* <div className="flex flex-col">
-                <button
-                  type="button"
-                  onClick={() => setTrackersOpen(!trackersOpen)}
-                  className="flex items-center justify-between w-full px-2.5 py-1.5 text-[11px] font-bold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors border-0 cursor-pointer bg-transparent text-left"
-                >
-                  <span>Trackers</span>
-                  {trackersOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-                </button>
-                {trackersOpen && (
-                  <div className="pl-2 border-l border-slate-200 dark:border-slate-800 ml-1.5 mt-1 space-y-0.5">
-                    {trackerItems.map((sub) => {
-                      const subActive = pathname === sub.href || pathname.startsWith(sub.href);
-                      return (
-                        <Link
-                          key={sub.href}
-                          href={sub.href}
-                          onClick={onClose}
-                          className={`${styles.sidebarSubNavItem} ${subActive ? styles.navSubActive : styles.navSubInactive}`}
-                        >
-                          <span>{sub.name}</span>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                )}
-              </div> */}
-
-              {/* Category 3: Client Servicing Request Forms */}
               <div className="flex flex-col">
                 <button
                   type="button"
@@ -401,7 +368,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
 
         {menuItems.map((item) => {
           const Icon = item.icon;
-          const active = pathname === item.href || (item.href !== '/admin/dashboard' && pathname.startsWith(item.href));
+          const active = pathname.toLowerCase() === item.href.toLowerCase() || (item.href !== '/admin/dashboard' && pathname.toLowerCase().startsWith(item.href.toLowerCase()));
           return (
             <Link
               key={item.href}

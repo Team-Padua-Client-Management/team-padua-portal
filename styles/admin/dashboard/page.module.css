@@ -3819,12 +3819,12 @@
 .flatFormHeaderRow {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 8px;
 
   width: 100%;
-  min-height: 64px;
+  min-height: 44px;
 
-  padding: 12px 18px;
+  padding: 6px 12px;
 
   cursor: pointer;
 }
@@ -3832,8 +3832,8 @@
 .flatFormBadge {
   flex-shrink: 0;
 
-  min-width: 62px;
-  height: 34px;
+  min-width: 44px;
+  height: 26px;
 
   display: flex;
   align-items: center;
@@ -3841,17 +3841,19 @@
 
   border-radius: 999px;
 
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
+  padding: 0 4px;
 }
 
 .flatFormName {
   flex: 1;
   min-width: 0;
 
-  font-size: 15px;
+  font-size: clamp(11.5px, 0.95vw, 13px);
   font-weight: 700;
   color: var(--text);
+  line-height: 1.25;
 
   white-space: nowrap;
   overflow: hidden;
@@ -3861,14 +3863,14 @@
 .flatFormRight {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 6px;
 
   flex-shrink: 0;
 }
 
 .flatFormCountPill {
-  min-width: 38px;
-  height: 28px;
+  min-width: 30px;
+  height: 24px;
 
   display: flex;
   align-items: center;
@@ -3876,7 +3878,7 @@
 
   border-radius: 999px;
 
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 700;
 }
 
@@ -3890,16 +3892,16 @@
 .flatFormQuickLaunchBtn {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
 
-  height: 34px;
-  padding: 0 16px;
+  height: 28px;
+  padding: 0 10px;
 
   border-radius: 999px;
 
   white-space: nowrap;
 
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
 }
 
@@ -4423,39 +4425,44 @@
   }
 }
 
-.heroGreeting {
+.heroGreetingBlock {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
   margin: 0;
-
-  line-height: 1.1;
 }
 
 .heroGreetingBadge {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-
-  padding: 8px 16px;
-
+  padding: 6px 14px;
   border-radius: 999px;
-
-  background: linear-gradient(135deg, #f6c453, #d88b00);
-  color: #fff;
-
-  font-size: 0.92rem;
+  background: rgba(30, 27, 75, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  color: #ffffff;
+  font-size: 0.8rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
-.heroGreetingName {
-  font-size: clamp(2rem, 2.6vw, 2.4rem);
-  /* Smaller than before */
+.heroGreetingTitle {
+  margin: 0;
+  font-size: clamp(1.8rem, 2.5vw, 2.5rem);
   font-weight: 800;
-  color: #1f1f1f;
+  color: #ffffff;
   letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.heroGreetingName {
+  font-size: inherit;
+  font-weight: 800;
+  color: #ffffff !important;
+  border-bottom: 3.5px solid #F59E0B;
+  padding-bottom: 2px;
+  display: inline-block;
 }

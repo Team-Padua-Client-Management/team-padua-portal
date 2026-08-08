@@ -439,7 +439,7 @@ function CategoryRow({
         onClick={onToggle}
         style={{
           display: 'grid',
-          gridTemplateColumns: '68px 1fr 40px',
+          gridTemplateColumns: '54px 1fr 36px',
           alignItems: 'stretch',
           width: '100%',
           borderLeft: `4px solid ${meta.accent}`,
@@ -458,8 +458,8 @@ function CategoryRow({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '16px 0',
-            fontSize: '28px',
+            padding: '10px 0',
+            fontSize: '22px',
             fontWeight: 800,
             color: meta.accent,
             fontVariantNumeric: 'tabular-nums',
@@ -474,11 +474,11 @@ function CategoryRow({
 
         <span
           style={{
-            padding: '16px 20px',
-            fontSize: '15.5px',
+            padding: '10px 14px',
+            fontSize: '13.5px',
             fontWeight: 700,
             color: 'var(--text)',
-            lineHeight: 1.3,
+            lineHeight: 1.2,
             whiteSpace: 'normal',
             wordBreak: 'break-word',
             display: 'flex',

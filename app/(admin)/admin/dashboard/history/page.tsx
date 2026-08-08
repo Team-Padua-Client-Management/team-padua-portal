@@ -161,9 +161,37 @@ export default function HistoryPage() {
   }, [servicingTasks, searchTerm, filterCategory]);
 
   const categories = useMemo(() => {
-    const cats = new Set(servicingTasks.map((t) => t.category));
-    return ['All', ...Array.from(cats).filter(Boolean)];
+    const cats = Array.from(new Set(servicingTasks.map((t) => t.category))).filter(Boolean) as string[];
+    cats.sort((a, b) => {
+      const labelA = getCategoryMeta(a).title;
+      const labelB = getCategoryMeta(b).title;
+      return labelA.localeCompare(labelB);
+    });
+    return ['All', ...cats];
   }, [servicingTasks]);
+
+  const groupedTasks = useMemo(() => {
+    if (filterCategory !== 'All') {
+      return [{ category: filterCategory, tasks: historyTasks }];
+    }
+    const map = new Map<string, WorkflowTaskItem[]>();
+    for (const task of historyTasks) {
+      const cat = task.category || 'Others';
+      if (!map.has(cat)) {
+        map.set(cat, []);
+      }
+      map.get(cat)!.push(task);
+    }
+    const sortedCats = Array.from(map.keys()).sort((a, b) => {
+      const titleA = getCategoryMeta(a).title;
+      const titleB = getCategoryMeta(b).title;
+      return titleA.localeCompare(titleB);
+    });
+    return sortedCats.map((cat) => ({
+      category: cat,
+      tasks: map.get(cat)!,
+    }));
+  }, [historyTasks, filterCategory]);
 
   const toggleTimeline = (taskId: string) => {
     setExpandedTimelines((prev) => ({ ...prev, [taskId]: !prev[taskId] }));
@@ -284,177 +312,218 @@ export default function HistoryPage() {
               </div>
             </div>
 
-            <div style={{ padding: '0 24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div style={{ padding: '0 24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
               {historyTasks.length > 0 ? (
-                historyTasks.map((task) => {
-                  const meta = parseTaskMetadata(task.notes || '');
-                  const workflowStatus = meta.workflow_status || task.workflow_status || DEFAULT_WORKFLOW_STATUS;
-                  const statusColor = getWorkflowStatusColor(workflowStatus);
-                  const relationship = meta.policy_insured_relationship || DEFAULT_POLICY_RELATIONSHIP;
-                  const showInsured = relationship === 'DIFFERENT_FROM_OWNER' && meta.policy_insured;
-                  const processedBy = findProfileById(task.processed_by);
-                  const assignedTo = findProfileById(task.assigned_to);
-                  const categoryMeta = getCategoryMeta(task.category);
-                  const hasTimeline = !!(meta.timeline && meta.timeline.trim().length > 0);
-                  const isTimelineOpen = !!expandedTimelines[task.id];
-
+                groupedTasks.map((group) => {
+                  const catMeta = getCategoryMeta(group.category);
                   return (
-                    <div
-                      key={task.id}
-                      style={{
-                        background: 'var(--surface)',
-                        borderRadius: '16px',
-                        border: '1px solid var(--border)',
-                        boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
-                        padding: '22px 24px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '18px',
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'flex-start',
-                          justifyContent: 'space-between',
-                          gap: '16px',
-                          paddingBottom: '16px',
-                          borderBottom: '1px solid var(--border)',
-                        }}
-                      >
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                          <span
-                            style={{
-                              fontSize: '19px',
-                              fontWeight: 800,
-                              color: categoryMeta.accent,
-                              lineHeight: 1.2,
-                            }}
-                          >
-                            {categoryMeta.badge}
-                          </span>
-                          <span
-                            style={{
-                              fontSize: '13.5px',
-                              fontWeight: 500,
-                              color: 'var(--text-secondary)',
-                            }}
-                          >
-                            {categoryMeta.title}
-                          </span>
-                        </div>
-
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <span
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              padding: '6px 14px',
-                              borderRadius: '999px',
-                              fontSize: '12px',
-                              fontWeight: 700,
-                              background: statusColor.bg,
-                              color: statusColor.color,
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            {workflowStatus}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setEditingTaskId(task.id)}
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '6px',
-                              padding: '6px 12px',
-                              borderRadius: '999px',
-                              fontSize: '12px',
-                              fontWeight: 700,
-                              background: 'var(--bg-muted)',
-                              color: 'var(--text)',
-                              border: '1px solid var(--border)',
-                              cursor: 'pointer',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            <Pencil size={12} strokeWidth={2.5} />
-                            Edit
-                          </button>
-                        </div>
-                      </div>
-
-                      <div
-                        style={{
-                          display: 'grid',
-                          gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-                          columnGap: '20px',
-                          rowGap: '18px',
-                        }}
-                      >
-                        <InfoField label="Policy Owner" value={meta.policy_owner} />
-                        <InfoField label="Policy Number" value={meta.policy_number} />
-                        {showInsured && <InfoField label="Policy Insured" value={meta.policy_insured} />}
-                        <InfoField label="Date Requested" value={formatDate(meta.date_of_request)} />
-                        <InfoField label="Processed By" value={processedBy?.full_name || processedBy?.email || 'N/A'} />
-                        <InfoField label="Assigned To" value={assignedTo?.full_name || assignedTo?.email || 'Unassigned'} />
-                        <InfoField label="Created" value={formatDateTime(task.created_at)} />
-                        <InfoField label="Updated" value={formatDateTime(task.updated_at)} />
-                      </div>
-
-                      {hasTimeline && (
+                    <div key={group.category} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                      {filterCategory === 'All' && (
                         <div
                           style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '12px 18px',
+                            background: 'var(--surface)',
+                            borderRadius: '12px',
                             border: '1px solid var(--border)',
-                            borderRadius: '10px',
-                            overflow: 'hidden',
+                            borderLeft: `5px solid ${catMeta.accent}`,
+                            marginTop: '8px',
                           }}
                         >
-                          <button
-                            type="button"
-                            onClick={() => toggleTimeline(task.id)}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <span style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text)' }}>
+                              {catMeta.title}
+                            </span>
+                          </div>
+                          <span
                             style={{
-                              width: '100%',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              padding: '10px 14px',
-                              background: 'var(--bg-muted)',
-                              border: 'none',
-                              cursor: 'pointer',
                               fontSize: '11px',
                               fontWeight: 700,
                               color: 'var(--text-tertiary)',
-                              textTransform: 'uppercase',
-                              letterSpacing: '0.05em',
+                              background: 'var(--bg-muted)',
+                              padding: '4px 10px',
+                              borderRadius: '999px',
                             }}
                           >
-                            Timeline / Notes
-                            <ChevronDown
-                              size={16}
-                              style={{
-                                transform: isTimelineOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                                transition: 'transform 0.2s',
-                              }}
-                            />
-                          </button>
-                          {isTimelineOpen && (
-                            <div
-                              style={{
-                                background: 'var(--bg-muted)',
-                                padding: '4px 14px 14px 14px',
-                                fontSize: '13px',
-                                color: 'var(--text-secondary)',
-                                whiteSpace: 'pre-wrap',
-                                maxHeight: '220px',
-                                overflowY: 'auto',
-                              }}
-                            >
-                              {meta.timeline}
-                            </div>
-                          )}
+                            {group.tasks.length} {group.tasks.length === 1 ? 'request' : 'requests'}
+                          </span>
                         </div>
                       )}
+
+                      {group.tasks.map((task) => {
+                        const meta = parseTaskMetadata(task.notes || '');
+                        const workflowStatus = meta.workflow_status || task.workflow_status || DEFAULT_WORKFLOW_STATUS;
+                        const statusColor = getWorkflowStatusColor(workflowStatus);
+                        const relationship = meta.policy_insured_relationship || DEFAULT_POLICY_RELATIONSHIP;
+                        const showInsured = relationship === 'DIFFERENT_FROM_OWNER' && meta.policy_insured;
+                        const processedBy = findProfileById(task.processed_by);
+                        const assignedTo = findProfileById(task.assigned_to);
+                        const categoryMeta = getCategoryMeta(task.category);
+                        const hasTimeline = !!(meta.timeline && meta.timeline.trim().length > 0);
+                        const isTimelineOpen = !!expandedTimelines[task.id];
+
+                        return (
+                          <div
+                            key={task.id}
+                            style={{
+                              background: 'var(--surface)',
+                              borderRadius: '16px',
+                              border: '1px solid var(--border)',
+                              boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+                              padding: '22px 24px',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '18px',
+                            }}
+                          >
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'flex-start',
+                                justifyContent: 'space-between',
+                                gap: '16px',
+                                paddingBottom: '16px',
+                                borderBottom: '1px solid var(--border)',
+                              }}
+                            >
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                <span
+                                  style={{
+                                    fontSize: '19px',
+                                    fontWeight: 800,
+                                    color: categoryMeta.accent,
+                                    lineHeight: 1.2,
+                                  }}
+                                >
+                                  {categoryMeta.badge}
+                                </span>
+                                <span
+                                  style={{
+                                    fontSize: '13.5px',
+                                    fontWeight: 500,
+                                    color: 'var(--text-secondary)',
+                                  }}
+                                >
+                                  {categoryMeta.title}
+                                </span>
+                              </div>
+
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <span
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    padding: '6px 14px',
+                                    borderRadius: '999px',
+                                    fontSize: '12px',
+                                    fontWeight: 700,
+                                    background: statusColor.bg,
+                                    color: statusColor.color,
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                >
+                                  {workflowStatus}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingTaskId(task.id)}
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    padding: '6px 12px',
+                                    borderRadius: '999px',
+                                    fontSize: '12px',
+                                    fontWeight: 700,
+                                    background: 'var(--bg-muted)',
+                                    color: 'var(--text)',
+                                    border: '1px solid var(--border)',
+                                    cursor: 'pointer',
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                >
+                                  <Pencil size={12} strokeWidth={2.5} />
+                                  Edit
+                                </button>
+                              </div>
+                            </div>
+
+                            <div
+                              style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+                                columnGap: '20px',
+                                rowGap: '18px',
+                              }}
+                            >
+                              <InfoField label="Policy Owner" value={meta.policy_owner} />
+                              <InfoField label="Policy Number" value={meta.policy_number} />
+                              {showInsured && <InfoField label="Policy Insured" value={meta.policy_insured} />}
+                              <InfoField label="Date Requested" value={formatDate(meta.date_of_request)} />
+                              <InfoField label="Processed By" value={processedBy?.full_name || processedBy?.email || 'N/A'} />
+                              <InfoField label="Assigned To" value={assignedTo?.full_name || assignedTo?.email || 'Unassigned'} />
+                              <InfoField label="Created" value={formatDateTime(task.created_at)} />
+                              <InfoField label="Updated" value={formatDateTime(task.updated_at)} />
+                            </div>
+
+                            {hasTimeline && (
+                              <div
+                                style={{
+                                  border: '1px solid var(--border)',
+                                  borderRadius: '10px',
+                                  overflow: 'hidden',
+                                }}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => toggleTimeline(task.id)}
+                                  style={{
+                                    width: '100%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    padding: '10px 14px',
+                                    background: 'var(--bg-muted)',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    fontSize: '11px',
+                                    fontWeight: 700,
+                                    color: 'var(--text-tertiary)',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.05em',
+                                  }}
+                                >
+                                  Timeline / Notes
+                                  <ChevronDown
+                                    size={16}
+                                    style={{
+                                      transform: isTimelineOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                                      transition: 'transform 0.2s',
+                                    }}
+                                  />
+                                </button>
+                                {isTimelineOpen && (
+                                  <div
+                                    style={{
+                                      background: 'var(--bg-muted)',
+                                      padding: '4px 14px 14px 14px',
+                                      fontSize: '13px',
+                                      color: 'var(--text-secondary)',
+                                      whiteSpace: 'pre-wrap',
+                                      maxHeight: '220px',
+                                      overflowY: 'auto',
+                                    }}
+                                  >
+                                    {meta.timeline}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   );
                 })

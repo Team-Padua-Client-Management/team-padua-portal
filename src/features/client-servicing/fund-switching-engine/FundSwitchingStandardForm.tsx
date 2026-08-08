@@ -195,14 +195,14 @@ export default function FundSwitchingStandardForm({
         </div>
 
         <div className="flex bg-slate-100 p-1 rounded-lg">
-          <button 
-            onClick={() => handleViewModeChange('form')} 
+          <button
+            onClick={() => handleViewModeChange('form')}
             className={`flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${viewMode === 'form' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}
           >
             <FileEdit size={14} /> Form Entry
           </button>
-          <button 
-            onClick={() => handleViewModeChange('literal')} 
+          <button
+            onClick={() => handleViewModeChange('literal')}
             className={`flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${viewMode === 'literal' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}
           >
             <Eye size={14} /> Literal Display
@@ -236,10 +236,10 @@ export default function FundSwitchingStandardForm({
         {viewMode === 'form' ? (
           <div className="flex-1 overflow-y-auto p-6 md:p-8">
             <div className="max-w-4xl mx-auto space-y-8 pb-12">
-          
+
               <div className={cardClass}>
                 <h3 className="text-base font-bold text-slate-900 mb-4 border-b pb-2">Client Selection & Request Status</h3>
-                
+
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1">Request Status</label>
                   <select
@@ -293,7 +293,7 @@ export default function FundSwitchingStandardForm({
                           <input type="text" value={formData.email_address} onChange={e => handleChange('email_address', e.target.value)} className={inputClass} />
                         </div>
                       </div>
-                      
+
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                           <label className={labelClass}>Mobile Phone</label>
@@ -468,7 +468,7 @@ export default function FundSwitchingStandardForm({
                           <span className="text-sm text-slate-900">Cancel Excess Premium</span>
                         </label>
                       </div>
-                      
+
                       <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
                         <label className={labelClass}>Currency & Amount</label>
                         <div className="flex gap-4 mb-4">
@@ -481,13 +481,13 @@ export default function FundSwitchingStandardForm({
                             <span className="text-sm text-slate-700">USD</span>
                           </label>
                         </div>
-                        <input 
-                          type="text" 
-                          value={formData.excess_amount} 
-                          onChange={e => handleChange('excess_amount', e.target.value)} 
-                          disabled={formData.excess_premium_option === 'cancel'} 
+                        <input
+                          type="text"
+                          value={formData.excess_amount}
+                          onChange={e => handleChange('excess_amount', e.target.value)}
+                          disabled={formData.excess_premium_option === 'cancel'}
                           placeholder="Amount"
-                          className={formData.excess_premium_option === 'cancel' ? inputDisabledClass : inputClass} 
+                          className={formData.excess_premium_option === 'cancel' ? inputDisabledClass : inputClass}
                         />
                       </div>
                     </div>
@@ -495,7 +495,7 @@ export default function FundSwitchingStandardForm({
 
                   <div className={cardClass}>
                     <h2 className="text-base font-bold text-slate-900 border-b pb-2 mb-4">5. Acknowledgement & Signatures</h2>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                       <div>
                         <label className={labelClass}>Place of Signing</label>

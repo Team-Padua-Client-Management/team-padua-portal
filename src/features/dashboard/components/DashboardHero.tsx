@@ -223,16 +223,12 @@ export default function DashboardHero({
 
       {/* Left side: Greeting badge, Welcome title, Role badge, Portal shortcuts */}
       <div className={styles.heroLeft}>
-        <h1 className={styles.heroGreeting}>
-          <span className={styles.heroGreetingBadge}>
-            {periodIcon}
-            {greeting},
-          </span>
-
-          <span className={styles.heroGreetingName}>
-            {adminName}
-          </span>
-        </h1>
+        <div className={styles.heroGreetingBlock}>
+          <h1 className={styles.heroGreetingTitle}>
+            <span className="text-white font-extrabold">{greeting}, </span>
+            <span className={styles.heroGreetingName}>{adminName}</span>
+          </h1>
+        </div>
 
         <div className={styles.memberBadge}>
           <span>ROLE AUTHORIZED &bull; ADMINISTRATOR</span>

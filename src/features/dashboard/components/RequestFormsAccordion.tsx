@@ -273,7 +273,7 @@ export default function RequestFormsAccordion({ kpis, userRole, userPermissions 
           ) : (
             <>
               {/* Form Rows List */}
-              <div className={`${styles.flatFormsList} space-y-3.5`}>
+              <div className={`${styles.flatFormsList} space-y-1.5`}>
                 {formsWithAccess.map((form) => {
                   const isExpanded = expandedFormId === form.id;
 

@@ -43,18 +43,6 @@ interface NotificationItem {
   created_at: string;
 }
 
-const pageConfig: Record<string, { title: string; description: string }> = {
-  dashboard: { title: 'Dashboard', description: 'Overview and analytics workspace' },
-  profile: { title: 'Profile', description: 'Manage account credentials' },
-  faq: { title: 'Knowledge Base', description: 'Verified systemic answers' },
-  announcements: { title: 'Announcements', description: 'Enterprise communication feeds' },
-  attendance: { title: 'Attendance', description: 'Daily punch logs and historical record ledger' },
-  members: { title: 'Members', description: 'Manage team roles and access' },
-  departments: { title: 'Departments', description: 'Organizational sectors' },
-  Design: { title: 'Design Studio', description: 'Creative canvas editor' },
-  cpst: { title: '2026 CPST', description: 'Client Prospect Servicing Tracker' },
-};
-
 // --- Real brand logo SVGs (official marks, not generic Lucide glyphs) ---
 
 
@@ -258,10 +246,6 @@ export default function AdminHeader({ onMenuClick }: HeaderProps) {
       .join('')
       .toUpperCase() || 'US';
 
-  const pathParts = pathname.split('/');
-  const currentPathKey = pathParts[2] || pathParts[1] || 'dashboard';
-  const currentPage = pageConfig[currentPathKey] || { title: 'Workspace', description: 'Administrative Node' };
-
   const renderAvatar = (wrapperClass: string, showStatusDot: boolean = false) => (
     <div className="relative shrink-0">
       <div className={wrapperClass} style={{ border: "none", background: "none" }}>
@@ -297,11 +281,23 @@ export default function AdminHeader({ onMenuClick }: HeaderProps) {
           >
             <Menu size={20} />
           </button>
-          <div className={styles.titleContainer}>
-            <span className={styles.breadcrumb}>Admin / {currentPage.title}</span>
-            <h1 className={styles.pageTitle}>{currentPage.title}</h1>
-            <p className={styles.pageDescription}>{currentPage.description}</p>
-          </div>
+          <Link href="/admin/dashboard" className="flex items-center gap-3.5 group transition-opacity hover:opacity-90">
+            <Image
+              src="/Image/icon/TPC.png"
+              alt="Team Padua Logo"
+              width={38}
+              height={38}
+              className="object-contain shrink-0"
+            />
+            <div>
+              <h1 className="text-xl md:text-2xl font-serif font-bold tracking-tight whitespace-nowrap text-foreground dark:text-white leading-tight">
+                Team Padua
+              </h1>
+              <p className="text-[10px] uppercase font-bold tracking-widest font-mono mt-0.5 whitespace-nowrap text-muted-foreground">
+                Control Terminal
+              </p>
+            </div>
+          </Link>
         </div>
 
         {/* <div className={styles.centerSection}>
@@ -312,7 +308,7 @@ export default function AdminHeader({ onMenuClick }: HeaderProps) {
                 type="text"
                 placeholder="Search clients, requests, activities, tasks..."
                 className={styles.searchInput}
-                value={searchQuery}
+                value={searchQuery}   
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
                   setIsSearchOpen(true);
@@ -355,7 +351,7 @@ export default function AdminHeader({ onMenuClick }: HeaderProps) {
             >
               {renderAvatar(styles.avatar, true)}
               <div className={styles.profileInfo}>
-                <span className={styles.profileName}>{userData.name}</span>
+                <span className={`${styles.profileName} dark:text-white`}>{userData.name}</span>
                 <span className={styles.profileRole}>{userData.role}</span>
               </div>
               <ChevronDown
@@ -368,7 +364,7 @@ export default function AdminHeader({ onMenuClick }: HeaderProps) {
               <div className={styles.dropdownHeader}>
                 {renderAvatar(styles.dropdownAvatar, true)}
                 <div className={styles.dropdownUserDetails}>
-                  <h3 className={styles.dropdownName}>{userData.name}</h3>
+                  <h3 className={`${styles.dropdownName} dark:text-white`}>{userData.name}</h3>
                   <p className={styles.dropdownRole}>{userData.role}</p>
                   <p className={styles.dropdownEmail}>{userData.email}</p>
                 </div>
