@@ -149,36 +149,186 @@ export default function PdiStandardForm({
                 </section>
 
                 {formData.client_id && (
-                  <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div className="bg-slate-900 px-6 py-4">
-                      <h2 className="text-sm font-bold text-white uppercase tracking-wider">1. General Information</h2>
-                    </div>
-                    <div className="p-6 space-y-6">
-
-                    <div className="grid grid-cols-1 gap-6">
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Date Submitted</label>
-                        <input
-                          type="date"
-                          value={formData.date_submitted || ''}
-                          onChange={(e) => handleChange('date_submitted', e.target.value)}
-                          className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
-                        />
+                  <>
+                    <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                      <div className="bg-slate-900 px-6 py-4">
+                        <h2 className="text-sm font-bold text-white uppercase tracking-wider">1. Plan & Personal Details</h2>
                       </div>
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Comments / Remarks</label>
-                      <textarea
-                        rows={3}
-                        value={formData.comments || ''}
-                        onChange={(e) => handleChange('comments', e.target.value)}
-                        className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all resize-y"
-                        placeholder="Enter any additional notes..."
-                      />
-                    </div>
-                  </div>
-                </section>
+                      <div className="p-6 space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Plan Number</label>
+                            <input
+                              type="text"
+                              value={formData.policy_number || ''}
+                              onChange={(e) => handleChange('policy_number', e.target.value)}
+                              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Planholder / Person Insured Name</label>
+                            <input
+                              type="text"
+                              value={formData.planholder_name || ''}
+                              onChange={(e) => handleChange('planholder_name', e.target.value)}
+                              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Birthdate</label>
+                            <input
+                              type="date"
+                              value={formData.birthdate || ''}
+                              onChange={(e) => handleChange('birthdate', e.target.value)}
+                              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Age</label>
+                            <input
+                              type="number"
+                              value={formData.age || ''}
+                              onChange={(e) => handleChange('age', e.target.value)}
+                              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Reinstatement Option</label>
+                            <select
+                              value={formData.reinstatement_option || 'reinstatement'}
+                              onChange={(e) => handleChange('reinstatement_option', e.target.value)}
+                              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm"
+                            >
+                              <option value="reinstatement">Reinstatement</option>
+                              <option value="updating">Updating</option>
+                              <option value="redating">Redating</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Date Submitted</label>
+                            <input
+                              type="date"
+                              value={formData.date_submitted || ''}
+                              onChange={(e) => handleChange('date_submitted', e.target.value)}
+                              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </section>
+
+                    <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                      <div className="bg-slate-900 px-6 py-4">
+                        <h2 className="text-sm font-bold text-white uppercase tracking-wider">2. Addresses & Contact Information</h2>
+                      </div>
+                      <div className="p-6 space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Residence Address</label>
+                            <textarea
+                              rows={2}
+                              value={formData.residence_address || ''}
+                              onChange={(e) => handleChange('residence_address', e.target.value)}
+                              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Mailing Address</label>
+                            <textarea
+                              rows={2}
+                              value={formData.mailing_address || ''}
+                              onChange={(e) => handleChange('mailing_address', e.target.value)}
+                              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Home Phone No.</label>
+                            <input
+                              type="text"
+                              value={formData.home_phone || ''}
+                              onChange={(e) => handleChange('home_phone', e.target.value)}
+                              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Business Phone No.</label>
+                            <input
+                              type="text"
+                              value={formData.work_phone || ''}
+                              onChange={(e) => handleChange('work_phone', e.target.value)}
+                              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Cell Phone No.</label>
+                            <input
+                              type="text"
+                              value={formData.mobile_phone || ''}
+                              onChange={(e) => handleChange('mobile_phone', e.target.value)}
+                              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Email Address</label>
+                            <input
+                              type="email"
+                              value={formData.email_address || ''}
+                              onChange={(e) => handleChange('email_address', e.target.value)}
+                              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </section>
+
+                    <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                      <div className="bg-slate-900 px-6 py-4">
+                        <h2 className="text-sm font-bold text-white uppercase tracking-wider">2. Signatures & Remarks</h2>
+                      </div>
+                      <div className="p-6 space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Printed Name</label>
+                            <input
+                              type="text"
+                              value={formData.printed_name || ''}
+                              onChange={(e) => handleChange('printed_name', e.target.value)}
+                              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Place of Signing</label>
+                            <input
+                              type="text"
+                              value={formData.place_of_signing || ''}
+                              onChange={(e) => handleChange('place_of_signing', e.target.value)}
+                              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Date of Signing</label>
+                            <input
+                              type="date"
+                              value={formData.date_of_signing || ''}
+                              onChange={(e) => handleChange('date_of_signing', e.target.value)}
+                              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">Comments / Remarks</label>
+                          <textarea
+                            rows={3}
+                            value={formData.comments || ''}
+                            onChange={(e) => handleChange('comments', e.target.value)}
+                            className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm resize-y"
+                            placeholder="Enter any additional notes..."
+                          />
+                        </div>
+                      </div>
+                    </section>
+                  </>
                 )}
 
             </div>

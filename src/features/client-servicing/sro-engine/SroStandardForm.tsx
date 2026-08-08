@@ -149,36 +149,274 @@ export default function SroStandardForm({
                 </section>
 
                 {formData.client_id && (
-                  <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div className="bg-slate-900 px-6 py-4">
-                      <h2 className="text-sm font-bold text-white uppercase tracking-wider">1. General Information</h2>
-                    </div>
-                    <div className="p-6 space-y-6">
-
-                    <div className="grid grid-cols-1 gap-6">
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Date Submitted</label>
-                        <input
-                          type="date"
-                          value={formData.date_submitted || ''}
-                          onChange={(e) => handleChange('date_submitted', e.target.value)}
-                          className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
-                        />
+                  <>
+                    <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                      <div className="bg-slate-900 px-6 py-4">
+                        <h2 className="text-sm font-bold text-white uppercase tracking-wider">1. Personal & Policy Details</h2>
                       </div>
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Comments / Remarks</label>
-                      <textarea
-                        rows={3}
-                        value={formData.comments || ''}
-                        onChange={(e) => handleChange('comments', e.target.value)}
-                        className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all resize-y"
-                        placeholder="Enter any additional notes..."
-                      />
-                    </div>
-                  </div>
-                </section>
+                      <div className="p-6 space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Policy Owner Name</label>
+                            <input
+                              type="text"
+                              value={formData.policy_owner_name || ''}
+                              onChange={(e) => handleChange('policy_owner_name', e.target.value)}
+                              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Life Insured Name (if different)</label>
+                            <input
+                              type="text"
+                              value={formData.life_insured_name || ''}
+                              onChange={(e) => handleChange('life_insured_name', e.target.value)}
+                              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Relationship to Insured</label>
+                            <input
+                              type="text"
+                              value={formData.relationship_to_insured || ''}
+                              onChange={(e) => handleChange('relationship_to_insured', e.target.value)}
+                              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Birthplace</label>
+                            <input
+                              type="text"
+                              value={formData.birthplace || ''}
+                              onChange={(e) => handleChange('birthplace', e.target.value)}
+                              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Birthdate</label>
+                            <input
+                              type="date"
+                              value={formData.birthdate || ''}
+                              onChange={(e) => handleChange('birthdate', e.target.value)}
+                              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Age</label>
+                            <input
+                              type="number"
+                              value={formData.age || ''}
+                              onChange={(e) => handleChange('age', e.target.value)}
+                              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Citizenship</label>
+                            <input
+                              type="text"
+                              value={formData.citizenship || ''}
+                              onChange={(e) => handleChange('citizenship', e.target.value)}
+                              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Legal Residence Country</label>
+                            <input
+                              type="text"
+                              value={formData.legal_residence_country || ''}
+                              onChange={(e) => handleChange('legal_residence_country', e.target.value)}
+                              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </section>
+
+                    <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                      <div className="bg-slate-900 px-6 py-4">
+                        <h2 className="text-sm font-bold text-white uppercase tracking-wider">2. Tax & ID Details</h2>
+                      </div>
+                      <div className="p-6 space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">ID Presented</label>
+                            <input
+                              type="text"
+                              value={formData.id_presented || ''}
+                              onChange={(e) => handleChange('id_presented', e.target.value)}
+                              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">ID Number</label>
+                            <input
+                              type="text"
+                              value={formData.id_number || ''}
+                              onChange={(e) => handleChange('id_number', e.target.value)}
+                              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">ID Expiry Date</label>
+                            <input
+                              type="date"
+                              value={formData.id_expiry || ''}
+                              onChange={(e) => handleChange('id_expiry', e.target.value)}
+                              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">TIN</label>
+                            <input
+                              type="text"
+                              value={formData.tin || ''}
+                              onChange={(e) => handleChange('tin', e.target.value)}
+                              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">SSS / GSIS No.</label>
+                            <input
+                              type="text"
+                              value={formData.sss_gsis_no || ''}
+                              onChange={(e) => handleChange('sss_gsis_no', e.target.value)}
+                              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Religion</label>
+                            <input
+                              type="text"
+                              value={formData.religion || ''}
+                              onChange={(e) => handleChange('religion', e.target.value)}
+                              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Explanation if no TIN/SSS/GSIS</label>
+                            <input
+                              type="text"
+                              value={formData.tin_explanation || ''}
+                              onChange={(e) => handleChange('tin_explanation', e.target.value)}
+                              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </section>
+
+                    <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                      <div className="bg-slate-900 px-6 py-4">
+                        <h2 className="text-sm font-bold text-white uppercase tracking-wider">3. Addresses & Contact Information</h2>
+                      </div>
+                      <div className="p-6 space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Permanent Residence Address</label>
+                            <textarea
+                              rows={2}
+                              value={formData.permanent_address || ''}
+                              onChange={(e) => handleChange('permanent_address', e.target.value)}
+                              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Present Residence Address</label>
+                            <textarea
+                              rows={2}
+                              value={formData.present_address || ''}
+                              onChange={(e) => handleChange('present_address', e.target.value)}
+                              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Home Phone</label>
+                            <input
+                              type="text"
+                              value={formData.home_phone || ''}
+                              onChange={(e) => handleChange('home_phone', e.target.value)}
+                              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Work Phone</label>
+                            <input
+                              type="text"
+                              value={formData.work_phone || ''}
+                              onChange={(e) => handleChange('work_phone', e.target.value)}
+                              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Mobile Phone</label>
+                            <input
+                              type="text"
+                              value={formData.mobile_phone || ''}
+                              onChange={(e) => handleChange('mobile_phone', e.target.value)}
+                              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Email Address</label>
+                            <input
+                              type="email"
+                              value={formData.email_address || ''}
+                              onChange={(e) => handleChange('email_address', e.target.value)}
+                              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </section>
+
+                    <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                      <div className="bg-slate-900 px-6 py-4">
+                        <h2 className="text-sm font-bold text-white uppercase tracking-wider">3. Signatures & Remarks</h2>
+                      </div>
+                      <div className="p-6 space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Printed Name</label>
+                            <input
+                              type="text"
+                              value={formData.printed_name || ''}
+                              onChange={(e) => handleChange('printed_name', e.target.value)}
+                              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Place of Signing</label>
+                            <input
+                              type="text"
+                              value={formData.place_of_signing || ''}
+                              onChange={(e) => handleChange('place_of_signing', e.target.value)}
+                              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Date of Signing</label>
+                            <input
+                              type="date"
+                              value={formData.date_of_signing || ''}
+                              onChange={(e) => handleChange('date_of_signing', e.target.value)}
+                              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">Comments / Remarks</label>
+                          <textarea
+                            rows={3}
+                            value={formData.comments || ''}
+                            onChange={(e) => handleChange('comments', e.target.value)}
+                            className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm resize-y"
+                            placeholder="Enter any additional notes..."
+                          />
+                        </div>
+                      </div>
+                    </section>
+                  </>
                 )}
 
             </div>

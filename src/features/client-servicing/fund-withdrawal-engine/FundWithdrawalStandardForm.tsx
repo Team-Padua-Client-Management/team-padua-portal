@@ -149,41 +149,153 @@ export default function FundWithdrawalStandardForm({
               </section>
 
               {formData.client_id && (
-                <section className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-                  <h2 className="text-base font-bold text-slate-900 border-b pb-2">1. Request Details</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-600 mb-1">Withdrawal Amount (PHP)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={formData.amount || ''}
-                        onChange={(e) => handleChange('amount', parseFloat(e.target.value) || 0)}
-                        className="w-full p-2.5 rounded-lg border border-slate-200 text-sm"
-                        placeholder="e.g. 5000.00"
-                      />
+                <>
+                  <section className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                    <h2 className="text-base font-bold text-slate-900 border-b pb-2">1. Withdrawal Request Details</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Withdrawal Type</label>
+                        <select
+                          value={formData.withdrawal_type || 'partial'}
+                          onChange={(e) => handleChange('withdrawal_type', e.target.value)}
+                          className="w-full p-2.5 rounded-lg border border-slate-200 text-sm"
+                        >
+                          <option value="partial">Partial Withdrawal</option>
+                          <option value="full">Full Withdrawal</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Withdrawal Amount (PHP)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={formData.amount || ''}
+                          onChange={(e) => handleChange('amount', parseFloat(e.target.value) || 0)}
+                          className="w-full p-2.5 rounded-lg border border-slate-200 text-sm"
+                          placeholder="e.g. 5000.00"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Date Submitted</label>
+                        <input
+                          type="date"
+                          value={formData.date_submitted || ''}
+                          onChange={(e) => handleChange('date_submitted', e.target.value)}
+                          className="w-full p-2.5 rounded-lg border border-slate-200 text-sm"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Comments / Instructions</label>
+                        <textarea
+                          value={formData.comments || ''}
+                          onChange={(e) => handleChange('comments', e.target.value)}
+                          rows={3}
+                          className="w-full p-2.5 rounded-lg border border-slate-200 text-sm"
+                          placeholder="Optional details..."
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-600 mb-1">Date Submitted</label>
-                      <input
-                        type="date"
-                        value={formData.date_submitted || ''}
-                        onChange={(e) => handleChange('date_submitted', e.target.value)}
-                        className="w-full p-2.5 rounded-lg border border-slate-200 text-sm"
-                      />
+                  </section>
+
+                  <section className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                    <h2 className="text-base font-bold text-slate-900 border-b pb-2">2. Payout & Bank Account Details</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Payout Option</label>
+                        <select
+                          value={formData.payout_option || 'direct_credit'}
+                          onChange={(e) => handleChange('payout_option', e.target.value)}
+                          className="w-full p-2.5 rounded-lg border border-slate-200 text-sm"
+                        >
+                          <option value="direct_credit">Direct Credit (Bank Deposit)</option>
+                          <option value="check">Check</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Bank Name</label>
+                        <input
+                          type="text"
+                          value={formData.bank_name || ''}
+                          onChange={(e) => handleChange('bank_name', e.target.value)}
+                          className="w-full p-2.5 rounded-lg border border-slate-200 text-sm"
+                          placeholder="e.g. BDO / BPI / Metrobank"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Bank Branch</label>
+                        <input
+                          type="text"
+                          value={formData.bank_branch || ''}
+                          onChange={(e) => handleChange('bank_branch', e.target.value)}
+                          className="w-full p-2.5 rounded-lg border border-slate-200 text-sm"
+                          placeholder="e.g. Makati Main Branch"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Account Type</label>
+                        <select
+                          value={formData.account_type || 'savings'}
+                          onChange={(e) => handleChange('account_type', e.target.value)}
+                          className="w-full p-2.5 rounded-lg border border-slate-200 text-sm"
+                        >
+                          <option value="savings">Savings Account</option>
+                          <option value="checking">Checking Account</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Bank Account Number</label>
+                        <input
+                          type="text"
+                          value={formData.bank_account_number || ''}
+                          onChange={(e) => handleChange('bank_account_number', e.target.value)}
+                          className="w-full p-2.5 rounded-lg border border-slate-200 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Bank Account Name</label>
+                        <input
+                          type="text"
+                          value={formData.bank_account_name || ''}
+                          onChange={(e) => handleChange('bank_account_name', e.target.value)}
+                          className="w-full p-2.5 rounded-lg border border-slate-200 text-sm"
+                        />
+                      </div>
                     </div>
-                    <div className="col-span-2">
-                      <label className="block text-xs font-semibold text-slate-600 mb-1">Comments / Instructions</label>
-                      <textarea
-                        value={formData.comments || ''}
-                        onChange={(e) => handleChange('comments', e.target.value)}
-                        rows={3}
-                        className="w-full p-2.5 rounded-lg border border-slate-200 text-sm"
-                        placeholder="Optional details..."
-                      />
+                  </section>
+
+                  <section className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                    <h2 className="text-base font-bold text-slate-900 border-b pb-2">3. Signatures & Declarations</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Policy Owner Printed Name</label>
+                        <input
+                          type="text"
+                          value={formData.policy_owner_printed_name || ''}
+                          onChange={(e) => handleChange('policy_owner_printed_name', e.target.value)}
+                          className="w-full p-2.5 rounded-lg border border-slate-200 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Place of Signing</label>
+                        <input
+                          type="text"
+                          value={formData.place_of_signing || ''}
+                          onChange={(e) => handleChange('place_of_signing', e.target.value)}
+                          className="w-full p-2.5 rounded-lg border border-slate-200 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Date of Signing</label>
+                        <input
+                          type="date"
+                          value={formData.date_of_signing || ''}
+                          onChange={(e) => handleChange('date_of_signing', e.target.value)}
+                          className="w-full p-2.5 rounded-lg border border-slate-200 text-sm"
+                        />
+                      </div>
                     </div>
-                  </div>
-                </section>
+                  </section>
+                </>
               )}
             </div>
           </div>

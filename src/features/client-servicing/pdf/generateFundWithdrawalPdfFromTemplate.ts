@@ -43,10 +43,23 @@ export async function generateFundWithdrawalPdfFromTemplate(
   setTxt(form, '16', policyNum);
   setTxt(form, '14_1', amountVal);
 
+  // Withdrawal Type checkboxes: 12_3 (Partial), 13_3 (Full)
+  setCheck(form, '12_3', record.withdrawal_type === 'partial' || !record.withdrawal_type);
+  setCheck(form, '13_3', record.withdrawal_type === 'full');
+
   // Page 2 fields (Bank & Payout details)
   setTxt(form, '23', record.bank_name);
+  setTxt(form, '24', record.bank_branch);
   setTxt(form, '26', record.bank_account_number);
   setTxt(form, '24_1', record.bank_account_name || clientName);
+
+  // Account Type checkboxes: 26_1 (Savings), 27_1 (Checking)
+  setCheck(form, '26_1', record.account_type === 'savings' || !record.account_type);
+  setCheck(form, '27_1', record.account_type === 'checking');
+
+  // Payout Option checkboxes: 40 (Direct Credit), 41 (Check)
+  setCheck(form, '40', record.payout_option === 'direct_credit' || !record.payout_option);
+  setCheck(form, '41', record.payout_option === 'check');
 
   // Page 3 fields (Signatures & Printed Names)
   setTxt(form, '55', record.policy_owner_printed_name || clientName);

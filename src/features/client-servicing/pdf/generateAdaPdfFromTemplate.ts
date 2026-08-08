@@ -41,18 +41,25 @@ export async function generateAdaPdfFromTemplate(
 
   const policyNum = record.policy_number || record.client?.policy_number || '';
   const dateSubmitted = record.date_submitted || '';
+  const dateSigning = record.date_of_signing || dateSubmitted;
+  const accountHolder = record.account_name || clientName;
+  const mobilePhone = record.mobile_phone || '';
+  const placeSigning = record.place_of_signing || '';
 
   if (isBdo) {
     // BDO Layout
-    txt(page1, clientName, 50, 672, font, 10);
+    txt(page1, accountHolder, 50, 672, font, 10);
     txt(page1, policyNum, 50, 640, font, 10);
     txt(page1, record.bank_account_number, 670, 440, font, 10);
     txt(page1, dateSubmitted, 50, 610, font, 10);
+    txt(page1, mobilePhone, 50, 580, font, 10);
+    txt(page1, placeSigning, 300, 580, font, 10);
   } else {
     // BPI Layout
-    txt(page1, clientName, 120, 742, font, 10);
+    txt(page1, accountHolder, 120, 742, font, 10);
     txt(page1, policyNum, 120, 680, font, 10);
-    txt(page1, dateSubmitted, 400, 742, font, 10);
+    txt(page1, dateSigning, 400, 742, font, 10);
+    txt(page1, mobilePhone, 400, 680, font, 10);
 
     // Boxed Account Number
     if (record.bank_account_number) {

@@ -1,17 +1,11 @@
 /**
  * resend.ts
  *
- * Main component module in features path: app/lib/resend/resend.ts
- *
  * Responsibilities:
- * - Scopes UI state management and user actions.
- * - Bridges layout rendering with server-side Supabase data connections.
- * - Handles modular presentation logic.
+ * - Initializes Resend client with process.env.RESEND_API_KEY.
+ * - Provides fallback during build evaluation when environment variable is not present.
  */
-
-// C:\website\tp\app\lib\resend\resend.ts
 
 import { Resend } from "resend";
 
-export const resend = new Resend(process.env.RESEND_API_KEY);
-
+export const resend = new Resend(process.env.RESEND_API_KEY || "re_dummy_key_for_build");

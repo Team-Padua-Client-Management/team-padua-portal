@@ -35,7 +35,7 @@ export async function generatePdiPdfFromTemplate(
   const pdfDoc = await PDFDocument.load(templatePdfBytes);
   const form = pdfDoc.getForm();
 
-  const planholderName = record.planholder_name || clientName;
+  const planholderName = record.planholder_name || record.printed_name || clientName;
   const policyNum = record.policy_number || record.client?.policy_number || '';
 
   // Header & General Info
@@ -44,6 +44,12 @@ export async function generatePdiPdfFromTemplate(
   setTxt(form, 'Name of PlanholderPerson being insured Last First Middle', planholderName);
   setTxt(form, 'Birthdate daymonthyear', record.birthdate || clientDob);
   setTxt(form, 'Age', record.age ? String(record.age) : '');
+
+  // Option Checkboxes
+  const opt = record.reinstatement_option || 'reinstatement';
+  setCheck(form, 'Reinstatement', opt === 'reinstatement');
+  setCheck(form, 'Updating', opt === 'updating');
+  setCheck(form, 'Redating', opt === 'redating');
 
   // Addresses & Contact Info
   setTxt(form, 'Residence Address no street municipality cityprovince', record.residence_address);

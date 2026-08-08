@@ -36,16 +36,26 @@ export async function generateAcaPdfFromTemplate(
     const dateSubmitted = record.date_submitted || '';
     const comments = record.comments || '';
     const status = record.status || 'Pending';
-    const bankName = record.bank_name || '';
+    const policyOwner = record.policy_owner_name || clientName;
+    const accountName = record.account_name || clientName;
     const accountNumber = record.account_number || '';
+    const cardExpiry = record.card_expiry || '';
+    const dateSigning = record.date_of_signing || dateSubmitted;
+    const bankBranch = record.bank_branch || '';
+    const mobilePhone = record.mobile_phone || '';
+    const emailAddress = record.email_address || '';
 
     txt(page1, policyNum, 58, 700, font, 10);
-    txt(page1, clientName, 260, 700, font, 10);
-    txt(page1, dateSubmitted, 58, 660, font, 10);
-    txt(page1, status, 260, 660, font, 10);
-    txt(page1, bankName, 58, 620, font, 10);
-    txt(page1, accountNumber, 260, 620, font, 10);
-    txt(page1, comments, 58, 580, font, 9);
+    txt(page1, policyOwner, 260, 700, font, 10);
+    txt(page1, accountName, 58, 660, font, 10);
+    txt(page1, accountNumber, 260, 660, font, 10);
+    txt(page1, cardExpiry, 58, 620, font, 10);
+    txt(page1, bankBranch, 260, 620, font, 10);
+    txt(page1, mobilePhone, 58, 580, font, 9);
+    txt(page1, emailAddress, 260, 580, font, 9);
+    txt(page1, status, 58, 540, font, 9);
+    txt(page1, comments, 260, 540, font, 9);
+    txt(page1, dateSigning, 330, 480, font, 9);
   }
 
   return pdfDoc.save();

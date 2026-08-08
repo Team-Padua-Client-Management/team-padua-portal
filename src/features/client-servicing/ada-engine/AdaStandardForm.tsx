@@ -177,15 +177,60 @@ export default function AdaStandardForm({
                           placeholder="e.g. 1234567890"
                         />
                       </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Bank Account / Customer Name</label>
+                        <input
+                          type="text"
+                          value={formData.account_name || ''}
+                          onChange={(e) => handleChange('account_name', e.target.value)}
+                          className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Policy Number</label>
+                        <input
+                          type="text"
+                          value={formData.policy_number || ''}
+                          onChange={(e) => handleChange('policy_number', e.target.value)}
+                          className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
+                        />
+                      </div>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-6">
+                    <div className="grid grid-cols-2 gap-6">
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Date Submitted</label>
                         <input
                           type="date"
                           value={formData.date_submitted || ''}
                           onChange={(e) => handleChange('date_submitted', e.target.value)}
+                          className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Date of Signing</label>
+                        <input
+                          type="date"
+                          value={formData.date_of_signing || ''}
+                          onChange={(e) => handleChange('date_of_signing', e.target.value)}
+                          className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Contact / Mobile Phone</label>
+                        <input
+                          type="text"
+                          value={formData.mobile_phone || ''}
+                          onChange={(e) => handleChange('mobile_phone', e.target.value)}
+                          className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Place of Signing</label>
+                        <input
+                          type="text"
+                          value={formData.place_of_signing || ''}
+                          onChange={(e) => handleChange('place_of_signing', e.target.value)}
                           className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
                         />
                       </div>
