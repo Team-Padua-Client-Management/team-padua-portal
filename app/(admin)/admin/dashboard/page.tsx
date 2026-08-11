@@ -105,6 +105,8 @@ export default function DashboardOverviewPage() {
     handleToggleCheckbox,
     handleCreateTask,
     handleCreateInquiry,
+    copyInquiryToPendingSubmission,
+    copyInquiryToAddressedConcerns,
     handleDeleteTask,
     // personalTodos,
     // handleCreatePersonalTodo,
@@ -206,6 +208,8 @@ export default function DashboardOverviewPage() {
                 onDeleteInquiry={handleDeleteInquiry}
                 saveInquiryField={saveInquiryField}
                 onSelectInquiry={(item) => setSelectedInquiryId(item.id)}
+                onCopyToPending={copyInquiryToPendingSubmission}
+                onCopyToAddressed={copyInquiryToAddressedConcerns}
               />
               {/* <ClientServicingToDo
                 tasks={userTasks}

@@ -13,6 +13,7 @@ import {
   getBirthdaysAroundNow,
   formatUiTaskToDbUpdates
 } from '@src/features/dashboard/utils/dashboardUtils';
+import { parseTaskMetadata, buildTaskNotes } from '@src/features/dashboard/components/TaskList';
 import createNotification from '@src/lib/notifications/createNotification';
 import { ClientInquiry } from '@src/features/dashboard/types/inquiry';
 
@@ -516,6 +517,97 @@ export const useAdminDashboard = () => {
     }
   };
 
+  const copyInquiryToPendingSubmission = async (inquiry: ClientInquiry) => {
+    let activeUserId = currentUserIdRef.current || currentUserId;
+
+    if (!activeUserId) {
+      const { data: { user } } = await supabase.auth.getUser();
+      activeUserId = user?.id || null;
+    }
+
+    if (!activeUserId) return;
+
+    const rawNotes = inquiry.inquiry_concern || (inquiry as any).notes || '';
+    const currentMeta = parseTaskMetadata(rawNotes);
+    const clientName = inquiry.cmgc_name || (inquiry as any).title || 'Untitled Client';
+    const updatedMeta = {
+      ...currentMeta,
+      workflow_status: 'Pending for Submission',
+      policy_owner: currentMeta.policy_owner || clientName,
+      policy_insured: currentMeta.policy_insured || clientName,
+      date_of_request: currentMeta.date_of_request || new Date().toISOString().split('T')[0],
+    };
+
+    const newNotes = buildTaskNotes(updatedMeta, currentMeta.timeline || rawNotes);
+
+    const newDbTask = {
+      user_id: activeUserId,
+      title: clientName,
+      notes: newNotes,
+      category: (inquiry as any).category || 'Others',
+      status: 'Pending',
+      assigned_to: (inquiry as any).assigned_to || activeUserId,
+      processed_by: inquiry.processed_by || activeUserId,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    try {
+      const { data, error } = await supabase
+        .from('client_servicing_tasks')
+        .insert([newDbTask])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error copying inquiry to Pending for Submission:', error);
+        return;
+      }
+
+      const createdTask = mapDbTaskToUiTask(data, 'client_servicing_tasks');
+      setUserTasks((prev) => [createdTask, ...prev]);
+    } catch (err) {
+      console.error('Error copying inquiry:', err);
+    }
+  };
+
+  const copyInquiryToAddressedConcerns = async (inquiry: ClientInquiry) => {
+    let activeUserId = currentUserIdRef.current || currentUserId;
+
+    if (!activeUserId) {
+      const { data: { user } } = await supabase.auth.getUser();
+      activeUserId = user?.id || null;
+    }
+
+    if (!activeUserId) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('client_inquiries')
+        .insert([
+          {
+            user_id: activeUserId,
+            processed_by: inquiry.processed_by || activeUserId,
+            cmgc_name: inquiry.cmgc_name || '',
+            inquiry_type: 'Address Concern',
+            inquiry_concern: inquiry.inquiry_concern || '',
+            status: inquiry.status || 'Pending',
+          },
+        ])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error copying inquiry to Addressed Concerns:', error);
+        return;
+      }
+
+      setClientInquiries((prev) => [data as ClientInquiry, ...prev]);
+    } catch (err) {
+      console.error('Error copying inquiry:', err);
+    }
+  };
+
   const handleDeleteTask = async (taskId: string) => {
     setUserTasks(prev => prev.filter(t => t.id !== taskId));
 
@@ -911,6 +1003,8 @@ export const useAdminDashboard = () => {
     handleToggleCheckbox,
     handleCreateTask,
     handleCreateInquiry,
+    copyInquiryToPendingSubmission,
+    copyInquiryToAddressedConcerns,
     handleDeleteTask,
     handleDeleteInquiry,
     handleCreatePersonalTodo,

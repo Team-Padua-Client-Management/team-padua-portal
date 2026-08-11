@@ -163,6 +163,7 @@ function StageCard({ meta, count, active }: StageCardProps) {
 
 interface InquiryRowProps {
     inquiry: ClientInquiry;
+    stageId: InquiryStageId;
     remainingOptions: string[];
     onDeleteInquiry: (id: string) => void;
     saveInquiryField: (id: string, updates: Record<string, any>) => Promise<void>;
@@ -170,10 +171,13 @@ interface InquiryRowProps {
     onHoverInquiry: (inquiry: ClientInquiry) => void;
     onLeaveInquiry: () => void;
     allProfiles: UserProfile[];
+    onCopyToPending?: (inquiry: ClientInquiry) => void;
+    onCopyToAddressed?: (inquiry: ClientInquiry) => void;
 }
 
 function InquiryRow({
     inquiry,
+    stageId,
     remainingOptions,
     onDeleteInquiry,
     saveInquiryField,
@@ -181,6 +185,8 @@ function InquiryRow({
     onHoverInquiry,
     onLeaveInquiry,
     allProfiles,
+    onCopyToPending,
+    onCopyToAddressed,
 }: InquiryRowProps) {
     const profile = resolveProfile(inquiry, allProfiles);
     const typeMeta = getTypeMeta(inquiry.inquiry_type);
@@ -268,47 +274,86 @@ function InquiryRow({
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                <select
-                    value=""
-                    onClick={(e) => e.stopPropagation()}
-                    onChange={(e) => {
-                        e.stopPropagation();
-                        const value = e.target.value;
-                        if (!value) return;
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <select
+                        value=""
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) => {
+                            e.stopPropagation();
+                            const value = e.target.value;
+                            if (!value) return;
 
-                        let inquiryType: ClientInquiry['inquiry_type'];
-                        switch (value) {
-                            case 'Addressed Concerns':
-                                inquiryType = 'Address Concern';
-                                break;
-                            case 'Pending Response':
-                                inquiryType = 'Pending Response';
-                                break;
-                            default:
-                                return;
-                        }
+                            let inquiryType: ClientInquiry['inquiry_type'];
+                            switch (value) {
+                                case 'Addressed Concerns':
+                                    inquiryType = 'Address Concern';
+                                    break;
+                                case 'Pending Response':
+                                    inquiryType = 'Pending Response';
+                                    break;
+                                default:
+                                    return;
+                            }
 
-                        saveInquiryField(inquiry.id, { inquiry_type: inquiryType });
-                    }}
-                    style={{
-                        padding: '5px 10px',
-                        borderRadius: '7px',
-                        border: '1px solid var(--border)',
-                        fontSize: '11px',
-                        background: 'var(--surface)',
-                        cursor: 'pointer',
-                        minWidth: '140px',
-                    }}
-                >
-                    <option value="" disabled>
-                        Move to...
-                    </option>
-                    {remainingOptions.map((option) => (
-                        <option key={option} value={option}>
-                            {option}
+                            saveInquiryField(inquiry.id, { inquiry_type: inquiryType });
+                        }}
+                        style={{
+                            padding: '4px 8px',
+                            borderRadius: '6px',
+                            border: '1px solid var(--border)',
+                            fontSize: '11px',
+                            background: 'var(--surface)',
+                            cursor: 'pointer',
+                            minWidth: '140px',
+                        }}
+                    >
+                        <option value="" disabled>
+                            Move to...
                         </option>
-                    ))}
-                </select>
+                        {remainingOptions.map((option) => (
+                            <option key={option} value={option}>
+                                {option}
+                            </option>
+                        ))}
+                    </select>
+
+                    <select
+                        value=""
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) => {
+                            e.stopPropagation();
+                            const value = e.target.value;
+                            if (!value) return;
+                            if (value === 'Pending for Submission') {
+                                onCopyToPending?.(inquiry);
+                            } else if (value === 'Addressed Concerns') {
+                                onCopyToAddressed?.(inquiry);
+                            }
+                        }}
+                        style={{
+                            padding: '4px 8px',
+                            borderRadius: '6px',
+                            border: '1px solid var(--border)',
+                            fontSize: '11px',
+                            background: 'var(--surface)',
+                            cursor: 'pointer',
+                            minWidth: '140px',
+                        }}
+                    >
+                        <option value="" disabled>
+                            Copy to...
+                        </option>
+                        {stageId === 'addressed' ? (
+                            <option value="Pending for Submission">
+                                Pending for Submission
+                            </option>
+                        ) : (
+                            <option value="Addressed Concerns">
+                                Addressed Concerns
+                            </option>
+                        )}
+                    </select>
+                </div>
 
                 <button
                     type="button"
@@ -344,6 +389,8 @@ interface StagePopoverProps {
     saveInquiryField: (id: string, updates: Record<string, any>) => Promise<void>;
     onSelectInquiry: (inquiry: ClientInquiry) => void;
     allProfiles: UserProfile[];
+    onCopyToPending?: (inquiry: ClientInquiry) => void;
+    onCopyToAddressed?: (inquiry: ClientInquiry) => void;
     onMouseEnter?: () => void;
     onMouseLeave?: () => void;
 }
@@ -355,6 +402,8 @@ function StagePopover({
     saveInquiryField,
     onSelectInquiry,
     allProfiles,
+    onCopyToPending,
+    onCopyToAddressed,
     onMouseEnter,
     onMouseLeave,
 }: StagePopoverProps) {
@@ -389,13 +438,15 @@ function StagePopover({
             <div
                 style={{
                     width: '460px',
-                    maxHeight: '400px',
+                    maxHeight: '440px',
                     overflowY: 'auto',
                     background: 'var(--surface)',
                     borderRadius: '16px',
                     boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
                     border: '1px solid var(--border)',
                     flexShrink: 0,
+                    display: 'flex',
+                    flexDirection: 'column',
                 }}
             >
                 <div
@@ -409,6 +460,7 @@ function StagePopover({
                         top: 0,
                         background: 'var(--surface)',
                         borderRadius: '16px 16px 0 0',
+                        zIndex: 10,
                     }}
                 >
                     <div>
@@ -418,7 +470,7 @@ function StagePopover({
                         </p>
                     </div>
                 </div>
-                <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px', flex: 1 }}>
                     {inquiries.length === 0 ? (
                         <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '14px' }}>
                             No inquiries in this stage yet.
@@ -428,6 +480,7 @@ function StagePopover({
                             <InquiryRow
                                 key={inquiry.id}
                                 inquiry={inquiry}
+                                stageId={stage.id}
                                 remainingOptions={remainingOptions}
                                 onDeleteInquiry={onDeleteInquiry}
                                 saveInquiryField={saveInquiryField}
@@ -435,9 +488,64 @@ function StagePopover({
                                 onHoverInquiry={openPreview}
                                 onLeaveInquiry={() => schedulePreviewClose(PREVIEW_CLOSE_DELAY_MS)}
                                 allProfiles={allProfiles}
+                                onCopyToPending={onCopyToPending}
+                                onCopyToAddressed={onCopyToAddressed}
                             />
                         ))
                     )}
+                </div>
+
+                <div
+                    style={{
+                        padding: '12px 20px',
+                        borderTop: '1px solid var(--border)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        background: 'var(--surface)',
+                        borderRadius: '0 0 16px 16px',
+                        position: 'sticky',
+                        bottom: 0,
+                    }}
+                >
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                        Copy section to...
+                    </span>
+                    <select
+                        value=""
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) => {
+                            e.stopPropagation();
+                            const value = e.target.value;
+                            if (value === 'Pending for Submission') {
+                                inquiries.forEach((inquiry) => onCopyToPending?.(inquiry));
+                            } else if (value === 'Addressed Concerns') {
+                                inquiries.forEach((inquiry) => onCopyToAddressed?.(inquiry));
+                            }
+                        }}
+                        style={{
+                            padding: '5px 12px',
+                            borderRadius: '7px',
+                            border: '1px solid var(--border)',
+                            fontSize: '11px',
+                            background: 'var(--surface)',
+                            cursor: 'pointer',
+                            fontWeight: 600,
+                        }}
+                    >
+                        <option value="" disabled>
+                            Select target...
+                        </option>
+                        {stage.id === 'addressed' ? (
+                            <option value="Pending for Submission">
+                                Pending for Submission
+                            </option>
+                        ) : (
+                            <option value="Addressed Concerns">
+                                Addressed Concerns
+                            </option>
+                        )}
+                    </select>
                 </div>
             </div>
 
@@ -457,6 +565,8 @@ export interface InquiryListProps {
     onDeleteInquiry: (inquiryId: string) => void;
     saveInquiryField: (inquiryId: string, updates: Record<string, any>) => Promise<void>;
     allProfiles: UserProfile[];
+    onCopyToPending?: (inquiry: ClientInquiry) => void;
+    onCopyToAddressed?: (inquiry: ClientInquiry) => void;
 }
 
 export const InquiryList: React.FC<InquiryListProps> = ({
@@ -466,6 +576,8 @@ export const InquiryList: React.FC<InquiryListProps> = ({
     onDeleteInquiry,
     saveInquiryField,
     allProfiles,
+    onCopyToPending,
+    onCopyToAddressed,
 }) => {
     const { active: activeStage, open: openStage, cancelClose, scheduleClose } = useHoverController<InquiryStageId>();
 
@@ -543,6 +655,8 @@ export const InquiryList: React.FC<InquiryListProps> = ({
                                         saveInquiryField={saveInquiryField}
                                         onSelectInquiry={onSelectInquiry}
                                         allProfiles={allProfiles}
+                                        onCopyToPending={onCopyToPending}
+                                        onCopyToAddressed={onCopyToAddressed}
                                         onMouseEnter={cancelClose}
                                         onMouseLeave={() => scheduleClose(STAGE_CLOSE_DELAY_MS)}
                                     />

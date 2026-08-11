@@ -110,6 +110,8 @@ export default function UserPersonalDashboardPage() {
     handleToggleCheckbox,
     handleCreateTask,
     handleCreateInquiry,
+    copyInquiryToPendingSubmission,
+    copyInquiryToAddressedConcerns,
     handleDeleteTask,
     personalTodos,
     handleCreatePersonalTodo,
