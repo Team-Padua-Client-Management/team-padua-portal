@@ -1,8 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import UserAvatar, { UserProfile } from './UserAvatar';
 import { normalizeCategory, formatRelativeTime } from './TaskRow';
 import { formatDisplayDate } from './ActivityCard';
-import { WorkflowTaskItem, DEFAULT_WORKFLOW_STATUS, policyRelationshipLabel } from './TaskList';
+import {
+    WorkflowTaskItem,
+    DEFAULT_WORKFLOW_STATUS,
+    policyRelationshipLabel,
+    WORKFLOW_STATUS_OPTIONS,
+    WorkflowStatus,
+    buildWorkflowStatusUpdate,
+    buildTaskNotes,
+    parseTaskMetadata,
+} from './TaskList';
 
 const GOLD = '#D89B1D';
 const GOLD_HOVER = '#C58A12';
@@ -25,7 +34,12 @@ export interface ClientServicingPreviewProps {
     meta: any;
     assignedProfile: UserProfile | null;
     processedProfile: UserProfile | null;
+    allProfiles?: UserProfile[];
+    bizDevProfiles?: UserProfile[];
     rect: PreviewRect;
+    onSaveTaskField?: (taskId: string, updates: Record<string, unknown>) => void;
+    onMouseEnter?: () => void;
+    onMouseLeave?: () => void;
 }
 
 export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
@@ -33,9 +47,29 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
     meta,
     assignedProfile,
     processedProfile,
+    allProfiles = [],
+    bizDevProfiles = [],
     rect,
+    onSaveTaskField,
+    onMouseEnter,
+    onMouseLeave,
 }) => {
     const [entered, setEntered] = useState(false);
+
+    // Local form field state for inline editing
+    const [policyOwner, setPolicyOwner] = useState(meta.policy_owner || '');
+    const [policyInsured, setPolicyInsured] = useState(meta.policy_insured || '');
+    const [policyNumber, setPolicyNumber] = useState(meta.policy_number || '');
+    const [dateOfRequest, setDateOfRequest] = useState(meta.date_of_request || '');
+    const [timeline, setTimeline] = useState(meta.timeline || '');
+
+    useEffect(() => {
+        setPolicyOwner(meta.policy_owner || '');
+        setPolicyInsured(meta.policy_insured || '');
+        setPolicyNumber(meta.policy_number || '');
+        setDateOfRequest(meta.date_of_request || '');
+        setTimeline(meta.timeline || '');
+    }, [meta.policy_owner, meta.policy_insured, meta.policy_number, meta.date_of_request, meta.timeline]);
 
     useEffect(() => {
         const frame = requestAnimationFrame(() => setEntered(true));
@@ -61,12 +95,40 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
 
     const currentWorkflowStatus = meta.workflow_status || DEFAULT_WORKFLOW_STATUS;
     const categoryLabel = normalizeCategory(task.category);
-    const relationshipLabel = meta.policy_insured_relationship
-        ? policyRelationshipLabel(meta.policy_insured_relationship)
-        : null;
 
-    const assignedName = assignedProfile?.full_name || assignedProfile?.email || 'Unassigned';
-    const processedName = processedProfile?.full_name || processedProfile?.email || 'Unassigned';
+    // Combine & deduplicate profile list for Processed By / Assigned To dropdowns
+    const availableProfiles = useMemo(() => {
+        const list: UserProfile[] = [];
+        const seen = new Set<string>();
+        [...allProfiles, ...bizDevProfiles].forEach((p) => {
+            if (p && p.id && !seen.has(p.id)) {
+                seen.add(p.id);
+                list.push(p);
+            }
+        });
+        return list.sort((a, b) => (a.full_name || a.email || '').localeCompare(b.full_name || b.email || ''));
+    }, [allProfiles, bizDevProfiles]);
+
+    const handleSaveMetaField = (key: string, value: any) => {
+        if (!onSaveTaskField) return;
+        const currentMeta = parseTaskMetadata(task.notes || '');
+        const updatedMeta = { ...currentMeta, [key]: value };
+        if (
+            key === 'policy_owner' &&
+            (updatedMeta.policy_insured_relationship === 'SAME_AS_OWNER' || !updatedMeta.policy_insured_relationship)
+        ) {
+            updatedMeta.policy_insured = value;
+        }
+        const newNotes = buildTaskNotes(updatedMeta, updatedMeta.timeline || timeline);
+        onSaveTaskField(task.id, { notes: newNotes });
+    };
+
+    const handleSaveTimeline = (newTimeline: string) => {
+        if (!onSaveTaskField) return;
+        const currentMeta = parseTaskMetadata(task.notes || '');
+        const newNotes = buildTaskNotes(currentMeta, newTimeline);
+        onSaveTaskField(task.id, { notes: newNotes });
+    };
 
     const sectionLabelStyle: React.CSSProperties = {
         fontSize: '0.66rem',
@@ -77,11 +139,16 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
         marginBottom: '4px',
     };
 
-    const fieldValueStyle: React.CSSProperties = {
+    const inputStyle: React.CSSProperties = {
+        width: '100%',
+        background: 'transparent',
+        border: 'none',
+        outline: 'none',
         fontSize: '0.88rem',
         fontWeight: 700,
         color: '#1A1A1A',
-        wordBreak: 'break-word',
+        fontFamily: 'inherit',
+        padding: 0,
     };
 
     const fieldBoxStyle: React.CSSProperties = {
@@ -95,6 +162,8 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
 
     return (
         <div
+            onMouseEnter={onMouseEnter}
+            onMouseLeave={onMouseLeave}
             style={{
                 position: 'fixed',
                 top: `${top}px`,
@@ -111,7 +180,7 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
                 opacity: entered ? 1 : 0,
                 transform: `translateY(0) translateX(${entered ? 0 : isRight ? 10 : -10}px)`,
                 transition: 'opacity 0.18s ease-out, transform 0.18s ease-out',
-                pointerEvents: 'none',
+                pointerEvents: 'auto',
             }}
         >
             <div
@@ -161,7 +230,7 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
                         Client Servicing Request
                     </div>
                     <div style={{ fontSize: '0.68rem', color: '#9A7A2E', marginTop: '2px', fontWeight: 600 }}>
-                        Read-only preview
+                        Interactive edit preview
                     </div>
                 </div>
                 <span
@@ -184,42 +253,89 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                     <div style={{ ...fieldBoxStyle, background: '#FCFAF4' }}>
                         <div style={sectionLabelStyle}>Policy Owner</div>
-                        <div style={fieldValueStyle}>{meta.policy_owner || 'N/A'}</div>
+                        <input
+                            type="text"
+                            value={policyOwner}
+                            onChange={(e) => setPolicyOwner(e.target.value)}
+                            onBlur={() => handleSaveMetaField('policy_owner', policyOwner)}
+                            placeholder="Enter Policy Owner..."
+                            style={inputStyle}
+                        />
                     </div>
 
                     <div style={{ ...fieldBoxStyle, background: '#FCFAF4' }}>
                         <div style={sectionLabelStyle}>Policy Insured</div>
-                        <div style={fieldValueStyle}>
-                            {relationshipLabel === 'SAME AS OWNER' || !meta.policy_insured
-                                ? meta.policy_owner || 'N/A'
-                                : meta.policy_insured}
-                        </div>
+                        <input
+                            type="text"
+                            value={policyInsured}
+                            onChange={(e) => setPolicyInsured(e.target.value)}
+                            onBlur={() => handleSaveMetaField('policy_insured', policyInsured)}
+                            placeholder="Enter Policy Insured..."
+                            style={inputStyle}
+                        />
                     </div>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                     <div style={fieldBoxStyle}>
                         <div style={sectionLabelStyle}>Policy Number</div>
-                        <div style={fieldValueStyle}>{meta.policy_number || 'N/A'}</div>
+                        <input
+                            type="text"
+                            value={policyNumber}
+                            onChange={(e) => setPolicyNumber(e.target.value)}
+                            onBlur={() => handleSaveMetaField('policy_number', policyNumber)}
+                            placeholder="Enter Policy Number..."
+                            style={inputStyle}
+                        />
                     </div>
 
                     <div style={fieldBoxStyle}>
                         <div style={sectionLabelStyle}>Workflow Status</div>
-                        <span
-                            style={{
-                                display: 'inline-block',
-                                marginTop: '2px',
-                                padding: '3px 9px',
-                                borderRadius: '999px',
-                                fontSize: '0.72rem',
-                                fontWeight: 700,
-                                color: '#FFFFFF',
-                                background: GOLD_HOVER,
-                                whiteSpace: 'nowrap',
-                            }}
-                        >
-                            {currentWorkflowStatus}
-                        </span>
+                        {onSaveTaskField ? (
+                            <select
+                                value={currentWorkflowStatus}
+                                onChange={(e) => {
+                                    const nextStatus = e.target.value as WorkflowStatus;
+                                    onSaveTaskField(task.id, buildWorkflowStatusUpdate(task, nextStatus));
+                                }}
+                                style={{
+                                    display: 'inline-block',
+                                    marginTop: '2px',
+                                    padding: '3px 22px 3px 9px',
+                                    borderRadius: '999px',
+                                    fontSize: '0.72rem',
+                                    fontWeight: 700,
+                                    color: '#FFFFFF',
+                                    background: `${GOLD_HOVER} url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23ffffff'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2.5' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E") no-repeat right 5px center / 12px`,
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    outline: 'none',
+                                    appearance: 'none',
+                                }}
+                            >
+                                {WORKFLOW_STATUS_OPTIONS.map((statusOpt) => (
+                                    <option key={statusOpt} value={statusOpt} style={{ color: '#111827', background: '#FFFFFF' }}>
+                                        {statusOpt}
+                                    </option>
+                                ))}
+                            </select>
+                        ) : (
+                            <span
+                                style={{
+                                    display: 'inline-block',
+                                    marginTop: '2px',
+                                    padding: '3px 9px',
+                                    borderRadius: '999px',
+                                    fontSize: '0.72rem',
+                                    fontWeight: 700,
+                                    color: '#FFFFFF',
+                                    background: GOLD_HOVER,
+                                    whiteSpace: 'nowrap',
+                                }}
+                            >
+                                {currentWorkflowStatus}
+                            </span>
+                        )}
                     </div>
                 </div>
 
@@ -236,9 +352,36 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
                         <UserAvatar profile={processedProfile} size={28} />
                         <div style={{ minWidth: 0, flex: 1 }}>
                             <div style={sectionLabelStyle}>Processed By</div>
-                            <div style={{ ...fieldValueStyle, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                {processedName}
-                            </div>
+                            {onSaveTaskField && availableProfiles.length > 0 ? (
+                                <select
+                                    value={task.processed_by || ''}
+                                    onChange={(e) => {
+                                        onSaveTaskField(task.id, { processed_by: e.target.value || null });
+                                    }}
+                                    style={{
+                                        width: '100%',
+                                        background: 'transparent',
+                                        border: 'none',
+                                        outline: 'none',
+                                        fontSize: '0.82rem',
+                                        fontWeight: 700,
+                                        color: '#1A1A1A',
+                                        cursor: 'pointer',
+                                        fontFamily: 'inherit',
+                                    }}
+                                >
+                                    <option value="">Unassigned</option>
+                                    {availableProfiles.map((p) => (
+                                        <option key={p.id} value={p.id}>
+                                            {p.full_name || p.email}
+                                        </option>
+                                    ))}
+                                </select>
+                            ) : (
+                                <div style={{ ...inputStyle, fontSize: '0.82rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {processedProfile?.full_name || processedProfile?.email || 'Unassigned'}
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -253,9 +396,36 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
                         <UserAvatar profile={assignedProfile} size={28} />
                         <div style={{ minWidth: 0, flex: 1 }}>
                             <div style={sectionLabelStyle}>Assigned To</div>
-                            <div style={{ ...fieldValueStyle, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                {assignedName}
-                            </div>
+                            {onSaveTaskField && availableProfiles.length > 0 ? (
+                                <select
+                                    value={task.assigned_to || ''}
+                                    onChange={(e) => {
+                                        onSaveTaskField(task.id, { assigned_to: e.target.value || null });
+                                    }}
+                                    style={{
+                                        width: '100%',
+                                        background: 'transparent',
+                                        border: 'none',
+                                        outline: 'none',
+                                        fontSize: '0.82rem',
+                                        fontWeight: 700,
+                                        color: '#1A1A1A',
+                                        cursor: 'pointer',
+                                        fontFamily: 'inherit',
+                                    }}
+                                >
+                                    <option value="">Unassigned</option>
+                                    {availableProfiles.map((p) => (
+                                        <option key={p.id} value={p.id}>
+                                            {p.full_name || p.email}
+                                        </option>
+                                    ))}
+                                </select>
+                            ) : (
+                                <div style={{ ...inputStyle, fontSize: '0.82rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {assignedProfile?.full_name || assignedProfile?.email || 'Unassigned'}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -263,21 +433,37 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
                     <div style={{ ...fieldBoxStyle, background: '#FCFAF4' }}>
                         <div style={sectionLabelStyle}>Date Requested</div>
-                        <div style={{ ...fieldValueStyle, fontSize: '0.78rem' }}>
-                            {meta.date_of_request ? formatDisplayDate(meta.date_of_request) : 'N/A'}
-                        </div>
+                        <input
+                            type="date"
+                            value={dateOfRequest}
+                            onChange={(e) => {
+                                setDateOfRequest(e.target.value);
+                                handleSaveMetaField('date_of_request', e.target.value);
+                            }}
+                            style={{
+                                width: '100%',
+                                background: 'transparent',
+                                border: 'none',
+                                outline: 'none',
+                                fontSize: '0.78rem',
+                                fontWeight: 700,
+                                color: '#1A1A1A',
+                                fontFamily: 'inherit',
+                                cursor: 'pointer',
+                            }}
+                        />
                     </div>
 
                     <div style={fieldBoxStyle}>
                         <div style={sectionLabelStyle}>Created</div>
-                        <div style={{ ...fieldValueStyle, fontSize: '0.78rem' }}>
+                        <div style={{ ...inputStyle, fontSize: '0.78rem', paddingTop: '2px' }}>
                             {task.created_at ? formatDisplayDate(task.created_at.slice(0, 10)) : 'N/A'}
                         </div>
                     </div>
 
                     <div style={fieldBoxStyle}>
                         <div style={sectionLabelStyle}>Updated</div>
-                        <div style={{ ...fieldValueStyle, fontSize: '0.78rem' }}>
+                        <div style={{ ...inputStyle, fontSize: '0.78rem', paddingTop: '2px' }}>
                             {task.updated_at ? formatRelativeTime(task.updated_at) : 'N/A'}
                         </div>
                     </div>
@@ -285,24 +471,28 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
 
                 <div>
                     <div style={sectionLabelStyle}>Messenger Timeline</div>
-                    <div
+                    <textarea
+                        value={timeline}
+                        onChange={(e) => setTimeline(e.target.value)}
+                        onBlur={() => handleSaveTimeline(timeline)}
+                        placeholder="Log notes or messenger updates..."
+                        rows={3}
                         style={{
-                            padding: '12px 14px',
+                            width: '100%',
+                            padding: '10px 12px',
                             borderRadius: '12px',
                             border: `1px solid ${GOLD_BORDER}`,
                             fontSize: '0.8rem',
                             fontWeight: 500,
                             color: '#1A1A1A',
                             background: '#FFFFFF',
-                            lineHeight: 1.6,
-                            whiteSpace: 'pre-wrap',
-                            wordBreak: 'break-word',
+                            lineHeight: 1.5,
+                            outline: 'none',
+                            fontFamily: 'inherit',
+                            resize: 'vertical',
+                            boxSizing: 'border-box',
                         }}
-                    >
-                        {meta.timeline && meta.timeline.trim().length > 0
-                            ? meta.timeline
-                            : 'No notes logged yet.'}
-                    </div>
+                    />
                 </div>
             </div>
         </div>

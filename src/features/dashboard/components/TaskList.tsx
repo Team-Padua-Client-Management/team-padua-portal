@@ -282,6 +282,7 @@ function ServicingTaskRow({
   const [showPreview, setShowPreview] = useState(false);
   const [previewRect, setPreviewRect] = useState<PreviewRect | null>(null);
   const rowRef = useRef<HTMLDivElement>(null);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const measureRect = () => {
     if (!rowRef.current) return;
@@ -289,14 +290,35 @@ function ServicingTaskRow({
     setPreviewRect({ top: rect.top, left: rect.left, right: rect.right, height: rect.height });
   };
 
+  const cancelClose = () => {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  };
+
+  const scheduleClose = () => {
+    cancelClose();
+    closeTimerRef.current = setTimeout(() => {
+      setShowPreview(false);
+    }, 400);
+  };
+
   const handleMouseEnter = () => {
+    cancelClose();
     measureRect();
     setShowPreview(true);
   };
 
   const handleMouseLeave = () => {
-    setShowPreview(false);
+    scheduleClose();
   };
+
+  useEffect(() => {
+    return () => {
+      cancelClose();
+    };
+  }, []);
 
   useEffect(() => {
     if (!showPreview) return;
@@ -389,7 +411,12 @@ function ServicingTaskRow({
             meta={meta}
             assignedProfile={assignedProfile}
             processedProfile={processedProfile}
+            allProfiles={allProfiles}
+            bizDevProfiles={bizDevProfiles}
             rect={previewRect}
+            onSaveTaskField={onSaveTaskField}
+            onMouseEnter={cancelClose}
+            onMouseLeave={scheduleClose}
           />,
           document.body
         )
@@ -1129,7 +1156,7 @@ function InquiryPreviewCard({ task, meta, processedProfile, loggedByLabel, rect 
 }
 
 interface InquiryRowProps {
-  task: WorkflowTaskItem;
+  task: any;
   stage: InquiryStage;
   allProfiles: UserProfile[];
   bizDevProfiles: UserProfile[];
