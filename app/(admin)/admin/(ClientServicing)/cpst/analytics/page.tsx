@@ -324,7 +324,9 @@ export default function CPSTAnalyticsPage() {
 const fetchClients = async () => {
       try {
         const res = await fetch('/api/clients');
-        if (!res.ok) throw new Error('Failed to fetch');
+        if (!res.ok || !res.headers.get('content-type')?.includes('application/json')) {
+          throw new Error('Failed to fetch clients');
+        }
         const data = await res.json();
         setClients(data as Client[]);
       } catch (err) {

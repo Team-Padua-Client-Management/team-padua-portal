@@ -362,9 +362,10 @@ export default function AdminMembersTable({ initialUsers = [], currentUserRole =
             });
             setTimeout(() => window.location.reload(), 2000);
           } else {
-            const err = await res.json();
+            const contentType = res.headers.get("content-type");
+            const err = contentType?.includes("application/json") ? await res.json() : null;
             setConfirmModal(null);
-            setAlertModal({ isOpen: true, title: "Error", message: err.error, isError: true });
+            setAlertModal({ isOpen: true, title: "Error", message: err?.error || `Server error (${res.status})`, isError: true });
           }
         } catch (err) {
           console.error(err);
@@ -395,9 +396,10 @@ export default function AdminMembersTable({ initialUsers = [], currentUserRole =
             setConfirmModal(null);
             setAlertModal({ isOpen: true, title: "Success", message: "Email verified successfully." });
           } else {
-            const err = await res.json();
+            const contentType = res.headers.get("content-type");
+            const err = contentType?.includes("application/json") ? await res.json() : null;
             setConfirmModal(null);
-            setAlertModal({ isOpen: true, title: "Error", message: err.error, isError: true });
+            setAlertModal({ isOpen: true, title: "Error", message: err?.error || `Server error (${res.status})`, isError: true });
           }
         } catch (err) {
           console.error(err);
@@ -429,11 +431,15 @@ export default function AdminMembersTable({ initialUsers = [], currentUserRole =
       })
     });
 
-    const data = await res.json();
+    const contentType = res.headers.get("content-type");
     if (!res.ok) {
-      console.error("API Error:", data);
-      throw new Error(data.error ?? "Unable to save");
+      const err = contentType?.includes("application/json") ? await res.json() : null;
+      console.error("API Error:", err);
+      throw new Error(err?.error ?? `Unable to save (${res.status})`);
     }
+
+    const data = await res.json();
+    return data;
 
     return data;
   };

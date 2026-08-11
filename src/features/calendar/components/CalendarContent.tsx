@@ -147,7 +147,7 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
         body: JSON.stringify({ messages: [{ role: 'user', content: prompt }] })
       });
       
-      if (!res.ok) throw new Error();
+      if (!res.ok || !res.headers.get('content-type')?.includes('application/json')) throw new Error('Invalid response');
       const data = await res.json();
       
       try {
@@ -257,7 +257,7 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
         body: JSON.stringify({ messages: [{ role: 'user', content: prompt }] })
       });
       
-      if (!res.ok) throw new Error();
+      if (!res.ok || !res.headers.get('content-type')?.includes('application/json')) throw new Error('Invalid response');
       const data = await res.json();
       if (data.reply) {
         setNewEvent(p => ({ ...p, description: data.reply.trim() }));
@@ -361,7 +361,7 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: [{ role: 'user', content: prompt }] })
       });
-      if (res.ok) {
+      if (res.ok && res.headers.get('content-type')?.includes('application/json')) {
         const data = await res.json();
         if (data.reply) setCelebrationMessage(data.reply.trim());
       }

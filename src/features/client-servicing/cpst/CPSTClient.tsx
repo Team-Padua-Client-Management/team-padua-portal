@@ -1216,8 +1216,9 @@ ${result.error?.hint}
       });
 
       if (!res.ok) {
-        const errJson = await res.json();
-        throw new Error(errJson.error || "Decryption failed. Please check the password.");
+        const contentType = res.headers.get("content-type");
+        const errJson = contentType?.includes("application/json") ? await res.json() : null;
+        throw new Error(errJson?.error || `Decryption failed (${res.status}). Please check the password.`);
       }
 
       const decryptedBlob = await res.blob();

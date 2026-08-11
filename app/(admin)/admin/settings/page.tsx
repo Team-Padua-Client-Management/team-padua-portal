@@ -362,7 +362,7 @@ export default function AdminSettings() {
     if (cpstArchived.length > 0) {
       try {
         const res = await fetch('/api/clients');
-        if (res.ok) {
+        if (res.ok && res.headers.get('content-type')?.includes('application/json')) {
           const clients = await res.json();
           clients.forEach((c: any) => {
             if (cpstArchived.includes(c.id)) {

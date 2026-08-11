@@ -122,11 +122,15 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
       })
     });
 
-    const data = await res.json();
+    const contentType = res.headers.get("content-type");
     if (!res.ok) {
-      console.error("API Error:", data);
-      throw new Error(data.error ?? "Unable to save");
+      const errData = contentType?.includes("application/json") ? await res.json() : null;
+      console.error("API Error:", errData);
+      throw new Error(errData?.error ?? `Unable to save (${res.status})`);
     }
+
+    const data = await res.json();
+    return data;
 
     return data;
   };

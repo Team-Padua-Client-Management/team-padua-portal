@@ -73,11 +73,13 @@ export default function ChatbotPage() {
                     signal: abortControllerRef.current.signal,
                 });
 
-                const data = await res.json();
-
+                const contentType = res.headers.get("content-type");
                 if (!res.ok) {
-                    throw new Error(data?.error || "Something went wrong.");
+                    const errData = contentType?.includes("application/json") ? await res.json() : null;
+                    throw new Error(errData?.error || `Server error (${res.status})`);
                 }
+
+                const data = await res.json();
 
                 const assistantMessage: ChatMessage = {
                     id: crypto.randomUUID(),

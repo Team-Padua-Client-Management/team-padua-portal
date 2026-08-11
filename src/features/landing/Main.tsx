@@ -58,7 +58,14 @@ export default function HomePage() {
   useEffect(() => {
     const controller = new AbortController();
     fetch('/api/landing-stats', { signal: controller.signal })
-      .then((res) => res.json())
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+        const contentType = res.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error('Response was not JSON');
+        }
+        return res.json();
+      })
       .then((data: LandingStats) => {
         setStats(data);
       })

@@ -163,6 +163,10 @@ const fetchRegions = async () => {
       setLoading(true);
       try {
         const res = await fetch("https://psgc.gitlab.io/api/regions/");
+        if (!res.ok || !res.headers.get("content-type")?.includes("application/json")) {
+          setRegions([]);
+          return;
+        }
         const data = await res.json();
         setRegions(
           data
@@ -185,6 +189,10 @@ const fetchRegions = async () => {
     if (!regionCode) return;
     try {
       const res = await fetch(`https://psgc.gitlab.io/api/regions/${regionCode}/provinces/`);
+      if (!res.ok || !res.headers.get("content-type")?.includes("application/json")) {
+        setProvinces([]);
+        return;
+      }
       const data = await res.json();
       setProvinces(
         data
@@ -205,8 +213,8 @@ const fetchRegions = async () => {
         fetch(`https://psgc.gitlab.io/api/provinces/${provinceCode}/cities/`),
         fetch(`https://psgc.gitlab.io/api/provinces/${provinceCode}/municipalities/`),
       ]);
-      const citiesData = citiesRes.ok ? await citiesRes.json() : [];
-      const munsData = munsRes.ok ? await munsRes.json() : [];
+      const citiesData = (citiesRes.ok && citiesRes.headers.get("content-type")?.includes("application/json")) ? await citiesRes.json() : [];
+      const munsData = (munsRes.ok && munsRes.headers.get("content-type")?.includes("application/json")) ? await munsRes.json() : [];
       const combined = [
         ...citiesData.map((c: any) => ({ code: c.code, name: c.name, provinceCode, isCity: true })),
         ...munsData.map((m: any) => ({ code: m.code, name: m.name, provinceCode, isCity: false })),
@@ -225,6 +233,10 @@ const fetchRegions = async () => {
         ? `https://psgc.gitlab.io/api/cities/${cityCode}/barangays/`
         : `https://psgc.gitlab.io/api/municipalities/${cityCode}/barangays/`;
       const res = await fetch(endpoint);
+      if (!res.ok || !res.headers.get("content-type")?.includes("application/json")) {
+        setBarangays([]);
+        return;
+      }
       const data = await res.json();
       setBarangays(
         data

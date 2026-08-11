@@ -177,14 +177,18 @@ export default function PortalManagementClient({
     try {
       // Fetch categories
       const catRes = await fetch('/api/portals/categories');
-      if (!catRes.ok) throw new Error("Failed to load categories");
+      if (!catRes.ok || !catRes.headers.get('content-type')?.includes('application/json')) {
+        throw new Error("Failed to load categories");
+      }
       const catData = await catRes.json();
       setCategories(catData);
 
       // Fetch resources
       const statusParam = showArchived ? 'ALL' : 'Active';
       const resRes = await fetch(`/api/portals/resources?portal=${portalSlug}&sortBy=${sortBy}&category=${selectedCategoryId}&search=${encodeURIComponent(searchQuery)}&status=${statusParam}`);
-      if (!resRes.ok) throw new Error("Failed to load resources");
+      if (!resRes.ok || !resRes.headers.get('content-type')?.includes('application/json')) {
+        throw new Error("Failed to load resources");
+      }
       const resData = await resRes.json();
       setResources(resData);
     } catch (err) {

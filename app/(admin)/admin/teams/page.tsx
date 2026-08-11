@@ -117,7 +117,7 @@ const loadData = async () => {
       setProfiles(profilesData || []);
 
       const res = await fetch('/api/tasks');
-      if (res.ok) {
+      if (res.ok && res.headers.get('content-type')?.includes('application/json')) {
         const tasksData = await res.json();
         setTasks(tasksData || []);
       }
