@@ -30,7 +30,7 @@ import DashboardHero from "@src/features/dashboard/components/DashboardHero";
 import ClientServicingToDo from "@src/features/dashboard/components/ClientServicingToDo";
 import TaskList, { ClientInquiries } from "@src/features/dashboard/components/TaskList";
 import BirthdayCard from "@src/features/dashboard/components/BirthdayCard";
-import CalendarActivityCard from "@src/features/dashboard/components/CalendarActivityCard";
+import CalendarActivityCard, { getActivityLifecycleStatus } from "@src/features/dashboard/components/CalendarActivityCard";
 import CalendarActivityModal from "@src/features/dashboard/components/CalendarActivityModal";
 import ActivityCalendar from "@src/features/dashboard/components/ActivityCalendar";
 import RequestFormsAccordion from "@src/features/dashboard/components/RequestFormsAccordion";
@@ -102,6 +102,7 @@ export default function UserPersonalDashboardPage() {
     handleSaveCalendarActivity,
     promptDeleteCalendarActivity,
     executeDeleteCalendarActivity,
+    handleCompleteCalendarActivity,
     goToPrevMiniMonth,
     goToNextMiniMonth,
     handleEventClick,
@@ -118,6 +119,8 @@ export default function UserPersonalDashboardPage() {
     handleTogglePersonalTodoComplete,
     handleDeletePersonalTodo
   } = useAdminDashboard();
+
+  const [showCalendarHistory, setShowCalendarHistory] = useState(false);
 
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userPermissions, setUserPermissions] = useState<UserPermissions>(null);
@@ -154,6 +157,16 @@ export default function UserPersonalDashboardPage() {
     const dateB = new Date(b.date).getTime();
     return dateB - dateA;
   });
+
+  const displayedCalendarLogs = useMemo(() => {
+    return sortedCalendarLogs.filter((log) => {
+      const status = getActivityLifecycleStatus(log);
+      if (showCalendarHistory) {
+        return status === 'Completed' || status === 'Cancelled';
+      }
+      return status !== 'Completed' && status !== 'Cancelled';
+    });
+  }, [sortedCalendarLogs, showCalendarHistory]);
 
   const selectedTaskForModal = userTasks.find((t) => t.id === selectedTaskIdForModal) || null;
   const currentUserProfile = allProfiles.find(p => p.id === currentUserId) || null;
@@ -246,10 +259,24 @@ export default function UserPersonalDashboardPage() {
                       Calendar of Activities
                     </h3>
                   </div>
-                  <button type="button" onClick={() => setIsCalendarModalOpen(true)} className={`${styles.newTaskBtn} !py-1 !px-3 !text-[11px]`}>
-                    <Plus size={13} strokeWidth={2.5} />
-                    <span className="font-bold">Add Activity</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowCalendarHistory((prev) => !prev)}
+                      className={`!py-1 !px-3 !text-[11px] font-bold rounded-lg transition-all border cursor-pointer ${
+                        showCalendarHistory
+                          ? 'bg-amber-500 text-white border-amber-500 shadow-sm'
+                          : 'bg-surface/80 text-text-secondary border-border/70 hover:bg-surface'
+                      }`}
+                    >
+                      {showCalendarHistory ? 'Active Activities' : 'View History'}
+                    </button>
+
+                    <button type="button" onClick={() => setIsCalendarModalOpen(true)} className={`${styles.newTaskBtn} !py-1 !px-3 !text-[11px]`}>
+                      <Plus size={13} strokeWidth={2.5} />
+                      <span className="font-bold">Add Activity</span>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
@@ -273,15 +300,21 @@ export default function UserPersonalDashboardPage() {
               </div>
 
               <div className={styles.dashboardCardBody}>
-                {sortedCalendarLogs.length === 0 ? (
+                {displayedCalendarLogs.length === 0 ? (
                   <div className={styles.emptyStateContainer} onClick={() => setIsCalendarModalOpen(true)} style={{ cursor: 'pointer' }}>
                     <div className={styles.emptyStateIcon}>📅</div>
-                    <div className={styles.emptyStateTitle}>No activities scheduled</div>
-                    <div className={styles.emptyStateDescription}>Click to log a new activity for the team.</div>
+                    <div className={styles.emptyStateTitle}>
+                      {showCalendarHistory ? 'No activity history' : 'No active activities scheduled'}
+                    </div>
+                    <div className={styles.emptyStateDescription}>
+                      {showCalendarHistory
+                        ? 'Completed and cancelled activities will appear here.'
+                        : 'Click to log a new activity for the team.'}
+                    </div>
                   </div>
                 ) : (
                   <div className={styles.activityList}>
-                    {sortedCalendarLogs.map((log, idx) => {
+                    {displayedCalendarLogs.map((log, idx) => {
                       let matchingProfiles = [] as typeof allProfiles;
                       if (log.assignedRole === 'Bizdev') {
                         matchingProfiles = bizDevProfiles;
@@ -295,6 +328,7 @@ export default function UserPersonalDashboardPage() {
                           activity={log}
                           matchingProfiles={matchingProfiles}
                           onDelete={promptDeleteCalendarActivity}
+                          onComplete={handleCompleteCalendarActivity}
                         />
                       );
                     })}

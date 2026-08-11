@@ -100,9 +100,9 @@ export const KNOWN_CATEGORIES: CategoryMeta[] = [
   { badge: 'CSMV', title: 'Client Servicing Monitoring Verification', accent: '#099268', tint: 'rgba(9, 146, 104, 0.12)' },
   { badge: 'FSR', title: 'Fund Switching Request', accent: '#059669', tint: 'rgba(5, 150, 105, 0.12)' },
   { badge: 'FW', title: 'Fund Withdrawal Request', accent: '#10B981', tint: 'rgba(16, 185, 129, 0.12)' },
+  { badge: 'PDI', title: 'Reinstatement - PDI', accent: '#EA580C', tint: 'rgba(234, 88, 12, 0.12)' },
+  { badge: 'SRO', title: 'Reinstatement - SRO', accent: '#D97706', tint: 'rgba(217, 119, 6, 0.12)' },
   { badge: 'Others', title: 'Others / Miscellaneous', accent: '#71717A', tint: 'rgba(113, 113, 122, 0.12)' },
-  { badge: 'PPI', title: 'Reinstatement (PPI)', accent: '#EA580C', tint: 'rgba(234, 88, 12, 0.12)' },
-  { badge: 'SRO', title: 'Reinstatement (SRO)', accent: '#D97706', tint: 'rgba(217, 119, 6, 0.12)' },
 ];
 
 function getBadgeFromNormalized(normalized: string): string {
@@ -116,8 +116,8 @@ function getBadgeFromNormalized(normalized: string): string {
   if (normalized.startsWith('CSMV') || normalized.startsWith('UID')) return 'CSMV';
   if (normalized.startsWith('FSR')) return 'FSR';
   if (normalized.startsWith('FW')) return 'FW';
-  if (normalized.startsWith('PPI') || normalized.startsWith('PDI')) return 'PPI';
-  if (normalized.startsWith('SRO')) return 'SRO';
+  if (normalized.includes('PDI') || normalized.startsWith('PPI')) return 'PDI';
+  if (normalized.includes('SRO')) return 'SRO';
 
   return normalized.split(' - ')[0].trim() || normalized;
 }

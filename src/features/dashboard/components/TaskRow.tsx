@@ -32,9 +32,9 @@ export const TASK_CATEGORIES = [
   'CSMV - Client Servicing Monitoring Verification',
   'FSR - Fund Switching Request',
   'FW - Fund Withdrawal Request',
+  'Reinstatement - PDI',
+  'Reinstatement - SRO',
   'Others',
-  'PPI - Reinstatement (PPI)',
-  'SRO - Reinstatement (SRO)',
 ];
 
 export function normalizeCategory(cat?: string | null): string {
@@ -47,8 +47,8 @@ export function normalizeCategory(cat?: string | null): string {
   if (c === 'FW' || c === 'FWR' || c === 'PPU' || c.startsWith('FW -') || c.startsWith('FWR -') || c.includes('WITHDRAWAL')) return 'FW - Fund Withdrawal Request';
   if (c === 'ACA' || c.startsWith('ACA -') || c.includes('CHARGING')) return 'ACA - Auto Charging Arrangement';
   if (c === 'ADA' || c === 'MOA' || c.startsWith('ADA -') || c.startsWith('MOA -') || c.includes('DEBIT')) return 'ADA - Auto Debit Arrangement (MOA)';
-  if (c === 'SRO' || c.startsWith('SRO -')) return 'SRO - Reinstatement (SRO)';
-  if (c === 'PPI' || c === 'PDI' || c.startsWith('PPI -') || c.startsWith('PDI -')) return 'PPI - Reinstatement (PPI)';
+  if (c === 'SRO' || c.startsWith('SRO -') || c.includes('REINSTATEMENT - SRO') || c.includes('REINSTATEMENT (SRO)')) return 'Reinstatement - SRO';
+  if (c === 'PPI' || c === 'PDI' || c.startsWith('PPI -') || c.startsWith('PDI -') || c.includes('REINSTATEMENT - PDI') || c.includes('REINSTATEMENT (PPI)')) return 'Reinstatement - PDI';
   if (c === 'CPC' || c.startsWith('CPC -')) return 'CPC - Client Policy Card';
   if (c === 'CPST' || c.startsWith('CPST -')) return 'CPST - Client Policy Status Tracking';
   if (c === 'CSMV' || c === 'UID' || c.startsWith('CSMV -')) return 'CSMV - Client Servicing Monitoring Verification';

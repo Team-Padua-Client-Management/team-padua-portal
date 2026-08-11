@@ -920,6 +920,27 @@ export const useAdminDashboard = () => {
     }
   };
 
+  const handleCompleteCalendarActivity = async (id: string) => {
+    setCalendarLogs(prev =>
+      prev.map(item =>
+        item.id === id ? { ...item, status: 'Completed', completed: true } : item
+      )
+    );
+
+    try {
+      const { error } = await supabase
+        .from('client_servicing_tasks')
+        .update({ status: 'Done', updated_at: new Date().toISOString() })
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error completing activity in Supabase:', error);
+      }
+    } catch (err) {
+      console.error('Error marking activity as complete:', err);
+    }
+  };
+
   const goToPrevMiniMonth = () => {
     setMiniCalendarMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
   };
@@ -997,6 +1018,7 @@ export const useAdminDashboard = () => {
     handleSaveCalendarActivity,
     promptDeleteCalendarActivity,
     executeDeleteCalendarActivity,
+    handleCompleteCalendarActivity,
     goToPrevMiniMonth,
     goToNextMiniMonth,
     handleEventClick,
