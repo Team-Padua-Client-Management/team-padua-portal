@@ -71,7 +71,7 @@ export default function HomePage() {
       })
       .catch((err) => {
         if (err.name !== 'AbortError') {
-          console.error('[landing] stats fetch failed, using fallback', err);
+          console.warn('[landing] stats fetch failed, using fallback');
           setStats(EMPTY_STATS);
         }
       })

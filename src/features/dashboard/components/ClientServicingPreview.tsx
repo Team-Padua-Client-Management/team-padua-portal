@@ -1,14 +1,13 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { Edit2, Save, Check, Loader2 } from 'lucide-react';
 import UserAvatar, { UserProfile } from './UserAvatar';
 import { normalizeCategory, formatRelativeTime } from './TaskRow';
 import { formatDisplayDate } from './ActivityCard';
 import {
     WorkflowTaskItem,
     DEFAULT_WORKFLOW_STATUS,
-    policyRelationshipLabel,
     WORKFLOW_STATUS_OPTIONS,
     WorkflowStatus,
-    buildWorkflowStatusUpdate,
     buildTaskNotes,
     parseTaskMetadata,
 } from './TaskList';
@@ -37,7 +36,7 @@ export interface ClientServicingPreviewProps {
     allProfiles?: UserProfile[];
     bizDevProfiles?: UserProfile[];
     rect: PreviewRect;
-    onSaveTaskField?: (taskId: string, updates: Record<string, unknown>) => void;
+    onSaveTaskField?: (taskId: string, updates: Record<string, unknown>) => void | Promise<void>;
     onMouseEnter?: () => void;
     onMouseLeave?: () => void;
 }
@@ -55,21 +54,37 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
     onMouseLeave,
 }) => {
     const [entered, setEntered] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [saveSuccess, setSaveSuccess] = useState(false);
+    const [saveError, setSaveError] = useState<string | null>(null);
 
-    // Local form field state for inline editing
+    // Form field states
     const [policyOwner, setPolicyOwner] = useState(meta.policy_owner || '');
     const [policyInsured, setPolicyInsured] = useState(meta.policy_insured || '');
     const [policyNumber, setPolicyNumber] = useState(meta.policy_number || '');
+    const [workflowStatus, setWorkflowStatus] = useState<WorkflowStatus>(meta.workflow_status || DEFAULT_WORKFLOW_STATUS);
+    const [processedBy, setProcessedBy] = useState(task.processed_by || '');
+    const [assignedTo, setAssignedTo] = useState(task.assigned_to || '');
     const [dateOfRequest, setDateOfRequest] = useState(meta.date_of_request || '');
     const [timeline, setTimeline] = useState(meta.timeline || '');
 
-    useEffect(() => {
+    const resetForm = () => {
         setPolicyOwner(meta.policy_owner || '');
         setPolicyInsured(meta.policy_insured || '');
         setPolicyNumber(meta.policy_number || '');
+        setWorkflowStatus(meta.workflow_status || DEFAULT_WORKFLOW_STATUS);
+        setProcessedBy(task.processed_by || '');
+        setAssignedTo(task.assigned_to || '');
         setDateOfRequest(meta.date_of_request || '');
         setTimeline(meta.timeline || '');
-    }, [meta.policy_owner, meta.policy_insured, meta.policy_number, meta.date_of_request, meta.timeline]);
+        setSaveError(null);
+    };
+
+    useEffect(() => {
+        resetForm();
+        setIsEditing(false);
+    }, [task.id]);
 
     useEffect(() => {
         const frame = requestAnimationFrame(() => setEntered(true));
@@ -86,17 +101,16 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
     );
 
     const viewportHeight = window.innerHeight;
-    const estimatedCardHeight = 560;
+    const estimatedCardHeight = 580;
     const rawTop = rect.top + rect.height / 2 - estimatedCardHeight / 2;
     const top = Math.min(
         Math.max(rawTop, VIEWPORT_MARGIN),
         viewportHeight - estimatedCardHeight - VIEWPORT_MARGIN
     );
 
-    const currentWorkflowStatus = meta.workflow_status || DEFAULT_WORKFLOW_STATUS;
     const categoryLabel = normalizeCategory(task.category);
 
-    // Combine & deduplicate profile list for Processed By / Assigned To dropdowns
+    // Combine & deduplicate profile list
     const availableProfiles = useMemo(() => {
         const list: UserProfile[] = [];
         const seen = new Set<string>();
@@ -109,25 +123,63 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
         return list.sort((a, b) => (a.full_name || a.email || '').localeCompare(b.full_name || b.email || ''));
     }, [allProfiles, bizDevProfiles]);
 
-    const handleSaveMetaField = (key: string, value: any) => {
-        if (!onSaveTaskField) return;
-        const currentMeta = parseTaskMetadata(task.notes || '');
-        const updatedMeta = { ...currentMeta, [key]: value };
-        if (
-            key === 'policy_owner' &&
-            (updatedMeta.policy_insured_relationship === 'SAME_AS_OWNER' || !updatedMeta.policy_insured_relationship)
-        ) {
-            updatedMeta.policy_insured = value;
+    const currentProcessedProfile = useMemo(() => {
+        if (processedBy) {
+            return availableProfiles.find((p) => p.id === processedBy) || processedProfile;
         }
-        const newNotes = buildTaskNotes(updatedMeta, updatedMeta.timeline || timeline);
-        onSaveTaskField(task.id, { notes: newNotes });
+        return processedProfile;
+    }, [processedBy, availableProfiles, processedProfile]);
+
+    const currentAssignedProfile = useMemo(() => {
+        if (assignedTo) {
+            return availableProfiles.find((p) => p.id === assignedTo) || assignedProfile;
+        }
+        return assignedProfile;
+    }, [assignedTo, availableProfiles, assignedProfile]);
+
+    const handleCancel = () => {
+        resetForm();
+        setIsEditing(false);
     };
 
-    const handleSaveTimeline = (newTimeline: string) => {
+    const handleSaveAllChanges = async () => {
         if (!onSaveTaskField) return;
-        const currentMeta = parseTaskMetadata(task.notes || '');
-        const newNotes = buildTaskNotes(currentMeta, newTimeline);
-        onSaveTaskField(task.id, { notes: newNotes });
+        setIsSaving(true);
+        setSaveError(null);
+
+        try {
+            const currentMeta = parseTaskMetadata(task.notes || '');
+            const updatedMeta = {
+                ...currentMeta,
+                policy_owner: policyOwner,
+                policy_insured: policyInsured,
+                policy_number: policyNumber,
+                workflow_status: workflowStatus,
+                date_of_request: dateOfRequest,
+            };
+
+            const newNotes = buildTaskNotes(updatedMeta, timeline);
+            const taskUpdates: Record<string, unknown> = {
+                notes: newNotes,
+            };
+
+            if (processedBy !== (task.processed_by || '')) {
+                taskUpdates.processed_by = processedBy || null;
+            }
+            if (assignedTo !== (task.assigned_to || '')) {
+                taskUpdates.assigned_to = assignedTo || null;
+            }
+
+            await onSaveTaskField(task.id, taskUpdates);
+            setSaveSuccess(true);
+            setTimeout(() => setSaveSuccess(false), 2500);
+            setIsEditing(false);
+        } catch (err: any) {
+            console.error('Error saving servicing task:', err);
+            setSaveError(err?.message || 'Failed to save changes');
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const sectionLabelStyle: React.CSSProperties = {
@@ -186,7 +238,7 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
             <div
                 style={{
                     position: 'absolute',
-                    top: `${Math.min(Math.max(rect.top + rect.height / 2 - top, 24), 536)}px`,
+                    top: `${Math.min(Math.max(rect.top + rect.height / 2 - top, 24), 550)}px`,
                     ...(isRight ? { left: '-7px' } : { right: '-7px' }),
                     transform: 'translateY(-50%) rotate(45deg)',
                     width: '14px',
@@ -199,6 +251,7 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
                 }}
             />
 
+            {/* Header */}
             <div
                 style={{
                     padding: '18px 24px',
@@ -230,9 +283,35 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
                         Client Servicing Request
                     </div>
                     <div style={{ fontSize: '0.68rem', color: '#9A7A2E', marginTop: '2px', fontWeight: 600 }}>
-                        Interactive edit preview
+                        {isEditing ? 'Editing Servicing Request' : 'Interactive Preview'}
                     </div>
                 </div>
+
+                {!isEditing && onSaveTaskField && (
+                    <button
+                        type="button"
+                        onClick={() => setIsEditing(true)}
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            padding: '5px 12px',
+                            borderRadius: '8px',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            color: '#1A1A1A',
+                            background: '#FFFFFF',
+                            border: `1px solid ${GOLD_BORDER}`,
+                            cursor: 'pointer',
+                        }}
+                        className="hover:bg-amber-50"
+                        title="Edit Request"
+                    >
+                        <Edit2 size={13} color={GOLD_HOVER} />
+                        Edit
+                    </button>
+                )}
+
                 <span
                     style={{
                         flexShrink: 0,
@@ -249,55 +328,81 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
                 </span>
             </div>
 
+            {/* Banners */}
+            {saveSuccess && (
+                <div style={{ padding: '8px 20px', background: '#DEF7EC', color: '#03543F', fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Check size={14} /> Changes saved successfully!
+                </div>
+            )}
+
+            {saveError && (
+                <div style={{ padding: '8px 20px', background: '#FDE8E8', color: '#9B1C1C', fontSize: '0.75rem', fontWeight: 700 }}>
+                    {saveError}
+                </div>
+            )}
+
+            {/* Body */}
             <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    <div style={{ ...fieldBoxStyle, background: '#FCFAF4' }}>
+                    <div style={{ ...fieldBoxStyle, background: isEditing ? '#FFFFFF' : '#FCFAF4' }}>
                         <div style={sectionLabelStyle}>Policy Owner</div>
-                        <input
-                            type="text"
-                            value={policyOwner}
-                            onChange={(e) => setPolicyOwner(e.target.value)}
-                            onBlur={() => handleSaveMetaField('policy_owner', policyOwner)}
-                            placeholder="Enter Policy Owner..."
-                            style={inputStyle}
-                        />
+                        {isEditing ? (
+                            <input
+                                type="text"
+                                value={policyOwner}
+                                onChange={(e) => setPolicyOwner(e.target.value)}
+                                placeholder="Enter Policy Owner..."
+                                style={inputStyle}
+                            />
+                        ) : (
+                            <div style={{ ...inputStyle, fontSize: '0.85rem' }}>
+                                {policyOwner || 'N/A'}
+                            </div>
+                        )}
                     </div>
 
-                    <div style={{ ...fieldBoxStyle, background: '#FCFAF4' }}>
+                    <div style={{ ...fieldBoxStyle, background: isEditing ? '#FFFFFF' : '#FCFAF4' }}>
                         <div style={sectionLabelStyle}>Policy Insured</div>
-                        <input
-                            type="text"
-                            value={policyInsured}
-                            onChange={(e) => setPolicyInsured(e.target.value)}
-                            onBlur={() => handleSaveMetaField('policy_insured', policyInsured)}
-                            placeholder="Enter Policy Insured..."
-                            style={inputStyle}
-                        />
+                        {isEditing ? (
+                            <input
+                                type="text"
+                                value={policyInsured}
+                                onChange={(e) => setPolicyInsured(e.target.value)}
+                                placeholder="Enter Policy Insured..."
+                                style={inputStyle}
+                            />
+                        ) : (
+                            <div style={{ ...inputStyle, fontSize: '0.85rem' }}>
+                                {policyInsured || 'N/A'}
+                            </div>
+                        )}
                     </div>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                     <div style={fieldBoxStyle}>
                         <div style={sectionLabelStyle}>Policy Number</div>
-                        <input
-                            type="text"
-                            value={policyNumber}
-                            onChange={(e) => setPolicyNumber(e.target.value)}
-                            onBlur={() => handleSaveMetaField('policy_number', policyNumber)}
-                            placeholder="Enter Policy Number..."
-                            style={inputStyle}
-                        />
+                        {isEditing ? (
+                            <input
+                                type="text"
+                                value={policyNumber}
+                                onChange={(e) => setPolicyNumber(e.target.value)}
+                                placeholder="Enter Policy Number..."
+                                style={inputStyle}
+                            />
+                        ) : (
+                            <div style={{ ...inputStyle, fontSize: '0.85rem' }}>
+                                {policyNumber || 'N/A'}
+                            </div>
+                        )}
                     </div>
 
                     <div style={fieldBoxStyle}>
                         <div style={sectionLabelStyle}>Workflow Status</div>
-                        {onSaveTaskField ? (
+                        {isEditing ? (
                             <select
-                                value={currentWorkflowStatus}
-                                onChange={(e) => {
-                                    const nextStatus = e.target.value as WorkflowStatus;
-                                    onSaveTaskField(task.id, buildWorkflowStatusUpdate(task, nextStatus));
-                                }}
+                                value={workflowStatus}
+                                onChange={(e) => setWorkflowStatus(e.target.value as WorkflowStatus)}
                                 style={{
                                     display: 'inline-block',
                                     marginTop: '2px',
@@ -311,6 +416,7 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
                                     cursor: 'pointer',
                                     outline: 'none',
                                     appearance: 'none',
+                                    fontFamily: 'inherit',
                                 }}
                             >
                                 {WORKFLOW_STATUS_OPTIONS.map((statusOpt) => (
@@ -333,7 +439,7 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
                                     whiteSpace: 'nowrap',
                                 }}
                             >
-                                {currentWorkflowStatus}
+                                {workflowStatus}
                             </span>
                         )}
                     </div>
@@ -349,15 +455,13 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
                             gap: '10px',
                         }}
                     >
-                        <UserAvatar profile={processedProfile} size={28} />
+                        <UserAvatar profile={currentProcessedProfile} size={28} />
                         <div style={{ minWidth: 0, flex: 1 }}>
                             <div style={sectionLabelStyle}>Processed By</div>
-                            {onSaveTaskField && availableProfiles.length > 0 ? (
+                            {isEditing && availableProfiles.length > 0 ? (
                                 <select
-                                    value={task.processed_by || ''}
-                                    onChange={(e) => {
-                                        onSaveTaskField(task.id, { processed_by: e.target.value || null });
-                                    }}
+                                    value={processedBy}
+                                    onChange={(e) => setProcessedBy(e.target.value)}
                                     style={{
                                         width: '100%',
                                         background: 'transparent',
@@ -379,7 +483,7 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
                                 </select>
                             ) : (
                                 <div style={{ ...inputStyle, fontSize: '0.82rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                    {processedProfile?.full_name || processedProfile?.email || 'Unassigned'}
+                                    {currentProcessedProfile?.full_name || currentProcessedProfile?.email || 'Unassigned'}
                                 </div>
                             )}
                         </div>
@@ -393,15 +497,13 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
                             gap: '10px',
                         }}
                     >
-                        <UserAvatar profile={assignedProfile} size={28} />
+                        <UserAvatar profile={currentAssignedProfile} size={28} />
                         <div style={{ minWidth: 0, flex: 1 }}>
                             <div style={sectionLabelStyle}>Assigned To</div>
-                            {onSaveTaskField && availableProfiles.length > 0 ? (
+                            {isEditing && availableProfiles.length > 0 ? (
                                 <select
-                                    value={task.assigned_to || ''}
-                                    onChange={(e) => {
-                                        onSaveTaskField(task.id, { assigned_to: e.target.value || null });
-                                    }}
+                                    value={assignedTo}
+                                    onChange={(e) => setAssignedTo(e.target.value)}
                                     style={{
                                         width: '100%',
                                         background: 'transparent',
@@ -423,7 +525,7 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
                                 </select>
                             ) : (
                                 <div style={{ ...inputStyle, fontSize: '0.82rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                    {assignedProfile?.full_name || assignedProfile?.email || 'Unassigned'}
+                                    {currentAssignedProfile?.full_name || currentAssignedProfile?.email || 'Unassigned'}
                                 </div>
                             )}
                         </div>
@@ -433,25 +535,28 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
                     <div style={{ ...fieldBoxStyle, background: '#FCFAF4' }}>
                         <div style={sectionLabelStyle}>Date Requested</div>
-                        <input
-                            type="date"
-                            value={dateOfRequest}
-                            onChange={(e) => {
-                                setDateOfRequest(e.target.value);
-                                handleSaveMetaField('date_of_request', e.target.value);
-                            }}
-                            style={{
-                                width: '100%',
-                                background: 'transparent',
-                                border: 'none',
-                                outline: 'none',
-                                fontSize: '0.78rem',
-                                fontWeight: 700,
-                                color: '#1A1A1A',
-                                fontFamily: 'inherit',
-                                cursor: 'pointer',
-                            }}
-                        />
+                        {isEditing ? (
+                            <input
+                                type="date"
+                                value={dateOfRequest}
+                                onChange={(e) => setDateOfRequest(e.target.value)}
+                                style={{
+                                    width: '100%',
+                                    background: 'transparent',
+                                    border: 'none',
+                                    outline: 'none',
+                                    fontSize: '0.78rem',
+                                    fontWeight: 700,
+                                    color: '#1A1A1A',
+                                    fontFamily: 'inherit',
+                                    cursor: 'pointer',
+                                }}
+                            />
+                        ) : (
+                            <div style={{ ...inputStyle, fontSize: '0.78rem', paddingTop: '2px' }}>
+                                {dateOfRequest || 'N/A'}
+                            </div>
+                        )}
                     </div>
 
                     <div style={fieldBoxStyle}>
@@ -471,29 +576,100 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
 
                 <div>
                     <div style={sectionLabelStyle}>Messenger Timeline</div>
-                    <textarea
-                        value={timeline}
-                        onChange={(e) => setTimeline(e.target.value)}
-                        onBlur={() => handleSaveTimeline(timeline)}
-                        placeholder="Log notes or messenger updates..."
-                        rows={3}
-                        style={{
-                            width: '100%',
-                            padding: '10px 12px',
-                            borderRadius: '12px',
-                            border: `1px solid ${GOLD_BORDER}`,
-                            fontSize: '0.8rem',
-                            fontWeight: 500,
-                            color: '#1A1A1A',
-                            background: '#FFFFFF',
-                            lineHeight: 1.5,
-                            outline: 'none',
-                            fontFamily: 'inherit',
-                            resize: 'vertical',
-                            boxSizing: 'border-box',
-                        }}
-                    />
+                    {isEditing ? (
+                        <textarea
+                            value={timeline}
+                            onChange={(e) => setTimeline(e.target.value)}
+                            placeholder="Log notes or messenger updates..."
+                            rows={3}
+                            style={{
+                                width: '100%',
+                                padding: '10px 12px',
+                                borderRadius: '12px',
+                                border: `1px solid ${GOLD_BORDER}`,
+                                fontSize: '0.8rem',
+                                fontWeight: 500,
+                                color: '#1A1A1A',
+                                background: '#FFFFFF',
+                                lineHeight: 1.5,
+                                outline: 'none',
+                                fontFamily: 'inherit',
+                                resize: 'vertical',
+                                boxSizing: 'border-box',
+                            }}
+                        />
+                    ) : (
+                        <div
+                            style={{
+                                padding: '10px 12px',
+                                borderRadius: '12px',
+                                border: `1px solid ${GOLD_BORDER}`,
+                                fontSize: '0.8rem',
+                                fontWeight: 500,
+                                color: '#1A1A1A',
+                                background: '#FCFAF4',
+                                lineHeight: 1.5,
+                                maxHeight: '84px',
+                                overflowY: 'auto',
+                                whiteSpace: 'pre-wrap',
+                            }}
+                        >
+                            {timeline || 'No messenger timeline logged.'}
+                        </div>
+                    )}
                 </div>
+
+                {/* Action Buttons */}
+                {isEditing && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' }}>
+                        <button
+                            type="button"
+                            onClick={handleCancel}
+                            disabled={isSaving}
+                            style={{
+                                padding: '6px 14px',
+                                borderRadius: '8px',
+                                fontSize: '0.75rem',
+                                fontWeight: 700,
+                                color: '#4B5563',
+                                background: '#F3F4F6',
+                                border: '1px solid #E5E7EB',
+                                cursor: isSaving ? 'not-allowed' : 'pointer',
+                            }}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleSaveAllChanges}
+                            disabled={isSaving}
+                            style={{
+                                padding: '6px 16px',
+                                borderRadius: '8px',
+                                fontSize: '0.75rem',
+                                fontWeight: 700,
+                                color: '#FFFFFF',
+                                background: `linear-gradient(135deg, ${GOLD}, ${GOLD_HOVER})`,
+                                border: 'none',
+                                cursor: isSaving ? 'not-allowed' : 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                boxShadow: '0 2px 6px rgba(216, 155, 29, 0.3)',
+                            }}
+                        >
+                            {isSaving ? (
+                                <>
+                                    <Loader2 size={13} className="animate-spin" /> Saving...
+                                </>
+                            ) : (
+                                <>
+                                    <Save size={13} /> Save Changes
+                                </>
+                            )}
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );

@@ -551,7 +551,12 @@ function StagePopover({
 
             {hoveredInquiry && (
                 <div onMouseEnter={cancelPreviewClose} onMouseLeave={() => schedulePreviewClose(PREVIEW_CLOSE_DELAY_MS)}>
-                    <InquiryPreview inquiry={hoveredInquiry} processedByProfile={previewProfile} />
+                    <InquiryPreview
+                        inquiry={hoveredInquiry}
+                        processedByProfile={previewProfile}
+                        allProfiles={allProfiles}
+                        saveInquiryField={saveInquiryField}
+                    />
                 </div>
             )}
         </div>

@@ -399,6 +399,9 @@ export const useAdminDashboard = () => {
       if ("status" in updates)
         dbUpdates.status = updates.status;
 
+      if ("processed_by" in updates)
+        dbUpdates.processed_by = updates.processed_by;
+
 
       console.log("========== UPDATE INQUIRY ==========");
       console.log("Inquiry ID:", inquiryId);
