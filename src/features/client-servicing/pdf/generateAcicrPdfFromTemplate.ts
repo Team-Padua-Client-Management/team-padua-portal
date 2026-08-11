@@ -38,7 +38,7 @@ function setTxt(form: PDFForm, name: string, value: string | null | undefined, f
     }
     field.setText(formatted);
   } catch (e) {
-    console.warn(`Text field "${name}" not found in ACICR PDF`);
+    // AcroForm template field not present in this PDF variant — ignore silently
   }
 }
 

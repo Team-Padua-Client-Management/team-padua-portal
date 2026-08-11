@@ -40,16 +40,12 @@ export async function POST(request: NextRequest) {
             reply,
         });
     } catch (error) {
-        console.error(error);
+        console.error("Chatbot connection error:", error);
 
-        return NextResponse.json(
-            {
-                error: "Failed to communicate with Ollama.",
-            },
-            {
-                status: 500,
-            }
-        );
+        return NextResponse.json({
+            reply: "The AI assistant is currently offline or unavailable in this environment.",
+            isOfflineFallback: true
+        });
     }
 }
 

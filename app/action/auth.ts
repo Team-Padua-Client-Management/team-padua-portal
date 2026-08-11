@@ -199,16 +199,13 @@ export const SignUp = async (formData: FormData): Promise<AuthActionResult> => {
   const role = (formData.get("role") as string) || "Financial Advisor";
 
   // 2. Check for duplicate email
-  const { data: listData } = await supabaseAdmin.auth.admin.listUsers({
-    page: 1,
-    perPage: 1000,
-  });
+  const { data: existingProfile } = await supabaseAdmin
+    .from("profiles")
+    .select("id")
+    .eq("email", email.toLowerCase())
+    .maybeSingle();
 
-  const existingUser = listData?.users?.find(
-    (u) => u.email?.toLowerCase() === email.toLowerCase()
-  );
-
-  if (existingUser) {
+  if (existingProfile) {
     return { error: "An account with this email already exists." };
   }
 

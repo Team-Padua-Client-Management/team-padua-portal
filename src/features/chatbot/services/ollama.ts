@@ -16,8 +16,8 @@ import {
     OllamaResponse,
 } from "@src/features/chatbot/types";
 
-const OLLAMA_URL = "http://localhost:11434/api/chat";
-const MODEL = "llama3:latest";
+const OLLAMA_URL = process.env.OLLAMA_URL || "http://localhost:11434/api/chat";
+const MODEL = process.env.OLLAMA_MODEL || "llama3:latest";
 
 /**
  * Executes operations logic for toOllamaMessages.

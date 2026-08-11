@@ -10,34 +10,41 @@
  */
 
 import { NextResponse } from "next/server";
+import { createClient } from "@src/lib/supabase/server";
 import { supabaseAdmin } from "@src/lib/supabase/admin";
 
 /**
  * Executes operations logic for GET.
- *
- * 
- * @returns State operations sequence.
+ * Secure debug endpoint disabled in production and restricted to authenticated Admins only.
  */
 export async function GET() {
-  try {
-    // Check if we can run an RPC or query Postgres system tables
-    // We can query the pg_indexes or information_schema tables
-    const { data, error } = await supabaseAdmin
-      .from('message_reads')
-      .select('*')
-      .limit(1);
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json({ error: "Forbidden in production environment." }, { status: 403 });
+  }
 
-    // Let's run a query on pg_indexes to see the indexes for message_reads
-    // Since we don't have direct SQL runner, let's select from a custom query if possible?
-    // Wait, PostgREST doesn't expose pg_indexes by default, but let's check if we get an error or something
-    // Or we can try to fetch from information_schema via RPC if one exists, but probably not.
-    // Let's try to do an insert to message_reads without upsert to see if it succeeds.
-    // If it succeeds or fails, let's see.
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized access." }, { status: 401 });
+    }
+
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    if (profile?.role !== "Admin") {
+      return NextResponse.json({ error: "Admin access required." }, { status: 403 });
+    }
+
     const { error: insertError } = await supabaseAdmin
-      .from('message_reads')
+      .from("message_reads")
       .insert({
-        message_id: '00000000-0000-0000-0000-000000000000',
-        user_id: '00000000-0000-0000-0000-000000000000',
+        message_id: "00000000-0000-0000-0000-000000000000",
+        user_id: user.id,
         read_at: new Date().toISOString()
       });
 
