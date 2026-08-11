@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@src/lib/supabase/server';
 
+export const dynamic = 'force-dynamic';
+
 export interface LandingStats {
   totalClients: number;
   activeClients: number;
