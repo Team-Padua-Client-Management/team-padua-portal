@@ -225,7 +225,7 @@ export default function DashboardHero({
       <div className={styles.heroLeft}>
         <div className={styles.heroGreetingBlock}>
           <h1 className={styles.heroGreetingTitle}>
-            <span className="text-white font-extrabold">{greeting}, </span>
+            <span className={`${dayPeriod === 'evening' ? 'text-white' : 'text-[#111111]'} font-extrabold`}>{greeting}, </span>
             <span className={styles.heroGreetingName}>{adminName}</span>
           </h1>
         </div>

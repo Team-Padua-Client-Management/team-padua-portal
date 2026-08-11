@@ -4453,7 +4453,7 @@
   margin: 0;
   font-size: clamp(1.8rem, 2.5vw, 2.5rem);
   font-weight: 800;
-  color: #ffffff;
+  color: #111111;
   letter-spacing: -0.02em;
   line-height: 1.15;
 }
@@ -4461,8 +4461,16 @@
 .heroGreetingName {
   font-size: inherit;
   font-weight: 800;
-  color: #ffffff !important;
+  color: #111111;
   border-bottom: 3.5px solid #F59E0B;
   padding-bottom: 2px;
   display: inline-block;
+}
+
+.heroCard[data-period="evening"] .heroGreetingTitle {
+  color: #ffffff;
+}
+
+.heroCard[data-period="evening"] .heroGreetingName {
+  color: #ffffff;
 }
