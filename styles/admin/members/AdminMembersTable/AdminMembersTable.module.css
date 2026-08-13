@@ -92,7 +92,8 @@
 }
 
 .avatarImg {
-  @apply w-10 h-10 !rounded-xl object-cover shrink-0 border border-slate-200 dark:border-zinc-700/80 shadow-2xs transition-all duration-200;
+  @apply w-10 h-10 !rounded-full object-cover shrink-0 border-[0.5px] border-slate-200/80 dark:border-zinc-700/60 shadow-2xs transition-all duration-200;
+  border-radius: 50% !important;
 }
 
 .memberFlex:hover .avatarImg {
