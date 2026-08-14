@@ -88,11 +88,12 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   let role: string | null = null;
+  let client_servicing_permissions: any = null;
 
   if (user) {
     const { data: profile, error } = await supabase
       .from("profiles")
-      .select("role")
+      .select("role, client_servicing_permissions")
       .eq("id", user.id)
       .single();
 
@@ -102,6 +103,7 @@ export async function updateSession(request: NextRequest) {
     }
 
     role = profile?.role ?? null;
+    client_servicing_permissions = profile?.client_servicing_permissions ?? null;
   }
 
   const isAdmin = role === "Admin";
@@ -141,15 +143,8 @@ export async function updateSession(request: NextRequest) {
 
       if (moduleKey && hasAutomaticAccess(role)) {
         // Advisor: allow through to the page (page-level guard enforces further)
-      } else if (moduleKey) {
-        // Bizdev/Member: fetch permissions and check
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("client_servicing_permissions")
-          .eq("id", user.id)
-          .single();
-
-        const permissions = profile?.client_servicing_permissions as Record<ClientServicingModule, { view: boolean }> | null;
+        // Bizdev/Member: use previously fetched permissions
+        const permissions = client_servicing_permissions as Record<ClientServicingModule, { view: boolean }> | null;
         const hasAccess = permissions?.[moduleKey]?.view === true;
 
         if (!hasAccess) {

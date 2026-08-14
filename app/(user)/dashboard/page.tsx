@@ -173,7 +173,10 @@ export default function UserPersonalDashboardPage() {
 
   return (
     <>
-      <WelcomeModal userName={adminName} role="Associate" />
+      <WelcomeModal 
+        userName={adminName} 
+        role="Associate" 
+      />
 
       {showSplash && (
         <div className={styles.splash}>

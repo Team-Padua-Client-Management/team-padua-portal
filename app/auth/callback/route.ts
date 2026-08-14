@@ -60,7 +60,7 @@ export async function GET(request: Request) {
     // Check current account status
     let { data: profile } = await supabaseAdmin
       .from("profiles")
-      .select("status, role")
+      .select("status, role, full_name")
       .eq("id", user.id)
       .maybeSingle();
 
@@ -87,10 +87,10 @@ export async function GET(request: Request) {
           },
           { onConflict: "id" }
         )
-        .select("status, role")
+        .select("status, role, full_name")
         .maybeSingle();
 
-      profile = newProfile || { status: "Pending", role: "Member" };
+      profile = newProfile || { status: "Pending", role: "Member", full_name: fullName };
       
       // Notify admins about the new registration
       if (!profile || profile.status === "Pending") {
@@ -106,13 +106,37 @@ export async function GET(request: Request) {
     const accountStatus = profile?.status?.toLowerCase();
     const role = profile?.role;
 
-    // If account is pending admin approval, redirect to login with message
+    // If account is pending admin approval
     if (accountStatus === "pending") {
-      // Sign the user out — they can't access the portal yet
-      await supabase.auth.signOut();
-      return NextResponse.redirect(
-        `${requestUrl.origin}/auth/login?message=email_verified_pending`
-      );
+      const nameOrEmail = profile?.full_name || user.email;
+
+      if (role === "Financial Advisor") {
+        // Financial Advisors do not require admin approval
+        await supabaseAdmin.from("profiles").update({ status: "Active" }).eq("id", user.id);
+        
+        await supabaseAdmin.from("notifications").insert({
+          title: "New Financial Advisor Registration",
+          description: `${nameOrEmail} has registered and verified their email.`,
+          type: "user",
+          is_read: false,
+        });
+        
+        // Let them proceed into the portal (redirect handled below)
+      } else {
+        // Business Development Lead requires Admin Approval
+        await supabaseAdmin.from("notifications").insert({
+          title: "Pending Registration Review",
+          description: `${nameOrEmail} has verified their email and is awaiting account approval.`,
+          type: "user",
+          is_read: false,
+        });
+
+        // Sign the user out — they can't access the portal yet
+        await supabase.auth.signOut();
+        return NextResponse.redirect(
+          `${requestUrl.origin}/auth/login?message=email_verified_pending`
+        );
+      }
     }
 
     // If account is suspended or disabled, redirect with appropriate message

@@ -14,7 +14,7 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from "@/styles/admin/members/AdminMembersTable/AdminMembersTable.module.css";
-import { X, Camera, Upload } from "lucide-react";
+import { X, Camera, Upload, Shield } from "lucide-react";
 import { supabase } from "@src/lib/supabase/client";
 export type ClientServicingModule = "cpst" | "acr" | "fst" | "cpc" | "ppu" | "mngt";
 
@@ -65,7 +65,7 @@ export interface User {
   client_servicing_permissions?: ClientServicingPermissions;
 }
 
-export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?: User[] }) {
+export default function AdminMembersTable({ initialUsers = [], currentUserRole = "Member" }: { initialUsers?: User[], currentUserRole?: string }) {
   const [users, setUsers] = useState<User[]>(initialUsers);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("All");
@@ -228,13 +228,13 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
       const timestamp = Date.now();
       const path = `${avatarUploadUser.id}/${timestamp}.${fileExt}`;
       
-      const { error: storageError } = await supabase.storage.from("member-avatars").upload(path, avatarFileToUpload, { 
+      const { error: storageError } = await supabase.storage.from("avatars").upload(path, avatarFileToUpload, { 
         upsert: false,
         contentType: avatarFileToUpload.type,
       });
       if (storageError) throw storageError;
       
-      const { data: urlData } = supabase.storage.from("member-avatars").getPublicUrl(path);
+      const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
       const publicUrl = urlData.publicUrl;
       
       const { error: dbError } = await supabase.from("profiles").update({
@@ -279,6 +279,8 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
     });
   }, [users, search, roleFilter, deptFilter, statusFilter]);
 
+  const pendingUsers = useMemo(() => users.filter(u => u.status === "Pending"), [users]);
+
   return (
     <div className={styles.div_0}>
       <div className={styles.container_1}>
@@ -320,6 +322,26 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
           </select>
         </div>
       </div>
+
+      {pendingUsers.length > 0 && (
+        <div className="mx-6 mt-6 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-2xl p-4 flex items-center justify-between animate-in slide-in-from-top-4 duration-500">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center shrink-0">
+              <Shield className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div>
+              <h3 className="font-bold text-amber-900 dark:text-amber-100 text-sm">Action Required: Pending Approvals</h3>
+              <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">There {pendingUsers.length === 1 ? "is 1 member" : `are ${pendingUsers.length} members`} waiting for administrator approval.</p>
+            </div>
+          </div>
+          <button 
+            onClick={() => setStatusFilter("Pending")}
+            className="px-4 py-2 bg-amber-100 hover:bg-amber-200 dark:bg-amber-900/60 dark:hover:bg-amber-800 text-amber-800 dark:text-amber-200 text-xs font-bold rounded-xl transition-colors whitespace-nowrap"
+          >
+            Review Now
+          </button>
+        </div>
+      )}
 
       <div className={styles.card_8}>
         <div className={styles.div_9}>
@@ -370,7 +392,12 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
                         </div>
 
                         <div className={styles.div_25}>
-                          <span className={styles.table_26}>{u.name}</span>
+                          <div className="flex items-center gap-2">
+                            <span className={styles.table_26}>{u.name}</span>
+                            {u.status === "Pending" && (
+                              <span className="px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[9px] font-extrabold uppercase tracking-wider">New</span>
+                            )}
+                          </div>
                           <span className={styles.table_27}>{u.email}</span>
                         </div>
                       </div>
@@ -428,18 +455,20 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
                         >
                           View Profile
                         </button>
-                        <button
-                          onClick={() => {
-                            setAvatarUploadUser(u);
-                            setUploadStep(1);
-                            setAvatarFileToUpload(null);
-                            setAvatarPreviewUrl(null);
-                            setUploadError("");
-                          }}
-                          className="px-2 py-1 bg-muted hover:bg-muted/80 text-muted-foreground text-xs font-semibold rounded transition-colors"
-                        >
-                          Edit Avatar
-                        </button>
+                        {currentUserRole === "Admin" && (
+                          <button
+                            onClick={() => {
+                              setAvatarUploadUser(u);
+                              setUploadStep(1);
+                              setAvatarFileToUpload(null);
+                              setAvatarPreviewUrl(null);
+                              setUploadError("");
+                            }}
+                            className="px-2 py-1 bg-muted hover:bg-muted/80 text-muted-foreground text-xs font-semibold rounded transition-colors"
+                          >
+                            Edit Avatar
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -530,8 +559,11 @@ export default function AdminMembersTable({ initialUsers = [] }: { initialUsers?
             
             {uploadStep === 1 && (
               <>
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="font-bold text-lg text-foreground">Upload Avatar</h3>
+                <div className="flex justify-between items-start mb-6">
+                  <div>
+                    <h3 className="font-bold text-lg text-foreground">Update Profile Picture</h3>
+                    <p className="text-sm text-muted-foreground mt-1">Upload a new profile photo for this member.</p>
+                  </div>
                   <button onClick={() => setAvatarUploadUser(null)} className="text-muted-foreground hover:text-foreground">
                     <X size={20} />
                   </button>

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Sparkles, Bell, Calendar, Shield, ArrowRight, ClipboardList, Settings, Users, Database } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import styles from '@/styles/components/shared/WelcomeModal.module.css';
 
 interface WelcomeModalProps {
@@ -9,174 +9,102 @@ interface WelcomeModalProps {
   role: string;
 }
 
+const MOTIVATIONAL_MESSAGES = [
+  "Every client interaction creates a lasting impact.",
+  "Small actions today build stronger client relationships tomorrow.",
+  "Excellence is not an act, but a habit.",
+  "Your dedication drives our clients' success.",
+  "Empowering financial futures, one decision at a time."
+];
+
 export default function WelcomeModal({ userName, role }: WelcomeModalProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isDismissing, setIsDismissing] = useState(false);
-  const [isReturning, setIsReturning] = useState(false);
+  const [message, setMessage] = useState('');
 
   useEffect(() => {
-    // Determine if returning user
-    const returning = localStorage.getItem('tp-returning-user') === 'true';
-    setIsReturning(returning);
+    const randomMsg = MOTIVATIONAL_MESSAGES[Math.floor(Math.random() * MOTIVATIONAL_MESSAGES.length)];
+    setMessage(randomMsg);
 
-    // Check if user has already seen the welcome modal in the current session
-    const hasSeen = sessionStorage.getItem('tp-welcome-seen');
-    if (!hasSeen) {
-      // Small timeout to allow page animations to settle
+    const lastSeenDate = localStorage.getItem('tp-welcome-seen-date');
+    const today = new Date().toDateString();
+    const hasSeenSession = sessionStorage.getItem('tp-welcome-seen-session');
+
+    if (lastSeenDate !== today && !hasSeenSession) {
       const timer = setTimeout(() => {
         setIsOpen(true);
-      }, 500);
+      }, 300);
       return () => clearTimeout(timer);
     }
   }, []);
 
-  const handleDismiss = () => {
+  const handleDismiss = (dontShowToday = false) => {
     setIsDismissing(true);
-    // Wait for fadeout animation before unmounting
     setTimeout(() => {
-      sessionStorage.setItem('tp-welcome-seen', 'true');
-      localStorage.setItem('tp-returning-user', 'true');
+      sessionStorage.setItem('tp-welcome-seen-session', 'true');
+      if (dontShowToday) {
+        localStorage.setItem('tp-welcome-seen-date', new Date().toDateString());
+      }
       setIsOpen(false);
-    }, 350);
+    }, 400);
   };
 
   if (!isOpen) return null;
 
-  const isAdmin = role.toLowerCase().includes('admin');
+  const firstName = userName.split(' ')[0] || 'User';
 
   return (
-    <div className={`${styles.overlay} ${isDismissing ? 'animate-out fade-out duration-300' : ''}`}>
-      <div className={styles.modalCard}>
-        {/* Floating Confetti Elements - only for new users */}
-        {!isReturning && (
-          <div className={styles.confettiContainer}>
-            <div className={styles.confetti} />
-            <div className={styles.confetti} />
-            <div className={styles.confetti} />
-            <div className={styles.confetti} />
-            <div className={styles.confetti} />
-            <div className={styles.confetti} />
-            <div className={styles.confetti} />
-          </div>
-        )}
+    <div className={`${styles.overlay} ${isDismissing ? styles.fadeOut : ''}`}>
+      {/* Floating gold particles */}
+      <div className={styles.particles}>
+        <span className={styles.particle} />
+        <span className={styles.particle} />
+        <span className={styles.particle} />
+        <span className={styles.particle} />
+        <span className={styles.particle} />
+        <span className={styles.particle} />
+      </div>
 
-        {/* Logo Header */}
+      <div className={`${styles.modalCard} ${isDismissing ? styles.scaleOut : ''}`}>
+        {/* Shimmer sweep */}
+        <div className={styles.shimmer} />
+
+        {/* Logo with ring pulse */}
         <div className={styles.logoWrapper}>
-          <img src="/Image/icon/TPC.png" alt="Logo" className={styles.logoImg} />
+          <div className={styles.logoRing} />
+          <img src="/Image/icon/TPC.png" alt="Team Padua" className={styles.logoImg} />
+          <div className={styles.logoGlow} />
         </div>
 
-        {/* Heading */}
+        {/* Greeting */}
         <h2 className={styles.title}>
-          {isReturning ? 'Welcome back, ' : 'Welcome, '}
-          <span className={styles.username}>{userName}</span>!
+          Welcome Back, <span className={styles.username}>{firstName}</span> 👋
         </h2>
 
-        <p className={styles.desc}>
-          {isAdmin ? (
-            isReturning ? (
-              "Good to see you again. All administrative configurations, client tables, and system modules are online. Ready to oversee the daily advisory and servicing operations?"
-            ) : (
-              "Welcome to the control center. The Team Padua Business Development portal brings all workspace settings, client metrics, and external portals together to streamline advisory activities."
-            )
-          ) : (
-            isReturning ? (
-              "Good to see you again. Welcome back to your advisory dashboard. Let's coordinate your client service requests and calendar schedules for the day."
-            ) : (
-              "We are glad to have you here in the Client Management Portal! This workspace was created to simplify client servicing workflows, reduce administrative overhead, and support your daily advisory operations."
-            )
-          )}
+        <p className={styles.subtitle}>
+          Ready to continue serving clients, tracking activities,
+          and growing your Team Padua journey today?
         </p>
 
-        {/* Feature Highlights */}
-        <div className={styles.featuresList}>
-          {isAdmin ? (
-            isReturning ? (
-              <>
-                <div className={styles.featureItem}>
-                  <Database size={18} className={styles.featureIcon} />
-                  <div className={styles.featureText}>
-                    <span className={styles.featureTitle}>Workspace Metrics</span>
-                    <span className={styles.featureDesc}>Review real-time client databases (CPST, ACR, PPU, FST, MNGT, CPC).</span>
-                  </div>
-                </div>
-                <div className={styles.featureItem}>
-                  <Settings size={18} className={styles.featureIcon} />
-                  <div className={styles.featureText}>
-                    <span className={styles.featureTitle}>Preferences & Themes</span>
-                    <span className={styles.featureDesc}>Customize platform themes and settings under your preferences panel.</span>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className={styles.featureItem}>
-                  <Users size={18} className={styles.featureIcon} />
-                  <div className={styles.featureText}>
-                    <span className={styles.featureTitle}>Member Management</span>
-                    <span className={styles.featureDesc}>Manage team registration status, authorization levels, and departments.</span>
-                  </div>
-                </div>
-                <div className={styles.featureItem}>
-                  <Settings size={18} className={styles.featureIcon} />
-                  <div className={styles.featureText}>
-                    <span className={styles.featureTitle}>System Customization</span>
-                    <span className={styles.featureDesc}>Add external shortcut portals, toggle features, or enable maintenance modes.</span>
-                  </div>
-                </div>
-              </>
-            )
-          ) : (
-            isReturning ? (
-              <>
-                <div className={styles.featureItem}>
-                  <Calendar size={18} className={styles.featureIcon} />
-                  <div className={styles.featureText}>
-                    <span className={styles.featureTitle}>Attendance Control</span>
-                    <span className={styles.featureDesc}>Keep your punch logs updated and coordinate with your team.</span>
-                  </div>
-                </div>
-                <div className={styles.featureItem}>
-                  <Shield size={18} className={styles.featureIcon} />
-                  <div className={styles.featureText}>
-                    <span className={styles.featureTitle}>Portal Links</span>
-                    <span className={styles.featureDesc}>Access Sun Life, advisor office, drive, and teams in one click.</span>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className={styles.featureItem}>
-                  <Bell size={18} className={styles.featureIcon} />
-                  <div className={styles.featureText}>
-                    <span className={styles.featureTitle}>Real-time Updates</span>
-                    <span className={styles.featureDesc}>Receive instantaneous notifications when advisors publish notes or updates.</span>
-                  </div>
-                </div>
-                <div className={styles.featureItem}>
-                  <Calendar size={18} className={styles.featureIcon} />
-                  <div className={styles.featureText}>
-                    <span className={styles.featureTitle}>Personal Event Schedule</span>
-                    <span className={styles.featureDesc}>Review calendar reminders, appointments, and advisor sync schedules.</span>
-                  </div>
-                </div>
-                <div className={styles.featureItem}>
-                  <Shield size={18} className={styles.featureIcon} />
-                  <div className={styles.featureText}>
-                    <span className={styles.featureTitle}>Secure Workspace Portals</span>
-                    <span className={styles.featureDesc}>Access shared resources, Canva assets, Microsoft Teams, and secure links.</span>
-                  </div>
-                </div>
-              </>
-            )
-          )}
+        {/* Divider line that draws itself */}
+        <div className={styles.divider} />
+
+        {/* Motivational Quote */}
+        <div className={styles.quoteSection}>
+          <span className={styles.quoteText}>"{message}"</span>
         </div>
 
-        {/* Action Button */}
-        <button onClick={handleDismiss} className={styles.ctaBtn}>
-          {isReturning ? 'Resume Work' : "Let's Go!"} <ArrowRight size={18} />
-        </button>
+        {/* Actions */}
+        <div className={styles.actions}>
+          <button onClick={() => handleDismiss(false)} className={styles.primaryBtn}>
+            <span className={styles.btnShimmer} />
+            Start My Day <ArrowRight size={16} className={styles.arrowIcon} />
+          </button>
+          <button onClick={() => handleDismiss(true)} className={styles.secondaryBtn}>
+            Don't show again today
+          </button>
+        </div>
       </div>
     </div>
   );
 }
-

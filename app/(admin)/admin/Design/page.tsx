@@ -212,27 +212,22 @@ export default function DesignPage() {
     const [libraryView, setLibraryView] = useState<LibraryView>("browse");
     const [selectedCategory, setSelectedCategory] = useState<TemplateCategory>("Cards");
     const [selectedTemplateId, setSelectedTemplateId] = useState<string>("sun_maxilink_prime");
-
     const [advisors, setAdvisors] = useState<Advisor[]>([]);
     const [advisorsLoading, setAdvisorsLoading] = useState<boolean>(true);
     const [selectedAdvisorId, setSelectedAdvisorId] = useState<string>("");
-
     const [clients, setClients] = useState<Client[]>([]);
     const [clientsLoading, setClientsLoading] = useState<boolean>(false);
     const [selectedClientId, setSelectedClientId] = useState<string>("");
     const [clientSearch, setClientSearch] = useState<string>("");
-
     const [cardData, setCardData] = useState<PolicyCardData>(EMPTY_CARD_DATA);
     const [zoom, setZoom] = useState<number>(70);
     const [exporting, setExporting] = useState<boolean>(false);
     const [thumbErrors, setThumbErrors] = useState<Record<string, boolean>>({});
-
-    const [riders, setRiders] = useState<RiderBenefit[]>(
-        SUNLIFE_RIDERS.map((r) => ({ ...r }))
-    );
+    const [riders, setRiders] = useState<RiderBenefit[]>(SUNLIFE_RIDERS.map((r) => ({ ...r })));
     const [benefitsOpen, setBenefitsOpen] = useState<boolean>(false);
     const [paymentMode, setPaymentMode] = useState<"Annual" | "Quarterly" | "Monthly">("Annual");
     const [policyTerm, setPolicyTerm] = useState<string>("");
+    const [cardSize, setCardSize] = useState<"small" | "medium" | "large">("medium");
 
     const measureCanvasRef = useRef<HTMLCanvasElement | null>(null);
     const benefitsRef = useRef<HTMLDivElement | null>(null);
@@ -302,7 +297,7 @@ export default function DesignPage() {
                 .order("advisor_name", { ascending: true });
             if (error) throw error;
             setAdvisors(data || []);
-        } catch (err) {
+        } catch {
             setAdvisors([]);
         } finally {
             setAdvisorsLoading(false);
@@ -337,7 +332,7 @@ export default function DesignPage() {
             } else {
                 setClients(data || []);
             }
-        } catch (err) {
+        } catch {
             setClients([]);
         } finally {
             setClientsLoading(false);
@@ -419,6 +414,7 @@ export default function DesignPage() {
         setPolicyTerm("");
         setCardData(EMPTY_CARD_DATA);
         setLibraryView("browse");
+        setCardSize("medium");
     };
 
     const filteredClients = clients.filter((c) =>
@@ -475,7 +471,7 @@ export default function DesignPage() {
             const maturityPosOriginal = FIELD_POSITIONS.maturityDate;
             const centerX = effectivePosOriginal && maturityPosOriginal
                 ? (effectivePosOriginal.left + (effectivePosOriginal.width / 2) + maturityPosOriginal.left + (maturityPosOriginal.width / 2)) / 2
-                : 502;
+                : activeTemplate.width / 2;
 
             (Object.keys(FIELD_POSITIONS) as (keyof PolicyCardData)[]).forEach((key) => {
                 const pos = FIELD_POSITIONS[key];
@@ -493,7 +489,7 @@ export default function DesignPage() {
                 ctx.font = `${pos.fontWeight} ${fitted}px ${FONT_FAMILY}`;
                 ctx.fillStyle = pos.color;
                 ctx.textBaseline = "top";
-                ctx.textAlign = pos.align;
+                ctx.textAlign = pos.align as CanvasTextAlign;
 
                 let leftPx = pos.left * scale;
                 let widthPx = pos.width * scale;
@@ -550,7 +546,7 @@ export default function DesignPage() {
         const maturityPosOriginal = FIELD_POSITIONS.maturityDate;
         const centerX = effectivePosOriginal && maturityPosOriginal
             ? (effectivePosOriginal.left + (effectivePosOriginal.width / 2) + maturityPosOriginal.left + (maturityPosOriginal.width / 2)) / 2
-            : 502;
+            : activeTemplate.width / 2;
 
         let renderLeft = pos.left;
 
@@ -579,6 +575,9 @@ export default function DesignPage() {
             </div>
         );
     };
+
+    const previewCardClass =
+        cardSize === "small" ? styles.cardSmall : cardSize === "large" ? styles.cardLarge : styles.card;
 
     return (
         <div className={styles.page}>
@@ -616,7 +615,7 @@ export default function DesignPage() {
                             <>
                                 <ChevronRight size={13} className={styles.breadcrumbSep} />
                                 <span className={`${styles.breadcrumbItem} ${styles.breadcrumbItemActive}`}>
-                                    {activeTemplate.name}
+                                    {activeTemplate.name} • {activeTemplate.width}×{activeTemplate.height}
                                 </span>
                             </>
                         )}
@@ -672,7 +671,7 @@ export default function DesignPage() {
                                                 </span>
                                             </span>
                                             <span className={styles.fileName}>
-                                                <FileText size={13} /> {t.name}
+                                                <FileText size={13} /> {t.name} • {t.width}×{t.height}
                                             </span>
                                         </button>
                                     ))}
@@ -695,8 +694,17 @@ export default function DesignPage() {
 
                                 <div className={styles.panelGroup}>
                                     <h4 className={styles.panelGroupHeader}>
-                                        <Users size={14} /> Advisor &amp; Client
+                                        <Users size={14} /> Advisor & Client
                                     </h4>
+
+                                    <div className={styles.field}>
+                                        <label className={styles.label}>Card Size</label>
+                                        <select value={cardSize} onChange={(e) => setCardSize(e.target.value as any)} className={styles.select}>
+                                            <option value="small">Small (preview ~480×303)</option>
+                                            <option value="medium">Medium (preview ~800×505)</option>
+                                            <option value="large">Large (preview ~1120×707)</option>
+                                        </select>
+                                    </div>
 
                                     <div className={styles.field}>
                                         <label className={styles.label}>Advisor *</label>
@@ -1007,12 +1015,13 @@ export default function DesignPage() {
                                 <div className={styles.previewFrame}>
                                     <div className={styles.previewScaleWrap} style={{ transform: `scale(${zoom / 100})` }}>
                                         <div
-                                            className={styles.card}
+                                            className={`${styles.card} ${previewCardClass === styles.card ? "" : previewCardClass}`}
                                             style={{
-                                                width: activeTemplate.width,
-                                                height: activeTemplate.height,
+                                                width: previewCardClass === styles.cardSmall ? undefined : undefined,
+                                                height: undefined,
                                                 backgroundImage: `url(${activeTemplate.src})`,
-                                                opacity: activeTemplate.src ? 1 : 0
+                                                opacity: activeTemplate.src ? 1 : 0,
+                                                position: "relative"
                                             }}
                                         >
                                             {(Object.keys(FIELD_POSITIONS) as (keyof PolicyCardData)[]).map((key) => renderFieldOverlay(key))}
@@ -1029,6 +1038,9 @@ export default function DesignPage() {
                                             <FileText size={12} /> {selectedClient.client_name}
                                         </span>
                                     )}
+                                    <span className={styles.previewSummaryItem}>
+                                        {activeTemplate.name} • {activeTemplate.width}×{activeTemplate.height}
+                                    </span>
                                 </div>
                             </div>
                         </div>

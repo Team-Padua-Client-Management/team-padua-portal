@@ -19,6 +19,10 @@ type SavedGoogle = { name: string; email: string; avatar: string } | null;
 
 const getPasswordChecks = (value: string) => [
   { label: "At least 8 characters", valid: value.length >= 8 },
+  { label: "One uppercase letter", valid: /[A-Z]/.test(value) },
+  { label: "One lowercase letter", valid: /[a-z]/.test(value) },
+  { label: "One number", valid: /\d/.test(value) },
+  { label: "One special character", valid: /[^a-zA-Z0-9]/.test(value) },
 ];
 
 const getPasswordStrength = (value: string) => {
@@ -183,6 +187,79 @@ function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+function PendingApprovalModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-md animate-in fade-in duration-500">
+      <div className="relative w-full max-w-md rounded-[32px] border border-slate-100 dark:border-slate-800 bg-white/90 dark:bg-slate-950/90 backdrop-blur-xl p-8 shadow-2xl space-y-6 animate-in zoom-in-95 slide-in-from-bottom-4 duration-500">
+        
+        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-tr from-amber-100 to-amber-50 dark:from-amber-950/40 dark:to-amber-900/40 shadow-inner mb-6 relative">
+          <div className="absolute inset-0 rounded-full border-2 border-amber-200 dark:border-amber-800 animate-[spin_3s_linear_infinite] opacity-50 border-t-amber-500" />
+          <Shield className="h-10 w-10 text-amber-600 dark:text-amber-400 animate-in zoom-in duration-500 delay-150" />
+        </div>
+
+        <div className="space-y-2 text-center mb-6">
+          <h2 className="text-2xl font-extrabold text-slate-950 dark:text-white tracking-tight">Account Under Review</h2>
+          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+            Your email has been verified successfully. Your account is currently being reviewed by an administrator.
+          </p>
+        </div>
+
+        <div className="space-y-0 relative">
+          <div className="flex items-center gap-4 text-sm relative z-10">
+            <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 border border-emerald-200">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+            </div>
+            <span className="font-bold text-slate-800 dark:text-slate-200">Account Registered</span>
+          </div>
+          <div className="w-0.5 h-6 bg-emerald-200 dark:bg-emerald-800 ml-4 -my-1 relative z-0" />
+          
+          <div className="flex items-center gap-4 text-sm relative z-10">
+            <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 border border-emerald-200">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+            </div>
+            <span className="font-bold text-slate-800 dark:text-slate-200">Email Verified</span>
+          </div>
+          <div className="w-0.5 h-6 bg-slate-200 dark:bg-slate-700 ml-4 -my-1 relative z-0" />
+          
+          <div className="flex items-center gap-4 text-sm relative z-10">
+            <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center shrink-0 border border-amber-200 dark:border-amber-700 shadow-[0_0_10px_rgba(251,191,36,0.3)]">
+              <div className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-bold text-amber-700 dark:text-amber-400">Admin Review</span>
+              <span className="text-[10px] text-slate-500 font-medium">In Progress</span>
+            </div>
+          </div>
+          <div className="w-0.5 h-6 bg-slate-200 dark:bg-slate-700 ml-4 -my-1 relative z-0" />
+          
+          <div className="flex items-center gap-4 text-sm relative z-10 opacity-60 grayscale">
+            <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700">
+              <Lock className="w-4 h-4 text-slate-500" />
+            </div>
+            <span className="font-bold text-slate-600 dark:text-slate-400">System Access</span>
+          </div>
+        </div>
+
+        <div className="mt-6 bg-[#FFF9EC] dark:bg-[#FFC72C]/10 border border-[#FFC72C]/30 rounded-2xl p-4 text-center shadow-sm">
+          <p className="text-xs text-[#A3843B] dark:text-[#FFC72C] font-bold leading-relaxed">
+            You will gain access immediately once your account is approved.
+          </p>
+        </div>
+
+        <div className="space-y-3 pt-6">
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full rounded-2xl bg-[#FFC72C] hover:bg-[#d8ad2d] px-4 py-4 text-xs font-extrabold uppercase tracking-wider text-slate-950 transition-all shadow-lg shadow-[#FFC72C]/20 hover:shadow-xl hover:shadow-[#FFC72C]/30 active:scale-[0.98]"
+          >
+            Return to Login
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export const AuthForm = ({ action }: AuthFormProps) => {
   const searchParams = useSearchParams();
   const urlMessage = searchParams.get("message");
@@ -209,6 +286,7 @@ export const AuthForm = ({ action }: AuthFormProps) => {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [showForgot, setShowForgot] = useState(false);
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+  const [showPendingModal, setShowPendingModal] = useState(false);
   const [confirmationEmail, setConfirmationEmail] = useState("");
   const [savedGoogle, setSavedGoogle] = useState<SavedGoogle>(null);
 
@@ -219,7 +297,7 @@ export const AuthForm = ({ action }: AuthFormProps) => {
     if (savedG) { try { setSavedGoogle(JSON.parse(savedG)); } catch {} }
 
     if (urlMessage === "email_verified_pending") {
-      setInfoMessage("Email verified! Your account registration is pending admin approval.");
+      setShowPendingModal(true);
     } else if (urlMessage) {
       setInfoMessage(urlMessage);
     }
@@ -280,6 +358,12 @@ export const AuthForm = ({ action }: AuthFormProps) => {
     startTransition(async () => {
       const activeAction = isLogin ? SignIn : SignUp;
       const result = await activeAction(formData);
+
+      if (result?.status === "pending" || result?.status === "Pending") {
+        setShowPendingModal(true);
+        return;
+      }
+
       if (result?.error) {
         setError(result.error);
         return;
@@ -321,29 +405,140 @@ export const AuthForm = ({ action }: AuthFormProps) => {
   return (
     <>
       {showForgot && <ForgotPasswordModal onClose={() => setShowForgot(false)} />}
+      {showPendingModal && <PendingApprovalModal onClose={() => setShowPendingModal(false)} />}
 
       {showConfirmationModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-[32px] border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-950 p-8 shadow-2xl space-y-6">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-100 dark:bg-amber-950">
-              <Mail className="h-7 w-7 text-amber-600 dark:text-amber-400" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-md animate-in fade-in duration-500">
+          <div className="relative w-full max-w-md rounded-[32px] border border-slate-100 dark:border-slate-800 bg-white/90 dark:bg-slate-950/90 backdrop-blur-xl p-8 shadow-2xl space-y-6 animate-in zoom-in-95 slide-in-from-bottom-4 duration-500">
+            
+            {/* Confetti effect using absolute divs (simulated) */}
+            <div className="absolute top-0 left-0 w-full h-full overflow-hidden rounded-[32px] pointer-events-none">
+              <div className="absolute top-[-20%] left-[20%] w-24 h-24 bg-[#FFC72C] rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse" />
+              <div className="absolute bottom-[-10%] right-[10%] w-32 h-32 bg-emerald-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" style={{ animationDelay: '1s' }} />
             </div>
-            <h2 className="text-center text-xl font-bold text-slate-950 dark:text-white">Check your email</h2>
-            <p className="text-center text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-              We sent a confirmation link to <span className="font-semibold text-[#1B1B1B] dark:text-white">{confirmationEmail || email}</span>.
-              Please check your inbox and verify your email to access the portal.
-            </p>
+
             <button
-              type="button"
               onClick={() => {
                 setShowConfirmationModal(false);
                 setIsLogin(true);
-                setError(null);
               }}
-              className="w-full rounded-xl bg-[#FFC72C] hover:bg-[#d8ad2d] px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-950"
+              className="absolute top-5 right-5 p-2 rounded-xl hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-colors text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 z-10"
             >
-              Continue to Login
+              <X className="w-5 h-5" />
             </button>
+
+            <div className="relative z-10">
+              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-tr from-emerald-100 to-emerald-50 dark:from-emerald-950/40 dark:to-emerald-900/40 shadow-inner mb-6 relative">
+                <div className="absolute inset-0 rounded-full border-2 border-emerald-200 dark:border-emerald-800 animate-[spin_3s_linear_infinite] opacity-50 border-t-emerald-500" />
+                <CheckCircle2 className="h-10 w-10 text-emerald-600 dark:text-emerald-400 animate-in zoom-in duration-500 delay-150" />
+              </div>
+
+              <div className="space-y-2 text-center mb-6">
+                <h2 className="text-2xl font-extrabold text-slate-950 dark:text-white tracking-tight">
+                  {role === "Business Development Lead" ? "🎉 Registration Submitted" : "🎉 Account Created Successfully"}
+                </h2>
+                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                  {role === "Business Development Lead" ? "Your account requires administrator approval." : "We've sent a verification link to your email."}
+                </p>
+              </div>
+
+              {role === "Business Development Lead" ? (
+                <div className="space-y-0 relative">
+                  <div className="flex items-center gap-4 text-sm relative z-10">
+                    <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 border border-emerald-200">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                    </div>
+                    <span className="font-bold text-slate-800 dark:text-slate-200">Registration Complete</span>
+                  </div>
+                  <div className="w-0.5 h-6 bg-emerald-200 dark:bg-emerald-800 ml-4 -my-1 relative z-0" />
+                  
+                  <div className="flex items-center gap-4 text-sm relative z-10">
+                    <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 border border-emerald-200">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="font-bold text-slate-800 dark:text-slate-200">Verification Email Sent</span>
+                      <span className="text-[10px] text-slate-500 font-medium">{confirmationEmail || email}</span>
+                    </div>
+                  </div>
+                  <div className="w-0.5 h-6 bg-slate-200 dark:bg-slate-700 ml-4 -my-1 relative z-0" />
+                  
+                  <div className="flex items-center gap-4 text-sm relative z-10">
+                    <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center shrink-0 border border-amber-200 dark:border-amber-700 shadow-[0_0_10px_rgba(251,191,36,0.3)]">
+                      <div className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
+                    </div>
+                    <span className="font-bold text-amber-700 dark:text-amber-400">Awaiting Email Verification</span>
+                  </div>
+                  <div className="w-0.5 h-6 bg-slate-200 dark:bg-slate-700 ml-4 -my-1 relative z-0" />
+                  
+                  <div className="flex items-center gap-4 text-sm relative z-10 opacity-60 grayscale">
+                    <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700">
+                      <Shield className="w-4 h-4 text-slate-500" />
+                    </div>
+                    <span className="font-bold text-slate-600 dark:text-slate-400">Awaiting Admin Review</span>
+                  </div>
+                  <div className="w-0.5 h-6 bg-slate-200 dark:bg-slate-700 ml-4 -my-1 relative z-0 opacity-60" />
+                  
+                  <div className="flex items-center gap-4 text-sm relative z-10 opacity-60 grayscale">
+                    <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700">
+                      <Lock className="w-4 h-4 text-slate-500" />
+                    </div>
+                    <span className="font-bold text-slate-600 dark:text-slate-400">Account Activation</span>
+                  </div>
+
+                  <div className="mt-6 bg-[#FFF9EC] dark:bg-[#FFC72C]/10 border border-[#FFC72C]/30 rounded-2xl p-4 text-center shadow-sm">
+                    <p className="text-xs text-[#A3843B] dark:text-[#FFC72C] font-bold leading-relaxed">
+                      After verifying your email, your application will be reviewed by a Team Padua administrator.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="bg-slate-50/80 dark:bg-slate-900/50 rounded-2xl p-4 text-center border border-slate-200/60 dark:border-slate-800 shadow-inner">
+                    <a href={`mailto:${confirmationEmail || email}`} className="text-base font-bold text-[#A3843B] dark:text-[#FFC72C] hover:underline break-all">
+                      {confirmationEmail || email}
+                    </a>
+                  </div>
+
+                  <div className="space-y-3 pt-2">
+                    <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 text-center mb-4">Next Steps</p>
+                    <div className="flex items-center gap-4 bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-100 dark:border-slate-800 shadow-sm transition-transform hover:-translate-y-0.5">
+                      <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center shrink-0 text-emerald-600 dark:text-emerald-400 font-extrabold text-sm border border-emerald-200 dark:border-emerald-800/50">1</div>
+                      <span className="font-bold text-slate-800 dark:text-slate-200 text-sm">Verify your email</span>
+                    </div>
+                    <div className="flex items-center gap-4 bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-100 dark:border-slate-800 shadow-sm transition-transform hover:-translate-y-0.5">
+                      <div className="w-8 h-8 rounded-full bg-[#FFF9EC] dark:bg-[#FFC72C]/10 flex items-center justify-center shrink-0 text-[#A3843B] dark:text-[#FFC72C] font-extrabold text-sm border border-[#FFC72C]/30">2</div>
+                      <span className="font-bold text-slate-800 dark:text-slate-200 text-sm">Return to login</span>
+                    </div>
+                    <div className="flex items-center gap-4 bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-100 dark:border-slate-800 shadow-sm transition-transform hover:-translate-y-0.5">
+                      <div className="w-8 h-8 rounded-full bg-[#FFF9EC] dark:bg-[#FFC72C]/10 flex items-center justify-center shrink-0 text-[#A3843B] dark:text-[#FFC72C] font-extrabold text-sm border border-[#FFC72C]/30">3</div>
+                      <span className="font-bold text-slate-800 dark:text-slate-200 text-sm">Access your dashboard</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-3 pt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowConfirmationModal(false);
+                    setIsLogin(true);
+                    setError(null);
+                  }}
+                  className="w-full rounded-2xl bg-[#FFC72C] hover:bg-[#d8ad2d] px-4 py-4 text-xs font-extrabold uppercase tracking-wider text-slate-950 transition-all shadow-lg shadow-[#FFC72C]/20 hover:shadow-xl hover:shadow-[#FFC72C]/30 active:scale-[0.98]"
+                >
+                  Back to Login
+                </button>
+                <button
+                  type="button"
+                  onClick={() => alert("Verification email resent. (Implementation pending backend support)")}
+                  className="w-full rounded-2xl bg-transparent border-2 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 px-4 py-3.5 text-xs font-bold text-slate-500 dark:text-slate-400 transition-colors"
+                >
+                  Resend verification email
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -385,9 +580,6 @@ export const AuthForm = ({ action }: AuthFormProps) => {
                     className="w-full pt-4 pb-1 bg-transparent outline-none text-xs md:text-sm text-[#1B1B1B] dark:text-white appearance-none cursor-pointer pr-8"
                   >
                     <option value="Financial Advisor" className="dark:bg-slate-900">Financial Advisor</option>
-                    <option value="Advisor Support Associate" className="dark:bg-slate-900">Advisor Support Associate</option>
-                    <option value="Unit Manager" className="dark:bg-slate-900">Unit Manager</option>
-                    <option value="Branch Manager" className="dark:bg-slate-900">Branch Manager</option>
                     <option value="Business Development Lead" className="dark:bg-slate-900">Business Development Lead</option>
                   </select>
                   <label htmlFor="role" className="absolute left-0 -top-1 text-[9px] font-bold uppercase tracking-wider text-[#A3843B] dark:text-[#FFC72C]">
