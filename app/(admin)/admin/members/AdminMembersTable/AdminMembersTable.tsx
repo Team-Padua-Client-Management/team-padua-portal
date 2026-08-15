@@ -1,21 +1,11 @@
 'use client';
 
-/**
- * AdminMembersTable.tsx
- *
- * Main component module in features path: app/(admin)/admin/members/AdminMembersTable/AdminMembersTable.tsx
- *
- * Responsibilities:
- * - Scopes UI state management and user actions.
- * - Bridges layout rendering with server-side Supabase data connections.
- * - Handles modular presentation logic.
- */
-
 import React, { useState, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from "@/styles/admin/members/AdminMembersTable/AdminMembersTable.module.css";
 import { X, Camera, Upload, Shield } from "lucide-react";
 import { supabase } from "@src/lib/supabase/client";
+
 export type ClientServicingModule = "cpst" | "acr" | "fst" | "cpc" | "ppu" | "mngt";
 
 export interface ModulePermissions {
@@ -63,7 +53,11 @@ export interface User {
   birthday?: string;
   address?: string;
   client_servicing_permissions?: ClientServicingPermissions;
+  relationship?: string;
+  beneficiaryName?: string;
 }
+
+const RELATIONSHIP_OPTIONS = ["Spouse", "Wife", "Husband", "Mother", "Father", "Son", "Daughter", "Sister", "Brother", "Guardian", "Other"];
 
 export default function AdminMembersTable({ initialUsers = [], currentUserRole = "Member" }: { initialUsers?: User[], currentUserRole?: string }) {
   const [users, setUsers] = useState<User[]>(initialUsers);
@@ -73,12 +67,10 @@ export default function AdminMembersTable({ initialUsers = [], currentUserRole =
   const [statusFilter, setStatusFilter] = useState("All");
   const router = useRouter();
 
-  // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [tempPermissions, setTempPermissions] = useState<ClientServicingPermissions>(defaultClientServicingPermissions);
 
-  // Avatar Upload State
   const [avatarUploadUser, setAvatarUploadUser] = useState<User | null>(null);
   const [avatarFileToUpload, setAvatarFileToUpload] = useState<File | null>(null);
   const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
@@ -90,12 +82,11 @@ export default function AdminMembersTable({ initialUsers = [], currentUserRole =
   const roles = ["Admin", "Manager", "Intern", "Member"];
   const departments = ["ASA", "BSA", "CSA", "DSA"];
 
-  // Helper function to extract First Name & Surname Initials
   const getInitials = (fullName: string) => {
     const parts = fullName.trim().split(/\s+/);
     if (parts.length === 0) return "?";
     if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-    
+
     const firstInitial = parts[0].charAt(0).toUpperCase();
     const surnameInitial = parts[parts.length - 1].charAt(0).toUpperCase();
     return `${firstInitial}${surnameInitial}`;
@@ -118,7 +109,9 @@ export default function AdminMembersTable({ initialUsers = [], currentUserRole =
         status: user.status,
         birthday: user.birthday?.trim() ? user.birthday : null,
         address: user.address || "",
-        client_servicing_permissions: user.client_servicing_permissions
+        client_servicing_permissions: user.client_servicing_permissions,
+        relationship: user.relationship || "",
+        beneficiary_name: user.beneficiaryName || ""
       })
     });
 
@@ -129,10 +122,7 @@ export default function AdminMembersTable({ initialUsers = [], currentUserRole =
       throw new Error(errData?.error ?? `Unable to save (${res.status})`);
     }
 
-    const data = await res.json();
-    return data;
-
-    return data;
+    return res.json();
   };
 
   const handleUpdateUser = async (id: string, key: keyof User, value: any) => {
@@ -178,7 +168,7 @@ export default function AdminMembersTable({ initialUsers = [], currentUserRole =
 
   const savePermissions = async () => {
     if (!selectedUser) return;
-    
+
     const updatedUser = {
       ...selectedUser,
       client_servicing_permissions: tempPermissions
@@ -227,25 +217,24 @@ export default function AdminMembersTable({ initialUsers = [], currentUserRole =
       const fileExt = avatarFileToUpload.name.split(".").pop()?.toLowerCase() || "jpg";
       const timestamp = Date.now();
       const path = `${avatarUploadUser.id}/${timestamp}.${fileExt}`;
-      
-      const { error: storageError } = await supabase.storage.from("avatars").upload(path, avatarFileToUpload, { 
+
+      const { error: storageError } = await supabase.storage.from("avatars").upload(path, avatarFileToUpload, {
         upsert: false,
         contentType: avatarFileToUpload.type,
       });
       if (storageError) throw storageError;
-      
+
       const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
       const publicUrl = urlData.publicUrl;
-      
+
       const { error: dbError } = await supabase.from("profiles").update({
         avatar_url: publicUrl,
         updated_at: new Date().toISOString(),
       }).eq("id", avatarUploadUser.id);
       if (dbError) throw dbError;
 
-      // Auto Refresh
       setUsers(prev => prev.map(u => u.id === avatarUploadUser.id ? { ...u, avatar: publicUrl } : u));
-      
+
       alert("Profile picture updated successfully.");
       setAvatarUploadUser(null);
       setAvatarFileToUpload(null);
@@ -334,7 +323,7 @@ export default function AdminMembersTable({ initialUsers = [], currentUserRole =
               <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">There {pendingUsers.length === 1 ? "is 1 member" : `are ${pendingUsers.length} members`} waiting for administrator approval.</p>
             </div>
           </div>
-          <button 
+          <button
             onClick={() => setStatusFilter("Pending")}
             className="px-4 py-2 bg-amber-100 hover:bg-amber-200 dark:bg-amber-900/60 dark:hover:bg-amber-800 text-amber-800 dark:text-amber-200 text-xs font-bold rounded-xl transition-colors whitespace-nowrap"
           >
@@ -352,6 +341,8 @@ export default function AdminMembersTable({ initialUsers = [], currentUserRole =
                 <th className={styles.div_14}>Role</th>
                 <th className={styles.div_15}>Department</th>
                 <th className={styles.div_16}>Status</th>
+                <th className={styles.div_16}>Relationship</th>
+                <th className={styles.div_16}>Beneficiary</th>
                 <th className={styles.div_16}>Client Servicing</th>
                 <th className={styles.text_17}>Actions</th>
               </tr>
@@ -359,31 +350,28 @@ export default function AdminMembersTable({ initialUsers = [], currentUserRole =
             <tbody className={styles.card_18}>
               {filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className={styles.text_19}>No database profiles mapped to parameters.</td>
+                  <td colSpan={8} className={styles.text_19}>No database profiles mapped to parameters.</td>
                 </tr>
               ) : (
                 filteredUsers.map((u) => (
                   <tr key={u.id} className={styles.table_20}>
                     <td className={styles.div_21}>
                       <div className={styles.container_22} onClick={() => router.push(`/admin/users/${u.id}`)}>
-                        
-                        {/* Avatar Wrap logic that manages automatic fallbacks */}
                         <div className="relative flex items-center justify-center shrink-0 group">
                           {u.avatar ? (
-                            <img 
-                              src={u.avatar} 
-                              alt={u.name} 
-                              className={styles.div_23} 
+                            <img
+                              src={u.avatar}
+                              alt={u.name}
+                              className={styles.div_23}
                               onError={(e) => {
-                                // If image link breaks, hide it and force fallback to show
                                 e.currentTarget.style.display = 'none';
                                 const fallbackEl = e.currentTarget.nextElementSibling as HTMLElement;
                                 if (fallbackEl) fallbackEl.style.display = 'flex';
                               }}
                             />
                           ) : null}
-                          
-                          <div 
+
+                          <div
                             className={styles.text_24}
                             style={{ display: u.avatar ? 'none' : 'flex' }}
                           >
@@ -399,6 +387,11 @@ export default function AdminMembersTable({ initialUsers = [], currentUserRole =
                             )}
                           </div>
                           <span className={styles.table_27}>{u.email}</span>
+                          {u.relationship && u.beneficiaryName && (
+                            <span className="block text-[11px] text-muted-foreground italic mt-0.5">
+                              ({u.beneficiaryName}'s {u.relationship})
+                            </span>
+                          )}
                         </div>
                       </div>
                     </td>
@@ -423,21 +416,44 @@ export default function AdminMembersTable({ initialUsers = [], currentUserRole =
                     </td>
                     <td className={styles.div_33}>
                       <span className={`${styles.text_36} ${u.status === "Active" ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-[#4ade80]" :
-                          u.status === "Pending" ? "bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-[#fef08a]" : "bg-muted text-muted-foreground"
+                        u.status === "Pending" ? "bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-[#fef08a]" : "bg-muted text-muted-foreground"
                         }`}>
                         <span className={`${styles.div_37} ${u.status === "Active" ? "bg-emerald-500" : u.status === "Pending" ? "bg-amber-500" : "bg-muted-foreground"}`} />
                         {u.status}
                       </span>
                     </td>
                     <td className={styles.div_33}>
+                      <select
+                        value={u.relationship || ""}
+                        onChange={(e) => handleUpdateUser(u.id, "relationship", e.target.value)}
+                        className={styles.card_32}
+                      >
+                        <option value="">-</option>
+                        {RELATIONSHIP_OPTIONS.map(r => <option key={r} value={r}>{r}</option>)}
+                      </select>
+                    </td>
+                    <td className={styles.div_33}>
+                      <input
+                        type="text"
+                        placeholder="-"
+                        defaultValue={u.beneficiaryName || ""}
+                        onBlur={(e) => {
+                          if (e.target.value !== (u.beneficiaryName || "")) {
+                            handleUpdateUser(u.id, "beneficiaryName", e.target.value);
+                          }
+                        }}
+                        className={styles.card_3}
+                      />
+                    </td>
+                    <td className={styles.div_33}>
                       <div className="flex flex-col gap-1 items-start">
                         <div className="flex flex-wrap max-w-[150px] gap-1 text-[10px] text-muted-foreground font-semibold">
-                           {u.client_servicing_permissions?.cpst?.view && <span className="text-emerald-500">☑ CPST</span>}
-                           {u.client_servicing_permissions?.acr?.view && <span className="text-emerald-500">☑ ACR</span>}
-                           {u.client_servicing_permissions?.fst?.view && <span className="text-emerald-500">☑ FST</span>}
-                           {u.client_servicing_permissions?.cpc?.view && <span className="text-emerald-500">☑ CPC</span>}
-                           {u.client_servicing_permissions?.ppu?.view && <span className="text-emerald-500">☑ PPU</span>}
-                           {u.client_servicing_permissions?.mngt?.view && <span className="text-emerald-500">☑ MNGT</span>}
+                          {u.client_servicing_permissions?.cpst?.view && <span className="text-emerald-500">☑ CPST</span>}
+                          {u.client_servicing_permissions?.acr?.view && <span className="text-emerald-500">☑ ACR</span>}
+                          {u.client_servicing_permissions?.fst?.view && <span className="text-emerald-500">☑ FST</span>}
+                          {u.client_servicing_permissions?.cpc?.view && <span className="text-emerald-500">☑ CPC</span>}
+                          {u.client_servicing_permissions?.ppu?.view && <span className="text-emerald-500">☑ PPU</span>}
+                          {u.client_servicing_permissions?.mngt?.view && <span className="text-emerald-500">☑ MNGT</span>}
                         </div>
                         <button
                           onClick={() => openModal(u)}
@@ -479,7 +495,6 @@ export default function AdminMembersTable({ initialUsers = [], currentUserRole =
         </div>
       </div>
 
-      {/* Modal Section */}
       {isModalOpen && selectedUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-card border border-border w-full max-w-3xl rounded-2xl shadow-xl overflow-hidden">
@@ -492,7 +507,7 @@ export default function AdminMembersTable({ initialUsers = [], currentUserRole =
                 <X size={18} />
               </button>
             </div>
-            
+
             <div className="p-0 overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
@@ -519,8 +534,8 @@ export default function AdminMembersTable({ initialUsers = [], currentUserRole =
                       {["view", "create", "edit", "delete", "export"].map((action) => (
                         <td key={action} className="p-3 text-center border-r border-border last:border-0">
                           <label className="cursor-pointer flex items-center justify-center w-full h-full">
-                            <input 
-                              type="checkbox" 
+                            <input
+                              type="checkbox"
                               className="w-4 h-4 rounded border-border text-[#F4C542] focus:ring-[#F4C542]"
                               checked={tempPermissions[module.id][action as keyof ModulePermissions]}
                               onChange={() => togglePermission(module.id, action as keyof ModulePermissions)}
@@ -535,13 +550,13 @@ export default function AdminMembersTable({ initialUsers = [], currentUserRole =
             </div>
 
             <div className="flex items-center justify-end gap-3 p-4 border-t border-border bg-muted/30">
-              <button 
+              <button
                 onClick={closeModal}
                 className="px-4 py-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
               >
                 Cancel
               </button>
-              <button 
+              <button
                 onClick={savePermissions}
                 className="px-4 py-2 text-sm font-bold bg-[#F4C542] text-black rounded-lg shadow hover:bg-[#d9af39] transition-colors"
               >
@@ -552,11 +567,10 @@ export default function AdminMembersTable({ initialUsers = [], currentUserRole =
         </div>
       )}
 
-      {/* Avatar Preview Modals */}
       {avatarUploadUser && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-card border border-border w-full max-w-md rounded-2xl shadow-xl p-6 flex flex-col">
-            
+
             {uploadStep === 1 && (
               <>
                 <div className="flex justify-between items-start mb-6">
@@ -573,14 +587,14 @@ export default function AdminMembersTable({ initialUsers = [], currentUserRole =
                   <div className="flex-1 flex flex-col items-center text-center">
                     <span className="text-sm font-semibold text-muted-foreground mb-3">Current Avatar</span>
                     {avatarUploadUser.avatar ? (
-                       <img src={avatarUploadUser.avatar} alt="Current" className="w-24 h-24 rounded-full object-cover border-4 border-muted" />
+                      <img src={avatarUploadUser.avatar} alt="Current" className="w-24 h-24 rounded-full object-cover border-4 border-muted" />
                     ) : (
-                       <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center text-2xl font-bold text-muted-foreground border-4 border-border">
-                         {getInitials(avatarUploadUser.name)}
-                       </div>
+                      <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center text-2xl font-bold text-muted-foreground border-4 border-border">
+                        {getInitials(avatarUploadUser.name)}
+                      </div>
                     )}
                   </div>
-                  
+
                   <div className="flex-1 flex flex-col items-center text-center border-l border-border pl-6">
                     <span className="text-sm font-semibold text-muted-foreground mb-3">New Avatar Preview</span>
                     {avatarPreviewUrl ? (
@@ -594,25 +608,25 @@ export default function AdminMembersTable({ initialUsers = [], currentUserRole =
                 </div>
 
                 <div className="mb-6">
-                   <button
-                     onClick={() => avatarFileRef.current?.click()}
-                     className="w-full py-2 border-2 border-dashed border-border rounded-lg text-sm font-semibold text-muted-foreground hover:bg-muted/50 hover:border-muted-foreground transition-all flex items-center justify-center gap-2"
-                   >
-                     <Upload size={16} /> Choose File
-                   </button>
-                   <p className="text-[10px] text-muted-foreground text-center mt-2">Supported: JPG, JPEG, PNG, WEBP. Max: 5MB.</p>
+                  <button
+                    onClick={() => avatarFileRef.current?.click()}
+                    className="w-full py-2 border-2 border-dashed border-border rounded-lg text-sm font-semibold text-muted-foreground hover:bg-muted/50 hover:border-muted-foreground transition-all flex items-center justify-center gap-2"
+                  >
+                    <Upload size={16} /> Choose File
+                  </button>
+                  <p className="text-[10px] text-muted-foreground text-center mt-2">Supported: JPG, JPEG, PNG, WEBP. Max: 5MB.</p>
                 </div>
 
                 {uploadError && <p className="text-red-500 text-xs text-center mb-4">{uploadError}</p>}
 
                 <div className="flex items-center gap-3 w-full border-t border-border pt-4">
-                  <button 
+                  <button
                     onClick={() => setAvatarUploadUser(null)}
                     className="flex-1 py-2 text-sm font-semibold text-muted-foreground bg-muted hover:bg-muted/80 rounded-lg transition-colors"
                   >
                     Cancel
                   </button>
-                  <button 
+                  <button
                     onClick={() => setUploadStep(2)}
                     disabled={!avatarPreviewUrl}
                     className="flex-1 py-2 text-sm font-bold bg-[#F4C542] text-black rounded-lg hover:bg-[#d9af39] transition-colors disabled:opacity-50"
@@ -634,31 +648,31 @@ export default function AdminMembersTable({ initialUsers = [], currentUserRole =
                 </div>
 
                 <div className="flex items-center justify-center gap-4 mb-6">
-                   {avatarUploadUser.avatar ? (
-                       <img src={avatarUploadUser.avatar} alt="Current" className="w-16 h-16 rounded-full object-cover border-2 border-muted" />
-                    ) : (
-                       <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center text-lg font-bold text-muted-foreground border-2 border-border">
-                         {getInitials(avatarUploadUser.name)}
-                       </div>
-                    )}
-                   
-                   <span className="text-muted-foreground">→</span>
+                  {avatarUploadUser.avatar ? (
+                    <img src={avatarUploadUser.avatar} alt="Current" className="w-16 h-16 rounded-full object-cover border-2 border-muted" />
+                  ) : (
+                    <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center text-lg font-bold text-muted-foreground border-2 border-border">
+                      {getInitials(avatarUploadUser.name)}
+                    </div>
+                  )}
 
-                   <img src={avatarPreviewUrl!} alt="New" className="w-16 h-16 rounded-full object-cover border-2 border-[#F4C542]" />
+                  <span className="text-muted-foreground">→</span>
+
+                  <img src={avatarPreviewUrl!} alt="New" className="w-16 h-16 rounded-full object-cover border-2 border-[#F4C542]" />
                 </div>
 
                 <p className="text-sm text-center text-muted-foreground mb-6">Are you sure you want to update this profile picture?</p>
                 {uploadError && <p className="text-red-500 text-xs text-center mb-4">{uploadError}</p>}
 
                 <div className="flex items-center gap-3 w-full">
-                  <button 
+                  <button
                     onClick={() => setUploadStep(1)}
                     disabled={uploadingAvatar}
                     className="flex-1 py-2 text-sm font-semibold text-muted-foreground bg-muted hover:bg-muted/80 rounded-lg transition-colors disabled:opacity-50"
                   >
                     Back
                   </button>
-                  <button 
+                  <button
                     onClick={confirmAvatarUpload}
                     disabled={uploadingAvatar}
                     className="flex-1 py-2 text-sm font-bold bg-black text-white rounded-lg hover:bg-black/80 transition-colors disabled:opacity-50"
@@ -673,12 +687,12 @@ export default function AdminMembersTable({ initialUsers = [], currentUserRole =
         </div>
       )}
 
-      <input 
-        ref={avatarFileRef} 
-        type="file" 
-        accept="image/jpeg, image/jpg, image/png, image/webp" 
-        className="hidden" 
-        onChange={handleAvatarSelect} 
+      <input
+        ref={avatarFileRef}
+        type="file"
+        accept="image/jpeg, image/jpg, image/png, image/webp"
+        className="hidden"
+        onChange={handleAvatarSelect}
       />
     </div>
   );
