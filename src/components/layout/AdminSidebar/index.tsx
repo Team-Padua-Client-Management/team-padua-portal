@@ -3,14 +3,14 @@
 
 import styles from "@/styles/components/admin/AdminSidebar/page.module.css";
 import Image from 'next/image';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Users, CalendarCheck,
-  ChevronDown, ChevronRight, ChevronLeft, X,
+  ChevronDown, ChevronRight, X,
   Briefcase, Globe, Menu,
-  PaintBucket
 } from 'lucide-react';
 import { useAdminLayoutContext } from '@src/components/layout';
 
@@ -19,58 +19,88 @@ interface AdminSidebarProps {
   onClose?: () => void;
 }
 
+type HoverPanelKey = 'cams' | 'portal' | null;
+
+interface PanelPosition {
+  top: number;
+  left: number;
+}
+
 export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
   const pathname = usePathname();
   const layoutContext = useAdminLayoutContext();
   const effectiveIsOpen = isOpen ?? layoutContext?.isSidebarOpen;
   const effectiveOnClose = onClose ?? layoutContext?.closeSidebar;
   const effectiveOpen = layoutContext?.openSidebar;
+
   const [camsOpen, setCamsOpen] = useState(false);
   const [clientServicingOpen, setClientServicingOpen] = useState(false);
-  const [trackersOpen, setTrackersOpen] = useState(false);
   const [sunlifeFormsOpen, setSunlifeFormsOpen] = useState(false);
   const [portalManagementOpen, setPortalManagementOpen] = useState(false);
   const [greeting, setGreeting] = useState('');
-  const [isCollapsed, setIsCollapsed] = useState(true);
-  const [isHovered, setIsHovered] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+
+  const [mounted, setMounted] = useState(false);
+  const [hoveredPanel, setHoveredPanel] = useState<HoverPanelKey>(null);
+  const [panelPosition, setPanelPosition] = useState<PanelPosition>({ top: 0, left: 0 });
+  const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const camsRailRef = useRef<HTMLDivElement>(null);
+  const portalRailRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const updateMobile = () => setIsMobile(window.innerWidth < 700);
-    updateMobile();
-    window.addEventListener('resize', updateMobile);
-    return () => window.removeEventListener('resize', updateMobile);
+    setMounted(true);
   }, []);
 
-  const isEffectivelyCollapsed = isCollapsed && !isHovered && !(isMobile && effectiveIsOpen);
+  const computePosition = (
+    ref: React.RefObject<HTMLDivElement | null>
+  ) => {
+    if (!ref.current) return null;
+
+    const rect = ref.current.getBoundingClientRect();
+
+    return {
+      top: rect.top,
+      left: rect.right + 12,
+    };
+  };
+
+  const openPanel = (
+    key: HoverPanelKey,
+    ref: React.RefObject<HTMLDivElement | null>
+  ) => {
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+
+    const pos = computePosition(ref);
+
+    if (pos) {
+      setPanelPosition(pos);
+    }
+
+    setHoveredPanel(key);
+  };
+
+  const scheduleClosePanel = () => {
+    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    closeTimeoutRef.current = setTimeout(() => {
+      setHoveredPanel(null);
+    }, 150);
+  };
+
+  const keepPanelOpen = () => {
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+  };
 
   useEffect(() => {
-    const saved = localStorage.getItem('admin-sidebar-collapsed');
-    if (saved !== null) {
-      setIsCollapsed(saved === 'true');
-    } else {
-      setIsCollapsed(true);
-    }
+    return () => {
+      if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    };
   }, []);
-
-  const toggleCollapse = () => {
-    const next = !isCollapsed;
-    setIsCollapsed(next);
-    localStorage.setItem('admin-sidebar-collapsed', String(next));
-    window.dispatchEvent(new CustomEvent('admin-sidebar-collapse-change', { detail: { collapsed: next } }));
-  };
-
-  const handleBurgerClick = () => {
-    if (typeof window !== 'undefined' && window.innerWidth < 700) {
-      if (effectiveIsOpen) {
-        effectiveOnClose?.();
-      } else {
-        effectiveOpen?.();
-      }
-      return;
-    }
-    toggleCollapse();
-  };
 
   useEffect(() => {
     const getPhGreeting = () => {
@@ -98,22 +128,19 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
   }, []);
 
   useEffect(() => {
-    const clientServicingPaths = ['/admin/cpst', '/admin/cv', '/admin/pptm', '/admin/cgpt', '/admin/csmv'];
-    const trackerPaths = ['/admin/jf-application', '/admin/jf-bizdev'];
+    const clientServicingPaths = ['/admin/cpst', '/admin/cpc', '/admin/pptm', '/admin/cgpt', '/admin/csmv'];
     const sunlifeFormPaths = [
-      '/admin/acr', '/admin/bcr', '/admin/fund-switching', '/admin/fund-withdrawal',
+      '/admin/acr', '/admin/acicr', '/admin/bcr', '/admin/fund-switching', '/admin/fund-withdrawal',
       '/admin/aca', '/admin/ada', '/admin/reinstatement-sro', '/admin/reinstatement-pdi'
     ];
 
     const isClientServicing = clientServicingPaths.some(p => pathname.startsWith(p));
-    const isTracker = trackerPaths.some(p => pathname.startsWith(p));
     const isSunlifeForm = sunlifeFormPaths.some(p => pathname.startsWith(p));
 
-    if (isClientServicing || isTracker || isSunlifeForm) {
+    if (isClientServicing || isSunlifeForm) {
       setTimeout(() => {
         setCamsOpen(true);
         if (isClientServicing) setClientServicingOpen(true);
-        if (isTracker) setTrackersOpen(true);
         if (isSunlifeForm) setSunlifeFormsOpen(true);
       }, 0);
     }
@@ -124,28 +151,22 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
     }
   }, [pathname]);
 
-
   const clientServicingItems = [
     { name: 'Client Management Tracker', href: '/admin/cpst' },
     { name: 'Client Policy Card', href: '/admin/cpc' },
     { name: 'Premium Payment', href: '/admin/pptm' },
-    { name: 'Client Welcome Note & Birthday Poster', href: '/admin/cgpt' },
-    { name: 'Client Social Media Visibility', href: '/admin/csmv' },
+    { name: 'Welcome Note & Poster', href: '/admin/cgpt' },
+    { name: 'Social Media Visibility', href: '/admin/csmv' },
   ];
 
-  // const trackerItems = [
-  //   { name: 'JotForm Application Form', href: '/admin/jf-application' },
-  //   { name: 'JotForm BizDev Recruitment', href: '/admin/jf-bizdev' },
-  // ];
-
   const sunlifeFormItems = [
-    { name: 'Advisor Change Request (ACR)', href: '/admin/acr' },
-    { name: 'Address & Contact Information Change Request (ACICR)', href: '/admin/acicr' },
-    { name: 'Beneficiary Change Request (BCR)', href: '/admin/bcr' },
-    { name: 'Fund Switching Request (FSR)', href: '/admin/fund-switching' },
-    { name: 'Fund Withdrawal Request (FWR)', href: '/admin/fund-withdrawal' },
-    { name: 'Auto Credit Arrangement (ACA)', href: '/admin/aca' },
-    { name: 'Auto Debit Arrangement (ADA)', href: '/admin/ada' },
+    { name: 'ACR', href: '/admin/acr' },
+    { name: 'ACICR', href: '/admin/acicr' },
+    { name: 'BCR', href: '/admin/bcr' },
+    { name: 'FSR', href: '/admin/fund-switching' },
+    { name: 'FWR', href: '/admin/fund-withdrawal' },
+    { name: 'ACA', href: '/admin/aca' },
+    { name: 'ADA', href: '/admin/ada' },
     { name: 'Reinstatement SRO', href: '/admin/reinstatement-sro' },
     { name: 'Reinstatement PDI', href: '/admin/reinstatement-pdi' },
   ];
@@ -168,16 +189,193 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
     { name: 'Advisor Office', href: '/admin/portals/advisor-office' },
   ];
 
+  const portalActive = pathname.startsWith('/admin/portals');
+
   const menuItems = [
     { name: 'Members', href: '/admin/members', icon: Users },
     { name: 'Calendar', href: '/admin/calendar', icon: CalendarCheck },
-    { name: 'Design', href: '/admin/Design', icon: PaintBucket },
   ];
 
-  const sidebarContent = (
+  const dashboardActive = pathname.startsWith('/admin/dashboard');
+
+  const flyoutPortal = (key: Exclude<HoverPanelKey, null>) => {
+    if (!mounted || hoveredPanel !== key) return null;
+
+    const content = key === 'cams' ? (
+      <>
+        <div className={styles.hoverPanelHeader}>
+          <div className={styles.hoverPanelIconBadge}>
+            <Briefcase size={16} />
+          </div>
+          <div>
+            <div className={styles.hoverPanelTitle}>CAMS</div>
+            <div className={styles.hoverPanelSubtitle}>Client & Account Management</div>
+          </div>
+        </div>
+
+        <div className={styles.hoverPanelSection}>
+          <div className={styles.hoverPanelSectionLabel}>Client Servicing</div>
+          {clientServicingItems.map((item) => {
+            const active = pathname.startsWith(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={effectiveOnClose}
+                className={`${styles.hoverPanelItem} ${active ? styles.hoverPanelItemActive : ''}`}
+              >
+                {item.name}
+              </Link>
+            );
+          })}
+        </div>
+
+        <div className={styles.hoverPanelDivider} />
+
+        <div className={styles.hoverPanelSection}>
+          <div className={styles.hoverPanelSectionLabel}>Client Servicing Forms</div>
+          {sunlifeFormItems.map((item) => {
+            const active = pathname.startsWith(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={effectiveOnClose}
+                className={`${styles.hoverPanelItem} ${active ? styles.hoverPanelItemActive : ''}`}
+              >
+                {item.name}
+              </Link>
+            );
+          })}
+        </div>
+      </>
+    ) : (
+      <>
+        <div className={styles.hoverPanelHeader}>
+          <div className={styles.hoverPanelIconBadge}>
+            <Globe size={16} />
+          </div>
+          <div>
+            <div className={styles.hoverPanelTitle}>Portal Management</div>
+            <div className={styles.hoverPanelSubtitle}>Connected tools & portals</div>
+          </div>
+        </div>
+
+        <div className={styles.hoverPanelSection}>
+          {portalItems.map((item) => {
+            const active = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={effectiveOnClose}
+                className={`${styles.hoverPanelItem} ${active ? styles.hoverPanelItemActive : ''}`}
+              >
+                {item.name}
+              </Link>
+            );
+          })}
+        </div>
+      </>
+    );
+
+    return createPortal(
+      <div
+        className={`${styles.hoverPanel} ${styles.hoverPanelVisible}`}
+        style={{ top: panelPosition.top, left: panelPosition.left }}
+        onMouseEnter={keepPanelOpen}
+        onMouseLeave={scheduleClosePanel}
+      >
+        {content}
+      </div>,
+      document.body
+    );
+  };
+
+  const DesktopSidebar = (
+    <aside className={styles.sidebarAside}>
+      <div className={styles.sidebarInner}>
+        <div className={styles.railHeader}>
+          <Link href="/admin/dashboard" className={styles.railLogoLink} title="Team Padua Dashboard">
+            <Image
+              src="/Image/icon/TPC.png"
+              alt="Team Padua Logo"
+              width={32}
+              height={32}
+              className="object-contain shrink-0"
+            />
+          </Link>
+        </div>
+
+        <nav className={styles.railNav}>
+          <div className={styles.railItemWrapper}>
+            <Link
+              href="/admin/dashboard"
+              className={`${styles.navItemCollapsed} ${dashboardActive ? styles.navItemActive : styles.navItemInactive}`}
+            >
+              <LayoutDashboard size={18} className={dashboardActive ? styles.navIconActive : styles.navIconInactive} />
+            </Link>
+            <span className={styles.tooltip}>Dashboard</span>
+          </div>
+
+          <div
+            ref={camsRailRef}
+            className={styles.railItemWrapper}
+            onMouseEnter={() => openPanel('cams', camsRailRef)}
+            onMouseLeave={scheduleClosePanel}
+          >
+            <Link
+              href="/admin/cpst"
+              className={`${styles.navItemCollapsed} ${camsActive ? styles.navItemActive : styles.navItemInactive}`}
+            >
+              <Briefcase size={18} className={camsActive ? styles.navIconActive : styles.navIconInactive} />
+            </Link>
+            <span className={styles.tooltip}>CAMS</span>
+          </div>
+
+          <div
+            ref={portalRailRef}
+            className={styles.railItemWrapper}
+            onMouseEnter={() => openPanel('portal', portalRailRef)}
+            onMouseLeave={scheduleClosePanel}
+          >
+            <Link
+              href="/admin/portals"
+              className={`${styles.navItemCollapsed} ${portalActive ? styles.navItemActive : styles.navItemInactive}`}
+            >
+              <Globe size={18} className={portalActive ? styles.navIconActive : styles.navIconInactive} />
+            </Link>
+            <span className={styles.tooltip}>Portal Management</span>
+          </div>
+
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const active = pathname.toLowerCase() === item.href.toLowerCase()
+              || pathname.toLowerCase().startsWith(item.href.toLowerCase());
+            return (
+              <div className={styles.railItemWrapper} key={item.href}>
+                <Link
+                  href={item.href}
+                  className={`${styles.navItemCollapsed} ${active ? styles.navItemActive : styles.navItemInactive}`}
+                >
+                  <Icon size={18} className={active ? styles.navIconActive : styles.navIconInactive} />
+                </Link>
+                <span className={styles.tooltip}>{item.name}</span>
+              </div>
+            );
+          })}
+        </nav>
+      </div>
+
+      {flyoutPortal('cams')}
+      {flyoutPortal('portal')}
+    </aside>
+  );
+
+  const mobileSidebarContent = (
     <div className={styles.sidebarInner}>
-      <div className={`pt-10 pb-5 border-b border-slate-100 dark:border-slate-800/50 flex flex-col items-center ${styles.sidebarHeader} ${isEffectivelyCollapsed ? styles.sidebarHeaderCollapsed : ''}`}>
-        <div className={`${styles.sidebarHeaderContainer} ${isEffectivelyCollapsed ? styles.sidebarHeaderContainerCollapsed : ''}`}>
+      <div className="pt-10 pb-5 border-b border-slate-100 dark:border-slate-800/50 flex flex-col items-center">
+        <div className={styles.sidebarHeaderContainer}>
           <Link href="/admin/dashboard" className="flex items-center justify-center p-1" title="Team Padua Dashboard">
             <Image
               src="/Image/icon/TPC.png"
@@ -190,68 +388,35 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
         </div>
 
         {greeting && (
-          <p className={`${styles.sidebarGreeting} ${styles.textFade} ${isEffectivelyCollapsed ? styles.textFadeHidden : ''}`}>
-            ● {greeting}
-          </p>
+          <p className={styles.sidebarGreeting}>● {greeting}</p>
         )}
       </div>
 
-      <nav className={`${styles.sidebarNav} ${isEffectivelyCollapsed ? 'px-2' : 'p-4'}`}>
+      <nav className={`${styles.sidebarNav} p-4`}>
         <div className={styles.sidebarNavGroup}>
-          <div
-            className={`${isEffectivelyCollapsed ? styles.navItemCollapsed : styles.navItem} ${pathname.startsWith('/admin/dashboard')
-              ? styles.navItemActive
-              : styles.navItemInactive
-              }`}
-          >
-            <Link
-              href="/admin/dashboard"
-              onClick={onClose}
-              title={isEffectivelyCollapsed ? "Dashboard" : undefined}
-              className={isEffectivelyCollapsed ? 'flex items-center justify-center w-full' : styles.navItemLink}
-            >
-              <LayoutDashboard size={16} className={`shrink-0 ${pathname.startsWith('/admin/dashboard') ? styles.navIconActive : styles.navIconInactive}`} />
-              <span className={`${styles.navLabel} ${isEffectivelyCollapsed ? styles.navLabelHidden : ''}`}>Dashboard</span>
+          <div className={`${styles.navItem} ${dashboardActive ? styles.navItemActive : styles.navItemInactive}`}>
+            <Link href="/admin/dashboard" onClick={effectiveOnClose} className={styles.navItemLink}>
+              <LayoutDashboard size={16} className={`shrink-0 ${dashboardActive ? styles.navIconActive : styles.navIconInactive}`} />
+              <span className={styles.navLabel}>Dashboard</span>
             </Link>
           </div>
         </div>
 
         <div className={styles.sidebarNavGroup}>
-          <div
-            className={`${isEffectivelyCollapsed ? styles.navItemCollapsed : styles.navItem} ${camsActive
-              ? styles.navItemActive
-              : styles.navItemInactive
-              }`}
-          >
-            <button
-              onClick={() => {
-                if (isEffectivelyCollapsed) {
-                  window.location.href = '/admin/cpst';
-                } else {
-                  setCamsOpen(!camsOpen);
-                }
-              }}
-              title={isEffectivelyCollapsed ? "CAMS" : undefined}
-              className={isEffectivelyCollapsed ? 'flex items-center justify-center w-full' : styles.navItemLink}
-            >
+          <div className={`${styles.navItem} ${camsActive ? styles.navItemActive : styles.navItemInactive}`}>
+            <button onClick={() => setCamsOpen(!camsOpen)} className={styles.navItemLink}>
               <Briefcase size={16} className={`shrink-0 ${camsActive ? styles.navIconActive : styles.navIconInactive}`} />
-              <span className={`${styles.navLabel} ${isEffectivelyCollapsed ? styles.navLabelHidden : ''}`}>CAMS</span>
+              <span className={styles.navLabel}>CAMS</span>
             </button>
-            {!isEffectivelyCollapsed && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  setCamsOpen(!camsOpen);
-                }}
-                className={styles.dropdownToggleBtn}
-              >
-                {camsOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-              </button>
-            )}
+            <button
+              onClick={(e) => { e.stopPropagation(); e.preventDefault(); setCamsOpen(!camsOpen); }}
+              className={styles.dropdownToggleBtn}
+            >
+              {camsOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            </button>
           </div>
 
-          {!isEffectivelyCollapsed && camsOpen && (
+          {camsOpen && (
             <div className={`${styles.sidebarSubNav} flex flex-col gap-1.5`}>
               <div className="flex flex-col">
                 <button
@@ -265,12 +430,12 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                 {clientServicingOpen && (
                   <div className="pl-2 border-l border-slate-200 dark:border-slate-800 ml-1.5 mt-1 space-y-0.5">
                     {clientServicingItems.map((sub) => {
-                      const subActive = pathname === sub.href || pathname.startsWith(sub.href);
+                      const subActive = pathname.startsWith(sub.href);
                       return (
                         <Link
                           key={sub.name}
                           href={sub.href}
-                          onClick={onClose}
+                          onClick={effectiveOnClose}
                           className={`${styles.sidebarSubNavItem} ${subActive ? styles.navSubActive : styles.navSubInactive}`}
                         >
                           <span>{sub.name}</span>
@@ -293,12 +458,12 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                 {sunlifeFormsOpen && (
                   <div className="pl-2 border-l border-slate-200 dark:border-slate-800 ml-1.5 mt-1 space-y-0.5">
                     {sunlifeFormItems.map((sub) => {
-                      const subActive = pathname === sub.href || pathname.startsWith(sub.href);
+                      const subActive = pathname.startsWith(sub.href);
                       return (
                         <Link
                           key={sub.name}
                           href={sub.href}
-                          onClick={onClose}
+                          onClick={effectiveOnClose}
                           className={`${styles.sidebarSubNavItem} ${subActive ? styles.navSubActive : styles.navSubInactive}`}
                         >
                           <span>{sub.name}</span>
@@ -313,41 +478,20 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
         </div>
 
         <div className={styles.sidebarNavGroup}>
-          <div
-            className={`${isEffectivelyCollapsed ? styles.navItemCollapsed : styles.navItem} ${pathname.startsWith('/admin/portals')
-              ? styles.navItemActive
-              : styles.navItemInactive
-              }`}
-          >
-            <button
-              onClick={() => {
-                if (isEffectivelyCollapsed) {
-                  window.location.href = '/admin/portals';
-                } else {
-                  setPortalManagementOpen(!portalManagementOpen);
-                }
-              }}
-              title={isEffectivelyCollapsed ? "Portal Management" : undefined}
-              className={isEffectivelyCollapsed ? 'flex items-center justify-center w-full' : styles.navItemLink}
-            >
-              <Globe size={16} className={`shrink-0 ${pathname.startsWith('/admin/portals') ? styles.navIconActive : styles.navIconInactive}`} />
-              <span className={`${styles.navLabel} ${isEffectivelyCollapsed ? styles.navLabelHidden : ''}`}>Portal Management</span>
+          <div className={`${styles.navItem} ${portalActive ? styles.navItemActive : styles.navItemInactive}`}>
+            <button onClick={() => setPortalManagementOpen(!portalManagementOpen)} className={styles.navItemLink}>
+              <Globe size={16} className={`shrink-0 ${portalActive ? styles.navIconActive : styles.navIconInactive}`} />
+              <span className={styles.navLabel}>Portal Management</span>
             </button>
-            {!isEffectivelyCollapsed && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  setPortalManagementOpen(!portalManagementOpen);
-                }}
-                className={styles.dropdownToggleBtn}
-              >
-                {portalManagementOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-              </button>
-            )}
+            <button
+              onClick={(e) => { e.stopPropagation(); e.preventDefault(); setPortalManagementOpen(!portalManagementOpen); }}
+              className={styles.dropdownToggleBtn}
+            >
+              {portalManagementOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            </button>
           </div>
 
-          {!isEffectivelyCollapsed && portalManagementOpen && (
+          {portalManagementOpen && (
             <div className={`${styles.sidebarSubNav} max-h-[300px] overflow-y-auto pr-1`}>
               {portalItems.map((sub) => {
                 const subActive = pathname === sub.href;
@@ -355,7 +499,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                   <Link
                     key={sub.href}
                     href={sub.href}
-                    onClick={onClose}
+                    onClick={effectiveOnClose}
                     className={`${styles.sidebarSubNavItem} ${subActive ? styles.navSubActive : styles.navSubInactive}`}
                   >
                     <span>{sub.name}</span>
@@ -368,21 +512,18 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
 
         {menuItems.map((item) => {
           const Icon = item.icon;
-          const active = pathname.toLowerCase() === item.href.toLowerCase() || (item.href !== '/admin/dashboard' && pathname.toLowerCase().startsWith(item.href.toLowerCase()));
+          const active = pathname.toLowerCase() === item.href.toLowerCase()
+            || pathname.toLowerCase().startsWith(item.href.toLowerCase());
           return (
             <Link
               key={item.href}
               href={item.href}
               onClick={effectiveOnClose}
-              title={isEffectivelyCollapsed ? item.name : undefined}
-              className={`${isEffectivelyCollapsed ? styles.navItemCollapsed : styles.navItem} ${active
-                ? styles.navItemActive
-                : styles.navItemInactive
-                }`}
+              className={`${styles.navItem} ${active ? styles.navItemActive : styles.navItemInactive}`}
             >
-              <div className={isEffectivelyCollapsed ? 'flex items-center justify-center' : styles.navItemLink}>
-                <Icon size={16} className={`shrink-0 transition-colors duration-200 ${active ? styles.navIconActive : styles.navIconInactive}`} />
-                <span className={`${styles.navLabel} ${isEffectivelyCollapsed ? styles.navLabelHidden : ''}`}>{item.name}</span>
+              <div className={styles.navItemLink}>
+                <Icon size={16} className={`shrink-0 ${active ? styles.navIconActive : styles.navIconInactive}`} />
+                <span className={styles.navLabel}>{item.name}</span>
               </div>
             </Link>
           );
@@ -390,22 +531,15 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
       </nav>
 
       <div className={styles.sidebarFooter}>
-        <p className={`${styles.sidebarFooterText} ${styles.textFade} ${isEffectivelyCollapsed ? styles.textFadeHidden : ''}`}>
-          Admin Portal Secures Online
-        </p>
+        <p className={styles.sidebarFooterText}>Admin Portal Secures Online</p>
       </div>
     </div>
   );
 
   return (
     <>
-      <aside
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        className={`${styles.sidebarAside} ${isEffectivelyCollapsed ? styles.collapsedSidebar : ''}`}
-      >
-        {sidebarContent}
-      </aside>
+      {DesktopSidebar}
+
       {!effectiveIsOpen && effectiveOpen && (
         <button
           type="button"
@@ -416,6 +550,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
           <Menu size={16} />
         </button>
       )}
+
       {effectiveIsOpen && (
         <div className={styles.sidebarMobileWrapper}>
           <div className={styles.sidebarOverlay} onClick={effectiveOnClose} />
@@ -427,7 +562,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
             >
               <X size={16} />
             </button>
-            {sidebarContent}
+            {mobileSidebarContent}
           </aside>
         </div>
       )}
