@@ -166,6 +166,8 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
     { name: 'Task Tracker', href: '/admin/portals/task-tracker' },
     { name: 'Sun Life', href: '/admin/portals/sun-life' },
     { name: 'Advisor Office', href: '/admin/portals/advisor-office' },
+    { name: 'Client Policy Card', href: '/admin/portals/client-policy-card' },
+    { name: 'Daniel Padua Portfolio', href: '/admin/portals/daniel-padua-portfolio' },
   ];
 
   const menuItems = [

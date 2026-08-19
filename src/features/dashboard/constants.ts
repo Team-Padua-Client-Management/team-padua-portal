@@ -40,4 +40,6 @@ export const defaultPortals: Portal[] = [
   { name: 'Canva', logo: '/images/logos/canva.svg', width: 26, url: 'https://www.canva.com/', manage: '/admin/portals/canva' },
   { name: 'Zoom', logo: '/images/logos/zoom.svg', width: 24, url: 'https://bit.ly/4wrEVBg', manage: '/admin/portals/zoom' },
   { name: 'G-Drive', logo: '/images/logos/google_drive.svg', width: 24, url: 'https://drive.google.com/drive/folders/1ZLNJHFUFYDkVG9pQwMF2hio89j7vp04x?usp=sharing', manage: '/admin/portals/google-drive' },
+  { name: 'Client Policy Card', logo: '/images/logos/client_policy_card.svg', width: 24, url: 'https://team-padua-client-policy-card.vercel.app/', manage: '/admin/portals/client-policy-card' },
+  { name: 'Daniel Padua Portfolio', logo: '/images/logos/daniel_padua_portfolio.svg', width: 24, url: 'https://danielpadua.vercel.app/', manage: '/admin/portals/daniel-padua-portfolio' },
 ];
