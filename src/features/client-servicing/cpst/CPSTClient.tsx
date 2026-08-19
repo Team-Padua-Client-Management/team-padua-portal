@@ -1,207 +1,3 @@
-
-//     "Yes. Based on your Excel export screenshot, your current parseClientRows() only extracts:
-
-// ✅ Client Name
-// ✅ Mobile Number
-// ✅ Email
-// ✅ Address
-// ✅ Birthdate
-
-// and intentionally sets:
-
-// policyNumber: '',
-// product: '',
-// approvalDate: '',
-// beneficiary: '',
-// fundAllocation: '',
-
-// That's why your table shows:
-
-// ₱0
-// Policy Number = blank
-// Product = blank
-// Approval Date = blank
-// Beneficiary = blank
-// Fund Allocation = blank
-// Add these column mappings
-
-// Inside parseClientRows(), after:
-
-// const bdayCol = findCol(['date of birth', 'birthday', 'dob']);
-
-// add:
-
-// const policyCol = findCol([
-//   'policy number',
-//   'policy no',
-//   'policy #'
-// ]);
-
-// const productCol = findCol([
-//   'policy name',
-//   'product',
-//   'plan name'
-// ]);
-
-// const approvalCol = findCol([
-//   'issue date',
-//   'approval date',
-//   'policy date'
-// ]);
-
-// const beneficiaryCol = findCol([
-//   'beneficiary'
-// ]);
-
-// const fundAllocationCol = findCol([
-//   'fund allocation',
-//   'allocation',
-//   'fund'
-// ]);
-// Extract values
-
-// Replace:
-
-// const clientName = nameCol >= 0 ? String(row[nameCol] ?? '').trim() : '';
-// const mobileNumber = mobCol >= 0 ? String(row[mobCol] ?? '').trim() : '';
-// const email = emailCol >= 0 ? String(row[emailCol] ?? '').trim() : '';
-// const address = addCol >= 0 ? String(row[addCol] ?? '').trim() : '';
-
-// with:
-
-// const clientName = nameCol >= 0
-//   ? String(row[nameCol] ?? '').trim()
-//   : '';
-
-// const mobileNumber = mobCol >= 0
-//   ? String(row[mobCol] ?? '').trim()
-//   : '';
-
-// const email = emailCol >= 0
-//   ? String(row[emailCol] ?? '').trim()
-//   : '';
-
-// const address = addCol >= 0
-//   ? String(row[addCol] ?? '').trim()
-//   : '';
-
-// const policyNumber = policyCol >= 0
-//   ? String(row[policyCol] ?? '').trim()
-//   : '';
-
-// const product = productCol >= 0
-//   ? String(row[productCol] ?? '').trim()
-//   : '';
-
-// const approvalDate =
-//   approvalCol >= 0
-//     ? parseDateFlexible(String(row[approvalCol] ?? '').trim()) || ''
-//     : '';
-
-// const beneficiary =
-//   beneficiaryCol >= 0
-//     ? String(row[beneficiaryCol] ?? '').trim()
-//     : '';
-
-// const fundAllocation =
-//   fundAllocationCol >= 0
-//     ? String(row[fundAllocationCol] ?? '').trim()
-//     : '';
-// Update valid.push()
-
-// Replace:
-
-// valid.push({
-//   clientName,
-//   mobileNumber,
-//   email,
-//   address,
-//   birthdate,
-//   policyNumber: '',
-//   product: '',
-//   approvalDate: '',
-//   annualPremium: 0,
-//   beneficiary: '',
-//   fundAllocation: '',
-//   modeOfPayment: 'Annual'
-// });
-
-// with:
-
-// valid.push({
-//   clientName,
-//   mobileNumber,
-//   email,
-//   address,
-//   birthdate,
-
-//   policyNumber,
-//   product,
-//   approvalDate,
-
-//   annualPremium: 0,
-
-//   beneficiary,
-//   fundAllocation,
-
-//   modeOfPayment: 'Annual'
-// });
-// Important
-
-// Your Excel screenshot contains:
-
-// Excel Column	CPST Field
-// Policy number	policyNumber
-// Policy name	product
-// Issue date	approvalDate
-// Policy owner	clientName
-// Insured	optional
-// Face amount	can map to another field later
-
-// The file does NOT contain:
-
-// Mobile Number
-// Email
-// Address
-// Beneficiary
-// Fund Allocation
-
-// So if you're importing directly from the Sun Life Policy List export, only these fields can be auto-filled:
-
-// clientName
-// policyNumber
-// product
-// approvalDate
-
-// while:
-
-// mobileNumber
-// email
-// address
-// beneficiary
-// fundAllocation
-
-// must come from another spreadsheet/database source.
-
-// For the exact Sun Life export shown in your screenshot, I'd actually recommend enhancing parseClientRows() to detect two templates automatically:
-
-// Client Master List Template
-// Client Name
-// Email
-// Mobile
-// Address
-// DOB
-// Sun Life Policy List Export
-// Policy Number
-// Policy Owner
-// Issue Date
-// Policy Name
-// Face Amount
-
-// and merge/update existing CPST records instead of treating them as the same file structure. That would be the cleanest solution for CAMS. 🚀"
-
-
-
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -409,10 +205,6 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
         .select('*, advisor:advisors(*)')
         .order('created_at', { ascending: false });
 
-      console.log('ADVISORS', advisorsData);
-      console.log('CLIENTS', clientsData);
-      console.log('SELECTED ADVISOR', selectedAdvisor);
-
       let loadedAdvisors: AdvisorRecord[] = [];
 
       if (advisorsData && advisorsData.length > 0) {
@@ -424,7 +216,6 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
           createdAt: a.created_at || ''
         }));
       } else if (clientsData && clientsData.length > 0) {
-        console.warn('Fallback Warning: advisors table is empty or inaccessible. Building advisor list from clients.advisor_id. This may mask database issues like missing RLS policies.');
         const advisorMap = new Map<string, AdvisorRecord>();
         clientsData.forEach((c: any) => {
           const advId = c.advisor_id || (c.advisor ? c.advisor.id : null);
@@ -496,10 +287,6 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
     fetchData();
   }, []);
 
-  useEffect(() => {
-    console.log("activeModal state:", activeModal);
-  }, [activeModal]);
-
   const advisorStatsMap = useMemo(() => {
     const map = new Map<string, { totalClients: number; activePolicies: number; totalPremium: number }>();
     advisors.forEach(a => {
@@ -538,14 +325,13 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
     const records: ClientDisplayRecord[] = [];
 
     advisorClients.forEach(c => {
-      // Primary CLIENT record
       records.push({
         id: `${c.id}-client`,
         clientId: c.id,
         recordType: 'CLIENT',
         name: c.clientName,
         clientName: c.clientName,
-        relationship: c.relationship || 'Self',
+        relationship: c.relationship || '',
         policyNumber: c.policyNumber || '',
         product: c.product || '',
         approvalDate: c.approvalDate || '',
@@ -561,7 +347,6 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
         rawClient: c
       });
 
-      // BENEFICIARY display record(s)
       if (c.beneficiary && c.beneficiary.trim()) {
         const beneficiaries = c.beneficiary
           .split(/[,;\n\/]+/)
@@ -575,7 +360,7 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
             recordType: 'BENEFICIARY',
             name: benName,
             clientName: c.clientName,
-            relationship: 'Beneficiary',
+            relationship: c.relationship || '',
             policyNumber: c.policyNumber || '',
             product: c.product || '',
             approvalDate: c.approvalDate || '',
@@ -609,12 +394,14 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
         if (r.recordType === 'CLIENT') {
           const matchName = r.name?.toLowerCase().includes(s);
           const matchPolicy = r.policyNumber?.toLowerCase().includes(s);
-          if (!matchName && !matchPolicy) return false;
+          const matchRel = r.relationship?.toLowerCase().includes(s);
+          if (!matchName && !matchPolicy && !matchRel) return false;
         } else {
           const matchBenName = r.name?.toLowerCase().includes(s);
           const matchClientName = r.clientName?.toLowerCase().includes(s);
           const matchPolicy = r.policyNumber?.toLowerCase().includes(s);
-          if (!matchBenName && !matchClientName && !matchPolicy) return false;
+          const matchRel = r.relationship?.toLowerCase().includes(s);
+          if (!matchBenName && !matchClientName && !matchPolicy && !matchRel) return false;
         }
       }
       return true;
@@ -642,16 +429,11 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
       productsCount: Array.from(new Set(list.map(c => c.product).filter(Boolean))).length
     };
   }, [selectedAdvisor, advisorClients]);
+
   const handleSaveClient = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    console.log("========== SAVE CLICKED ==========");
-    console.log("Current Client:", currentClient);
-
     if (!currentClient.clientName || !currentClient.advisorId) {
-      console.log("❌ Validation Failed");
-      console.log("clientName:", currentClient.clientName);
-      console.log("advisorId:", currentClient.advisorId);
       return;
     }
 
@@ -678,8 +460,6 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
         id_attachment_url: currentClient.idAttachmentUrl || null,
       };
 
-      console.log("Payload:", payload);
-
       let result;
 
       if (currentClient.id) {
@@ -695,15 +475,7 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
           .select();
       }
 
-      console.log("Supabase Result:", result);
-
       if (result.error) {
-        console.error("Supabase Error:", result.error);
-        console.log("Code:", result.error?.code);
-        console.log("Message:", result.error?.message);
-        console.log("Details:", result.error?.details);
-        console.log("Hint:", result.error?.hint);
-
         alert(`
 Code: ${result.error?.code}
 
@@ -718,8 +490,6 @@ ${result.error?.hint}
 `);
       }
 
-      console.log("✅ Saved Successfully");
-
       setActiveModal(null);
       await fetchData();
 
@@ -727,13 +497,13 @@ ${result.error?.hint}
       console.error("Catch Error:", err);
     }
   };
+
   const handleIdUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setUploadingId(true);
     try {
-      // Local preview
       const previewUrl = URL.createObjectURL(file);
       setCurrentClient({ ...currentClient, idAttachmentUrl: previewUrl });
 
@@ -768,7 +538,6 @@ ${result.error?.hint}
         id_expiration_date: docFormData.idExpirationDate || null,
         id_attachment_url: docFormData.idAttachmentUrl || null,
       }).eq('id', currentClient.id);
-      // reflect changes in local state immediately
       setCurrentClient(prev => ({
         ...prev,
         idType: docFormData.idType,
@@ -863,7 +632,7 @@ ${result.error?.hint}
       if (error) {
         console.error('Supabase Error saving advisor:', error);
         alert(`Failed to save advisor: ${error.message}\nCheck RLS policies or console for details.`);
-        return; // Don't close modal on error
+        return;
       }
 
       setActiveModal(null);
@@ -1290,7 +1059,7 @@ ${result.error?.hint}
           id,
           advisor_id: importAdvisorId,
           client_name: record.clientName,
-          relationship: record.relationship || 'Self',
+          relationship: record.relationship || '',
           policy_number: record.policyNumber || null,
           product: record.product || null,
           approval_date: parseDate(record.approvalDate),
@@ -1940,8 +1709,7 @@ ${result.error?.hint}
                             className="rounded border-border/50 bg-transparent text-primary focus:ring-primary focus:ring-offset-surface cursor-pointer w-4 h-4"
                           />
                         </th>
-                        <th className="py-4 px-4 font-bold text-[10.5px] uppercase tracking-wider text-text-secondary">Type</th>
-                        <th className="py-4 px-4 font-bold text-[10.5px] uppercase tracking-wider text-text-secondary">Name</th>
+                        <th className="py-4 px-4 font-bold text-[10.5px] uppercase tracking-wider text-text-secondary">Client Name / Beneficiary Name</th>
                         <th className="py-4 px-4 font-bold text-[10.5px] uppercase tracking-wider text-text-secondary">Relationship</th>
                         <th className="py-4 px-4 font-bold text-[10.5px] uppercase tracking-wider text-text-secondary">Policy Number</th>
                         <th className="py-4 px-4 font-bold text-[10.5px] uppercase tracking-wider text-text-secondary">Product</th>
@@ -1958,7 +1726,7 @@ ${result.error?.hint}
                     </thead>
                     <tbody className="divide-y divide-border/40">
                       {loading ? (
-                        <tr><td colSpan={15} className="py-8 text-center text-text-secondary text-[11.5px]">Loading records...</td></tr>
+                        <tr><td colSpan={14} className="py-8 text-center text-text-secondary text-[11.5px]">Loading records...</td></tr>
                       ) : filteredDisplayRecords.map((record, i) => (
                         <tr key={record.id} className="group hover:bg-surface-2/40 transition-colors">
                           <td className="py-3 px-4">
@@ -1977,20 +1745,15 @@ ${result.error?.hint}
                           </td>
                           <td className="py-3 px-4">
                             {record.recordType === 'CLIENT' ? (
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                                CLIENT
-                              </span>
+                              <span className="font-bold text-text text-[12.5px]">{record.name}</span>
                             ) : (
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                                BENEFICIARY
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-3 px-4 font-bold text-text text-[12px]">
-                            <div>{record.name}</div>
-                            {record.recordType === 'BENEFICIARY' && (
-                              <div className="text-[10.5px] text-text-secondary font-normal mt-0.5">
-                                Client: <span className="font-semibold text-text">{record.clientName}</span>
+                              <div>
+                                <div className="font-bold text-text text-[12.5px]">{record.name}</div>
+                                {record.relationship && (
+                                  <div className="text-[10.5px] text-text-secondary font-normal mt-0.5">
+                                    ({record.clientName}&apos;s {record.relationship})
+                                  </div>
+                                )}
                               </div>
                             )}
                           </td>
@@ -2028,7 +1791,7 @@ ${result.error?.hint}
                       ))}
                       {!loading && filteredDisplayRecords.length === 0 && (
                         <tr>
-                          <td colSpan={15} className="py-8 text-center text-text-secondary text-sm">No records assigned to this advisor matching search criteria.</td>
+                          <td colSpan={14} className="py-8 text-center text-text-secondary text-sm">No records assigned to this advisor matching search criteria.</td>
                         </tr>
                       )}
                     </tbody>
@@ -2080,7 +1843,7 @@ ${result.error?.hint}
                 </div>
                 <div>
                   <label className={formLabelClass}>Relationship</label>
-                  <input type="text" value={currentClient.relationship || ''} onChange={e => setCurrentClient({ ...currentClient, relationship: e.target.value })} className={formInputClass} placeholder="Self, Spouse, etc." />
+                  <input type="text" value={currentClient.relationship || ''} onChange={e => setCurrentClient({ ...currentClient, relationship: e.target.value })} className={formInputClass} placeholder="Spouse, Mother, Sister, etc." />
                 </div>
                 <div>
                   <label className={formLabelClass}>Approval Date</label>
@@ -2860,7 +2623,7 @@ ${result.error?.hint}
                 Select a form to open for <strong className="text-foreground">{currentClient.clientName}</strong>
               </p>
 
-              <button onClick={() => { console.log("Basic Info clicked"); setActiveModal('basicInfo'); }} className="w-full px-4 py-3.5 bg-surface hover:bg-primary/10 border border-border hover:border-primary text-sm font-medium rounded-xl text-foreground flex items-center justify-between transition-colors text-left group">
+              <button onClick={() => setActiveModal('basicInfo')} className="w-full px-4 py-3.5 bg-surface hover:bg-primary/10 border border-border hover:border-primary text-sm font-medium rounded-xl text-foreground flex items-center justify-between transition-colors text-left group">
                 <span className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                     <UserCheck size={16} />
@@ -2888,7 +2651,6 @@ ${result.error?.hint}
         <div className="fixed inset-0 z-50 flex items-center justify-end bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in duration-200">
           <div className="bg-card border border-border/80 w-full max-w-2xl h-full rounded-[32px] shadow-[0_32px_80px_rgba(0,0,0,0.25)] relative flex flex-col overflow-hidden animate-in slide-in-from-right duration-300">
 
-            {/* ── HEADER ── */}
             <div className="relative overflow-hidden shrink-0">
               <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent pointer-events-none" />
               <div className="relative flex items-center justify-between px-7 py-5 border-b border-border/60">
@@ -2915,7 +2677,6 @@ ${result.error?.hint}
               </div>
             </div>
 
-            {/* ── SCROLLABLE BODY ── */}
             <form id="doc-form" onSubmit={handleSaveClient} className="overflow-y-auto flex-1 min-h-0 p-6 space-y-6">
               <div className="w-full bg-white dark:bg-card border border-slate-200 dark:border-border rounded-3xl p-4 flex flex-col gap-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
                 <div className="flex items-center justify-between">

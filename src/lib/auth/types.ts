@@ -11,7 +11,7 @@
 export type AccountStatus = "pending" | "active" | "suspended" | "disabled";
 
 export const ACCOUNT_STATUS_MESSAGES: Record<AccountStatus, string> = {
-  pending: "Your account is awaiting administrator approval. Please check back later.",
+  pending: "Email verified. Your account is currently awaiting administrator approval. Please check back later.",
   active: "", // no block message
   suspended: "Your account has been suspended. Please contact your administrator.",
   disabled: "This account is no longer available.",
@@ -38,6 +38,8 @@ export type AuthActionResult = {
   email?: string;
   /** Lockout remaining seconds for client-side countdown display */
   lockoutSeconds?: number;
+  /** Account status to trigger specific UI flows (e.g., pending modal) */
+  status?: string;
 };
 
 // ─── Password Strength ──────────────────────────────────────────────────────

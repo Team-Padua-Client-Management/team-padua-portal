@@ -1,9 +1,8 @@
 @reference "../../../globals/globals.css";
 
-/* Sidebar Container (Desktop sticky) */
 .sidebarAside {
   display: none;
-  width: 280px;
+  width: 80px;
   flex-direction: column;
   background: var(--surface);
   flex-shrink: 0;
@@ -13,8 +12,7 @@
   border-radius: 24px;
   border: 1px solid var(--border) !important;
   box-shadow: var(--shadow-theme);
-  overflow: hidden;
-  transition: width 250ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: visible !important;
   background-color: var(--surface) !important;
   min-width: 0;
 }
@@ -29,9 +27,9 @@
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.08);
 }
 
-/* Sidebar Drawer (Mobile) */
 .sidebarDrawer {
-  @apply relative flex h-full w-[min(90vw,320px)] flex-col bg-surface;
+  @apply relative flex h-full flex-col bg-surface;
+  width: min(90vw, 320px);
   border-right: 1px solid var(--border) !important;
   box-shadow: var(--shadow-theme);
   overflow-x: hidden;
@@ -77,23 +75,10 @@
   .sidebarHeaderContainer {
     gap: 0.75rem;
   }
-
-  .navLabelHidden {
-    max-width: none !important;
-    opacity: 1 !important;
-    transform: translateX(0) !important;
-    margin-left: 0 !important;
-  }
-
-  .textFadeHidden {
-    max-width: none !important;
-    opacity: 1 !important;
-    transform: translateX(0) !important;
-    margin: 0 !important;
-  }
 }
 
 @media (min-width: 700px) {
+
   .mobileSidebarOpenBtn,
   .sidebarMobileWrapper {
     display: none !important;
@@ -137,16 +122,6 @@
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 20%, transparent), 0 12px 32px rgba(15, 23, 42, 0.12);
 }
 
-@media (max-width: 1024px) {
-  .sidebarAside {
-    width: 240px;
-  }
-
-  .collapsedSidebar {
-    width: 72px !important;
-  }
-}
-
 .sidebarOverlay {
   @apply fixed inset-0 backdrop-blur-md;
   background: rgba(15, 23, 42, 0.45);
@@ -154,51 +129,14 @@
   pointer-events: auto;
 }
 
-/* Inner flex container */
 .sidebarInner {
   @apply flex flex-col h-full bg-surface;
-  overflow: hidden;
+  overflow: visible !important;
   background-color: var(--surface) !important;
 }
 
-/* Header container */
-.sidebarHeaderContainer {
-  @apply flex items-center gap-2;
-}
-
-.sidebarHeaderContainerCollapsed {
-  @apply justify-center;
-}
-
-.headerBrandCollapsed {
-  width: 0;
-  overflow: hidden;
-}
-
-
-.burgerIcon {
-  transition: transform 250ms cubic-bezier(0.4, 0, 0.2, 1), opacity 200ms ease;
-}
-
-.toggleChevron {
-  position: absolute;
-  top: 18px;
-  right: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: none;
-  padding: 4px;
-  cursor: pointer;
-  color: #5F6368;
-  transition: color 300ms ease, transform 300ms ease;
-  z-index: 10;
-}
-
-.toggleChevron:hover {
-  color: #D4A017;
-  transform: scale(1.08);
+.sidebarDrawer .sidebarInner {
+  overflow: hidden !important;
 }
 
 .sidebarHeaderContainer {
@@ -216,61 +154,10 @@
   color: var(--text-secondary);
 }
 
-.mobileCloseBtn {
-  @apply md:hidden p-1 rounded-md transition-colors;
-  color: var(--text-secondary);
-}
-
-.mobileCloseBtn:hover {
-  background: #FFF9E8;
-  color: #D4A017;
-}
-
-.sidebarGreeting {
-  @apply text-[8px] font-bold mt-1.5 uppercase tracking-wider font-mono whitespace-nowrap;
-  color: #D4A017;
-}
-
-.sidebarGreeting {
-  text-align: center;
-}
-
-.logoFade {
-  transition: opacity 300ms ease, transform 300ms ease;
-  opacity: 1;
-  transform: scale(1);
-}
-
-.logoFadeHidden {
-  opacity: 0;
-  transform: scale(0.6);
-  width: 0;
-  height: 0;
-  margin: 0;
-  pointer-events: none;
-}
-
-.textFade {
-  overflow: hidden;
-  white-space: nowrap;
-  opacity: 1;
-  transform: translateX(0);
-  transition: max-width 250ms cubic-bezier(0.4, 0, 0.2, 1), opacity 180ms ease 50ms, transform 180ms cubic-bezier(0.4, 0, 0.2, 1) 50ms;
-}
-
-.textFadeHidden {
-  max-width: 0;
-  opacity: 0;
-  transform: translateX(-8px);
-  margin: 0 !important;
-}
-
-/* Nav Body Scrollable section */
 .sidebarNav {
-  @apply flex-1 p-4 space-y-1 bg-surface;
+  @apply flex-1 space-y-1 bg-surface;
   overflow-y: auto;
   overflow-x: hidden;
-  transition: padding 300ms ease;
 }
 
 .sidebarNavGroup {
@@ -291,7 +178,6 @@
   color: var(--primary);
 }
 
-/* Sub-items list indent line */
 .sidebarSubNav {
   @apply pl-6 space-y-1 ml-5 mt-1 relative;
 }
@@ -306,47 +192,29 @@
   background-color: var(--border);
 }
 
-/* Footer Section */
 .sidebarFooter {
   @apply p-4 bg-surface mt-auto;
   border-top: 1px solid var(--border);
-  transition: padding 300ms ease;
 }
 
 .sidebarFooterText {
   @apply text-[9px] text-center font-mono font-medium whitespace-nowrap;
   color: #888888;
-  /* Smaller gray typography */
 }
 
-/* Navigation Links base styling */
 .navItem {
   @apply flex items-center justify-between rounded-lg px-3.5 py-2.5 text-[13px] tracking-normal font-medium transition-all duration-300;
   cursor: pointer;
   border-left: 3px solid transparent;
 }
 
-/* Sub-item links base styling */
 .sidebarSubNavItem {
   @apply flex items-center gap-2 rounded-lg px-3.5 py-2 text-[11px] font-medium transition-all duration-300;
 }
 
 .navLabel {
-  overflow: hidden;
   white-space: nowrap;
-  opacity: 1;
-  transform: translateX(0);
-  transition: max-width 250ms cubic-bezier(0.4, 0, 0.2, 1), opacity 180ms ease 50ms, transform 180ms cubic-bezier(0.4, 0, 0.2, 1) 50ms;
 }
-
-.navLabelHidden {
-  max-width: 0;
-  opacity: 0;
-  transform: translateX(-8px);
-  margin-left: 0;
-}
-
-/* --- Redesigned Active/Inactive/Hover States --- */
 
 .navItemInactive {
   background-color: transparent;
@@ -372,7 +240,6 @@
   font-weight: 600 !important;
 }
 
-/* Icon States */
 .navIconInactive {
   color: #5F6368 !important;
   transition: color 300ms ease;
@@ -383,7 +250,6 @@
   transition: color 300ms ease;
 }
 
-/* Sub-items dropdown links Active/Inactive/Hover */
 .navSubInactive {
   color: var(--text-secondary);
   background-color: transparent;
@@ -400,29 +266,188 @@
   font-weight: 600 !important;
 }
 
-/* Collapsed nav item layout */
 .navItemCollapsed {
-  @apply flex items-center justify-center rounded-lg mx-auto;
-  width: 44px;
-  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
   padding: 0;
-  transition: all 300ms ease;
+  margin: 0;
+  border-radius: 13px;
+  border: none;
   border-left: 3px solid transparent;
+  background: transparent;
+  box-shadow: none;
+  outline: none;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 200ms ease, border-color 200ms ease;
+}
+
+.navItemCollapsed:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }
 
 .navItemCollapsed:hover {
   background-color: var(--surface-2);
 }
 
-.collapsedSidebar {
-  width: 80px !important;
+/* ---------- Desktop icon rail ---------- */
+
+.railHeader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 0 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.railLogoLink {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+}
+
+.railNav {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 0 24px;
+  overflow: visible !important;
+}
+
+.railItemWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  overflow: visible !important;
+}
+
+.tooltip {
+  position: absolute;
+  left: 92px;
+  top: 50%;
+  transform: translateY(-50%) translateX(-4px);
+  background: #1A1A1A;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  padding: 6px 10px;
+  border-radius: 8px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms ease, transform 150ms ease;
+  z-index: 20;
+}
+
+.railItemWrapper:hover .tooltip {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
+
+/* Hover flyout, rendered via createPortal(document.body) with JS-computed
+   top/left, so it can never be clipped by ancestor overflow/stacking context. */
+.hoverPanel {
+  position: fixed;
+  background: white;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, .12);
+  width: 280px;
+  padding: 20px;
+  opacity: 0;
+  transform: translateX(8px);
+  transition: opacity .18s ease, transform .18s ease;
+  pointer-events: none;
+  z-index: 99999;
+  max-height: min(80vh, 480px);
+  overflow-y: auto;
+}
+
+.hoverPanelVisible {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+.hoverPanelHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.hoverPanelIconBadge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: rgba(var(--primary-rgb), .12);
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.hoverPanelTitle {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.hoverPanelSubtitle {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.hoverPanelSection {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.hoverPanelItem {
+  display: flex;
+  align-items: center;
+  padding: 9px 10px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: background-color 150ms ease, color 150ms ease, font-weight 150ms ease;
+}
+
+.hoverPanelItem:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.hoverPanelItemActive {
+  position: relative;
+  background: rgba(var(--primary-rgb), .1);
+  color: var(--primary);
+  font-weight: 700;
 }
 
 /* Minimal Custom Scrollbar */
 .sidebarNav::-webkit-scrollbar,
 .sidebarInner::-webkit-scrollbar,
 .sidebarSubNav::-webkit-scrollbar,
-.sidebarDrawer::-webkit-scrollbar {
+.sidebarDrawer::-webkit-scrollbar,
+.hoverPanel::-webkit-scrollbar {
   width: 5px;
   height: 5px;
 }
@@ -430,14 +455,16 @@
 .sidebarNav::-webkit-scrollbar-track,
 .sidebarInner::-webkit-scrollbar-track,
 .sidebarSubNav::-webkit-scrollbar-track,
-.sidebarDrawer::-webkit-scrollbar-track {
+.sidebarDrawer::-webkit-scrollbar-track,
+.hoverPanel::-webkit-scrollbar-track {
   background: transparent;
 }
 
 .sidebarNav::-webkit-scrollbar-thumb,
 .sidebarInner::-webkit-scrollbar-thumb,
 .sidebarSubNav::-webkit-scrollbar-thumb,
-.sidebarDrawer::-webkit-scrollbar-thumb {
+.sidebarDrawer::-webkit-scrollbar-thumb,
+.hoverPanel::-webkit-scrollbar-thumb {
   background: rgba(0, 0, 0, 0.15) !important;
   border-radius: 99px;
 }
@@ -445,14 +472,16 @@
 .sidebarNav::-webkit-scrollbar-thumb:hover,
 .sidebarInner::-webkit-scrollbar-thumb:hover,
 .sidebarSubNav::-webkit-scrollbar-thumb:hover,
-.sidebarDrawer::-webkit-scrollbar-thumb:hover {
+.sidebarDrawer::-webkit-scrollbar-thumb:hover,
+.hoverPanel::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.3) !important;
 }
 
 .sidebarNav,
 .sidebarInner,
 .sidebarSubNav,
-.sidebarDrawer {
+.sidebarDrawer,
+.hoverPanel {
   scrollbar-width: thin;
   scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
 }

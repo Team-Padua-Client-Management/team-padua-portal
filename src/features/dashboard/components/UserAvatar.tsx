@@ -7,6 +7,7 @@ export type UserProfile = {
   email?: string;
   role: string;
   avatar_url: string | null;
+  status?: string;
 };
 
 interface UserAvatarProps {

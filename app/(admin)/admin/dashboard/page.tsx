@@ -159,7 +159,10 @@ export default function DashboardOverviewPage() {
 
   return (
     <div className={styles.shell}>
-      <WelcomeModal userName={adminName} role="Admin" />
+      <WelcomeModal
+        userName={adminName}
+        role="Admin"
+      />
 
       {showSplash && (
         <div className={styles.splash}>
@@ -256,11 +259,10 @@ export default function DashboardOverviewPage() {
                       <button
                         type="button"
                         onClick={() => setShowCalendarHistory((prev) => !prev)}
-                        className={`!py-1 !px-3 !text-[11px] font-bold rounded-lg transition-all border cursor-pointer ${
-                          showCalendarHistory
-                            ? 'bg-amber-500 text-white border-amber-500 shadow-sm'
-                            : 'bg-surface/80 text-text-secondary border-border/70 hover:bg-surface'
-                        }`}
+                        className={`!py-1 !px-3 !text-[11px] font-bold rounded-lg transition-all border cursor-pointer ${showCalendarHistory
+                          ? 'bg-amber-500 text-white border-amber-500 shadow-sm'
+                          : 'bg-surface/80 text-text-secondary border-border/70 hover:bg-surface'
+                          }`}
                       >
                         {showCalendarHistory ? 'Active Activities' : 'View History'}
                       </button>

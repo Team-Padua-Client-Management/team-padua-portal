@@ -268,7 +268,7 @@ async function hashForHistory(password: string): Promise<string> {
   return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-// ─── Forgot Password Rate Limiting ──────────────────────────────────────────
+// ─── Rate Limiting ──────────────────────────────────────────
 
 /**
  * Checks if the email has exceeded the max password reset requests per hour.
@@ -287,7 +287,6 @@ export async function checkResetRateLimit(
     .eq("metadata->>email", email);
 
   if (error) {
-    // If we can't check, allow the request (fail open for UX)
     console.error("Rate limit check failed:", error);
     return { allowed: true };
   }
@@ -295,6 +294,29 @@ export async function checkResetRateLimit(
   return {
     allowed: (events?.length ?? 0) < AUTH_CONSTANTS.MAX_RESET_REQUESTS_PER_HOUR,
   };
+}
+
+/**
+ * Checks if the IP or email has exceeded max login attempts per minute.
+ * Simple sliding window using auth_security_events table.
+ */
+export async function checkLoginRateLimit(
+  email: string,
+  ipAddress?: string
+): Promise<{ allowed: boolean }> {
+  const oneMinuteAgo = new Date(Date.now() - 60 * 1000).toISOString();
+  
+  const { data: events, error } = await supabaseAdmin
+    .from("auth_security_events")
+    .select("id")
+    .eq("event_type", "login_failed")
+    .gte("created_at", oneMinuteAgo)
+    .eq("metadata->>email", email);
+
+  if (error) return { allowed: true };
+
+  // Allow max 10 requests per minute
+  return { allowed: (events?.length ?? 0) < 10 };
 }
 
 // ─── Lookup user by email ────────────────────────────────────────────────────
@@ -305,51 +327,19 @@ export async function checkResetRateLimit(
  */
 export async function findUserByEmail(
   email: string
-): Promise<{ id: string; email_confirmed_at: string | null } | null> {
-  const { data, error } = await supabaseAdmin.auth.admin.listUsers({
-    page: 1,
-    perPage: 1,
-  });
+): Promise<{ id: string } | null> {
+  // First, check the profiles table for the fastest lookup.
+  const { data: profileUser } = await supabaseAdmin
+    .from("profiles")
+    .select("id")
+    .eq("email", email.toLowerCase())
+    .maybeSingle();
 
-  if (error || !data?.users) return null;
-
-  // listUsers doesn't support email filter directly in all versions,
-  // so we use a broader approach: query by email via the admin API
-  const { data: userData } = await supabaseAdmin
-    .rpc("get_user_by_email_lookup", { lookup_email: email })
-    .single();
-
-  // Fallback: iterate through users (admin.listUsers doesn't filter by email well)
-  // In practice, use the auth.users table directly with service role
-  if (!userData) {
-    const { data: authUser } = await supabaseAdmin
-      .from("auth.users" as string)
-      .select("id, email_confirmed_at")
-      .eq("email", email)
-      .single();
-
-    // If that doesn't work (auth.users not directly queryable via PostgREST),
-    // use the admin API list approach
-    if (!authUser) {
-      // Final fallback: iterate
-      const { data: allUsers } = await supabaseAdmin.auth.admin.listUsers({
-        page: 1,
-        perPage: 1000,
-      });
-      const found = allUsers?.users?.find(
-        (u) => u.email?.toLowerCase() === email.toLowerCase()
-      );
-      if (!found) return null;
-      return {
-        id: found.id,
-        email_confirmed_at: found.email_confirmed_at ?? null,
-      };
-    }
-
-    return authUser as { id: string; email_confirmed_at: string | null };
+  if (profileUser) {
+    return { id: profileUser.id };
   }
-
-  return userData as { id: string; email_confirmed_at: string | null };
+  
+  return null;
 }
 
 // ─── Timing-safe delay ───────────────────────────────────────────────────────

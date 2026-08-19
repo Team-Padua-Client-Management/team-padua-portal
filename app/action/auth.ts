@@ -23,6 +23,8 @@ import {
   checkPasswordHistory,
   addPasswordToHistory,
   checkResetRateLimit,
+  checkLoginRateLimit,
+  findUserByEmail,
   timingSafeDelay,
 } from "@src/lib/auth/security";
 import { AUTH_CONSTANTS, type AuthActionResult } from "@src/lib/auth/types";
@@ -46,53 +48,77 @@ export const SignIn = async (formData: FormData): Promise<AuthActionResult> => {
   const email = emailResult.value!;
   const password = rawPassword;
 
-  // 2. Look up user by email to get userId for pre-auth checks
-  let authUser: { id: string; email_confirmed_at?: string | null } | undefined;
-
-  const { data: profileUser } = await supabaseAdmin
-    .from("profiles")
-    .select("id")
-    .eq("email", email.toLowerCase())
-    .maybeSingle();
-
-  if (profileUser?.id) {
-    const { data: userData } = await supabaseAdmin.auth.admin.getUserById(profileUser.id);
-    if (userData?.user) {
-      authUser = userData.user;
-    }
-  }
-
-  if (!authUser) {
-    const { data: listData } = await supabaseAdmin.auth.admin.listUsers({
-      page: 1,
-      perPage: 1000,
+  // 2. Check login rate limit
+  const rateLimit = await checkLoginRateLimit(email);
+  if (!rateLimit.allowed) {
+    await logSecurityEvent({
+      eventType: "login_failed",
+      metadata: { reason: "rate_limit_exceeded", email },
     });
-
-    authUser = listData?.users?.find(
-      (u) => u.email?.toLowerCase() === email.toLowerCase()
-    );
+    return { error: "Too many login attempts. Please try again later." };
   }
 
-  if (!authUser) {
-    // Generic message — don't reveal that the email doesn't exist
+  // 3. Attempt password authentication immediately (removes enumeration)
+  console.log("[DEBUG - LOGIN]: Attempting login for", email);
+  const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (signInError || !authData.user) {
+    // If Supabase enforces email confirmation at the API level
+    if (signInError?.message.toLowerCase().includes("email not confirmed")) {
+      return { error: "Please verify your email address before signing in. Check your inbox for the confirmation link." };
+    }
+
+    // Hide timing differences
+    const delayPromise = timingSafeDelay();
+    
+    // Look up user to record failed attempt internally
+    const user = await findUserByEmail(email);
+    
+    if (user) {
+      const failResult = await recordFailedLogin(user.id);
+      await logSecurityEvent({
+        userId: user.id,
+        eventType: "login_failed",
+        metadata: { email, failedCount: failResult.count, reason: "invalid_credentials" },
+      });
+
+      await delayPromise;
+
+      if (failResult.lockedOut) {
+        const minutes = AUTH_CONSTANTS.LOCKOUT_DURATION_MINUTES;
+        return {
+          error: `Too many failed attempts. Your account has been locked for ${minutes} minutes.`,
+          lockoutSeconds: failResult.lockoutSeconds,
+        };
+      }
+    } else {
+      await delayPromise;
+    }
+
     return { error: "Invalid email or password." };
   }
 
-  // 3. Check account status BEFORE attempting password auth
-  const statusResult = await checkAccountStatus(authUser.id);
-  if (!statusResult.allowed && email.toLowerCase() !== "admin@teampadua.com") {
-    // Log the attempt
-    await logSecurityEvent({
-      userId: authUser.id,
-      eventType: "login_failed",
-      metadata: { reason: `account_status_${statusResult.status}`, email },
-    });
-    return { error: statusResult.message };
+  const authUser = authData.user;
+
+  // 4. Check email verification (if Supabase allows login without confirmation)
+  if (!authUser.email_confirmed_at) {
+    await supabase.auth.signOut();
+    return {
+      error: "Please verify your email address before signing in. Check your inbox for the confirmation link.",
+    };
   }
 
-  // 4. Check lockout status
+  // 5. Authentication succeeded. Now verify account status & lockout.
+  // We do this AFTER verifying the password so we never reveal account state
+  // to unauthenticated attackers.
+  
+  // Check lockout
   const lockout = await checkLoginLockout(authUser.id);
   if (lockout.locked) {
+    await supabase.auth.signOut(); // Revoke the session we just created
     const minutes = Math.ceil(lockout.secondsRemaining / 60);
     return {
       error: `Too many failed attempts. Please try again in ${minutes} minute${minutes !== 1 ? "s" : ""}.`,
@@ -100,53 +126,19 @@ export const SignIn = async (formData: FormData): Promise<AuthActionResult> => {
     };
   }
 
-  // 5. Check email verification
-  if (!authUser.email_confirmed_at) {
-    return {
-      error: "Please verify your email address before signing in. Check your inbox for the confirmation link.",
-    };
-  }
-
-  // 6. Attempt password authentication
-  console.log("[DEBUG - LOGIN]: Attempting login for", email);
-  const { error: signInError } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-  if (signInError) {
-    // Record failed attempt
-    const failResult = await recordFailedLogin(authUser.id);
-
+  // Check account status
+  const statusResult = await checkAccountStatus(authUser.id);
+  if (!statusResult.allowed && email.toLowerCase() !== "admin@teampadua.com") {
+    await supabase.auth.signOut();
     await logSecurityEvent({
       userId: authUser.id,
       eventType: "login_failed",
-      metadata: {
-        email,
-        failedCount: failResult.count,
-        reason: "invalid_credentials",
-      },
+      metadata: { reason: `account_status_${statusResult.status}`, email },
     });
-
-    if (failResult.lockedOut) {
-      const minutes = AUTH_CONSTANTS.LOCKOUT_DURATION_MINUTES;
-      return {
-        error: `Too many failed attempts. Your account has been locked for ${minutes} minutes.`,
-        lockoutSeconds: failResult.lockoutSeconds,
-      };
-    }
-
-    const remaining = AUTH_CONSTANTS.MAX_FAILED_ATTEMPTS - failResult.count;
-    if (remaining <= 2 && remaining > 0) {
-      return {
-        error: `Invalid email or password. ${remaining} attempt${remaining !== 1 ? "s" : ""} remaining before lockout.`,
-      };
-    }
-
-    return { error: "Invalid email or password." };
+    return { error: statusResult.message, status: statusResult.status };
   }
 
-  // 7. Successful login — reset counters and log
+  // 5. Successful and valid login — reset counters and log
   await resetFailedLoginCount(authUser.id);
   await logSecurityEvent({
     userId: authUser.id,
@@ -154,7 +146,7 @@ export const SignIn = async (formData: FormData): Promise<AuthActionResult> => {
     metadata: { email },
   });
 
-  // 8. Determine redirect based on role
+  // 6. Determine redirect based on role
   const { data: profile } = await supabaseAdmin
     .from("profiles")
     .select("role")
@@ -196,7 +188,10 @@ export const SignUp = async (formData: FormData): Promise<AuthActionResult> => {
   const email = emailResult.value!;
   const phone = phoneResult.value!;
   const password = passwordResult.value!;
-  const role = (formData.get("role") as string) || "Financial Advisor";
+  let role = (formData.get("role") as string) || "Financial Advisor";
+  if (role !== "Financial Advisor" && role !== "Business Development Lead") {
+    role = "Financial Advisor"; // Fallback to safe default if tampered
+  }
 
   // 2. Check for duplicate email
   const { data: existingProfile } = await supabaseAdmin
@@ -236,18 +231,20 @@ export const SignUp = async (formData: FormData): Promise<AuthActionResult> => {
 
   // 4. Set account_status to pending, store terms acceptance
   if (userId) {
-    await supabaseAdmin.from("profiles").upsert(
-      {
-        id: userId,
-        full_name: name,
-        phone,
-        role: "Member", // Default role until admin assigns
-        status: "Pending",
-        terms_accepted_at: new Date().toISOString(),
-        terms_version: AUTH_CONSTANTS.TERMS_VERSION,
-      },
-      { onConflict: "id" }
-    );
+    const { error: insertError } = await supabaseAdmin.from("profiles").insert({
+      id: userId,
+      full_name: name,
+      email: email,
+      phone,
+      role: role, // Dynamically selected role
+      status: "Pending", // All users are pending initially until email verification
+      terms_accepted_at: new Date().toISOString(),
+      terms_version: AUTH_CONSTANTS.TERMS_VERSION,
+    });
+    
+    if (insertError) {
+      console.error("[DEBUG - SIGNUP]: Failed to insert profile:", insertError);
+    }
 
     // Store initial password in history
     await addPasswordToHistory(userId, password);
@@ -260,13 +257,8 @@ export const SignUp = async (formData: FormData): Promise<AuthActionResult> => {
     });
   }
 
-  // 5. Notify admins & send welcome email
-  await supabaseAdmin.from("notifications").insert({
-    title: "New Member Registration",
-    description: `A new member (${name || email}) has signed up and is pending approval.`,
-    type: "user",
-    is_read: false,
-  });
+  // 5. Send welcome email
+  // Note: Admin notification has been moved to callback/route.ts (fires after email verification)
 
   try {
     const emailFrom = process.env.EMAIL_FROM;

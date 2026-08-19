@@ -60,6 +60,22 @@ export function validatePassword(raw: unknown): ValidationResult {
     return { valid: false, error: `Password must be at most ${AUTH_CONSTANTS.PASSWORD_MAX_LENGTH} characters.` };
   }
 
+  if (!/[a-z]/.test(password)) {
+    return { valid: false, error: "Password must contain at least one lowercase letter." };
+  }
+
+  if (!/[A-Z]/.test(password)) {
+    return { valid: false, error: "Password must contain at least one uppercase letter." };
+  }
+
+  if (!/\d/.test(password)) {
+    return { valid: false, error: "Password must contain at least one number." };
+  }
+
+  if (!/[^a-zA-Z0-9]/.test(password)) {
+    return { valid: false, error: "Password must contain at least one special character." };
+  }
+
   return { valid: true, value: password };
 }
 
