@@ -5,7 +5,7 @@ import { AdminHeader as Header } from '@src/components/layout';
 import { AdminSidebar as Sidebar } from '@src/components/layout';
 import { Settings, Shield, FolderArchive, HelpCircle, Trash2, RotateCcw, MonitorSmartphone, Bell, Users, Globe, ExternalLink, Plus, Paintbrush, Sun, Moon, Lock, Key, ShieldAlert, Mail, CheckCircle, Wrench, Search, Save, AlertTriangle } from 'lucide-react';
 import { supabase } from '@src/lib/supabase/client';
-import { applyThemeWithTransition } from '@src/lib/theme';
+import { useThemeTransition } from '@src/lib/theme';
 
 export default function AdminSettings() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -25,7 +25,7 @@ export default function AdminSettings() {
   const [newPortalName, setNewPortalName] = useState('');
   const [newPortalUrl, setNewPortalUrl] = useState('');
   const [newPortalIconUrl, setNewPortalIconUrl] = useState('');
-  const [currentTheme, setCurrentTheme] = useState('light');
+  const { applyThemeWithTransition, theme: currentTheme } = useThemeTransition();
 
   // General System Settings
   const [allowRegistration, setAllowRegistration] = useState(true);
@@ -39,9 +39,7 @@ export default function AdminSettings() {
         setCustomPortals(JSON.parse(stored));
       }
       
-      const theme = localStorage.getItem('theme') || 'light';
-      setCurrentTheme(theme);
-      
+
       const reg = localStorage.getItem('sys_allow_registration');
       if (reg) setAllowRegistration(reg === '1');
       
@@ -570,7 +568,6 @@ export default function AdminSettings() {
                           <button
                             key={t.id}
                             onClick={(e) => {
-                              setCurrentTheme(t.id);
                               applyThemeWithTransition(t.id, e);
                             }}
                             className={`flex flex-col items-center justify-between p-3 rounded-xl border-2 text-center transition-all cursor-pointer hover:scale-[1.02] hover:shadow-sm ${

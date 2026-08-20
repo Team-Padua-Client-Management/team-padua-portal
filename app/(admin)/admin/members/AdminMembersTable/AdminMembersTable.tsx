@@ -271,22 +271,22 @@ export default function AdminMembersTable({ initialUsers = [], currentUserRole =
   const pendingUsers = useMemo(() => users.filter(u => u.status === "Pending"), [users]);
 
   return (
-    <div className={styles.div_0}>
-      <div className={styles.container_1}>
-        <div className={styles.div_2}>
+    <div className={styles.tableWrapper}>
+      <div className={styles.filterBar}>
+        <div className={styles.searchGroup}>
           <input
             type="text"
             placeholder="Search members..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className={styles.card_3}
+            className={styles.searchInput}
           />
         </div>
-        <div className={styles.container_4}>
+        <div className={styles.filtersGroup}>
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
-            className={styles.card_5}
+            className={styles.filterSelect}
           >
             <option value="All">All Roles</option>
             {roles.map(r => <option key={r} value={r}>{r}</option>)}
@@ -294,7 +294,7 @@ export default function AdminMembersTable({ initialUsers = [], currentUserRole =
           <select
             value={deptFilter}
             onChange={(e) => setDeptFilter(e.target.value)}
-            className={styles.card_6}
+            className={styles.filterSelect}
           >
             <option value="All">All Departments</option>
             {departments.map(d => <option key={d} value={d}>{d}</option>)}
@@ -302,7 +302,7 @@ export default function AdminMembersTable({ initialUsers = [], currentUserRole =
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className={styles.card_7}
+            className={styles.filterSelect}
           >
             <option value="All">All Status</option>
             <option value="Active">Active</option>
@@ -313,56 +313,56 @@ export default function AdminMembersTable({ initialUsers = [], currentUserRole =
       </div>
 
       {pendingUsers.length > 0 && (
-        <div className="mx-6 mt-6 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-2xl p-4 flex items-center justify-between animate-in slide-in-from-top-4 duration-500">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center shrink-0">
-              <Shield className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+        <div className={styles.pendingBanner}>
+          <div className={styles.pendingBannerContent}>
+            <div className={styles.pendingBannerIcon}>
+              <Shield className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-amber-900 dark:text-amber-100 text-sm">Action Required: Pending Approvals</h3>
-              <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">There {pendingUsers.length === 1 ? "is 1 member" : `are ${pendingUsers.length} members`} waiting for administrator approval.</p>
+              <h3 className={styles.pendingBannerTitle}>Action Required: Pending Approvals</h3>
+              <p className={styles.pendingBannerDesc}>There {pendingUsers.length === 1 ? "is 1 member" : `are ${pendingUsers.length} members`} waiting for administrator approval.</p>
             </div>
           </div>
           <button
             onClick={() => setStatusFilter("Pending")}
-            className="px-4 py-2 bg-amber-100 hover:bg-amber-200 dark:bg-amber-900/60 dark:hover:bg-amber-800 text-amber-800 dark:text-amber-200 text-xs font-bold rounded-xl transition-colors whitespace-nowrap"
+            className={styles.pendingBannerBtn}
           >
             Review Now
           </button>
         </div>
       )}
 
-      <div className={styles.card_8}>
-        <div className={styles.div_9}>
-          <table className={styles.text_10}>
+      <div className={styles.tableCard}>
+        <div className={styles.tableScrollArea}>
+          <table className={styles.table}>
             <thead>
-              <tr className={styles.table_11}>
-                <th className={styles.div_12}>Member</th>
-                <th className={styles.div_14}>Role</th>
-                <th className={styles.div_15}>Department</th>
-                <th className={styles.div_16}>Status</th>
-                <th className={styles.div_16}>Relationship</th>
-                <th className={styles.div_16}>Beneficiary</th>
-                <th className={styles.div_16}>Client Servicing</th>
-                <th className={styles.text_17}>Actions</th>
+              <tr className={styles.tableHead}>
+                <th className={styles.th}>Member</th>
+                <th className={styles.th}>Role</th>
+                <th className={styles.th}>Department</th>
+                <th className={styles.th}>Status</th>
+                <th className={styles.th}>Relationship</th>
+                <th className={styles.th}>Beneficiary</th>
+                <th className={styles.th}>Client Servicing</th>
+                <th className={styles.thRight}>Actions</th>
               </tr>
             </thead>
-            <tbody className={styles.card_18}>
+            <tbody className={styles.tableBody}>
               {filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className={styles.text_19}>No database profiles mapped to parameters.</td>
+                  <td colSpan={8} className={styles.emptyStateTd}>No database profiles mapped to parameters.</td>
                 </tr>
               ) : (
                 filteredUsers.map((u) => (
-                  <tr key={u.id} className={styles.table_20}>
-                    <td className={styles.div_21}>
-                      <div className={styles.container_22} onClick={() => router.push(`/admin/users/${u.id}`)}>
-                        <div className="relative flex items-center justify-center shrink-0 group">
+                  <tr key={u.id} className={styles.tr}>
+                    <td className={styles.td}>
+                      <div className={styles.memberFlex} onClick={() => router.push(`/admin/users/${u.id}`)}>
+                        <div className={styles.avatarWrap}>
                           {u.avatar ? (
                             <img
                               src={u.avatar}
                               alt={u.name}
-                              className={styles.div_23}
+                              className={styles.avatarImg}
                               onError={(e) => {
                                 e.currentTarget.style.display = 'none';
                                 const fallbackEl = e.currentTarget.nextElementSibling as HTMLElement;
@@ -372,67 +372,69 @@ export default function AdminMembersTable({ initialUsers = [], currentUserRole =
                           ) : null}
 
                           <div
-                            className={styles.text_24}
+                            className={styles.avatarFallback}
                             style={{ display: u.avatar ? 'none' : 'flex' }}
                           >
                             {getInitials(u.name)}
                           </div>
                         </div>
 
-                        <div className={styles.div_25}>
-                          <div className="flex items-center gap-2">
-                            <span className={styles.table_26}>{u.name}</span>
+                        <div className={styles.memberMeta}>
+                          <div className={styles.memberNameRow}>
+                            <span className={styles.memberName}>{u.name}</span>
                             {u.status === "Pending" && (
-                              <span className="px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[9px] font-extrabold uppercase tracking-wider">New</span>
+                              <span className={styles.newBadge}>New</span>
                             )}
                           </div>
-                          <span className={styles.table_27}>{u.email}</span>
+                          <span className={styles.memberEmail}>{u.email}</span>
                           {u.relationship && u.beneficiaryName && (
-                            <span className="block text-[11px] text-muted-foreground italic mt-0.5">
-                              ({u.beneficiaryName}'s {u.relationship})
+                            <span className={styles.memberRelationship}>
+                              ({u.beneficiaryName}&apos;s {u.relationship})
                             </span>
                           )}
                         </div>
                       </div>
                     </td>
-                    <td className={styles.div_29}>
+                    <td className={styles.td}>
                       <select
                         value={u.role}
                         onChange={(e) => handleUpdateUser(u.id, "role", e.target.value)}
-                        className={styles.card_30}
+                        className={styles.roleSelect}
                       >
                         {roles.map(r => <option key={r} value={r}>{r}</option>)}
                       </select>
                     </td>
-                    <td className={styles.div_31}>
+                    <td className={styles.td}>
                       <select
                         value={u.department}
                         onChange={(e) => handleUpdateUser(u.id, "department", e.target.value)}
-                        className={styles.card_32}
+                        className={styles.deptSelect}
                       >
                         <option value="">None</option>
                         {departments.map(d => <option key={d} value={d}>{d}</option>)}
                       </select>
                     </td>
-                    <td className={styles.div_33}>
-                      <span className={`${styles.text_36} ${u.status === "Active" ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-[#4ade80]" :
-                        u.status === "Pending" ? "bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-[#fef08a]" : "bg-muted text-muted-foreground"
+                    <td className={styles.td}>
+                      <span className={`${styles.statusBadge} ${u.status === "Active" ? styles.statusActive :
+                          u.status === "Pending" ? styles.statusPending : styles.statusDisabled
                         }`}>
-                        <span className={`${styles.div_37} ${u.status === "Active" ? "bg-emerald-500" : u.status === "Pending" ? "bg-amber-500" : "bg-muted-foreground"}`} />
+                        <span className={`${styles.statusDot} ${u.status === "Active" ? styles.dotActive :
+                            u.status === "Pending" ? styles.dotPending : styles.dotDisabled
+                          }`} />
                         {u.status}
                       </span>
                     </td>
-                    <td className={styles.div_33}>
+                    <td className={styles.td}>
                       <select
                         value={u.relationship || ""}
                         onChange={(e) => handleUpdateUser(u.id, "relationship", e.target.value)}
-                        className={styles.card_32}
+                        className={styles.deptSelect}
                       >
                         <option value="">-</option>
                         {RELATIONSHIP_OPTIONS.map(r => <option key={r} value={r}>{r}</option>)}
                       </select>
                     </td>
-                    <td className={styles.div_33}>
+                    <td className={styles.td}>
                       <input
                         type="text"
                         placeholder="-"
@@ -442,32 +444,32 @@ export default function AdminMembersTable({ initialUsers = [], currentUserRole =
                             handleUpdateUser(u.id, "beneficiaryName", e.target.value);
                           }
                         }}
-                        className={styles.card_3}
+                        className={styles.searchInput}
                       />
                     </td>
-                    <td className={styles.div_33}>
-                      <div className="flex flex-col gap-1 items-start">
-                        <div className="flex flex-wrap max-w-[150px] gap-1 text-[10px] text-muted-foreground font-semibold">
-                          {u.client_servicing_permissions?.cpst?.view && <span className="text-emerald-500">☑ CPST</span>}
-                          {u.client_servicing_permissions?.acr?.view && <span className="text-emerald-500">☑ ACR</span>}
-                          {u.client_servicing_permissions?.fst?.view && <span className="text-emerald-500">☑ FST</span>}
-                          {u.client_servicing_permissions?.cpc?.view && <span className="text-emerald-500">☑ CPC</span>}
-                          {u.client_servicing_permissions?.ppu?.view && <span className="text-emerald-500">☑ PPU</span>}
-                          {u.client_servicing_permissions?.mngt?.view && <span className="text-emerald-500">☑ MNGT</span>}
+                    <td className={styles.td}>
+                      <div className={styles.permissionsCell}>
+                        <div className={styles.permissionChipsGroup}>
+                          {u.client_servicing_permissions?.cpst?.view && <span className={styles.permissionChip}>☑ CPST</span>}
+                          {u.client_servicing_permissions?.acr?.view && <span className={styles.permissionChip}>☑ ACR</span>}
+                          {u.client_servicing_permissions?.fst?.view && <span className={styles.permissionChip}>☑ FST</span>}
+                          {u.client_servicing_permissions?.cpc?.view && <span className={styles.permissionChip}>☑ CPC</span>}
+                          {u.client_servicing_permissions?.ppu?.view && <span className={styles.permissionChip}>☑ PPU</span>}
+                          {u.client_servicing_permissions?.mngt?.view && <span className={styles.permissionChip}>☑ MNGT</span>}
                         </div>
                         <button
                           onClick={() => openModal(u)}
-                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 font-semibold mt-1"
+                          className={styles.editPermissionsBtn}
                         >
                           Edit Permissions →
                         </button>
                       </div>
                     </td>
-                    <td className={styles.text_34}>
-                      <div className="flex flex-col gap-2">
+                    <td className={styles.tdRight}>
+                      <div className={styles.actionsCell}>
                         <button
                           onClick={() => router.push(`/admin/users/${u.id}`)}
-                          className={styles.card_35}
+                          className={styles.viewProfileBtn}
                         >
                           View Profile
                         </button>
@@ -480,7 +482,7 @@ export default function AdminMembersTable({ initialUsers = [], currentUserRole =
                               setAvatarPreviewUrl(null);
                               setUploadError("");
                             }}
-                            className="px-2 py-1 bg-muted hover:bg-muted/80 text-muted-foreground text-xs font-semibold rounded transition-colors"
+                            className={styles.editAvatarBtn}
                           >
                             Edit Avatar
                           </button>
@@ -496,31 +498,31 @@ export default function AdminMembersTable({ initialUsers = [], currentUserRole =
       </div>
 
       {isModalOpen && selectedUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-card border border-border w-full max-w-3xl rounded-2xl shadow-xl overflow-hidden">
-            <div className="flex justify-between items-center p-4 border-b border-border bg-muted/30">
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalCard}>
+            <div className={styles.modalHeader}>
               <div>
-                <h3 className="font-semibold text-foreground">Client Servicing Access Manager</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">{selectedUser.name}</p>
+                <h3 className={styles.modalTitle}>Client Servicing Access Manager</h3>
+                <p className={styles.modalSubtitle}>{selectedUser.name}</p>
               </div>
-              <button onClick={closeModal} className="text-muted-foreground hover:text-foreground p-1 transition-colors">
+              <button onClick={closeModal} className={styles.modalCloseBtn}>
                 <X size={18} />
               </button>
             </div>
 
-            <div className="p-0 overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+            <div className={styles.modalBody}>
+              <table className={styles.modalTable}>
                 <thead>
-                  <tr className="bg-muted/30 border-b border-border">
-                    <th className="p-3 text-xs font-semibold text-muted-foreground">Module</th>
-                    <th className="p-3 text-xs font-semibold text-muted-foreground text-center">View</th>
-                    <th className="p-3 text-xs font-semibold text-muted-foreground text-center">Create</th>
-                    <th className="p-3 text-xs font-semibold text-muted-foreground text-center">Edit</th>
-                    <th className="p-3 text-xs font-semibold text-muted-foreground text-center">Delete</th>
-                    <th className="p-3 text-xs font-semibold text-muted-foreground text-center">Export</th>
+                  <tr className={styles.modalTableHead}>
+                    <th className={styles.modalTh}>Module</th>
+                    <th className={styles.modalThCenter}>View</th>
+                    <th className={styles.modalThCenter}>Create</th>
+                    <th className={styles.modalThCenter}>Edit</th>
+                    <th className={styles.modalThCenter}>Delete</th>
+                    <th className={styles.modalThCenter}>Export</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border">
+                <tbody className={styles.modalTableBody}>
                   {[
                     { id: "cpst" as ClientServicingModule, label: "CPST" },
                     { id: "acr" as ClientServicingModule, label: "ACR" },
@@ -529,14 +531,14 @@ export default function AdminMembersTable({ initialUsers = [], currentUserRole =
                     { id: "ppu" as ClientServicingModule, label: "PPU" },
                     { id: "mngt" as ClientServicingModule, label: "MNGT" },
                   ].map(module => (
-                    <tr key={module.id} className="hover:bg-muted/10 transition-colors">
-                      <td className="p-3 text-sm font-semibold text-foreground border-r border-border">{module.label}</td>
+                    <tr key={module.id} className={styles.modalTr}>
+                      <td className={styles.modalTdModule}>{module.label}</td>
                       {["view", "create", "edit", "delete", "export"].map((action) => (
-                        <td key={action} className="p-3 text-center border-r border-border last:border-0">
-                          <label className="cursor-pointer flex items-center justify-center w-full h-full">
+                        <td key={action} className={styles.modalTdCheck}>
+                          <label className={styles.checkboxLabel}>
                             <input
                               type="checkbox"
-                              className="w-4 h-4 rounded border-border text-[#F4C542] focus:ring-[#F4C542]"
+                              className={styles.checkbox}
                               checked={tempPermissions[module.id][action as keyof ModulePermissions]}
                               onChange={() => togglePermission(module.id, action as keyof ModulePermissions)}
                             />
@@ -549,16 +551,16 @@ export default function AdminMembersTable({ initialUsers = [], currentUserRole =
               </table>
             </div>
 
-            <div className="flex items-center justify-end gap-3 p-4 border-t border-border bg-muted/30">
+            <div className={styles.modalFooter}>
               <button
                 onClick={closeModal}
-                className="px-4 py-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                className={styles.modalCancelBtn}
               >
                 Cancel
               </button>
               <button
                 onClick={savePermissions}
-                className="px-4 py-2 text-sm font-bold bg-[#F4C542] text-black rounded-lg shadow hover:bg-[#d9af39] transition-colors"
+                className={styles.modalSaveBtn}
               >
                 Save Changes
               </button>
@@ -568,68 +570,69 @@ export default function AdminMembersTable({ initialUsers = [], currentUserRole =
       )}
 
       {avatarUploadUser && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-card border border-border w-full max-w-md rounded-2xl shadow-xl p-6 flex flex-col">
+        <div className={styles.modalOverlay} style={{ zIndex: 60 }}>
+          <div className={styles.avatarModalCard}>
 
             {uploadStep === 1 && (
               <>
-                <div className="flex justify-between items-start mb-6">
+                <div className={styles.avatarModalHeader}>
                   <div>
-                    <h3 className="font-bold text-lg text-foreground">Update Profile Picture</h3>
-                    <p className="text-sm text-muted-foreground mt-1">Upload a new profile photo for this member.</p>
+                    <h3 className={styles.modalTitle}>Update Profile Picture</h3>
+                    <p className={styles.modalSubtitle}>Upload a new profile photo for this member.</p>
                   </div>
-                  <button onClick={() => setAvatarUploadUser(null)} className="text-muted-foreground hover:text-foreground">
+                  <button onClick={() => setAvatarUploadUser(null)} className={styles.modalCloseBtn}>
                     <X size={20} />
                   </button>
                 </div>
 
-                <div className="flex gap-6 mb-6">
-                  <div className="flex-1 flex flex-col items-center text-center">
-                    <span className="text-sm font-semibold text-muted-foreground mb-3">Current Avatar</span>
+                <div className={styles.avatarPreviewRow}>
+                  <div className={styles.avatarPreviewCol}>
+                    <span className={styles.avatarPreviewLabel}>Current Avatar</span>
                     {avatarUploadUser.avatar ? (
-                      <img src={avatarUploadUser.avatar} alt="Current" className="w-24 h-24 rounded-full object-cover border-4 border-muted" />
+                      <img src={avatarUploadUser.avatar} alt="Current" className={styles.avatarPreviewImg} />
                     ) : (
-                      <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center text-2xl font-bold text-muted-foreground border-4 border-border">
+                      <div className={styles.avatarPreviewFallback}>
                         {getInitials(avatarUploadUser.name)}
                       </div>
                     )}
                   </div>
 
-                  <div className="flex-1 flex flex-col items-center text-center border-l border-border pl-6">
-                    <span className="text-sm font-semibold text-muted-foreground mb-3">New Avatar Preview</span>
+                  <div className={styles.avatarPreviewColRight}>
+                    <span className={styles.avatarPreviewLabel}>New Avatar Preview</span>
                     {avatarPreviewUrl ? (
-                      <img src={avatarPreviewUrl} alt="New Preview" className="w-24 h-24 rounded-full object-cover border-4 border-[#F4C542]" />
+                      <img src={avatarPreviewUrl} alt="New Preview" className={styles.avatarPreviewImgNew} />
                     ) : (
-                      <div className="w-24 h-24 rounded-full bg-muted/50 border-4 border-dashed border-border flex items-center justify-center text-muted-foreground">
+                      <div className={styles.avatarPreviewEmpty}>
                         <Camera size={24} opacity={0.5} />
                       </div>
                     )}
                   </div>
                 </div>
 
-                <div className="mb-6">
+                <div className={styles.avatarUploadArea}>
                   <button
                     onClick={() => avatarFileRef.current?.click()}
-                    className="w-full py-2 border-2 border-dashed border-border rounded-lg text-sm font-semibold text-muted-foreground hover:bg-muted/50 hover:border-muted-foreground transition-all flex items-center justify-center gap-2"
+                    className={styles.avatarUploadBtn}
                   >
                     <Upload size={16} /> Choose File
                   </button>
-                  <p className="text-[10px] text-muted-foreground text-center mt-2">Supported: JPG, JPEG, PNG, WEBP. Max: 5MB.</p>
+                  <p className={styles.avatarUploadHint}>Supported: JPG, JPEG, PNG, WEBP. Max: 5MB.</p>
                 </div>
 
-                {uploadError && <p className="text-red-500 text-xs text-center mb-4">{uploadError}</p>}
+                {uploadError && <p className={styles.uploadError}>{uploadError}</p>}
 
-                <div className="flex items-center gap-3 w-full border-t border-border pt-4">
+                <div className={styles.avatarFooter}>
                   <button
                     onClick={() => setAvatarUploadUser(null)}
-                    className="flex-1 py-2 text-sm font-semibold text-muted-foreground bg-muted hover:bg-muted/80 rounded-lg transition-colors"
+                    className={styles.modalCancelBtn}
                   >
                     Cancel
                   </button>
                   <button
                     onClick={() => setUploadStep(2)}
                     disabled={!avatarPreviewUrl}
-                    className="flex-1 py-2 text-sm font-bold bg-[#F4C542] text-black rounded-lg hover:bg-[#d9af39] transition-colors disabled:opacity-50"
+                    className={styles.modalSaveBtn}
+                    style={{ opacity: !avatarPreviewUrl ? 0.5 : 1 }}
                   >
                     Continue
                   </button>
@@ -639,43 +642,45 @@ export default function AdminMembersTable({ initialUsers = [], currentUserRole =
 
             {uploadStep === 2 && (
               <>
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="font-bold text-lg text-foreground">Confirm Avatar Update</h3>
+                <div className={styles.avatarModalHeader}>
+                  <h3 className={styles.modalTitle}>Confirm Avatar Update</h3>
                 </div>
 
-                <div className="mb-4 text-center">
-                  <p className="text-sm text-foreground">Member: <strong className="font-bold">{avatarUploadUser.name}</strong></p>
+                <div className={styles.confirmMemberInfo}>
+                  <p className={styles.confirmMemberText}>Member: <strong>{avatarUploadUser.name}</strong></p>
                 </div>
 
-                <div className="flex items-center justify-center gap-4 mb-6">
+                <div className={styles.confirmPreviewRow}>
                   {avatarUploadUser.avatar ? (
-                    <img src={avatarUploadUser.avatar} alt="Current" className="w-16 h-16 rounded-full object-cover border-2 border-muted" />
+                    <img src={avatarUploadUser.avatar} alt="Current" className={styles.confirmPreviewSmall} />
                   ) : (
-                    <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center text-lg font-bold text-muted-foreground border-2 border-border">
+                    <div className={styles.confirmPreviewFallback}>
                       {getInitials(avatarUploadUser.name)}
                     </div>
                   )}
 
-                  <span className="text-muted-foreground">→</span>
+                  <span className={styles.confirmArrow}>→</span>
 
-                  <img src={avatarPreviewUrl!} alt="New" className="w-16 h-16 rounded-full object-cover border-2 border-[#F4C542]" />
+                  <img src={avatarPreviewUrl!} alt="New" className={styles.confirmPreviewSmallNew} />
                 </div>
 
-                <p className="text-sm text-center text-muted-foreground mb-6">Are you sure you want to update this profile picture?</p>
-                {uploadError && <p className="text-red-500 text-xs text-center mb-4">{uploadError}</p>}
+                <p className={styles.confirmText}>Are you sure you want to update this profile picture?</p>
+                {uploadError && <p className={styles.uploadError}>{uploadError}</p>}
 
-                <div className="flex items-center gap-3 w-full">
+                <div className={styles.avatarFooter}>
                   <button
                     onClick={() => setUploadStep(1)}
                     disabled={uploadingAvatar}
-                    className="flex-1 py-2 text-sm font-semibold text-muted-foreground bg-muted hover:bg-muted/80 rounded-lg transition-colors disabled:opacity-50"
+                    className={styles.modalCancelBtn}
+                    style={{ opacity: uploadingAvatar ? 0.5 : 1 }}
                   >
                     Back
                   </button>
                   <button
                     onClick={confirmAvatarUpload}
                     disabled={uploadingAvatar}
-                    className="flex-1 py-2 text-sm font-bold bg-black text-white rounded-lg hover:bg-black/80 transition-colors disabled:opacity-50"
+                    className={styles.confirmUploadBtn}
+                    style={{ opacity: uploadingAvatar ? 0.5 : 1 }}
                   >
                     {uploadingAvatar ? "Uploading..." : "Confirm Update"}
                   </button>

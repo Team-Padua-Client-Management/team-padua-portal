@@ -1,3 +1,5 @@
+
+// C:\website\team-padua-portal\app\(admin)\admin\(ClientServicing)\cpst\page.tsx
 import { redirect } from "next/navigation";
 import { canAccessModule } from "@src/lib/permissions";
 import CPSTClient from "@src/features/client-servicing/cpst/CPSTClient";

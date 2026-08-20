@@ -331,7 +331,7 @@ export default function PhilippineLocationSelector({
                 placeholder="Enter Barangay manually"
                 value={barangay}
                 onChange={(e) => setBarangay(e.target.value)}
-                className="w-full px-4 py-2 text-sm rounded-full border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-200"
+                className="w-full px-4 py-2 text-sm rounded-full border border-border bg-card text-foreground focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-200"
               />
             </div>
           ) : (
@@ -363,7 +363,7 @@ export default function PhilippineLocationSelector({
             placeholder="ZIP Code"
             value={zip}
             onChange={(e) => setZip(e.target.value)}
-            className="w-full px-4 py-2 text-sm rounded-full border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-200"
+            className="w-full px-4 py-2 text-sm rounded-full border border-border bg-card text-foreground focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-200"
           />
         </div>
       </div>
@@ -384,7 +384,7 @@ export default function PhilippineLocationSelector({
             placeholder="e.g. 123 Rizal Ave"
             value={street}
             onChange={(e) => setStreet(e.target.value)}
-            className="w-full px-4 py-2 text-sm rounded-full border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-200"
+            className="w-full px-4 py-2 text-sm rounded-full border border-border bg-card text-foreground focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-200"
           />
         </div>
 
@@ -402,7 +402,7 @@ export default function PhilippineLocationSelector({
             placeholder="e.g. Rm 501, Sun Life Bldg"
             value={building}
             onChange={(e) => setBuilding(e.target.value)}
-            className="w-full px-4 py-2 text-sm rounded-full border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-200"
+            className="w-full px-4 py-2 text-sm rounded-full border border-border bg-card text-foreground focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-200"
           />
         </div>
       </div>
@@ -424,7 +424,7 @@ export default function PhilippineLocationSelector({
               placeholder="e.g. Starbucks, Client Residence, Office Lobby"
               value={venue}
               onChange={(e) => setVenue(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-sm rounded-full border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-200"
+              className="w-full pl-9 pr-4 py-2 text-sm rounded-full border border-border bg-card text-foreground focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all duration-200"
             />
           </div>
         </div>

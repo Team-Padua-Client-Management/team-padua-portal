@@ -55,7 +55,7 @@ export default function SignaturePad({ onSignatureChange, initialSignature, titl
   };
 
   return (
-    <div className="w-full bg-white border border-slate-200 rounded-3xl p-4 flex flex-col gap-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+    <div className="w-full bg-card border border-border rounded-3xl p-4 flex flex-col gap-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
       <div className="flex items-center justify-between">
         <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{title}</span>
         <div className="flex bg-slate-100 p-1 rounded-full">
@@ -78,7 +78,7 @@ export default function SignaturePad({ onSignatureChange, initialSignature, titl
         </div>
       </div>
 
-      <div className="relative border-2 border-dashed border-slate-200 bg-slate-50/60 rounded-2xl min-h-[220px] flex items-center justify-center overflow-hidden transition-colors duration-200 group">
+      <div className="relative border-2 border-dashed border-border bg-muted/60 rounded-2xl min-h-[220px] flex items-center justify-center overflow-hidden transition-colors duration-200 group">
         {mode === 'draw' && !signatureImage ? (
           <SignatureCanvas
             ref={sigCanvas}
@@ -94,7 +94,7 @@ export default function SignaturePad({ onSignatureChange, initialSignature, titl
             className={`flex flex-col items-center justify-center gap-2 cursor-pointer w-full min-h-[220px] text-slate-400 hover:text-slate-600 transition-all duration-200 rounded-2xl ${isDragging ? 'bg-amber-50 text-amber-500' : ''
               }`}
           >
-            <div className="w-11 h-11 rounded-2xl bg-white border border-slate-200 flex items-center justify-center shadow-sm">
+            <div className="w-11 h-11 rounded-2xl bg-card border border-border flex items-center justify-center shadow-sm">
               <ImageIcon size={20} />
             </div>
             <span className="text-sm font-medium">Drag & drop or click to upload</span>
@@ -107,7 +107,7 @@ export default function SignaturePad({ onSignatureChange, initialSignature, titl
             />
           </label>
         ) : (
-          <div className="relative w-full h-[220px] flex items-center justify-center bg-white rounded-2xl overflow-hidden group">
+          <div className="relative w-full h-[220px] flex items-center justify-center bg-card rounded-2xl overflow-hidden group">
             {signatureImage && (
               <a href={signatureImage} target="_blank" rel="noreferrer" className="w-full h-full flex items-center justify-center cursor-zoom-in hover:opacity-90 transition-opacity">
                 <img src={signatureImage} alt="Signature" className="max-h-full max-w-full object-contain" />
@@ -127,7 +127,7 @@ export default function SignaturePad({ onSignatureChange, initialSignature, titl
         <button
           type="button"
           onClick={clearSignature}
-          className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-500 hover:text-red-500 transition-colors duration-200 border border-slate-200 hover:border-red-200 hover:bg-red-50 bg-white rounded-full"
+          className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-muted-foreground hover:text-red-500 transition-colors duration-200 border border-border hover:border-red-200 hover:bg-red-50 dark:hover:bg-red-900/20 bg-card rounded-full"
         >
           <RotateCcw size={13} /> Clear Signature
         </button>

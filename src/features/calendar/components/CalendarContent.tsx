@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   CalendarDays, ChevronLeft, ChevronRight, Plus, Trash2, Pencil, Clock,
-  MapPin, X, Search, Sparkles, Menu, AlignLeft, ChevronDown
+  MapPin, X, Search, Sparkles, Menu, AlignLeft, ChevronDown, Users
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@src/lib/supabase/client';
@@ -18,12 +18,32 @@ interface CalendarEvent {
   title: string;
   description?: string;
   event_date: string;
-  end_date?: string;
   start_time?: string;
   end_time?: string;
   location_name?: string;
   category: Category;
   module_source?: 'manual' | 'tasks' | 'attendance' | 'cpst' | 'acr' | 'birthdays';
+  advisor_id?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+interface Advisor {
+  id: string;
+  full_name: string;
+  role?: string;
+}
+
+interface ActivityLogEntry {
+  id: string;
+  title: string;
+  category?: string;
+  description?: string;
+  dateLabel: string;
+  timeLabel: string;
+  advisorName?: string;
+  advisorId?: string | null;
+  sortKey: string;
 }
 
 const DEFAULT_CATEGORIES: Category[] = [
@@ -56,6 +76,8 @@ const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const WEEKDAY_LABELS_LONG = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const HOURS = Array.from({ length: 15 }, (_, i) => i + 6);
 
+const ALL_ADVISORS_ID = '__ALL__';
+
 const catClass = (cat: Category) => {
   const c = (cat || '').toLowerCase();
   if (c.includes('meeting') || c.includes('consultation')) return styles.catMeeting;
@@ -66,31 +88,25 @@ const catClass = (cat: Category) => {
   if (c.includes('interview') || c.includes('training')) return styles.catInterview;
   if (c.includes('processing') || c.includes('delivery')) return styles.catAcr;
   if (c.includes('task') || c.includes('admin')) return styles.catTask;
-  return styles.catMeeting; // fallback
-};
-
-const formatAMPM = (timeStr: string) => {
-  if (!timeStr) return '';
-  const [h, m] = timeStr.split(':');
-  const hInt = parseInt(h, 10);
-  const ampm = hInt >= 12 ? 'PM' : 'AM';
-  const h12 = hInt % 12 || 12;
-  return `${String(h12).padStart(2, '0')}:${m} ${ampm}`;
+  return styles.catMeeting;
 };
 
 const pad = (n: number) => String(n).padStart(2, '0');
+const formatTime12 = (t?: string): string => {
+  if (!t) return '';
+  const [hStr, mStr] = t.split(':');
+  let h = parseInt(hStr, 10);
+  if (Number.isNaN(h)) return t;
+  const m = mStr || '00';
+  const suffix = h >= 12 ? 'PM' : 'AM';
+  h = h % 12;
+  if (h === 0) h = 12;
+  return `${h}:${m} ${suffix}`;
+};
 const toDateStr = (y: number, m: number, d: number) => `${y}-${pad(m + 1)}-${pad(d)}`;
 const isSameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
 const daysInMonth = (y: number, m: number) => new Date(y, m + 1, 0).getDate();
 const firstDayOfMonth = (y: number, m: number) => new Date(y, m, 1).getDay();
-
-const DEFAULT_EVENTS: CalendarEvent[] = [
-  { id: 't1', title: 'Monthly Team Planning', event_date: '2026-07-09', start_time: '14:00', end_time: '15:00', category: 'Meeting', description: 'Review operational performance metrics' },
-  { id: 't2', title: 'Client Servicing Alignment', event_date: '2026-07-10', start_time: '10:30', end_time: '11:30', category: 'Client', description: 'Discuss CPST and ACR synchronization items' },
-  { id: 't3', title: 'Juan Dela Cruz - Birthday', event_date: '2026-07-09', category: 'Birthday' },
-  { id: 't4', title: 'ACR Deadline Submission', event_date: '2026-07-11', category: 'Deadline' },
-  { id: 't5', title: 'Time In Matchup Audit', event_date: '2026-07-09', start_time: '08:00', end_time: '09:00', category: 'Attendance' }
-];
 
 interface CalendarContentProps {
   title: string;
@@ -98,7 +114,9 @@ interface CalendarContentProps {
 }
 
 export default function CalendarContent({ title, subtitle }: CalendarContentProps): React.JSX.Element {
-  const isAdmin = typeof window !== 'undefined' && window.location.pathname.includes('/admin/');
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentUserProfile, setCurrentUserProfile] = useState<Advisor | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('Month');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -128,10 +146,123 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
   const [generatingDesc, setGeneratingDesc] = useState(false);
   const [smartScheduleQuery, setSmartScheduleQuery] = useState('');
   const [smartScheduling, setSmartScheduling] = useState(false);
+  const [advisors, setAdvisors] = useState<Advisor[]>([]);
+  const [selectedAdvisorId, setSelectedAdvisorId] = useState<string | null>(null);
+  const [hoveredActivityId, setHoveredActivityId] = useState<string | null>(null);
+  const [hoverPos, setHoverPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+  const [activityModalAdvisor, setActivityModalAdvisor] = useState<Advisor | null>(null);
 
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 3000);
+  };
+
+  useEffect(() => {
+    setIsAdmin(window.location.pathname.includes('/admin/'));
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const { data, error } = await supabase.auth.getUser();
+      if (!active) return;
+      if (error) {
+        console.warn('Could not resolve current user for calendar scoping:', error.message);
+        return;
+      }
+      setCurrentUserId(data.user?.id ?? null);
+    })();
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      if (!currentUserId) {
+        setCurrentUserProfile(null);
+        return;
+      }
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, role')
+        .eq('id', currentUserId)
+        .single();
+      if (!active) return;
+      if (error) {
+        console.warn('Could not resolve current user profile:', error.message);
+        return;
+      }
+      setCurrentUserProfile(data as Advisor);
+    })();
+    return () => { active = false; };
+  }, [currentUserId]);
+
+  const fetchAdvisors = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, role')
+        .eq('role', 'Advisor')
+        .order('full_name');
+      if (error) throw error;
+      setAdvisors(data || []);
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  const getUserDisplayName = useCallback((id: string | null | undefined): string => {
+    if (!id) return 'Unassigned';
+    if (id === currentUserId && currentUserProfile) return currentUserProfile.full_name;
+    const found = advisors.find(a => a.id === id);
+    return found?.full_name || 'Unknown User';
+  }, [advisors, currentUserId, currentUserProfile]);
+
+  const mapEventToActivity = useCallback((ev: CalendarEvent, showAdvisorName: boolean): ActivityLogEntry => ({
+    id: ev.id,
+    title: ev.title || 'Untitled Activity',
+    category: ev.category || '',
+    description: ev.description || '',
+    dateLabel: ev.event_date
+      ? new Date(ev.event_date).toLocaleDateString('en-GB', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      })
+      : 'No date',
+    timeLabel: ev.start_time
+      ? `${formatTime12(ev.start_time)}${ev.end_time ? ` - ${formatTime12(ev.end_time)}` : ''}`
+      : 'Whole Day Event',
+    advisorName: showAdvisorName ? getUserDisplayName(ev.advisor_id) : undefined,
+    advisorId: ev.advisor_id ?? null,
+    sortKey: ev.updated_at || ev.created_at || String(ev.id),
+  }), [getUserDisplayName]);
+
+  const getAdvisorActivity = useCallback((advisorId: string | null): ActivityLogEntry[] => {
+    const showNames = advisorId === null;
+    const filtered = events.filter(ev => advisorId === null || ev.advisor_id === advisorId);
+    return filtered
+      .map(ev => mapEventToActivity(ev, showNames))
+      .sort((a, b) => (b.sortKey || '').localeCompare(a.sortKey || ''))
+      .slice(0, 8);
+  }, [events, mapEventToActivity]);
+
+  const canDeleteEvent = useCallback((advisorId: string | null | undefined): boolean => {
+    if (isAdmin) return true;
+    return !!currentUserId && advisorId === currentUserId;
+  }, [isAdmin, currentUserId]);
+
+  const handleActivityHover = (e: React.MouseEvent<HTMLDivElement>, activityId: string) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const cardWidth = 250;
+    const cardHeight = 210;
+    let left = rect.right + 8;
+    let top = rect.top;
+    if (left + cardWidth > window.innerWidth - 8) left = rect.left - cardWidth - 8;
+    if (top + cardHeight > window.innerHeight - 8) top = window.innerHeight - cardHeight - 8;
+    setHoverPos({ top, left });
+    setHoveredActivityId(activityId);
   };
 
   const handleAISmartSchedule = async (e: React.FormEvent) => {
@@ -139,27 +270,30 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
     if (!smartScheduleQuery.trim()) return;
     setSmartScheduling(true);
     try {
-      const prompt = `Parse this calendar event into JSON: "${smartScheduleQuery}". The JSON must have exactly these keys: title (string), event_date (YYYY-MM-DD), start_time (HH:MM 24-hr format if provided), category (choose one: Meeting, Birthday, Client, Deadline, Holiday, Interview, Task, Attendance, ACR). If no date provided, assume ${new Date().toISOString().split('T')[0]}. Output ONLY valid JSON without markdown formatting.`;
-      
+      const categoryList = categories.join(', ');
+      const prompt = `Parse this calendar event into JSON: "${smartScheduleQuery}". The JSON must have exactly these keys: title (string), event_date (YYYY-MM-DD), start_time (HH:MM 24-hr format if provided), category (choose exactly one of: ${categoryList}). If no date provided, assume ${new Date().toISOString().split('T')[0]}. Output ONLY valid JSON without markdown formatting.`;
+
       const res = await fetch('/api/chatbot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: [{ role: 'user', content: prompt }] })
       });
-      
+
       if (!res.ok || !res.headers.get('content-type')?.includes('application/json')) throw new Error('Invalid response');
       const data = await res.json();
-      
+
       try {
         const parsedText = data.reply.replace(/```json/g, '').replace(/```/g, '').trim();
         const parsed = JSON.parse(parsedText);
-        
+        const parsedCategory = categories.includes(parsed.category) ? parsed.category : categories[0];
+
         setNewEvent({
           title: parsed.title || '',
           event_date: parsed.event_date || new Date().toISOString().split('T')[0],
           start_time: parsed.start_time || '',
           end_time: '',
-          category: parsed.category || 'Meeting'
+          category: parsedCategory,
+          advisor_id: currentUserId ?? undefined
         });
         setEditingId(null);
         setShowAddModal(true);
@@ -167,7 +301,7 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
       } catch (err) {
         showToast('Could not parse AI response. Please try again.');
       }
-      
+
     } catch {
       showToast('Error connecting to AI service.');
     } finally {
@@ -176,9 +310,9 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
   };
 
   const handleGenerateDescription = async () => {
-    const category = newEvent.category || 'Meeting';
+    const category = newEvent.category || categories[0] || 'Client Meeting';
     setGeneratingDesc(true);
-    
+
     const fallbacks: Record<Category, string[]> = {
       Meeting: [
         "Reviewing advisor performance metrics and coordinating regional recruitment pipelines.",
@@ -245,18 +379,30 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
       ]
     };
 
-    const list = fallbacks[category] || fallbacks['Meeting'];
+    const c = (category || '').toLowerCase();
+    let matchedKey: Category = 'Meeting';
+    if (c.includes('meeting') || c.includes('consultation')) matchedKey = 'Meeting';
+    else if (c.includes('birthday') || c.includes('greeting')) matchedKey = 'Birthday';
+    else if (c.includes('client') || c.includes('call')) matchedKey = 'Client';
+    else if (c.includes('deadline') || c.includes('reminder')) matchedKey = 'Deadline';
+    else if (c.includes('holiday') || c.includes('leave')) matchedKey = 'Holiday';
+    else if (c.includes('interview') || c.includes('training')) matchedKey = 'Interview';
+    else if (c.includes('task') || c.includes('admin')) matchedKey = 'Task';
+    else if (c.includes('attendance')) matchedKey = 'Attendance';
+    else if (c.includes('processing') || c.includes('delivery') || c.includes('acr')) matchedKey = 'ACR';
+
+    const list = fallbacks[matchedKey] || fallbacks['Meeting'];
     const randomFallback = list[Math.floor(Math.random() * list.length)];
 
     try {
       const prompt = `Generate a short, professional, friendly 1-sentence description for a calendar event under the category: "${category}". Keep it focused on client servicing, advisory workflow, or Sun Life operational context. Do not mention code, databases, or tech stacks.`;
-      
+
       const res = await fetch('/api/chatbot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: [{ role: 'user', content: prompt }] })
       });
-      
+
       if (!res.ok || !res.headers.get('content-type')?.includes('application/json')) throw new Error('Invalid response');
       const data = await res.json();
       if (data.reply) {
@@ -365,7 +511,7 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
         const data = await res.json();
         if (data.reply) setCelebrationMessage(data.reply.trim());
       }
-    } catch {}
+    } catch { }
   };
 
   const handleAddCategory = (name: string) => {
@@ -398,51 +544,24 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
     showToast('Category deleted.');
   };
 
-  const syncActivitiesToLocalStorage = useCallback((eventList: CalendarEvent[]) => {
-    try {
-      localStorage.setItem('tp_calendar_events', JSON.stringify(eventList));
-      const mappedActivities = eventList.map(ev => ({
-        id: String(ev.id),
-        title: ev.title || 'Untitled Activity',
-        type: ev.category || 'Client Meeting',
-        date: ev.event_date || new Date().toISOString().split('T')[0],
-        time: ev.start_time || '',
-        location: ev.location_name || '',
-        notes: ev.description || '',
-        status: 'Scheduled'
-      }));
-      localStorage.setItem('tp_user_activities', JSON.stringify(mappedActivities));
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('tp_calendar_events_updated'));
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  }, []);
-
   const fetchEvents = useCallback(async () => {
     setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('calendar_events')
-        .select('*')
-        .order('event_date', { ascending: true });
-      if (error) throw error;
-      const loadedEvents = data && data.length ? data : DEFAULT_EVENTS;
-      setEvents(loadedEvents);
-      syncActivitiesToLocalStorage(loadedEvents);
-    } catch {
-      const saved = typeof window !== 'undefined' ? localStorage.getItem('tp_calendar_events') : null;
-      if (saved) {
-        setEvents(JSON.parse(saved));
-      } else {
-        setEvents(DEFAULT_EVENTS);
-        syncActivitiesToLocalStorage(DEFAULT_EVENTS);
-      }
-    } finally {
+    const { data, error } = await supabase
+      .from('calendar_events')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Failed to load events:', error);
+      showToast(error.message);
+      setEvents([]);
       setLoading(false);
+      return;
     }
-  }, [syncActivitiesToLocalStorage]);
+
+    setEvents(data || []);
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
     fetchEvents();
@@ -458,13 +577,19 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
   }, [fetchEvents]);
 
   useEffect(() => {
+    if (isAdmin) {
+      fetchAdvisors();
+    }
+  }, [isAdmin, fetchAdvisors]);
+
+  useEffect(() => {
     const savedCats = localStorage.getItem('tp_calendar_categories');
     if (savedCats) {
       try {
         const parsed = JSON.parse(savedCats);
         setCategories(parsed);
         setSelectedCategories(parsed);
-      } catch {}
+      } catch { }
     } else {
       localStorage.setItem('tp_calendar_categories', JSON.stringify(DEFAULT_CATEGORIES));
     }
@@ -483,13 +608,13 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
         setSelectedYearMonth(null);
         setSidebarOpen(false);
         setShowViewDropdown(false);
+        setActivityModalAdvisor(null);
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [currentDate]);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     if (!showViewDropdown) return;
     const handler = () => setShowViewDropdown(false);
@@ -499,7 +624,14 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
 
   const openAddModal = (dateStr: string) => {
     setEditingId(null);
-    setNewEvent({ event_date: dateStr, category: 'Meeting', start_time: '', end_time: '' });
+    const defaultCategory = categories.includes('Client Meeting') ? 'Client Meeting' : (categories[0] || 'Other');
+    setNewEvent({
+      event_date: dateStr,
+      category: defaultCategory,
+      start_time: '',
+      end_time: '',
+      advisor_id: currentUserId ?? undefined
+    });
     setShowAddModal(true);
   };
 
@@ -510,96 +642,102 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
     setShowAddModal(true);
   };
 
-  const persistLocal = (list: CalendarEvent[]) => {
-    setEvents(list);
-    syncActivitiesToLocalStorage(list);
-  };
-
   const handleSubmitEvent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newEvent.title || !newEvent.event_date) return;
+    if (!currentUserId) {
+      showToast('Could not verify your account. Please sign in again.');
+      return;
+    }
+
+    const eventCategory = newEvent.category || categories[0] || 'Client Meeting';
+    if (!categories.includes(eventCategory)) {
+      const updatedCats = [...categories, eventCategory];
+      setCategories(updatedCats);
+      setSelectedCategories(updatedCats);
+      localStorage.setItem('tp_calendar_categories', JSON.stringify(updatedCats));
+    } else if (!selectedCategories.includes(eventCategory)) {
+      setSelectedCategories(prev => [...prev, eventCategory]);
+    }
+
+    const ownerAdvisorId = editingId ? (newEvent.advisor_id || currentUserId) : currentUserId;
 
     const payload = {
       title: newEvent.title,
       description: newEvent.description || '',
       event_date: newEvent.event_date,
-      end_date: newEvent.event_date,
       start_time: newEvent.start_time || '',
       end_time: newEvent.end_time || '',
       location_name: newEvent.location_name || '',
-      category: newEvent.category || 'Meeting'
+      category: eventCategory,
+      advisor_id: ownerAdvisorId
     };
 
     if (editingId) {
-      let updatedObj: CalendarEvent | null = null;
-      try {
-        const { data, error } = await supabase
-          .from('calendar_events')
-          .update(payload)
-          .eq('id', editingId)
-          .select()
-          .single();
-        if (error) throw error;
-        updatedObj = data as CalendarEvent;
-        setEvents(prev => prev.map(ev => (ev.id === editingId ? updatedObj! : ev)));
-        showToast('Event updated successfully.');
+      const { data, error } = await supabase
+        .from('calendar_events')
+        .update(payload)
+        .eq('id', editingId)
+        .select()
+        .single();
 
-        // Trigger notification
-        await supabase.from('notifications').insert({
-          title: "📅 Calendar Event Modified! 🔄",
-          description: `The event "${payload.title}" scheduled for ${payload.event_date} has been updated.`,
-          type: "calendar",
-        });
-      } catch {
-        updatedObj = { ...payload, id: editingId } as CalendarEvent;
-        const updated = events.map(ev => (ev.id === editingId ? updatedObj! : ev));
-        persistLocal(updated);
-        showToast('Updated event locally.');
+      if (error) {
+        showToast(error.message);
+        return;
       }
-      if (updatedObj) {
-        setCelebratedEvent(updatedObj);
-        setIsEditCelebration(true);
-        generateCelebrationMessage(updatedObj.category, updatedObj.title);
-        setShowCelebration(true);
-      }
+
+      const updatedObj = data as CalendarEvent;
+      setEvents(prev => prev.map(ev => (ev.id === editingId ? updatedObj : ev)));
+      showToast('Event updated successfully.');
+
+      await supabase.from('notifications').insert({
+        title: "📅 Calendar Event Modified! 🔄",
+        description: `The event "${payload.title}" scheduled for ${payload.event_date} has been updated.`,
+        type: "calendar",
+      });
+
+      setCelebratedEvent(updatedObj);
+      setIsEditCelebration(true);
+      generateCelebrationMessage(updatedObj.category, updatedObj.title);
+      setShowCelebration(true);
     } else {
-      let createdObj: CalendarEvent | null = null;
-      try {
-        const { data, error } = await supabase
-          .from('calendar_events')
-          .insert(payload)
-          .select()
-          .single();
-        if (error) throw error;
-        if (data) {
-          createdObj = data as CalendarEvent;
-          setEvents(prev => [...prev, createdObj!]);
-          showToast('Event scheduled successfully.');
+      const { data, error } = await supabase
+        .from('calendar_events')
+        .insert(payload)
+        .select()
+        .single();
 
-          // Trigger notification
-          await supabase.from('notifications').insert({
-            title: "📅 New Calendar Event Scheduled! 🎉",
-            description: `"${payload.title}" has been scheduled for ${payload.event_date} at ${payload.start_time || '00:00'}.`,
-            type: "calendar",
-          });
-        }
-      } catch {
-        createdObj = { ...payload, id: String(Date.now()) } as CalendarEvent;
-        persistLocal([...events, createdObj]);
-        showToast('Scheduled event locally.');
+      if (error) {
+        showToast(error.message);
+        return;
       }
-      if (createdObj) {
-        setCelebratedEvent(createdObj);
-        setIsEditCelebration(false);
-        generateCelebrationMessage(createdObj.category, createdObj.title);
-        setShowCelebration(true);
-      }
+
+      const createdObj = data as CalendarEvent;
+      setEvents(prev => [...prev, createdObj]);
+      showToast('Event scheduled successfully.');
+
+      await supabase.from('notifications').insert({
+        title: "📅 New Calendar Event Scheduled! 🎉",
+        description: `"${payload.title}" has been scheduled for ${payload.event_date} at ${payload.start_time || '00:00'}.`,
+        type: "calendar",
+      });
+
+      setCelebratedEvent(createdObj);
+      setIsEditCelebration(false);
+      generateCelebrationMessage(createdObj.category, createdObj.title);
+      setShowCelebration(true);
     }
+
     setShowAddModal(false);
     setEditingId(null);
   };
 
   const handleDeleteEvent = (id: string) => {
+    const targetEvent = events.find(ev => ev.id === id);
+    if (targetEvent && !canDeleteEvent(targetEvent.advisor_id)) {
+      showToast('You do not have permission to delete this event.');
+      return;
+    }
     setDeleteEventId(id);
     setDeleteConfirmOpen(true);
   };
@@ -612,33 +750,40 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
     const targetEvent = events.find(ev => ev.id === id);
     const eventTitle = targetEvent?.title ? `"${targetEvent.title}"` : "A calendar event";
 
-    try {
-      const { error } = await supabase.from('calendar_events').delete().eq('id', id);
-      if (error) throw error;
-      setEvents(prev => prev.filter(ev => ev.id !== id));
-      showToast('Event discarded.');
-
-      // Trigger notification
-      await supabase.from('notifications').insert({
-        title: "📅 Calendar Event Discarded ❌",
-        description: `${eventTitle} has been removed from the schedule.`,
-        type: "calendar",
-      });
-    } catch {
-      persistLocal(events.filter(ev => ev.id !== id));
-      showToast('Discarded event locally.');
+    if (targetEvent && !canDeleteEvent(targetEvent.advisor_id)) {
+      showToast('You do not have permission to delete this event.');
+      return;
     }
+
+    const { error } = await supabase.from('calendar_events').delete().eq('id', id);
+    if (error) {
+      showToast(error.message);
+      return;
+    }
+
+    setEvents(prev => prev.filter(ev => ev.id !== id));
+    showToast('Event deleted successfully.');
+
+    await supabase.from('notifications').insert({
+      title: "📅 Calendar Event Discarded ❌",
+      description: `${eventTitle} has been removed from the schedule.`,
+      type: "calendar",
+    });
+
     setSelectedEvent(null);
   };
 
   const filteredEvents = useMemo(() => {
     const q = searchQuery.toLowerCase();
     return events.filter(ev => {
-      const matchesCategory = selectedCategories.includes(ev.category);
+      const matchesCategory = selectedCategories.includes(ev.category) || !categories.includes(ev.category);
       const matchesSearch = !q || ev.title.toLowerCase().includes(q) || (ev.description || '').toLowerCase().includes(q);
-      return matchesCategory && matchesSearch;
+      const matchesAdvisor = isAdmin
+        ? (!selectedAdvisorId || ev.advisor_id === selectedAdvisorId)
+        : (!!currentUserId && ev.advisor_id === currentUserId);
+      return matchesCategory && matchesSearch && matchesAdvisor;
     });
-  }, [events, selectedCategories, searchQuery]);
+  }, [events, selectedCategories, categories, searchQuery, selectedAdvisorId, isAdmin, currentUserId]);
 
   const eventsByDate = useMemo(() => {
     const map = new Map<string, CalendarEvent[]>();
@@ -697,9 +842,9 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
     });
     return {
       total: monthEvs.length,
-      birthdays: monthEvs.filter(e => e.category === 'Birthday').length,
+      birthdays: monthEvs.filter(e => e.category === 'Birthday Greeting').length,
       tasks: monthEvs.filter(e => e.category === 'Task').length,
-      meetings: monthEvs.filter(e => e.category === 'Meeting').length,
+      meetings: monthEvs.filter(e => e.category === 'Client Meeting' || e.category === 'Team Meeting').length,
       holidays: monthEvs.filter(e => e.category === 'Holiday').length
     };
   }, [filteredEvents, year]);
@@ -803,7 +948,6 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
                 <div className={styles.weekColumnDate}>{d.getDate()}</div>
                 <time dateTime={dateStr}>{dateStr}</time>
               </div>
-
 
               <div className={styles.weekEventList}>
                 {dayEvents.length === 0 && <span className={styles.emptyStateSub}>No events</span>}
@@ -1034,7 +1178,7 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
                 <div>Total: {metrics.total}</div>
                 <div>Meetings: {metrics.meetings}</div>
                 <div>Tasks: {metrics.tasks}</div>
-                <div>Birthdays: {metrics.birthdays}</div>
+                <div>Birthdays: {metrics.holidays}</div>
               </div>
               <div className={styles.yearOverlayCta}>Click to open month</div>
             </div>
@@ -1043,6 +1187,44 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
       })}
     </div>
   );
+
+  const renderAdvisorRow = (advisor: Advisor) => {
+    const isActive = selectedAdvisorId === advisor.id;
+    return (
+      <div
+        key={advisor.id}
+        className={styles.advisorRowWrap}
+      >
+        <button
+          type="button"
+          onClick={() => setSelectedAdvisorId(advisor.id)}
+          className={isActive ? styles.advisorActive : styles.advisorItem}
+        >
+          <span className={styles.advisorAvatar}>
+            {advisor.full_name?.trim()?.charAt(0)?.toUpperCase() || '?'}
+          </span>
+          <span className={styles.advisorName}>{advisor.full_name}</span>
+          {advisor.role && (
+            <span className={isActive ? styles.advisorRoleTagActive : styles.advisorRoleTag}>
+              {advisor.role}
+            </span>
+          )}
+          <span
+            className={styles.advisorLogBtn}
+            onClick={(e) => { e.stopPropagation(); setActivityModalAdvisor(advisor); }}
+            title="View full activity log"
+          >
+            <Clock size={12} />
+          </span>
+        </button>
+      </div>
+    );
+  };
+
+  const activeActivityAdvisorId = activityModalAdvisor
+    ? (activityModalAdvisor.id === ALL_ADVISORS_ID ? null : activityModalAdvisor.id)
+    : null;
+  const activeActivityLogs = activityModalAdvisor ? getAdvisorActivity(activeActivityAdvisorId) : [];
 
   return (
     <>
@@ -1092,6 +1274,110 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
                 </div>
               </div>
             </div>
+
+            {isAdmin && (
+              <>
+                <div className={styles.advisorSection}>
+                  <div className={styles.advisorSectionHeader}>
+                    <span className={styles.sectionLabel}>All</span>
+                    <span className={styles.advisorCount}>{advisors.length}</span>
+                  </div>
+                  <div className={styles.advisorList}>
+                    <button
+                      type="button"
+                      className={selectedAdvisorId === null ? styles.advisorActive : styles.advisorItem}
+                      onClick={() => setSelectedAdvisorId(null)}
+                    >
+                      <span className={styles.advisorAvatar}>
+                        <Users size={12} strokeWidth={2.4} />
+                      </span>
+                      <span className={styles.advisorName}>All Advisors</span>
+                      <span
+                        className={styles.advisorLogBtn}
+                        onClick={(e) => { e.stopPropagation(); setActivityModalAdvisor({ id: ALL_ADVISORS_ID, full_name: 'All Advisors' }); }}
+                        title="View full activity log"
+                      >
+                        <Clock size={12} />
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className={styles.advisorSection}>
+                  <div className={styles.advisorSectionHeader}>
+                    <span className={styles.sectionLabel}>Advisors</span>
+                    <span className={styles.advisorCount}>{advisors.length}</span>
+                  </div>
+                  <div className={styles.advisorList}>
+                    {advisors.map(renderAdvisorRow)}
+                    {advisors.length === 0 && (
+                      <span className={styles.advisorEmpty}>No advisors found</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className={styles.advisorSection}>
+                  <div className={styles.advisorSectionHeader}>
+                    <span className={styles.sectionLabel}>Recent Log Status</span>
+                    <span className={styles.advisorCount}>
+                      {selectedAdvisorId === null ? 'All' : getUserDisplayName(selectedAdvisorId)}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 260, overflowY: 'auto' }}>
+                    {getAdvisorActivity(selectedAdvisorId).map(entry => (
+                      <div
+                        key={entry.id}
+                        onMouseEnter={(e) => handleActivityHover(e, entry.id)}
+                        onMouseLeave={() => setHoveredActivityId(null)}
+                        style={{
+                          padding: '8px 10px',
+                          borderRadius: 10,
+                          border: '1px solid var(--line)',
+                          cursor: 'default'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>
+                            <span className={`${styles.filterDot} ${catClass(entry.category || '')}`} />
+                            <span style={{
+                              fontSize: 11,
+                              fontWeight: 700,
+                              color: 'var(--ink)',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              {entry.title}
+                            </span>
+                          </div>
+                          {canDeleteEvent(entry.advisorId) && (
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); handleDeleteEvent(entry.id); }}
+                              title="Delete event"
+                              style={{ background: 'none', border: 'none', padding: 2, cursor: 'pointer', color: '#f43f5e', flexShrink: 0, display: 'flex' }}
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          )}
+                        </div>
+                        {entry.advisorName && (
+                          <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--ink-faint)', marginTop: 2, marginLeft: 14 }}>
+                            👤 {entry.advisorName}
+                          </div>
+                        )}
+                        <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--ink-faint)', marginTop: 2, marginLeft: 14 }}>
+                          {entry.dateLabel} · {entry.timeLabel}
+                        </div>
+                      </div>
+                    ))}
+                    {getAdvisorActivity(selectedAdvisorId).length === 0 && (
+                      <span className={styles.advisorEmpty}>No recent calendar activity.</span>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -1117,16 +1403,16 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
           </div>
           <div className={styles.topbarRight}>
             <form onSubmit={handleAISmartSchedule} className="hidden md:flex relative items-center mr-2">
-              <input 
-                type="text" 
+              <input
+                type="text"
                 placeholder="✨ AI Smart Schedule..."
                 value={smartScheduleQuery}
                 onChange={e => setSmartScheduleQuery(e.target.value)}
                 disabled={smartScheduling}
                 className="w-64 pl-4 pr-10 py-1.5 text-xs bg-surface border border-border rounded-full focus:outline-none focus:border-primary transition-all disabled:opacity-50 text-foreground"
               />
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 disabled={smartScheduling}
                 className="absolute right-2 top-1/2 -translate-y-1/2 text-[#F4C542] hover:text-[#e0b53c] disabled:opacity-50"
               >
@@ -1193,6 +1479,47 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
         </div>
       </main>
 
+      {hoveredActivityId && (() => {
+        const entry = getAdvisorActivity(selectedAdvisorId).find(a => a.id === hoveredActivityId);
+        if (!entry) return null;
+        return (
+          <div className={styles.advisorHoverCard} style={{ top: hoverPos.top, left: hoverPos.left, width: 250 }}>
+            <div className={styles.advisorHoverHeader}>Activity Details</div>
+            <div className={styles.advisorHoverEntry} style={{ borderBottom: 'none', paddingBottom: 0 }}>
+              {entry.advisorName && (
+                <div className={styles.advisorHoverCategory}>
+                  👤 {entry.advisorName}
+                </div>
+              )}
+
+              <div className={styles.advisorHoverDesc} style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>
+                {entry.title}
+              </div>
+
+              {entry.category && (
+                <div className={styles.advisorHoverCategory}>
+                  {entry.category}
+                </div>
+              )}
+
+              <div className={styles.advisorHoverTime}>
+                📅 {entry.dateLabel}
+              </div>
+
+              <div className={styles.advisorHoverTime}>
+                🕒 {entry.timeLabel}
+              </div>
+
+              {entry.description && (
+                <div className={styles.advisorHoverNotes}>
+                  📝 {entry.description}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
       {selectedYearMonth !== null && (
         <>
           <div className={styles.panelOverlay} onClick={() => setSelectedYearMonth(null)} />
@@ -1226,7 +1553,6 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
           />
 
           <div className={styles.panel}>
-            {/* Header */}
             <div className={styles.panelHeader}>
               <div>
                 <span className={styles.panelHeaderTitle}>
@@ -1245,7 +1571,6 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
               </button>
             </div>
 
-            {/* Body */}
             <div className={styles.panelBody}>
 
               <span
@@ -1258,10 +1583,8 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
                 {selectedEvent.title}
               </h2>
 
-              {/* Information Cards */}
               <div className={styles.infoGrid}>
 
-                {/* Date */}
                 <div className={styles.infoCard}>
                   <div className={styles.infoIcon}>
                     <CalendarDays size={18} />
@@ -1286,7 +1609,6 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
                   </div>
                 </div>
 
-                {/* Time */}
                 <div className={styles.infoCard}>
                   <div className={styles.infoIcon}>
                     <Clock size={18} />
@@ -1308,7 +1630,6 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
                   </div>
                 </div>
 
-                {/* Location */}
                 {selectedEvent.location_name && (
                   <div className={styles.infoCard}>
                     <div className={styles.infoIcon}>
@@ -1326,9 +1647,24 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
                     </div>
                   </div>
                 )}
+
+                <div className={styles.infoCard}>
+                  <div className={styles.infoIcon}>
+                    <Users size={18} />
+                  </div>
+
+                  <div>
+                    <span className={styles.infoLabel}>
+                      User
+                    </span>
+
+                    <div className={styles.infoValue}>
+                      {getUserDisplayName(selectedEvent.advisor_id)}
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              {/* Description */}
               <div className={styles.descriptionSection}>
                 <div className={styles.descriptionTitle}>
                   Description
@@ -1341,7 +1677,6 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
               </div>
             </div>
 
-            {/* Footer */}
             <div className={styles.panelFooter}>
               <button
                 className={styles.ghostBtn}
@@ -1396,7 +1731,7 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
                   </div>
                   <div className="relative">
                     <select
-                      value={newEvent.category || 'Client Meeting'}
+                      value={newEvent.category || categories[0] || 'Client Meeting'}
                       onChange={e => setNewEvent(p => ({ ...p, category: e.target.value }))}
                       className={`${styles.formSelect} w-full appearance-none pr-10`}
                     >
@@ -1406,6 +1741,19 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
                       <ChevronDown size={14} />
                     </div>
                   </div>
+                </div>
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>User</label>
+                <div
+                  className={styles.formInput}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'not-allowed', opacity: 0.85, userSelect: 'none' }}
+                >
+                  <Users size={13} />
+                  {editingId
+                    ? getUserDisplayName(newEvent.advisor_id)
+                    : (currentUserProfile?.full_name || 'Loading…')}
                 </div>
               </div>
 
@@ -1458,6 +1806,68 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
         </div>
       )}
 
+      {activityModalAdvisor && (
+        <div className={styles.modalOverlay} onClick={() => setActivityModalAdvisor(null)}>
+          <div className={styles.modal} onClick={e => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <div>
+                <span className={styles.modalTitle}>{activityModalAdvisor.full_name}</span>
+                <p className={styles.panelHeaderSub}>{activityModalAdvisor.role || 'Team-wide'} · Activity Log</p>
+              </div>
+              <button className={styles.iconBtn} onClick={() => setActivityModalAdvisor(null)}><X size={16} /></button>
+            </div>
+            <div className={styles.activityLogList} style={{ maxHeight: 420, overflowY: 'auto' }}>
+              {activeActivityLogs.map(log => (
+                <div key={log.id} className={styles.activityLogRow}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                    <div className={styles.activityLogDesc}>
+                      {log.title}
+                    </div>
+                    {canDeleteEvent(log.advisorId) && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteEvent(log.id)}
+                        title="Delete event"
+                        style={{ background: 'none', border: 'none', padding: 4, cursor: 'pointer', color: '#f43f5e', flexShrink: 0, display: 'flex' }}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </div>
+
+                  {log.advisorName && (
+                    <div className={styles.activityLogMeta}>
+                      👤 {log.advisorName}
+                    </div>
+                  )}
+
+                  <div className={styles.activityLogMeta}>
+                    {log.category}
+                  </div>
+
+                  <div className={styles.activityLogTime}>
+                    📅 {log.dateLabel}
+                  </div>
+
+                  <div className={styles.activityLogTime}>
+                    🕒 {log.timeLabel}
+                  </div>
+
+                  {log.description && (
+                    <div className={styles.activityLogNotes}>
+                      📝 {log.description}
+                    </div>
+                  )}
+                </div>
+              ))}
+              {activeActivityLogs.length === 0 && (
+                <div className={styles.advisorHoverEmpty}>No recent calendar activity.</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <AnimatePresence>
         {showCelebration && celebratedEvent && (
           <div className={styles.celebrationOverlay} onClick={() => setShowCelebration(false)}>
@@ -1469,7 +1879,6 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
               className={styles.celebrationModal}
               onClick={e => e.stopPropagation()}
             >
-              {/* Confetti Explosion */}
               <div className={styles.confettiContainer}>
                 {Array.from({ length: 40 }).map((_, i) => {
                   const angle = (i / 40) * 360 + (Math.random() - 0.5) * 20;
@@ -1598,7 +2007,7 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
         {showManageCategories && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-md rounded-[28px] p-6 shadow-2xl flex flex-col animate-in zoom-in-95 duration-200">
-              
+
               <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
                 <h3 className="text-base font-extrabold text-slate-900 dark:text-white uppercase tracking-wider">
                   Manage Categories
@@ -1612,7 +2021,6 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
                 </button>
               </div>
 
-              {/* Add New Category form */}
               <div className="flex gap-2 mb-4">
                 <input
                   type="text"
@@ -1631,7 +2039,6 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
                 </button>
               </div>
 
-              {/* Categories list container */}
               <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
                 {categories.map((cat) => (
                   <div
@@ -1670,4 +2077,3 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
     </>
   );
 }
-

@@ -10,7 +10,9 @@
 
 /* Toolbar & Filters */
 .filterBar {
-  @apply flex flex-col md:flex-row md:items-end justify-between gap-4 p-5 bg-white dark:bg-[#16181d] border border-slate-200/80 dark:border-zinc-800 rounded-[24px] shadow-2xs;
+  @apply flex flex-col md:flex-row md:items-end justify-between gap-4 p-5 rounded-[24px] shadow-2xs;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
 }
 
 .searchGroup {
@@ -18,15 +20,34 @@
 }
 
 .searchIcon {
-  @apply absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none;
+  @apply absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none;
+  color: var(--text-secondary);
 }
 
 .searchInput {
-  @apply w-full pl-9 pr-8 py-2 text-xs bg-white dark:bg-zinc-900 border border-slate-200/90 dark:border-zinc-700/80 rounded-full focus:outline-none focus:border-[#F4C542] focus:ring-2 focus:ring-[#F4C542]/20 text-foreground placeholder:text-muted-foreground/60 transition shadow-2xs h-9.5 font-semibold;
+  @apply w-full pl-9 pr-8 py-2 text-xs rounded-full focus:outline-none focus:ring-2 shadow-2xs h-9.5 font-semibold transition;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  --tw-ring-color: color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+.searchInput::placeholder {
+  color: color-mix(in srgb, var(--text-secondary) 60%, transparent);
+}
+
+.searchInput:focus {
+  border-color: var(--primary);
 }
 
 .clearSearchBtn {
-  @apply absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5 rounded-full hover:bg-slate-100 dark:hover:bg-zinc-800 transition;
+  @apply absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-full transition;
+  color: var(--text-secondary);
+}
+
+.clearSearchBtn:hover {
+  color: var(--text);
+  background-color: var(--surface-2);
 }
 
 .filtersGroup {
@@ -34,16 +55,81 @@
 }
 
 .filterSelect {
-  @apply text-xs border border-slate-200/80 dark:border-zinc-700/60 rounded-full px-4 py-2 bg-white dark:bg-zinc-900 text-foreground focus:outline-none focus:border-[#F4C542] focus:ring-2 focus:ring-[#F4C542]/20 h-9.5 cursor-pointer transition shadow-2xs font-semibold hover:bg-slate-50 dark:hover:bg-zinc-800/80;
+  @apply text-xs rounded-full px-4 py-2 focus:outline-none focus:ring-2 h-9.5 cursor-pointer transition shadow-2xs font-semibold;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  --tw-ring-color: color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+.filterSelect:focus {
+  border-color: var(--primary);
+}
+
+.filterSelect:hover {
+  background-color: var(--surface-2);
 }
 
 .filterResetBtn {
-  @apply text-xs font-bold text-slate-500 hover:text-foreground px-3.5 py-2 rounded-full hover:bg-slate-100 dark:hover:bg-zinc-800 border border-transparent hover:border-slate-200 dark:hover:border-zinc-700 transition flex items-center gap-1.5 h-9.5 cursor-pointer;
+  @apply text-xs font-bold px-3.5 py-2 rounded-full transition flex items-center gap-1.5 h-9.5 cursor-pointer;
+  color: var(--text-secondary);
+  border: 1px solid transparent;
+}
+
+.filterResetBtn:hover {
+  color: var(--text);
+  background-color: var(--surface-2);
+  border-color: var(--border);
+}
+
+/* Pending Banner */
+.pendingBanner {
+  @apply rounded-2xl p-4 flex items-center justify-between;
+  background-color: color-mix(in srgb, var(--primary) 8%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent);
+  animation: slideInFromTop 500ms ease-out;
+}
+
+@keyframes slideInFromTop {
+  from { opacity: 0; transform: translateY(-16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.pendingBannerContent {
+  @apply flex items-center gap-4;
+}
+
+.pendingBannerIcon {
+  @apply w-10 h-10 rounded-full flex items-center justify-center shrink-0;
+  background-color: color-mix(in srgb, var(--primary) 15%, var(--surface));
+  color: var(--primary);
+}
+
+.pendingBannerTitle {
+  @apply font-bold text-sm;
+  color: var(--text);
+}
+
+.pendingBannerDesc {
+  @apply text-xs mt-0.5;
+  color: var(--text-secondary);
+}
+
+.pendingBannerBtn {
+  @apply px-4 py-2 text-xs font-bold rounded-xl transition-colors whitespace-nowrap cursor-pointer;
+  background-color: color-mix(in srgb, var(--primary) 15%, var(--surface));
+  color: var(--primary);
+}
+
+.pendingBannerBtn:hover {
+  background-color: color-mix(in srgb, var(--primary) 25%, var(--surface));
 }
 
 /* Table Container */
 .tableCard {
-  @apply border border-slate-200/80 dark:border-zinc-800 rounded-[24px] overflow-hidden bg-white dark:bg-[#16181d] shadow-2xs;
+  @apply rounded-[24px] overflow-hidden shadow-2xs;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
 }
 
 .tableScrollArea {
@@ -55,7 +141,10 @@
 }
 
 .tableHead {
-  @apply bg-white dark:bg-zinc-900/70 border-b border-slate-200/80 dark:border-zinc-800/80 font-bold text-slate-500 dark:text-zinc-400 uppercase text-[10.5px] tracking-wider;
+  @apply font-bold uppercase text-[10.5px] tracking-wider;
+  background-color: var(--surface);
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
 }
 
 .th {
@@ -67,11 +156,19 @@
 }
 
 .tableBody {
-  @apply divide-y divide-slate-100 dark:divide-zinc-800/60 text-foreground;
+  color: var(--text);
+}
+
+.tableBody > tr + tr {
+  border-top: 1px solid var(--border);
 }
 
 .tr {
-  @apply hover:bg-slate-50/80 dark:hover:bg-zinc-800/40 transition-colors duration-150;
+  @apply transition-colors duration-150;
+}
+
+.tr:hover {
+  background-color: color-mix(in srgb, var(--surface-2) 50%, transparent);
 }
 
 .td {
@@ -92,32 +189,61 @@
 }
 
 .avatarImg {
-  @apply w-10 h-10 !rounded-full object-cover shrink-0 border-[0.5px] border-slate-200/80 dark:border-zinc-700/60 shadow-2xs transition-all duration-200;
+  @apply w-10 h-10 object-cover shrink-0 shadow-2xs transition-all duration-200;
   border-radius: 50% !important;
+  border: 0.5px solid var(--border);
 }
 
 .memberFlex:hover .avatarImg {
-  @apply scale-105 border-[#F4C542]/60;
+  @apply scale-105;
+  border-color: color-mix(in srgb, var(--primary) 60%, transparent);
+}
+
+.avatarFallback {
+  @apply w-10 h-10 items-center justify-center text-xs font-bold shrink-0;
+  border-radius: 50% !important;
+  background-color: var(--surface-2);
+  color: var(--text-secondary);
+  border: 0.5px solid var(--border);
 }
 
 .presenceIndicator {
-  @apply absolute -bottom-0.5 -right-0.5 w-3 h-3 border-2 border-background rounded-full z-10 shadow-2xs;
+  @apply absolute -bottom-0.5 -right-0.5 w-3 h-3 border-2 rounded-full z-10 shadow-2xs;
+  border-color: var(--background);
 }
 
 .memberMeta {
   @apply min-w-0 flex-1;
 }
 
+.memberNameRow {
+  @apply flex items-center gap-2;
+}
+
 .memberName {
-  @apply font-bold text-foreground transition-colors block truncate text-xs lg:text-sm;
+  @apply font-bold transition-colors block truncate text-xs lg:text-sm;
+  color: var(--text);
 }
 
 .memberFlex:hover .memberName {
-  @apply text-[#8a6b10] dark:text-[#F4C542];
+  color: var(--primary);
 }
 
 .memberEmail {
-  @apply block text-[11px] text-muted-foreground truncate mt-0.5 font-mono opacity-85;
+  @apply block text-[11px] truncate mt-0.5 font-mono;
+  color: var(--text-secondary);
+  opacity: 0.85;
+}
+
+.memberRelationship {
+  @apply block text-[11px] italic mt-0.5;
+  color: var(--text-secondary);
+}
+
+.newBadge {
+  @apply px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider;
+  background-color: color-mix(in srgb, var(--primary) 12%, var(--surface));
+  color: var(--primary);
 }
 
 .presenceTag {
@@ -126,20 +252,74 @@
 
 /* Select Badges in Table */
 .roleSelect {
-  @apply bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700/80 text-xs text-foreground px-3 py-1.5 rounded-xl focus:ring-2 focus:ring-[#F4C542]/20 focus:border-[#F4C542] focus:outline-none cursor-pointer font-semibold shadow-2xs transition hover:bg-slate-50 dark:hover:bg-zinc-800;
+  @apply text-xs px-3 py-1.5 rounded-xl focus:ring-2 focus:outline-none cursor-pointer font-semibold shadow-2xs transition;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  --tw-ring-color: color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+.roleSelect:focus {
+  border-color: var(--primary);
+}
+
+.roleSelect:hover {
+  background-color: var(--surface-2);
 }
 
 .deptSelect {
-  @apply bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700/80 text-xs text-foreground px-3 py-1.5 rounded-xl focus:ring-2 focus:ring-[#F4C542]/20 focus:border-[#F4C542] focus:outline-none cursor-pointer font-semibold shadow-2xs transition hover:bg-slate-50 dark:hover:bg-zinc-800;
+  @apply text-xs px-3 py-1.5 rounded-xl focus:ring-2 focus:outline-none cursor-pointer font-semibold shadow-2xs transition;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  --tw-ring-color: color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+.deptSelect:focus {
+  border-color: var(--primary);
+}
+
+.deptSelect:hover {
+  background-color: var(--surface-2);
 }
 
 /* Status Badges */
 .statusBadge {
-  @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10.5px] font-bold tracking-tight shadow-2xs border;
+  @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10.5px] font-bold tracking-tight shadow-2xs;
+  border: 1px solid var(--border);
+}
+
+.statusActive {
+  background-color: color-mix(in srgb, #10b981 10%, var(--surface));
+  color: #10b981;
+  border-color: color-mix(in srgb, #10b981 20%, transparent);
+}
+
+.statusPending {
+  background-color: color-mix(in srgb, var(--primary) 10%, var(--surface));
+  color: var(--primary);
+  border-color: color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+.statusDisabled {
+  background-color: var(--surface-2);
+  color: var(--text-secondary);
 }
 
 .statusDot {
   @apply w-1.5 h-1.5 rounded-full shrink-0;
+}
+
+.dotActive {
+  background-color: #10b981;
+}
+
+.dotPending {
+  background-color: var(--primary);
+}
+
+.dotDisabled {
+  background-color: var(--text-secondary);
 }
 
 /* Client Servicing Permissions Cell */
@@ -152,26 +332,59 @@
 }
 
 .permissionChip {
-  @apply px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shadow-2xs font-semibold;
+  @apply px-2 py-0.5 rounded-lg font-semibold shadow-2xs;
+  background-color: color-mix(in srgb, #10b981 10%, var(--surface));
+  color: #10b981;
+  border: 1px solid color-mix(in srgb, #10b981 20%, transparent);
 }
 
 .editPermissionsBtn {
-  @apply text-[11px] text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-bold inline-flex items-center gap-1.5 mt-0.5 transition cursor-pointer px-2 py-0.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/40;
+  @apply text-[11px] font-bold inline-flex items-center gap-1.5 mt-0.5 transition cursor-pointer px-2 py-0.5 rounded-lg;
+  color: color-mix(in srgb, var(--primary) 80%, #3b82f6);
+}
+
+.editPermissionsBtn:hover {
+  background-color: color-mix(in srgb, var(--primary) 8%, var(--surface));
+  color: var(--primary);
 }
 
 /* Actions */
+.actionsCell {
+  @apply flex flex-col gap-2;
+}
+
 .viewProfileBtn {
-  @apply text-foreground hover:text-foreground text-[11px] font-bold border border-slate-200 dark:border-zinc-700/80 rounded-xl px-3.5 py-1.5 bg-white dark:bg-zinc-900 hover:bg-slate-50 dark:hover:bg-zinc-800 transition-all duration-200 shadow-2xs inline-flex items-center gap-1.5 cursor-pointer hover:border-[#F4C542]/50 hover:-translate-y-0.5;
+  @apply text-[11px] font-bold rounded-xl px-3.5 py-1.5 transition-all duration-200 shadow-2xs inline-flex items-center gap-1.5 cursor-pointer;
+  color: var(--text);
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.viewProfileBtn:hover {
+  background-color: var(--surface-2);
+  border-color: color-mix(in srgb, var(--primary) 50%, transparent);
+  transform: translateY(-1px);
 }
 
 /* Edit Avatar button — Admin only, sits beside View Profile */
 .editAvatarBtn {
-  @apply text-[11px] font-bold border border-slate-200 dark:border-zinc-700/80 rounded-xl px-3.5 py-1.5 bg-slate-50 dark:bg-zinc-800/60 text-slate-600 dark:text-zinc-300 hover:bg-[#FFF7D6] dark:hover:bg-[#2E2818] hover:text-[#8a6b10] dark:hover:text-[#F4C542] hover:border-[#F4C542]/60 transition-all duration-200 shadow-2xs inline-flex items-center gap-1.5 cursor-pointer hover:-translate-y-0.5;
+  @apply text-[11px] font-bold rounded-xl px-3.5 py-1.5 transition-all duration-200 shadow-2xs inline-flex items-center gap-1.5 cursor-pointer;
+  background-color: var(--surface-2);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+.editAvatarBtn:hover {
+  background-color: color-mix(in srgb, var(--primary) 10%, var(--surface));
+  color: var(--primary);
+  border-color: color-mix(in srgb, var(--primary) 60%, transparent);
+  transform: translateY(-1px);
 }
 
 /* Empty State */
 .emptyStateTd {
-  @apply py-12 px-4 text-center text-muted-foreground font-medium;
+  @apply py-12 px-4 text-center font-medium;
+  color: var(--text-secondary);
 }
 
 .emptyStateWrap {
@@ -184,5 +397,276 @@
 
 /* Pagination / Results count footer */
 .tableFooter {
-  @apply flex items-center justify-between px-4 py-3 border-t border-slate-200/80 dark:border-zinc-800/80 text-xs text-slate-500 dark:text-zinc-400 bg-white dark:bg-[#16181d] font-medium;
+  @apply flex items-center justify-between px-4 py-3 text-xs font-medium;
+  border-top: 1px solid var(--border);
+  color: var(--text-secondary);
+  background-color: var(--surface);
+}
+
+/* ======================================================
+   MODAL STYLES
+   ====================================================== */
+
+.modalOverlay {
+  @apply fixed inset-0 z-50 flex items-center justify-center p-4;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+.modalCard {
+  @apply w-full max-w-3xl rounded-2xl shadow-xl overflow-hidden;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.modalHeader {
+  @apply flex justify-between items-center p-4;
+  border-bottom: 1px solid var(--border);
+  background-color: color-mix(in srgb, var(--surface-2) 30%, var(--surface));
+}
+
+.modalTitle {
+  @apply font-semibold;
+  color: var(--text);
+}
+
+.modalSubtitle {
+  @apply text-xs mt-0.5;
+  color: var(--text-secondary);
+}
+
+.modalCloseBtn {
+  @apply p-1 transition-colors cursor-pointer;
+  color: var(--text-secondary);
+}
+
+.modalCloseBtn:hover {
+  color: var(--text);
+}
+
+.modalBody {
+  @apply p-0 overflow-x-auto;
+}
+
+.modalTable {
+  @apply w-full text-left border-collapse;
+}
+
+.modalTableHead {
+  border-bottom: 1px solid var(--border);
+  background-color: color-mix(in srgb, var(--surface-2) 30%, var(--surface));
+}
+
+.modalTh {
+  @apply p-3 text-xs font-semibold;
+  color: var(--text-secondary);
+}
+
+.modalThCenter {
+  @apply p-3 text-xs font-semibold text-center;
+  color: var(--text-secondary);
+}
+
+.modalTableBody > tr + tr {
+  border-top: 1px solid var(--border);
+}
+
+.modalTr {
+  @apply transition-colors;
+}
+
+.modalTr:hover {
+  background-color: color-mix(in srgb, var(--surface-2) 20%, transparent);
+}
+
+.modalTdModule {
+  @apply p-3 text-sm font-semibold;
+  color: var(--text);
+  border-right: 1px solid var(--border);
+}
+
+.modalTdCheck {
+  @apply p-3 text-center;
+  border-right: 1px solid var(--border);
+}
+
+.modalTdCheck:last-child {
+  border-right: none;
+}
+
+.checkboxLabel {
+  @apply cursor-pointer flex items-center justify-center w-full h-full;
+}
+
+.checkbox {
+  @apply w-4 h-4 rounded cursor-pointer;
+  border-color: var(--border);
+  accent-color: var(--primary);
+}
+
+.modalFooter {
+  @apply flex items-center justify-end gap-3 p-4;
+  border-top: 1px solid var(--border);
+  background-color: color-mix(in srgb, var(--surface-2) 30%, var(--surface));
+}
+
+.modalCancelBtn {
+  @apply px-4 py-2 text-sm font-semibold transition-colors cursor-pointer rounded-lg;
+  color: var(--text-secondary);
+  background-color: var(--surface-2);
+}
+
+.modalCancelBtn:hover {
+  color: var(--text);
+  background-color: color-mix(in srgb, var(--surface-2) 80%, var(--surface));
+}
+
+.modalSaveBtn {
+  @apply px-4 py-2 text-sm font-bold rounded-lg shadow transition-colors cursor-pointer;
+  background-color: var(--primary);
+  color: #000;
+}
+
+.modalSaveBtn:hover {
+  filter: brightness(0.9);
+}
+
+/* ======================================================
+   AVATAR UPLOAD MODAL
+   ====================================================== */
+
+.avatarModalCard {
+  @apply w-full max-w-md rounded-2xl shadow-xl p-6 flex flex-col;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.avatarModalHeader {
+  @apply flex justify-between items-start mb-6;
+}
+
+.avatarPreviewRow {
+  @apply flex gap-6 mb-6;
+}
+
+.avatarPreviewCol {
+  @apply flex-1 flex flex-col items-center text-center;
+}
+
+.avatarPreviewColRight {
+  @apply flex-1 flex flex-col items-center text-center pl-6;
+  border-left: 1px solid var(--border);
+}
+
+.avatarPreviewLabel {
+  @apply text-sm font-semibold mb-3;
+  color: var(--text-secondary);
+}
+
+.avatarPreviewImg {
+  @apply w-24 h-24 rounded-full object-cover;
+  border: 4px solid var(--surface-2);
+}
+
+.avatarPreviewImgNew {
+  @apply w-24 h-24 rounded-full object-cover;
+  border: 4px solid var(--primary);
+}
+
+.avatarPreviewFallback {
+  @apply w-24 h-24 rounded-full flex items-center justify-center text-2xl font-bold;
+  background-color: var(--surface-2);
+  color: var(--text-secondary);
+  border: 4px solid var(--border);
+}
+
+.avatarPreviewEmpty {
+  @apply w-24 h-24 rounded-full flex items-center justify-center;
+  background-color: color-mix(in srgb, var(--surface-2) 50%, var(--surface));
+  border: 4px dashed var(--border);
+  color: var(--text-secondary);
+}
+
+.avatarUploadArea {
+  @apply mb-6;
+}
+
+.avatarUploadBtn {
+  @apply w-full py-2 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer;
+  border: 2px dashed var(--border);
+  color: var(--text-secondary);
+}
+
+.avatarUploadBtn:hover {
+  background-color: color-mix(in srgb, var(--surface-2) 50%, var(--surface));
+  border-color: var(--text-secondary);
+}
+
+.avatarUploadHint {
+  @apply text-[10px] text-center mt-2;
+  color: var(--text-secondary);
+}
+
+.uploadError {
+  @apply text-xs text-center mb-4;
+  color: #ef4444;
+}
+
+.avatarFooter {
+  @apply flex items-center gap-3 w-full pt-4;
+  border-top: 1px solid var(--border);
+}
+
+.avatarFooter > button {
+  flex: 1;
+}
+
+/* Confirm step */
+.confirmMemberInfo {
+  @apply mb-4 text-center;
+}
+
+.confirmMemberText {
+  @apply text-sm;
+  color: var(--text);
+}
+
+.confirmPreviewRow {
+  @apply flex items-center justify-center gap-4 mb-6;
+}
+
+.confirmPreviewSmall {
+  @apply w-16 h-16 rounded-full object-cover;
+  border: 2px solid var(--surface-2);
+}
+
+.confirmPreviewSmallNew {
+  @apply w-16 h-16 rounded-full object-cover;
+  border: 2px solid var(--primary);
+}
+
+.confirmPreviewFallback {
+  @apply w-16 h-16 rounded-full flex items-center justify-center text-lg font-bold;
+  background-color: var(--surface-2);
+  color: var(--text-secondary);
+  border: 2px solid var(--border);
+}
+
+.confirmArrow {
+  color: var(--text-secondary);
+}
+
+.confirmText {
+  @apply text-sm text-center mb-6;
+  color: var(--text-secondary);
+}
+
+.confirmUploadBtn {
+  @apply flex-1 py-2 text-sm font-bold rounded-lg transition-colors cursor-pointer;
+  background-color: var(--text);
+  color: var(--surface);
+}
+
+.confirmUploadBtn:hover {
+  filter: brightness(0.85);
 }

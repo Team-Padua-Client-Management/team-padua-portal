@@ -1,6 +1,8 @@
-import React, { useState, useMemo } from 'react';
+'use client';
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Cake, Sparkles, ExternalLink } from 'lucide-react';
+import { supabase } from '@src/lib/supabase/client';
 import styles from '@/styles/admin/dashboard/page.module.css';
 
 export interface BirthdayItem {
@@ -9,8 +11,8 @@ export interface BirthdayItem {
   date: string;
   when: 'today' | 'yesterday' | 'tomorrow';
   age?: number;
-  advisorId?: string;
-  advisorName?: string;
+  advisorId: string;
+  advisorName: string;
   policyNo?: string;
 }
 
@@ -25,32 +27,163 @@ interface BirthdayCardProps {
   advisors?: AdvisorItem[];
 }
 
-export default function BirthdayCard({
-  birthdays = [],
-  advisors = [],
-}: BirthdayCardProps) {
+interface ParsedBirthday {
+  when: 'today' | 'yesterday' | 'tomorrow';
+  ageTurning: number;
+  dateDisplay: string;
+}
 
+function extractMonthDayYear(birthRaw: string): { year: number; month: number; day: number } | null {
+  const trimmed = String(birthRaw).trim();
+
+  const dateOnlyMatch = trimmed.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (dateOnlyMatch) {
+    const year = parseInt(dateOnlyMatch[1], 10);
+    const month = parseInt(dateOnlyMatch[2], 10) - 1;
+    const day = parseInt(dateOnlyMatch[3], 10);
+    if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+      return { year, month, day };
+    }
+  }
+
+  const slashMatch = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (slashMatch) {
+    const month = parseInt(slashMatch[1], 10) - 1;
+    const day = parseInt(slashMatch[2], 10);
+    const year = parseInt(slashMatch[3], 10);
+    if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+      return { year, month, day };
+    }
+  }
+
+  const parsed = new Date(trimmed);
+  if (!isNaN(parsed.getTime())) {
+    return { year: parsed.getFullYear(), month: parsed.getMonth(), day: parsed.getDate() };
+  }
+
+  return null;
+}
+
+function computeWhenAndAge(birthRaw: string | null): ParsedBirthday | null {
+  if (!birthRaw) return null;
+
+  const extracted = extractMonthDayYear(birthRaw);
+  if (!extracted) return null;
+
+  const { year: birthYear, month, day } = extracted;
+
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const thisYear = todayStart.getFullYear();
+
+  const birthdayThisYear = new Date(thisYear, month, day);
+  const diffDays = Math.round((birthdayThisYear.getTime() - todayStart.getTime()) / 86400000);
+
+  let when: ParsedBirthday['when'] | null = null;
+  if (diffDays === 0) when = 'today';
+  else if (diffDays === 1) when = 'tomorrow';
+  else if (diffDays === -1) when = 'yesterday';
+
+  if (!when) return null;
+
+  const ageTurning = thisYear - birthYear;
+  const dateDisplay = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(
+    new Date(thisYear, month, day)
+  );
+
+  return { when, ageTurning, dateDisplay };
+}
+
+type FetchStatus = 'idle' | 'loading' | 'error' | 'success';
+
+export default function BirthdayCard({ birthdays = [], advisors = [] }: BirthdayCardProps) {
+  const [advisorList, setAdvisorList] = useState<AdvisorItem[]>(advisors);
+  const [birthdayItems, setBirthdayItems] = useState<BirthdayItem[]>(birthdays);
+  const [status, setStatus] = useState<FetchStatus>('idle');
   const [selectedAdvisor, setSelectedAdvisor] = useState('All');
 
-  const advisorOptions = useMemo(() => [
-    {
-      id: 'All',
-      name: 'All Advisors',
-    },
-    ...advisors.map((advisor) => ({
-      id: advisor.id,
-      name: advisor.advisor_name,
-    })),
-  ], [advisors]);
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchData = async () => {
+      setStatus('loading');
+
+      const [advisorRes, clientRes] = await Promise.all([
+        supabase.from('advisors').select('id, advisor_name, advisor_code').order('advisor_name'),
+        supabase
+          .from('cpst_clients')
+          .select('id, client_name, birthdate, advisor_id, policy_number, advisor:advisors(id, advisor_name, advisor_code)')
+          .order('created_at', { ascending: false }),
+      ]);
+
+      const { data: advisorData, error: advisorError } = advisorRes;
+      const { data: clientData, error: clientError } = clientRes;
+
+      if (!mounted) return;
+
+      if (advisorError) {
+        console.error('BirthdayCard Advisor Supabase error:', advisorError);
+      }
+
+      if (clientError) {
+        console.error('BirthdayCard Supabase error:', clientError);
+        console.error('BirthdayCard Supabase error JSON:', JSON.stringify(clientError, null, 2));
+        setStatus('error');
+        setAdvisorList(advisorData || []);
+        setBirthdayItems([]);
+        return;
+      }
+
+      const items: BirthdayItem[] = [];
+
+      for (const c of (clientData || []) as any[]) {
+        const computed = computeWhenAndAge(c.birthdate || null);
+        if (!computed) continue;
+
+        const advisorRecord = Array.isArray(c.advisor) ? c.advisor[0] : c.advisor;
+        const advisorId = advisorRecord?.id || c.advisor_id || 'Unassigned';
+        const advisorName = advisorRecord?.advisor_name || 'Unassigned';
+
+        items.push({
+          id: c.id,
+          name: c.client_name || 'Unnamed',
+          date: computed.dateDisplay,
+          when: computed.when,
+          age: computed.ageTurning,
+          advisorId,
+          advisorName,
+          policyNo: c.policy_number || undefined,
+        });
+      }
+
+      setAdvisorList(advisorData || []);
+      setBirthdayItems(items);
+      setStatus('success');
+    };
+
+    fetchData();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const advisorOptions = useMemo(() => {
+    const opts = [
+      { id: 'All', name: 'All Advisors' },
+      ...advisorList.map((a) => ({ id: a.id, name: a.advisor_name })),
+    ];
+    const unique: Record<string, { id: string; name: string }> = {};
+    for (const o of opts) unique[o.id] = o;
+    return Object.values(unique);
+  }, [advisorList]);
 
   const filteredBirthdays = useMemo(() => {
-    if (selectedAdvisor === 'All') {
-      return birthdays;
-    }
-    return birthdays.filter(b => b.advisorId === selectedAdvisor);
-  }, [birthdays, selectedAdvisor]);
+    if (selectedAdvisor === 'All') return birthdayItems;
+    return birthdayItems.filter((b) => b.advisorId === selectedAdvisor);
+  }, [birthdayItems, selectedAdvisor]);
 
-  const todayCount = filteredBirthdays.filter(b => b.when === 'today').length;
+  const todayCount = filteredBirthdays.filter((b) => b.when === 'today').length;
+  const isLoading = status === 'loading' || status === 'idle';
 
   return (
     <div className={`${styles.dashboardCard} ${styles.birthdayCard}`}>
@@ -88,7 +221,20 @@ export default function BirthdayCard({
       </div>
 
       <div className={styles.dashboardCardBody}>
-        {filteredBirthdays.length === 0 ? (
+        {isLoading ? (
+          <div className={styles.birthdayEmptyContainer}>
+            <div className={styles.birthdayEmptyIcon}>🎂</div>
+            <div className={styles.emptyStateTitle}>Loading birthdays...</div>
+          </div>
+        ) : status === 'error' ? (
+          <div className={styles.birthdayEmptyContainer}>
+            <div className={styles.birthdayEmptyIcon}>🎂</div>
+            <div className={styles.emptyStateTitle}>Couldn't load birthdays</div>
+            <div className={styles.emptyStateDescription}>
+              Something went wrong fetching client birthdays. Please try again later.
+            </div>
+          </div>
+        ) : filteredBirthdays.length === 0 ? (
           <div className={styles.birthdayEmptyContainer}>
             <div className={styles.birthdayEmptyIcon}>🎂</div>
             <div className={styles.emptyStateTitle}>No client birthdays today, yesterday, or tomorrow</div>
@@ -105,7 +251,6 @@ export default function BirthdayCard({
             {filteredBirthdays.map((item) => {
               const isToday = item.when === 'today';
               const isTomorrow = item.when === 'tomorrow';
-
               return (
                 <div
                   key={item.id}
@@ -114,8 +259,12 @@ export default function BirthdayCard({
                   <div
                     className={styles.birthdayAvatarWrapper}
                     style={{
-                      background: isToday ? 'rgba(234, 179, 8, 0.15)' : isTomorrow ? 'rgba(37, 99, 235, 0.12)' : 'var(--surface-2)',
-                      color: isToday ? '#D97706' : isTomorrow ? '#2563EB' : 'var(--text-tertiary)'
+                      background: isToday
+                        ? 'rgba(234, 179, 8, 0.15)'
+                        : isTomorrow
+                          ? 'rgba(37, 99, 235, 0.12)'
+                          : 'var(--surface-2)',
+                      color: isToday ? '#D97706' : isTomorrow ? '#2563EB' : 'var(--text-tertiary)',
                     }}
                   >
                     <Cake size={16} />
@@ -131,15 +280,13 @@ export default function BirthdayCard({
                       )}
                     </div>
                     <span className={styles.birthdayDateMeta}>
-                      {item.date} {item.age !== undefined && item.age > 0 ? `• ${item.age} yrs old` : ''} {item.advisorName ? `• ${item.advisorName}` : ''}
+                      {item.date} {item.age !== undefined && item.age > 0 ? `• ${item.age} yrs old` : ''}{' '}
+                      {item.advisorName ? `• ${item.advisorName}` : ''}
                     </span>
                   </div>
 
                   <div className={styles.birthdayStatusRight}>
-                    <span
-                      className={styles.birthdayStatusBadge}
-                      data-when={item.when}
-                    >
+                    <span className={styles.birthdayStatusBadge} data-when={item.when}>
                       {isToday ? 'Today 🎂' : isTomorrow ? 'Tomorrow' : 'Yesterday'}
                     </span>
                   </div>

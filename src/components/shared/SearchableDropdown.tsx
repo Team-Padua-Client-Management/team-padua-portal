@@ -206,7 +206,7 @@ export default function SearchableDropdown({
             w-full flex items-center justify-between px-4 py-2 text-sm rounded-full border text-left transition-all duration-200 outline-none
             ${disabled 
               ? 'bg-gray-100 dark:bg-gray-800/40 text-gray-400 border-gray-200 dark:border-gray-800/60 cursor-not-allowed'
-              : 'bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 cursor-pointer'
+              : 'bg-card text-foreground cursor-pointer'
             }
             ${error 
               ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' 
@@ -231,7 +231,7 @@ export default function SearchableDropdown({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -4, scale: 0.98 }}
               transition={{ duration: 0.15, ease: 'easeOut' }}
-              className="absolute z-50 w-full mt-1.5 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border border-gray-200 dark:border-gray-800 rounded-2xl shadow-xl outline-none overflow-hidden"
+              className="absolute z-50 w-full mt-1.5 bg-card/95 backdrop-blur-md border border-border rounded-2xl shadow-xl outline-none overflow-hidden"
               role="presentation"
             >
               {/* Search Box */}

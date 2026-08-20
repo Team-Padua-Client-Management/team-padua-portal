@@ -376,7 +376,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
 
   const mobileSidebarContent = (
     <div className={styles.sidebarInner}>
-      <div className="pt-10 pb-5 border-b border-slate-100 dark:border-slate-800/50 flex flex-col items-center">
+      <div className="pt-10 pb-5 flex flex-col items-center" style={{ borderBottom: '1px solid var(--border)' }}>
         <div className={styles.sidebarHeaderContainer}>
           <Link href="/admin/dashboard" className="flex items-center justify-center p-1" title="Team Padua Dashboard">
             <Image
@@ -424,13 +424,14 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                 <button
                   type="button"
                   onClick={() => setClientServicingOpen(!clientServicingOpen)}
-                  className="flex items-center justify-between w-full px-2.5 py-1.5 text-[11px] font-bold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors border-0 cursor-pointer bg-transparent text-left"
+                  className="flex items-center justify-between w-full px-2.5 py-1.5 text-[11px] font-bold rounded transition-colors border-0 cursor-pointer bg-transparent text-left"
+                  style={{ color: 'var(--text-secondary)' }}
                 >
                   <span>Client Servicing</span>
                   {clientServicingOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
                 </button>
                 {clientServicingOpen && (
-                  <div className="pl-2 border-l border-slate-200 dark:border-slate-800 ml-1.5 mt-1 space-y-0.5">
+                  <div className="pl-2 ml-1.5 mt-1 space-y-0.5" style={{ borderLeft: '1px solid var(--border)' }}>
                     {clientServicingItems.map((sub) => {
                       const subActive = pathname.startsWith(sub.href);
                       return (
@@ -452,13 +453,14 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                 <button
                   type="button"
                   onClick={() => setSunlifeFormsOpen(!sunlifeFormsOpen)}
-                  className="flex items-center justify-between w-full px-2.5 py-1.5 text-[11px] font-bold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors border-0 cursor-pointer bg-transparent text-left"
+                  className="flex items-center justify-between w-full px-2.5 py-1.5 text-[11px] font-bold rounded transition-colors border-0 cursor-pointer bg-transparent text-left"
+                  style={{ color: 'var(--text-secondary)' }}
                 >
                   <span>Client Servicing Request Forms</span>
                   {sunlifeFormsOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
                 </button>
                 {sunlifeFormsOpen && (
-                  <div className="pl-2 border-l border-slate-200 dark:border-slate-800 ml-1.5 mt-1 space-y-0.5">
+                  <div className="pl-2 ml-1.5 mt-1 space-y-0.5" style={{ borderLeft: '1px solid var(--border)' }}>
                     {sunlifeFormItems.map((sub) => {
                       const subActive = pathname.startsWith(sub.href);
                       return (
@@ -559,7 +561,8 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
           <aside className={styles.sidebarDrawer}>
             <button
               onClick={effectiveOnClose}
-              className="absolute top-4 right-4 z-50 p-2 text-slate-500 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-full cursor-pointer transition border-0 flex items-center justify-center shadow-sm"
+              className="absolute top-4 right-4 z-50 p-2 rounded-full cursor-pointer transition border-0 flex items-center justify-center shadow-sm"
+              style={{ color: 'var(--text-secondary)', background: 'var(--surface-2)' }}
               aria-label="Close sidebar menu"
             >
               <X size={16} />

@@ -1,3 +1,4 @@
+// C:\website\team-padua-portal\src\features\client-servicing\cpst\CPSTClient.tsx
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -101,8 +102,119 @@ export interface ClientRecord {
   id_attachment_url?: string | null;
 }
 
+interface BeneficiaryEntry {
+  name: string;
+  relationship: string;
+}
+
+interface EmbeddedBeneficiaryResult {
+  clientName: string;
+  beneficiaryName?: string;
+  relationship?: string;
+}
+
 const PRODUCTS = ['Sun Maxilink Prime', 'Sun Fit and Well', 'Sun FlexiLink', 'Sun Dream Wealth', 'Sun Life Assure'];
 const PAYMENT_MODES = ['Annual', 'Semi-Annual', 'Quarterly', 'Monthly'];
+
+const RELATIONSHIP_NORMALIZATION_MAP: Record<string, string> = {
+  aunt: 'auntie',
+  auntie: 'auntie',
+  uncle: 'uncle',
+  mother: 'mother',
+  mom: 'mother',
+  mama: 'mother',
+  father: 'father',
+  dad: 'father',
+  papa: 'father',
+  sister: 'sister',
+  brother: 'brother',
+  cousin: 'cousin',
+  daughter: 'daughter',
+  son: 'son',
+  grandmother: 'grandmother',
+  grandma: 'grandmother',
+  grandfather: 'grandfather',
+  grandpa: 'grandfather',
+  granddaughter: 'granddaughter',
+  grandson: 'grandson',
+  wife: 'wife',
+  husband: 'husband',
+  partner: 'partner',
+  niece: 'niece',
+  nephew: 'nephew',
+  guardian: 'guardian',
+  relative: 'relative',
+};
+
+function normalizeRelationship(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return '';
+  const key = trimmed.toLowerCase();
+  return RELATIONSHIP_NORMALIZATION_MAP[key] || trimmed;
+}
+
+function normalizeHeader(header: string): string {
+  return String(header ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function findColumnIndex(headerRow: any[], keywords: string[]): number {
+  const normalizedKeywords = keywords.map(normalizeHeader).filter(Boolean);
+  return headerRow.findIndex((h: any) => {
+    const normalizedHeader = normalizeHeader(String(h ?? ''));
+    if (!normalizedHeader) return false;
+    return normalizedKeywords.some(k => normalizedHeader.includes(k));
+  });
+}
+
+function parseEmbeddedBeneficiary(raw: string): EmbeddedBeneficiaryResult {
+  const trimmed = raw.trim();
+  const match = trimmed.match(/^(.+?)\s*\(([^)]*)\)\s*$/);
+
+  if (!match) {
+    return { clientName: trimmed };
+  }
+
+  const clientName = match[1].trim();
+  const inner = match[2].trim();
+
+  if (!clientName || !inner) {
+    return { clientName: trimmed };
+  }
+
+  const possessiveMatch = inner.match(/^(.+?)'s\s+(.+)$/i);
+
+  if (possessiveMatch) {
+    const beneficiaryName = possessiveMatch[1].trim();
+    const relationship = normalizeRelationship(possessiveMatch[2].trim());
+    if (beneficiaryName) {
+      return { clientName, beneficiaryName, relationship };
+    }
+  }
+
+  return { clientName, beneficiaryName: inner };
+}
+
+function formatBeneficiaryEntry(name: string, relationship?: string): string {
+  const trimmedName = name.trim();
+  const trimmedRelationship = relationship?.trim();
+  return trimmedRelationship ? `${trimmedName} (${trimmedRelationship})` : trimmedName;
+}
+
+function parseBeneficiaryEntries(raw: string): BeneficiaryEntry[] {
+  if (!raw || !raw.trim()) return [];
+
+  return raw
+    .split(/[,;\n\/]+/)
+    .map(segment => segment.trim())
+    .filter(Boolean)
+    .map(segment => {
+      const match = segment.match(/^(.+?)\s*\(([^)]+)\)\s*$/);
+      if (match) {
+        return { name: match[1].trim(), relationship: match[2].trim() };
+      }
+      return { name: segment, relationship: '' };
+    });
+}
 
 interface CPSTClientProps {
   canCreate: boolean;
@@ -348,19 +460,16 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
       });
 
       if (c.beneficiary && c.beneficiary.trim()) {
-        const beneficiaries = c.beneficiary
-          .split(/[,;\n\/]+/)
-          .map(b => b.trim())
-          .filter(Boolean);
+        const beneficiaryEntries = parseBeneficiaryEntries(c.beneficiary);
 
-        beneficiaries.forEach((benName, idx) => {
+        beneficiaryEntries.forEach((entry, idx) => {
           records.push({
             id: `${c.id}-ben-${idx}`,
             clientId: c.id,
             recordType: 'BENEFICIARY',
-            name: benName,
+            name: entry.name,
             clientName: c.clientName,
-            relationship: c.relationship || '',
+            relationship: entry.relationship,
             policyNumber: c.policyNumber || '',
             product: c.product || '',
             approvalDate: c.approvalDate || '',
@@ -582,6 +691,7 @@ ${result.error?.hint}
   const handleDeleteClient = async () => {
     if (!clientToDelete) return;
     setIsDeleting(true);
+
     try {
       if (clientToDelete === 'bulk') {
         const targetClientIds = Array.from(
@@ -591,19 +701,58 @@ ${result.error?.hint}
               .map(r => r.clientId)
           )
         );
-        if (targetClientIds.length > 0) {
-          await supabase.from('cpst_clients').delete().in('id', targetClientIds);
+
+        if (targetClientIds.length === 0) {
+          setIsDeleting(false);
+          setClientToDelete(null);
+          return;
         }
+
+        const { error, data } = await supabase
+          .from('cpst_clients')
+          .delete()
+          .in('id', targetClientIds)
+          .select();
+
+        if (error) {
+          alert(`Failed to delete clients.\n\nCode: ${error.code}\nMessage: ${error.message}\nDetails: ${error.details}\nHint: ${error.hint}`);
+          setIsDeleting(false);
+          return;
+        }
+
+        if (!data || data.length === 0) {
+          alert('No records were deleted. This is usually caused by a missing DELETE policy (RLS) on the "cpst_clients" table, or by a foreign key constraint from a related table (policy cards, payments, forms, activity records) blocking the delete.');
+          setIsDeleting(false);
+          return;
+        }
+
         setSelectedIds([]);
       } else {
-        await supabase.from('cpst_clients').delete().eq('id', clientToDelete);
+        const { error, data } = await supabase
+          .from('cpst_clients')
+          .delete()
+          .eq('id', clientToDelete)
+          .select();
+
+        if (error) {
+          alert(`Failed to delete client.\n\nCode: ${error.code}\nMessage: ${error.message}\nDetails: ${error.details}\nHint: ${error.hint}`);
+          setIsDeleting(false);
+          return;
+        }
+
+        if (!data || data.length === 0) {
+          alert('No record was deleted. This is usually caused by a missing DELETE policy (RLS) on the "cpst_clients" table, or by a foreign key constraint from a related table (policy cards, payments, forms, activity records) blocking the delete.');
+          setIsDeleting(false);
+          return;
+        }
       }
-      fetchData();
-    } catch (err) {
-      console.error(err);
+
+      await fetchData();
+      setClientToDelete(null);
+    } catch (err: any) {
+      alert(`Unexpected error while deleting: ${err?.message || String(err)}`);
     } finally {
       setIsDeleting(false);
-      setClientToDelete(null);
     }
   };
 
@@ -704,7 +853,7 @@ ${result.error?.hint}
         const row = rows[i].map(c => String(c).toLowerCase().trim());
 
         if (
-          row.some(c => c.includes("client name / beneficiary")) &&
+          row.some(c => c.includes("client name / beneficiary name")) &&
           row.some(c => c.includes("month")) &&
           row.some(c => c.includes("age"))
         ) {
@@ -721,8 +870,7 @@ ${result.error?.hint}
     }
 
     const headerRow = rows[headerIndex] || [];
-    const findCol = (kw: string[]): number =>
-      headerRow.findIndex((h: any) => kw.some(k => String(h).toLowerCase().includes(k)));
+    const findCol = (kw: string[]): number => findColumnIndex(headerRow, kw);
 
     const nameCol = findCol([
       'client name',
@@ -745,10 +893,10 @@ ${result.error?.hint}
     const policyCol = findCol(['policy number', 'policy#', 'policy no', 'policy #']);
     const productCol = findCol(['product', 'plan', 'policy name', 'plan name']);
     const approvalCol = findCol(['date of approval', 'approval date', 'date_of_approval', 'issue date', 'policy date']);
-    const relationshipCol = findCol(['relationship']);
+    const relationshipCol = findCol(['relationship type', 'relationship', 'relation']);
 
-    let beneficiaryCol = findCol(['beneficiary']);
-    if (beneficiaryCol === nameCol) beneficiaryCol = -1;
+    let beneficiaryNameCol = findCol(['beneficiary name', 'beneficiaryname', 'beneficiary']);
+    if (beneficiaryNameCol === nameCol) beneficiaryNameCol = -1;
 
     const fundAllocationCol = findCol(['fund allocation', 'allocation', 'fund']);
     const paymentModeCol = findCol(['mode of payment']);
@@ -758,6 +906,10 @@ ${result.error?.hint}
       "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE",
       "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"
     ]);
+
+    const advisorScopedClients = importTarget === 'clients' && importAdvisorId
+      ? clients.filter(c => c.advisorId === importAdvisorId)
+      : clients;
 
     const newClients: Partial<ClientManagementRecord & { _matchedName?: string; _matchedPolicy?: string; age?: string }>[] = [];
     const duplicateClients: Partial<ClientManagementRecord & { _matchedName?: string; _matchedPolicy?: string; age?: string }>[] = [];
@@ -815,17 +967,29 @@ ${result.error?.hint}
         continue;
       }
 
+      const rawRelationshipValue = relationshipCol >= 0 ? String(row[relationshipCol] ?? '').trim() : '';
+      const explicitBeneficiaryRaw = beneficiaryNameCol >= 0 ? String(row[beneficiaryNameCol] ?? '').trim() : '';
+
       let clientName = rawName;
-      let beneficiary = beneficiaryCol >= 0
-        ? String(row[beneficiaryCol] ?? '').trim()
-        : '';
+      let beneficiary = '';
+      let relationship = '';
 
-      if (!beneficiary && rawName.includes('(') && rawName.endsWith(')')) {
-        const match = rawName.match(/^(.+?)\s*\((.+)\)$/);
-
-        if (match) {
-          clientName = match[1].trim();
-          beneficiary = match[2].trim();
+      if (explicitBeneficiaryRaw) {
+        const normalizedBenRelationship = normalizeRelationship(rawRelationshipValue);
+        beneficiary = explicitBeneficiaryRaw
+          .split(/[,;\n\/]+/)
+          .map(name => name.trim())
+          .filter(Boolean)
+          .map(name => formatBeneficiaryEntry(name, normalizedBenRelationship))
+          .join(', ');
+      } else {
+        const embedded = parseEmbeddedBeneficiary(rawName);
+        if (embedded.beneficiaryName) {
+          clientName = embedded.clientName;
+          const normalizedBenRelationship = embedded.relationship || normalizeRelationship(rawRelationshipValue);
+          beneficiary = formatBeneficiaryEntry(embedded.beneficiaryName, normalizedBenRelationship);
+        } else {
+          relationship = rawRelationshipValue;
         }
       }
 
@@ -835,7 +999,6 @@ ${result.error?.hint}
       const rawBday = bdayCol >= 0 ? String(row[bdayCol] ?? '').trim() : '';
       const birthdate = rawBday ? (parseDateFlexible(rawBday) || rawBday) : '';
       const age = ageCol >= 0 ? String(row[ageCol] ?? '').trim() : '';
-      const relationship = relationshipCol >= 0 ? String(row[relationshipCol] ?? '').trim() : '';
       const policyNumber = policyCol >= 0 ? String(row[policyCol] ?? '').trim() : '';
       const product = productCol >= 0 ? String(row[productCol] ?? '').trim() : '';
       const approvalDate = approvalCol >= 0
@@ -856,7 +1019,7 @@ ${result.error?.hint}
         continue;
       }
 
-      const match = clients.find(c =>
+      const match = advisorScopedClients.find(c =>
         (policyNumber && c.policyNumber === policyNumber) ||
         (!policyNumber && c.clientName.toLowerCase() === clientName.toLowerCase() && c.birthdate === birthdate)
       );
@@ -919,7 +1082,7 @@ ${result.error?.hint}
     }
 
     const headerRow = rows[headerIndex] || [];
-    const findCol = (kw: string[]): number => headerRow.findIndex((h: any) => kw.some(k => String(h).toLowerCase().includes(k)));
+    const findCol = (kw: string[]): number => findColumnIndex(headerRow, kw);
 
     const nameCol = findCol([
       'client name',
@@ -1023,7 +1186,10 @@ ${result.error?.hint}
     };
 
     try {
-      const { data: existingClients } = await supabase.from('cpst_clients').select('id, email, mobile_number, policy_number');
+      const { data: existingClients } = await supabase
+        .from('cpst_clients')
+        .select('id, email, mobile_number, policy_number, client_name, birthdate')
+        .eq('advisor_id', importAdvisorId);
 
       const recordsToUpsert: any[] = [];
       let importedCount = 0;
@@ -1033,12 +1199,16 @@ ${result.error?.hint}
       for (const record of validRows) {
         const existing = existingClients?.find(c =>
           (c.email && record.email && c.email.toLowerCase() === record.email.toLowerCase()) ||
-          (c.mobile_number && record.mobileNumber && c.mobile_number === record.mobileNumber)
+          (c.mobile_number && record.mobileNumber && c.mobile_number === record.mobileNumber) ||
+          (c.policy_number && record.policyNumber && c.policy_number === record.policyNumber) ||
+          (!record.policyNumber && c.client_name && record.clientName && c.client_name.toLowerCase() === record.clientName.toLowerCase() && c.birthdate === (record as any).birthdate)
         );
 
         const existingInBatch = recordsToUpsert.find(c =>
           (c.email && record.email && c.email.toLowerCase() === record.email.toLowerCase()) ||
-          (c.mobile_number && record.mobileNumber && c.mobile_number === record.mobileNumber)
+          (c.mobile_number && record.mobileNumber && c.mobile_number === record.mobileNumber) ||
+          (c.policy_number && record.policyNumber && c.policy_number === record.policyNumber) ||
+          (!record.policyNumber && c.client_name && record.clientName && c.client_name.toLowerCase() === record.clientName.toLowerCase())
         );
 
         if (existingInBatch) {
@@ -1878,7 +2048,7 @@ ${result.error?.hint}
                 </div>
                 <div>
                   <label className={formLabelClass}>Beneficiary</label>
-                  <input type="text" value={currentClient.beneficiary || ''} onChange={e => setCurrentClient({ ...currentClient, beneficiary: e.target.value })} className={formInputClass} placeholder="Beneficiary Name" />
+                  <input type="text" value={currentClient.beneficiary || ''} onChange={e => setCurrentClient({ ...currentClient, beneficiary: e.target.value })} className={formInputClass} placeholder="Name (relationship), Name (relationship)" />
                 </div>
 
                 <div>
@@ -2013,7 +2183,9 @@ ${result.error?.hint}
             <div className="flex items-center justify-between p-5 border-b border-border bg-surface-2 shrink-0">
               <div>
                 <h2 className="text-base font-bold text-text">CAMS Batch Import</h2>
-                <p className="text-xs text-text-secondary">Process client registers via CSV or Excel sheets.</p>
+                <p className="text-xs text-text-secondary">
+                  {selectedAdvisor ? `Importing clients directly into ${selectedAdvisor.advisorName}'s registry.` : 'Process client registers via CSV or Excel sheets.'}
+                </p>
               </div>
               <button
                 onClick={() => {
@@ -2030,45 +2202,54 @@ ${result.error?.hint}
               </button>
             </div>
 
-            <div className="flex gap-6 p-5 border-b border-border bg-surface-2 text-left items-center shrink-0">
-              <label className="flex items-center gap-2 text-sm font-bold text-text cursor-pointer">
-                <input
-                  type="radio"
-                  name="importTarget"
-                  checked={importTarget === 'clients'}
-                  onChange={() => setImportTarget('clients')}
-                  className="w-4 h-4 text-primary focus:ring-primary/20 bg-transparent border-border"
-                />
-                Import Clients
-              </label>
-              <label className="flex items-center gap-2 text-sm font-bold text-text cursor-pointer">
-                <input
-                  type="radio"
-                  name="importTarget"
-                  checked={importTarget === 'advisors'}
-                  onChange={() => setImportTarget('advisors')}
-                  className="w-4 h-4 text-primary focus:ring-primary/20 bg-transparent border-border"
-                />
-                Import Advisors
-              </label>
-            </div>
+            {!selectedAdvisor && (
+              <div className="flex gap-6 p-5 border-b border-border bg-surface-2 text-left items-center shrink-0">
+                <label className="flex items-center gap-2 text-sm font-bold text-text cursor-pointer">
+                  <input
+                    type="radio"
+                    name="importTarget"
+                    checked={importTarget === 'clients'}
+                    onChange={() => setImportTarget('clients')}
+                    className="w-4 h-4 text-primary focus:ring-primary/20 bg-transparent border-border"
+                  />
+                  Import Clients
+                </label>
+                <label className="flex items-center gap-2 text-sm font-bold text-text cursor-pointer">
+                  <input
+                    type="radio"
+                    name="importTarget"
+                    checked={importTarget === 'advisors'}
+                    onChange={() => setImportTarget('advisors')}
+                    className="w-4 h-4 text-primary focus:ring-primary/20 bg-transparent border-border"
+                  />
+                  Import Advisors
+                </label>
+              </div>
+            )}
 
             {importTarget === 'clients' && (
               <div className="p-5 border-b border-border bg-slate-50/50 dark:bg-slate-900/20 text-left shrink-0">
                 <label className={formLabelClass}>Import For Advisor <span className="text-red-500">*</span></label>
-                <select
-                  value={importAdvisorId}
-                  onChange={e => setImportAdvisorId(e.target.value)}
-                  required
-                  className={formInputClass}
-                >
-                  <option value="">Select Advisor</option>
-                  {advisors.map(a => (
-                    <option key={a.id} value={a.id}>
-                      {a.advisorName} ({a.advisorCode})
-                    </option>
-                  ))}
-                </select>
+                {selectedAdvisor ? (
+                  <div className="w-full px-3.5 py-2.5 border border-primary/40 rounded-2xl text-xs bg-primary/10 text-foreground font-bold flex items-center gap-2">
+                    <UserCheck size={14} className="text-primary shrink-0" />
+                    {selectedAdvisor.advisorName} ({selectedAdvisor.advisorCode})
+                  </div>
+                ) : (
+                  <select
+                    value={importAdvisorId}
+                    onChange={e => setImportAdvisorId(e.target.value)}
+                    required
+                    className={formInputClass}
+                  >
+                    <option value="">Select Advisor</option>
+                    {advisors.map(a => (
+                      <option key={a.id} value={a.id}>
+                        {a.advisorName} ({a.advisorCode})
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
             )}
 

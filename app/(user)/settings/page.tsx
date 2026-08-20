@@ -7,7 +7,7 @@ import {
   Plus, Trash2, Eye
 } from 'lucide-react';
 import { supabase } from '@src/lib/supabase/client';
-import { applyThemeWithTransition } from '@src/lib/theme';
+import { useThemeTransition } from '@src/lib/theme';
 
 export default function UserSettings() {
   const [profileName, setProfileName] = useState('');
@@ -16,7 +16,7 @@ export default function UserSettings() {
   
   // Tabs: general preferences vs security
   const [activeTab, setActiveTab] = useState<'general' | 'security'>('general');
-  const [currentTheme, setCurrentTheme] = useState('light');
+  const { applyThemeWithTransition, theme: currentTheme } = useThemeTransition();
 
   // Password & Security States
   const [newPassword, setNewPassword] = useState('');
@@ -48,8 +48,7 @@ export default function UserSettings() {
         setCustomPortals(JSON.parse(stored));
       }
       
-      const theme = localStorage.getItem('theme') || 'light';
-      setCurrentTheme(theme);
+
     } catch (e) {
       console.error(e);
     }
@@ -232,7 +231,6 @@ export default function UserSettings() {
                     <button
                       key={t.id}
                       onClick={(e) => {
-                        setCurrentTheme(t.id);
                         applyThemeWithTransition(t.id, e);
                         setPreferences({ ...preferences, theme: t.id });
                       }}

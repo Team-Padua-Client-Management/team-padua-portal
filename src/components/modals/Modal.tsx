@@ -70,11 +70,11 @@ export function Modal({
     >
       <div
         ref={modalRef}
-        className={`relative w-full ${maxWidthClasses[maxWidth]} max-h-[90vh] flex flex-col bg-white dark:bg-slate-900 rounded-[28px] shadow-2xl border border-slate-100 dark:border-slate-800 animate-in zoom-in-95 slide-in-from-bottom-2 duration-200 overflow-hidden`}
+        className={`relative w-full ${maxWidthClasses[maxWidth]} max-h-[90vh] flex flex-col bg-card rounded-[28px] shadow-2xl border border-border animate-in zoom-in-95 slide-in-from-bottom-2 duration-200 overflow-hidden`}
         onClick={(e) => e.stopPropagation()}
       >
         {(title || !hideCloseButton) && (
-          <div className="flex items-start justify-between gap-4 border-b border-slate-100 dark:border-slate-800 px-6 py-5 shrink-0 bg-slate-50/60 dark:bg-slate-800/30">
+          <div className="flex items-start justify-between gap-4 border-b border-border px-6 py-5 shrink-0 bg-muted/60">
             <div className="min-w-0">
               {title && (
                 <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">
@@ -100,7 +100,7 @@ export function Modal({
         )}
         <div className="p-6 overflow-y-auto flex-1">{children}</div>
         {footer && (
-          <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 shrink-0 bg-white dark:bg-slate-900">
+          <div className="px-6 py-4 border-t border-border shrink-0 bg-card">
             {footer}
           </div>
         )}
