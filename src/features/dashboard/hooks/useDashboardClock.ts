@@ -13,13 +13,13 @@ export const resolveGreetingAndPeriod = (): { greeting: string; period: DayPerio
   };
 
   const hour = getPhHour();
-  if (hour >= 5 && hour < 12) return { greeting: 'Good Morning', period: 'morning' };
-  if (hour >= 12 && hour < 18) return { greeting: 'Good Afternoon', period: 'afternoon' };
-  return { greeting: 'Good Evening', period: 'evening' };
+  if (hour >= 5 && hour < 12) return { greeting: 'Good morning', period: 'morning' };
+  if (hour >= 12 && hour < 18) return { greeting: 'Good afternoon', period: 'afternoon' };
+  return { greeting: 'Good evening', period: 'evening' };
 };
 
 export const useDashboardClock = () => {
-  const [greeting, setGreeting] = useState('Good Morning');
+  const [greeting, setGreeting] = useState('Good morning');
   const [dayPeriod, setDayPeriod] = useState<DayPeriod>('morning');
   const [currentDate, setCurrentDate] = useState('');
   const [currentTime, setCurrentTime] = useState('');

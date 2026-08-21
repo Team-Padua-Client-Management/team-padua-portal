@@ -93,16 +93,16 @@ export default function WelcomeHero({ userName, role }: WelcomeHeroProps) {
     let theme: 'morning' | 'afternoon' | 'evening' | 'night' = 'afternoon';
 
     if (hours >= 5 && hours < 12) {
-      greeting = 'GOOD MORNING';
+      greeting = 'Good morning';
       theme = 'morning';
     } else if (hours >= 12 && hours < 17) {
-      greeting = 'GOOD AFTERNOON';
+      greeting = 'Good afternoon';
       theme = 'afternoon';
     } else if (hours >= 17 && hours < 21) {
-      greeting = 'GOOD EVENING';
+      greeting = 'Good evening';
       theme = 'evening';
     } else {
-      greeting = 'GOOD NIGHT';
+      greeting = 'Good night';
       theme = 'night';
     }
 

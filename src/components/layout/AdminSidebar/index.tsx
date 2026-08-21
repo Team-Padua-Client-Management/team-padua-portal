@@ -109,9 +109,9 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
         const formatter = new Intl.DateTimeFormat('en-US', options);
         const hour = parseInt(formatter.format(new Date()), 10);
 
-        if (hour >= 5 && hour < 12) return 'Good Morning, Admin';
-        if (hour >= 12 && hour < 18) return 'Good Afternoon, Admin';
-        return 'Good Evening, Admin';
+        if (hour >= 5 && hour < 12) return 'Good morning, Admin';
+        if (hour >= 12 && hour < 18) return 'Good afternoon, Admin';
+        return 'Good evening, Admin';
       } catch (err) {
         return 'Welcome, Admin';
       }
