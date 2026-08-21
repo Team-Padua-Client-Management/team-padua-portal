@@ -75,8 +75,6 @@
     --catText: #f24b8c;
 }
 
-/* ---------- overlay + mobile scaffolding ---------- */
-
 .sidebarOverlay {
     position: fixed;
     inset: 0;
@@ -111,8 +109,6 @@
     background: var(--canvas);
     color: var(--ink);
 }
-
-/* ---------- sidebar ---------- */
 
 .sidebar {
     width: 280px;
@@ -291,7 +287,6 @@
     box-shadow: none;
 }
 
-/* Specific sizing overrides for main calendar and mini-calendar navs */
 .periodNav .iconBtn {
     width: 34px;
     height: 34px;
@@ -339,8 +334,6 @@
     font-weight: 900;
 }
 
-/* ---------- filter dot (used in timeline) ---------- */
-
 .filterDot {
     width: 8px;
     height: 8px;
@@ -348,8 +341,6 @@
     background: var(--cat);
     flex-shrink: 0;
 }
-
-/* ---------- main column ---------- */
 
 .main {
     flex: 1;
@@ -419,8 +410,6 @@
     flex-wrap: wrap;
 }
 
-/* ---------- view dropdown ---------- */
-
 .viewDropdownWrap {
     position: relative;
 }
@@ -474,6 +463,7 @@
         opacity: 0;
         transform: translateY(-4px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -539,7 +529,6 @@
     box-shadow: 0 2px 6px rgba(244, 197, 66, 0.1);
 }
 
-/* Celebration Modal & Confetti Styles */
 .celebrationOverlay {
     position: fixed;
     inset: 0;
@@ -619,7 +608,6 @@
     box-shadow: 0 8px 16px rgba(244, 197, 66, 0.3);
 }
 
-/* Floating Confetti Particle system styles */
 .confettiContainer {
     position: absolute;
     inset: 0;
@@ -701,8 +689,6 @@
         transform: rotate(360deg);
     }
 }
-
-/* ---------- month view ---------- */
 
 .weekdaysRow {
     display: grid;
@@ -796,8 +782,6 @@
     padding-left: 7px;
 }
 
-/* ---------- week view ---------- */
-
 .weekView {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
@@ -865,8 +849,6 @@
     margin-bottom: 2px;
 }
 
-/* ---------- day view ---------- */
-
 .dayView {
     display: flex;
     flex-direction: column;
@@ -931,8 +913,6 @@
     color: var(--catText);
     cursor: pointer;
 }
-
-/* ---------- agenda view ---------- */
 
 .agendaView {
     display: flex;
@@ -1010,8 +990,6 @@
     flex-shrink: 0;
 }
 
-/* ---------- timeline view ---------- */
-
 .timelineView {
     display: flex;
     flex-direction: column;
@@ -1082,8 +1060,6 @@
     background: var(--cat);
     cursor: pointer;
 }
-
-/* ---------- quarter view ---------- */
 
 .quarterView {
     display: grid;
@@ -1158,8 +1134,6 @@
     border-radius: 999px;
     background: var(--accent-dark);
 }
-
-/* ---------- year view ---------- */
 
 .yearGrid {
     display: grid;
@@ -1304,8 +1278,6 @@
     color: var(--accent);
 }
 
-/* ---------- gallery view ---------- */
-
 .galleryView {
     display: flex;
     flex-direction: column;
@@ -1386,8 +1358,6 @@
     cursor: pointer;
 }
 
-/* ---------- empty state ---------- */
-
 .emptyState {
     display: flex;
     flex-direction: column;
@@ -1410,8 +1380,6 @@
     font-size: 11px;
     font-weight: 500;
 }
-
-/* ---------- toast ---------- */
 
 .toast {
     position: fixed;
@@ -1442,8 +1410,6 @@
         transform: translateY(0);
     }
 }
-
-/* ---------- detail / add panels ---------- */
 
 .panelOverlay {
     position: fixed;
@@ -1494,6 +1460,13 @@
     text-transform: uppercase;
     letter-spacing: 0.06em;
     color: var(--ink-soft);
+}
+
+.panelHeaderSub {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--ink-faint);
+    margin-top: 2px;
 }
 
 .panelBody {
@@ -1547,6 +1520,58 @@
     color: var(--ink-faint);
     flex-shrink: 0;
     margin-top: 1px;
+}
+
+.infoGrid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.infoCard {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--canvas);
+}
+
+.infoIcon {
+    color: var(--accent-dark);
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.infoLabel {
+    display: block;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--ink-faint);
+    margin-bottom: 3px;
+}
+
+.infoValue {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ink);
+}
+
+.descriptionSection {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.descriptionTitle {
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-faint);
 }
 
 .descBox {
@@ -1642,8 +1667,6 @@
     font-weight: 900;
     color: var(--ink);
 }
-
-/* ---------- modal ---------- */
 
 .modalOverlay {
     position: fixed;
@@ -1805,7 +1828,7 @@
     transition: all 0.2s ease;
 }
 
-.timeInput:focus + .timeInputIcon {
+.timeInput:focus+.timeInputIcon {
     color: #FFC72C;
     opacity: 1;
 }
@@ -1830,7 +1853,220 @@
     box-shadow: var(--shadow-lift);
 }
 
-/* ---------- responsive ---------- */
+.advisorSection {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.advisorSectionHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2px;
+}
+
+.advisorCount {
+    font-size: 10px;
+    font-weight: 800;
+    background: var(--canvas);
+    color: var(--ink-faint);
+    padding: 2px 8px;
+    border-radius: 999px;
+}
+
+.advisorList {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.advisorEmpty {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink-faint);
+    padding: 8px 4px;
+}
+
+.advisorRowWrap {
+    position: relative;
+}
+
+.advisorItem,
+.advisorActive {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 12px;
+    border: 1px solid transparent;
+    background: transparent;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s ease;
+}
+
+.advisorItem:hover {
+    background: var(--canvas);
+}
+
+.advisorActive {
+    background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+    border-color: var(--accent);
+}
+
+.advisorAvatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 9px;
+    background: var(--accent);
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 900;
+    flex-shrink: 0;
+}
+
+.advisorName {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ink);
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.advisorRoleTag,
+.advisorRoleTagActive {
+    font-size: 9px;
+    font-weight: 800;
+    padding: 2px 7px;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    flex-shrink: 0;
+}
+
+.advisorRoleTag {
+    background: var(--canvas);
+    color: var(--ink-faint);
+}
+
+.advisorRoleTagActive {
+    background: var(--accent);
+    color: var(--ink);
+}
+
+.advisorLogBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 8px;
+    color: var(--ink-faint);
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+}
+
+.advisorLogBtn:hover {
+    background: var(--surface);
+    color: var(--accent-dark);
+}
+
+.advisorHoverCard {
+    position: fixed;
+    z-index: 120;
+    width: 230px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    box-shadow: var(--shadow-lift);
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.advisorHoverHeader {
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-faint);
+    padding-bottom: 8px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid var(--line);
+}
+
+.advisorHoverEmpty {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink-faint);
+    padding: 6px 2px;
+}
+
+.advisorHoverEntry {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--canvas);
+}
+
+.advisorHoverEntry:last-child {
+    border-bottom: none;
+}
+
+.advisorHoverTime {
+    font-size: 9px;
+    font-weight: 800;
+    color: var(--accent-dark);
+}
+
+.advisorHoverDesc {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    line-height: 1.4;
+}
+
+.activityLogList {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 360px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.activityLogRow {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: 13px;
+    background: var(--canvas);
+}
+
+.activityLogTime {
+    font-size: 10px;
+    font-weight: 800;
+    color: var(--accent-dark);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.activityLogDesc {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink);
+}
 
 @media (max-width: 1180px) {
     .yearGrid {
@@ -1946,5 +2182,9 @@
     .galleryDay,
     .galleryDayEmpty {
         min-height: 80px;
+    }
+
+    .advisorHoverCard {
+        display: none;
     }
 }

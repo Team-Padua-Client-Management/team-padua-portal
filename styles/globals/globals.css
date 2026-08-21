@@ -53,7 +53,7 @@
 }
 /* ─── end shadcn/tailwind.css ─── */
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:is(.dark *, .midnight *, .forest *, .sunset *, .slate *, .purple *));
 
 @theme inline {
   --color-background: var(--background);
@@ -103,7 +103,7 @@
   }
 }
 
-:root[data-theme="light"]{
+:root.light {
     --background:#F6F7FB;
     --surface:#FFFFFF;
     --surface-2:#F3F4F6;
@@ -116,7 +116,7 @@
     --shadow:0 10px 30px rgba(0,0,0,.08);
 }
 
-:root[data-theme="dark"]{
+:root.dark {
     --background:#0F1117;
     --surface:#18191D;
     --surface-2:#202126;
@@ -129,7 +129,7 @@
     --shadow:0 12px 35px rgba(0,0,0,.45);
 }
 
-:root[data-theme="midnight"]{
+:root.midnight {
     --background:#070913;
     --surface:#0F1122;
     --surface-2:#171A30;
@@ -142,7 +142,7 @@
     --shadow:0 12px 35px rgba(0,0,0,.6);
 }
 
-:root[data-theme="forest"]{
+:root.forest {
     --background:#09110E;
     --surface:#101D19;
     --surface-2:#172B25;
@@ -155,7 +155,7 @@
     --shadow:0 12px 35px rgba(0,0,0,.6);
 }
 
-:root[data-theme="sunset"]{
+:root.sunset {
     --background:#120B09;
     --surface:#1E120E;
     --surface-2:#2B1B15;
@@ -168,7 +168,7 @@
     --shadow:0 12px 35px rgba(0,0,0,.6);
 }
 
-:root[data-theme="sunlife"]{
+:root.sunlife {
     --background:#FFFDF2;
     --surface:#FFFFFF;
     --surface-2:#FFF9E6;
@@ -181,7 +181,7 @@
     --shadow:0 10px 30px rgba(244,197,66,.15);
 }
 
-:root[data-theme="purple"]{
+:root.purple {
     --background:#0F0B1E;
     --surface:#191230;
     --surface-2:#241A45;
@@ -194,7 +194,7 @@
     --shadow:0 12px 35px rgba(0,0,0,.6);
 }
 
-:root[data-theme="slate"]{
+:root.slate {
     --background:#0F172A;
     --surface:#1E293B;
     --surface-2:#334155;

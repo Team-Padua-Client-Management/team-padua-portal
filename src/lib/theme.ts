@@ -57,60 +57,61 @@ export function triggerAmbientThemeGlow(nextTheme: string, x: number, y: number)
   }, 400);
 }
 
-export function applyThemeWithTransition(
-  nextTheme: string,
-  event?: React.MouseEvent | MouseEvent | { clientX: number; clientY: number }
-) {
-  const isDark = isDarkTheme(nextTheme);
-  const x = event && "clientX" in event && event.clientX > 0 ? event.clientX : window.innerWidth / 2;
-  const y = event && "clientY" in event && event.clientY > 0 ? event.clientY : window.innerHeight / 2;
+import { useTheme } from "next-themes";
 
-  triggerAmbientThemeGlow(nextTheme, x, y);
+export function useThemeTransition() {
+  const { setTheme, theme, systemTheme } = useTheme();
+  
+  const currentTheme = theme === 'system' ? systemTheme : theme;
 
-  const updateDOMTheme = () => {
-    localStorage.setItem("theme", nextTheme);
-    document.documentElement.setAttribute("data-theme", nextTheme);
-    if (isDark) {
-      document.documentElement.classList.add("dark");
+  const applyThemeWithTransition = (
+    nextTheme: string,
+    event?: React.MouseEvent | MouseEvent | { clientX: number; clientY: number }
+  ) => {
+    const isDark = isDarkTheme(nextTheme);
+    const x = event && "clientX" in event && event.clientX > 0 ? event.clientX : window.innerWidth / 2;
+    const y = event && "clientY" in event && event.clientY > 0 ? event.clientY : window.innerHeight / 2;
+
+    triggerAmbientThemeGlow(nextTheme, x, y);
+
+    const updateDOMTheme = () => {
+      setTheme(nextTheme);
+    };
+
+    if (
+      typeof document !== "undefined" &&
+      "startViewTransition" in document &&
+      !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      const endRadius = Math.hypot(
+        Math.max(x, window.innerWidth - x),
+        Math.max(y, window.innerHeight - y)
+      );
+
+      const transition = (document as any).startViewTransition(() => {
+        updateDOMTheme();
+      });
+
+      transition.ready.then(() => {
+        const clipPath = [
+          `circle(0px at ${x}px ${y}px)`,
+          `circle(${endRadius}px at ${x}px ${y}px)`
+        ];
+        document.documentElement.animate(
+          {
+            clipPath: clipPath,
+          },
+          {
+            duration: 450,
+            easing: "ease-in-out",
+            pseudoElement: "::view-transition-new(root)",
+          }
+        );
+      });
     } else {
-      document.documentElement.classList.remove("dark");
+      updateDOMTheme();
     }
-    window.dispatchEvent(
-      new CustomEvent("theme-change", { detail: { theme: nextTheme } })
-    );
   };
 
-  if (
-    typeof document !== "undefined" &&
-    "startViewTransition" in document &&
-    !window.matchMedia("(prefers-reduced-motion: reduce)").matches
-  ) {
-    const endRadius = Math.hypot(
-      Math.max(x, window.innerWidth - x),
-      Math.max(y, window.innerHeight - y)
-    );
-
-    const transition = (document as any).startViewTransition(() => {
-      updateDOMTheme();
-    });
-
-    transition.ready.then(() => {
-      const clipPath = [
-        `circle(0px at ${x}px ${y}px)`,
-        `circle(${endRadius}px at ${x}px ${y}px)`
-      ];
-      document.documentElement.animate(
-        {
-          clipPath: clipPath,
-        },
-        {
-          duration: 450,
-          easing: "ease-in-out",
-          pseudoElement: "::view-transition-new(root)",
-        }
-      );
-    });
-  } else {
-    updateDOMTheme();
-  }
+  return { applyThemeWithTransition, theme: currentTheme };
 }

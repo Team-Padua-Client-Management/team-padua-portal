@@ -244,7 +244,7 @@ export default function UserSidebar({ isOpen, onClose }: UserSidebarProps) {
 
   const mobileSidebarContent = (
     <div className={styles.sidebarInner}>
-      <div className="pt-10 pb-5 border-b border-slate-100 dark:border-slate-800/50 flex flex-col items-center">
+      <div className="pt-10 pb-5 flex flex-col items-center" style={{ borderBottom: '1px solid var(--border)' }}>
         <div className={styles.sidebarHeaderContainer}>
           <Link href="/dashboard" className="flex items-center gap-3">
             <Image
@@ -288,7 +288,7 @@ export default function UserSidebar({ isOpen, onClose }: UserSidebarProps) {
 
                 {isClientServicingOpen && (
                   <div className={`${styles.sidebarSubNav} flex flex-col gap-1.5`}>
-                    <div className="pl-2 border-l border-slate-200 dark:border-slate-800 ml-1.5 mt-1 space-y-0.5">
+                    <div className="pl-2 ml-1.5 mt-1 space-y-0.5" style={{ borderLeft: '1px solid var(--border)' }}>
                       {item.subItems.map((sub) => {
                         const subActive = pathname === sub.href;
                         return (
@@ -342,7 +342,8 @@ export default function UserSidebar({ isOpen, onClose }: UserSidebarProps) {
           <aside className={styles.sidebarDrawer}>
             <button
               onClick={onClose}
-              className="absolute top-4 right-4 z-50 p-2 text-slate-500 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-full cursor-pointer transition border-0 flex items-center justify-center shadow-sm"
+              className="absolute top-4 right-4 z-50 p-2 rounded-full cursor-pointer transition border-0 flex items-center justify-center shadow-sm"
+              style={{ color: 'var(--text-secondary)', background: 'var(--surface-2)' }}
               aria-label="Close sidebar menu"
             >
               <X size={16} />

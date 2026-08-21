@@ -30,37 +30,11 @@ import { AdminLayoutProvider } from "@src/components/layout";
  * @returns State operations sequence.
  */
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState("light");
-
-  useEffect(() => {
-    const saved = localStorage.getItem("theme") || "light";
-    setTheme(saved);
-
-    /**
- * Executes operations logic for handleThemeChange.
- *
- * @param e: any
- * @returns State operations sequence.
- */
-const handleThemeChange = (e: any) => {
-      setTheme(e.detail.theme);
-    };
-
-    window.addEventListener("theme-change", handleThemeChange);
-    return () => {
-      window.removeEventListener("theme-change", handleThemeChange);
-    };
-  }, []);
-
-  const isDarkTheme = ["dark", "midnight", "forest", "sunset", "slate", "purple"].includes(theme);
-
   return (
-    <div className={isDarkTheme ? "dark" : ""} data-theme={theme}>
-      <div className={styles.text_0}>
-        <AdminLayoutProvider>
-          {children}
-        </AdminLayoutProvider>
-      </div>
+    <div className={styles.text_0}>
+      <AdminLayoutProvider>
+        {children}
+      </AdminLayoutProvider>
     </div>
   );
 }

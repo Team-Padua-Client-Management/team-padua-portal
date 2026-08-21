@@ -72,7 +72,7 @@ export const mapDbTaskToCalendarActivity = (
     if (rawJsonString && rawJsonString.trim().startsWith('{')) {
       parsed = JSON.parse(rawJsonString);
     }
-  } catch (e) {}
+  } catch (e) { }
 
   const act = parsed.activityData || {};
   return {
@@ -198,8 +198,8 @@ export function getBirthdaysAroundNow(clients: any[]): BirthdayItem[] {
           date: labelDate,
           when,
           age,
-          advisorId,
-          advisorName,
+          advisorId: advisorId ?? '',
+          advisorName: advisorName ?? '',
         });
       }
     }
@@ -227,8 +227,8 @@ export function getBirthdaysAroundNow(clients: any[]): BirthdayItem[] {
         date: todayFormatted,
         when: 'today',
         age: 45,
-        advisorId: a1.advisorId,
-        advisorName: a1.advisorName,
+        advisorId: a1.advisorId ?? '',
+        advisorName: a1.advisorName ?? '',
       },
       {
         id: 'bday-active-2',
@@ -236,8 +236,8 @@ export function getBirthdaysAroundNow(clients: any[]): BirthdayItem[] {
         date: todayFormatted,
         when: 'today',
         age: 32,
-        advisorId: a2.advisorId,
-        advisorName: a2.advisorName,
+        advisorId: a2.advisorId ?? '',
+        advisorName: a2.advisorName ?? '',
       },
       {
         id: 'bday-active-3',
@@ -245,8 +245,8 @@ export function getBirthdaysAroundNow(clients: any[]): BirthdayItem[] {
         date: tomorrowFormatted,
         when: 'tomorrow',
         age: 28,
-        advisorId: a3.advisorId,
-        advisorName: a3.advisorName,
+        advisorId: a3.advisorId ?? '',
+        advisorName: a3.advisorName ?? '',
       },
       {
         id: 'bday-active-4',
@@ -254,8 +254,8 @@ export function getBirthdaysAroundNow(clients: any[]): BirthdayItem[] {
         date: yesterdayFormatted,
         when: 'yesterday',
         age: 50,
-        advisorId: a4.advisorId,
-        advisorName: a4.advisorName,
+        advisorId: a4.advisorId ?? '',
+        advisorName: a4.advisorName ?? '',
       }
     );
   }

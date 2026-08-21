@@ -10,7 +10,7 @@ import { supabase } from '@src/lib/supabase/client';
 import NotificationBell from "@src/components/shared/NotificationBell";
 import { useAdminLayoutContext } from '@src/components/layout';
 import ProfileAvatar from "@src/components/shared/ProfileAvatar";
-import { applyThemeWithTransition, isDarkTheme } from "@src/lib/theme";
+import { isDarkTheme, useThemeTransition } from "@src/lib/theme";
 
 // Search hook & dropdown
 // import { useAdminSearch } from '@src/lib/search/useAdminSearch';
@@ -142,19 +142,7 @@ export default function AdminHeader({ onMenuClick }: HeaderProps) {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  useEffect(() => {
-    const theme = localStorage.getItem('theme') || 'light';
-    setTimeout(() => {
-      const isThemeDark = ["dark", "midnight", "forest", "sunset", "slate"].includes(theme);
-      setIsDark(isThemeDark);
-      document.documentElement.setAttribute('data-theme', theme);
-      if (isThemeDark) {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
-    }, 0);
-  }, []);
+
 
   useEffect(() => {
     const updateMobile = () => setIsMobile(window.innerWidth < 768);
@@ -227,8 +215,10 @@ export default function AdminHeader({ onMenuClick }: HeaderProps) {
     router.push('/auth/login');
   };
 
+  const { applyThemeWithTransition, theme: currentTheme } = useThemeTransition();
+
   const toggleTheme = (e?: React.MouseEvent) => {
-    const current = localStorage.getItem('theme') || 'light';
+    const current = currentTheme || 'light';
     const isCurrentDark = isDarkTheme(current);
     const nextTheme = isCurrentDark ? 'light' : 'dark';
 

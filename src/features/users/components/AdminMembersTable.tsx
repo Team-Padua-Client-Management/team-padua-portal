@@ -561,12 +561,16 @@ export default function AdminMembersTable({ initialUsers = [], currentUserRole =
 
       const { error: dbError } = await supabase
         .from('profiles')
-        .update({ avatar_url: publicUrl })
+        .update({ 
+          avatar_url: publicUrl,
+          avatar_mode: 'upload',
+          updated_at: new Date().toISOString()
+        })
         .eq('id', avatarUploadUser.id);
       if (dbError) throw dbError;
 
       // Optimistic local refresh — no full page reload needed
-      setUsers(prev => prev.map(u => u.id === avatarUploadUser.id ? { ...u, avatar: publicUrl } : u));
+      setUsers(prev => prev.map(u => u.id === avatarUploadUser.id ? { ...u, avatar: publicUrl, avatarMode: 'upload' } : u));
 
       // Close upload modal, clear state, show success toast
       setAvatarUploadUser(null);
@@ -575,6 +579,38 @@ export default function AdminMembersTable({ initialUsers = [], currentUserRole =
       showToast('Profile picture updated successfully.', 'success');
     } catch (err: any) {
       showToast(err.message || 'Failed to upload profile picture.', 'error');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const generateAiAvatarForUser = async () => {
+    if (!avatarUploadUser) return;
+    setUploadingAvatar(true);
+    showToast('Generating AI avatar...', 'loading');
+    try {
+      const newSeed = Math.random().toString(36).substring(7);
+      const aiUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${newSeed}`;
+      
+      const { error: dbError } = await supabase
+        .from('profiles')
+        .update({ 
+          avatar_url: aiUrl,
+          ai_seed: newSeed,
+          avatar_mode: 'ai',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', avatarUploadUser.id);
+      if (dbError) throw dbError;
+
+      setUsers(prev => prev.map(u => u.id === avatarUploadUser.id ? { ...u, avatar: aiUrl, avatarMode: 'ai', aiSeed: newSeed } : u));
+      
+      setAvatarUploadUser(null);
+      setAvatarFileToUpload(null);
+      setAvatarPreviewUrl(null);
+      showToast('AI Avatar generated successfully.', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to generate AI avatar.', 'error');
     } finally {
       setUploadingAvatar(false);
     }
@@ -1069,8 +1105,8 @@ export default function AdminMembersTable({ initialUsers = [], currentUserRole =
                     </div>
                   </div>
 
-                  {/* File Chooser */}
-                  <div>
+                  {/* File Chooser & Options */}
+                  <div className="flex flex-col gap-3">
                     <button
                       type="button"
                       onClick={() => avatarFileRef.current?.click()}
@@ -1079,7 +1115,16 @@ export default function AdminMembersTable({ initialUsers = [], currentUserRole =
                       <Upload size={14} />
                       Choose Image File
                     </button>
-                    <p className="text-[10px] text-slate-400 dark:text-zinc-500 text-center mt-2 font-medium">
+                    <button
+                      type="button"
+                      onClick={generateAiAvatarForUser}
+                      disabled={uploadingAvatar}
+                      className="w-full py-2.5 bg-slate-100 dark:bg-zinc-800 rounded-xl text-xs font-bold text-slate-600 dark:text-zinc-300 hover:bg-slate-200 dark:hover:bg-zinc-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      <RotateCcw size={14} />
+                      Generate AI Avatar
+                    </button>
+                    <p className="text-[10px] text-slate-400 dark:text-zinc-500 text-center mt-1 font-medium">
                       Supported: JPG, JPEG, PNG, WEBP &nbsp;·&nbsp; Max: 5MB
                     </p>
                   </div>

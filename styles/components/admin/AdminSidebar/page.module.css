@@ -25,7 +25,7 @@
 }
 
 .sidebarAside:hover {
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-theme);
 }
 
 .sidebarDrawer {
@@ -352,10 +352,10 @@
    detached from any ancestor's overflow/stacking context. */
 .hoverPanel {
   position: fixed;
-  background: white;
+  background: var(--surface);
   border-radius: 20px;
   border: 1px solid var(--border);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, .12);
+  box-shadow: var(--shadow-theme);
   width: 320px;
   padding: 20px;
   opacity: 0;

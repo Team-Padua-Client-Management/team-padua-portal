@@ -316,6 +316,155 @@
     font-weight: 900;
 }
 
+.advisorSection {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    background: var(--canvas);
+    display: flex;
+    flex-direction: column;
+}
+
+.advisorSectionHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.advisorSectionHeader .sectionLabel {
+    margin-bottom: 0;
+}
+
+.advisorCount {
+    font-size: 9px;
+    font-weight: 900;
+    color: var(--ink-soft);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    padding: 1px 8px;
+    border-radius: 999px;
+}
+
+.advisorList {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 252px;
+    overflow-y: auto;
+    padding-right: 3px;
+    margin-right: -3px;
+}
+
+.advisorList::-webkit-scrollbar {
+    width: 5px;
+}
+
+.advisorList::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.advisorList::-webkit-scrollbar-thumb {
+    background: var(--line);
+    border-radius: 999px;
+}
+
+.advisorItem,
+.advisorActive {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 11px;
+    border: 1px solid transparent;
+    background: transparent;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
+    min-width: 0;
+}
+
+.advisorItem:hover {
+    background: var(--surface);
+    border-color: var(--line);
+}
+
+.advisorItem:active,
+.advisorActive:active {
+    transform: scale(0.98);
+}
+
+.advisorActive {
+    background: var(--accent);
+    border-color: var(--accent-dark);
+    box-shadow: var(--shadow-soft);
+}
+
+.advisorAvatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 999px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+    font-size: 10.5px;
+    font-weight: 900;
+    flex-shrink: 0;
+}
+
+.advisorActive .advisorAvatar {
+    background: rgba(255, 255, 255, 0.55);
+    border-color: transparent;
+    color: var(--ink);
+}
+
+.advisorName {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ink-soft);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+}
+
+.advisorActive .advisorName {
+    color: var(--ink);
+    font-weight: 900;
+}
+
+.advisorRoleTag,
+.advisorRoleTagActive {
+    flex-shrink: 0;
+    font-size: 8.5px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    color: var(--ink-faint);
+}
+
+.advisorRoleTagActive {
+    background: rgba(255, 255, 255, 0.55);
+    border-color: transparent;
+    color: var(--ink);
+}
+
+.advisorEmpty {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink-faint);
+    padding: 10px 4px;
+    text-align: center;
+}
+
 .filterList {
     display: flex;
     flex-direction: column;
@@ -1910,4 +2059,149 @@
     .topbarRight {
         width: 100%;
     }
+}
+
+.activityCard {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-height: 84px;
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    transition: all 0.18s ease;
+    cursor: pointer;
+    box-sizing: border-box;
+    justify-content: center;
+}
+
+.activityCard:hover {
+    border-color: var(--accent);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+.activityCardTopRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.activityCardCategory {
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--accent-strong);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.activityCardActions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.activityCardTitleRow {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 1px;
+}
+
+.activityCardTitle {
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.25;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.activityCardMetaRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.activityCardMetaLeft {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    flex-wrap: wrap;
+}
+
+.activityCardMetaItem {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.activityCardMetaDim {
+    color: var(--text-tertiary);
+    font-weight: 500;
+}
+
+.activityCardMetaDivider {
+    width: 1px;
+    height: 11px;
+    background: var(--border-strong);
+    flex-shrink: 0;
+}
+
+.activityCardLocation {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    margin-left: 4px;
+    color: var(--text-tertiary);
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.activityCardAvatars {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.activityCardAvatarSlot {
+    margin-left: -6px;
+    border: 2px solid var(--surface-2);
+    border-radius: 999px;
+}
+
+.activityCardAvatarSlot:first-child {
+    margin-left: 0;
+}
+
+.activityCardAvatarMore {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    margin-left: -6px;
+    border-radius: 999px;
+    background: var(--surface);
+    border: 2px solid var(--surface-2);
+    font-size: 8px;
+    font-weight: 700;
+    color: var(--text-tertiary);
 }

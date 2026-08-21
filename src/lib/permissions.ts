@@ -1,3 +1,4 @@
+// C:\website\team-padua-portal\src\lib\permissions.ts
 import { createClient } from "./supabase/server";
 
 export type ClientServicingModule = "cpst" | "acr" | "fst" | "cpc" | "ppu" | "mngt" | "csmv" | "bcr" | "aca" | "sro" | "pdi" | "form" | "fw" | "ada" | "acicr";
@@ -98,7 +99,7 @@ export function hasAutomaticAccess(role: string | null): boolean {
 export async function getCurrentProfile() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  
+
   if (!user) return null;
 
   const { data: profile } = await supabase
@@ -106,7 +107,7 @@ export async function getCurrentProfile() {
     .select("*")
     .eq("id", user.id)
     .single();
-    
+
   return profile;
 }
 
@@ -119,16 +120,16 @@ export async function canAccessModule(
   action: PermissionAction = "view"
 ): Promise<boolean> {
   const profile = await getCurrentProfile();
-  
+
   if (!profile) return false;
-  
+
   // Admin and Advisor bypass permission checks
   if (hasAutomaticAccess(profile.role)) return true;
 
   const permissions = profile.client_servicing_permissions as ClientServicingPermissions;
-  
+
   if (!permissions || !permissions[module]) return false;
-  
+
   return permissions[module][action] === true;
 }
 
