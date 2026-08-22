@@ -228,23 +228,11 @@ export const portalsConfig: PortalListItem[] = [
     defaultUrl: 'https://team-padua-client-policy-card.vercel.app/',
     brandColor: '#0284C7',
     logo: (className = "w-10 h-10") => (
-      <svg viewBox="0 0 100 100" className={className}>
-        <defs>
-          <linearGradient id="cpc-grad-config" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#38BDF8" />
-            <stop offset="100%" stopColor="#0284C7" />
-          </linearGradient>
-          <linearGradient id="cpc-chip-config" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#FACC15" />
-            <stop offset="100%" stopColor="#EAB308" />
-          </linearGradient>
-        </defs>
-        <rect x="12" y="24" width="76" height="52" rx="10" fill="url(#cpc-grad-config)" />
-        <path d="M 12 38 H 88" stroke="#0369A1" strokeWidth="6" />
-        <rect x="22" y="50" width="18" height="14" rx="3" fill="url(#cpc-chip-config)" />
-        <path d="M 52 57 H 76" stroke="#E0F2FE" strokeWidth="4" strokeLinecap="round" />
-        <path d="M 52 64 H 68" stroke="#BAE6FD" strokeWidth="3" strokeLinecap="round" />
-      </svg>
+      <img
+        src="/Image/icon/DP-LOGO.png"
+        alt="Client Policy Card"
+        className={`${className} object-contain`}
+      />
     )
   },
   {
@@ -254,17 +242,11 @@ export const portalsConfig: PortalListItem[] = [
     defaultUrl: 'https://danielpadua.vercel.app/',
     brandColor: '#8B5CF6',
     logo: (className = "w-10 h-10") => (
-      <svg viewBox="0 0 100 100" className={className}>
-        <defs>
-          <linearGradient id="dpp-grad-config" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#C084FC" />
-            <stop offset="50%" stopColor="#9333EA" />
-            <stop offset="100%" stopColor="#4F46E5" />
-          </linearGradient>
-        </defs>
-        <circle cx="50" cy="50" r="40" fill="url(#dpp-grad-config)" />
-        <text x="50" y="58" fill="#FFFFFF" fontSize="24" fontWeight="900" fontFamily="system-ui, -apple-system, sans-serif" textAnchor="middle" letterSpacing="-1">DP</text>
-      </svg>
+      <img
+        src="/Image/icon/DP.png"
+        alt="Daniel Padua Portfolio"
+        className={`${className} object-contain`}
+      />
     )
   }
 ];
