@@ -45,7 +45,7 @@ function formatDateTime(value?: string | null) {
 
 function getWorkflowStatusColor(status: string) {
   const normalized = status.toLowerCase();
-  if (normalized.includes('approv')) {
+  if (normalized.includes('approv') || normalized.includes('addressed') || normalized.includes('resolv') || normalized.includes('done')) {
     return { bg: 'rgba(34, 197, 94, 0.15)', color: '#166534' };
   }
   if (normalized.includes('pending')) {
@@ -56,6 +56,14 @@ function getWorkflowStatusColor(status: string) {
 
 function getCategoryMeta(category?: string | null) {
   const raw = category || 'Others';
+  if (raw === 'Client Inquiry' || raw === 'Inquiry') {
+    return {
+      badge: 'INQ',
+      title: 'Client Inquiry Log',
+      accent: '#0284C7',
+      tint: 'rgba(2, 132, 199, 0.10)',
+    };
+  }
   const known = KNOWN_CATEGORIES.find((c) => c.badge === raw);
   if (known) {
     return {
@@ -107,6 +115,7 @@ function InfoField({ label, value }: { label: string; value: React.ReactNode }) 
 export default function HistoryPage() {
   const {
     userTasks,
+    clientInquiries = [],
     allProfiles,
     bizDevProfiles,
     currentUserId,
@@ -120,6 +129,7 @@ export default function HistoryPage() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('All');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'servicing' | 'inquiries'>('all');
   const [expandedTimelines, setExpandedTimelines] = useState<Record<string, boolean>>({});
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
 
@@ -145,11 +155,43 @@ export default function HistoryPage() {
     [workflowTasks]
   );
 
+  const mappedInquiries = useMemo<WorkflowTaskItem[]>(() => {
+    return (clientInquiries || []).map((inq: any) => ({
+      id: `inq-${inq.id}`,
+      title: inq.title || inq.client_name || 'Client Inquiry',
+      category: 'Client Inquiry',
+      status: inq.status || 'Pending',
+      notes: JSON.stringify({
+        policy_owner: inq.client_name || inq.title || 'Client',
+        policy_number: inq.inquiry_type || 'General Inquiry',
+        date_of_request: inq.created_at,
+        workflow_status: inq.status || 'Pending',
+        timeline: inq.notes || inq.details || inq.description || 'No additional inquiry details logged.',
+      }),
+      created_at: inq.created_at || new Date().toISOString(),
+      updated_at: inq.updated_at || new Date().toISOString(),
+      assigned_to: inq.assigned_to || null,
+      processed_by: inq.processed_by || null,
+      completed: inq.status === 'Addressed' || inq.status === 'Done' || inq.status === 'Resolved',
+    }));
+  }, [clientInquiries]);
+
+  const allWorkflowItems = useMemo<WorkflowTaskItem[]>(() => {
+    return [...servicingTasks, ...mappedInquiries];
+  }, [servicingTasks, mappedInquiries]);
+
   const historyTasks = useMemo(() => {
-    return servicingTasks
+    let items = allWorkflowItems;
+    if (typeFilter === 'servicing') {
+      items = items.filter((t) => t.category !== 'Client Inquiry');
+    } else if (typeFilter === 'inquiries') {
+      items = items.filter((t) => t.category === 'Client Inquiry');
+    }
+
+    return items
       .filter((t) => {
         const meta = parseTaskMetadata(t.notes || '');
-        const haystack = `${t.title || ''} ${meta.policy_owner || ''} ${meta.policy_insured || ''}`.toLowerCase();
+        const haystack = `${t.title || ''} ${meta.policy_owner || ''} ${meta.policy_number || ''} ${t.category || ''}`.toLowerCase();
         const matchesSearch = haystack.includes(searchTerm.toLowerCase());
         const matchesCategory = filterCategory === 'All' || t.category === filterCategory;
         return matchesSearch && matchesCategory;
@@ -158,17 +200,17 @@ export default function HistoryPage() {
         (a, b) =>
           new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime()
       );
-  }, [servicingTasks, searchTerm, filterCategory]);
+  }, [allWorkflowItems, typeFilter, searchTerm, filterCategory]);
 
   const categories = useMemo(() => {
-    const cats = Array.from(new Set(servicingTasks.map((t) => t.category))).filter(Boolean) as string[];
+    const cats = Array.from(new Set(allWorkflowItems.map((t) => t.category))).filter(Boolean) as string[];
     cats.sort((a, b) => {
       const labelA = getCategoryMeta(a).title;
       const labelB = getCategoryMeta(b).title;
       return labelA.localeCompare(labelB);
     });
     return ['All', ...cats];
-  }, [servicingTasks]);
+  }, [allWorkflowItems]);
 
   const groupedTasks = useMemo(() => {
     if (filterCategory !== 'All') {
@@ -239,8 +281,31 @@ export default function HistoryPage() {
                   gap: '12px',
                 }}
               >
-                <History size={24} color={PURPLE} /> Request History
+                <History size={24} color={PURPLE} /> Request & Inquiry Logs
               </h1>
+            </div>
+
+            <div style={{ padding: '0 24px', display: 'flex', gap: '8px' }}>
+              {[
+                { id: 'all', label: 'All Logs' },
+                { id: 'servicing', label: 'Servicing Requests' },
+                { id: 'inquiries', label: 'Client Inquiries' },
+              ].map((tab) => {
+                const isActive = typeFilter === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setTypeFilter(tab.id as any)}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border ${isActive
+                        ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white border-amber-500 shadow-sm'
+                        : 'bg-surface text-text-secondary border-border/70 hover:border-amber-500/50 hover:text-text'
+                      }`}
+                  >
+                    {tab.label}
+                  </button>
+                );
+              })}
             </div>
 
             <div style={{ padding: '0 24px', display: 'flex', gap: '16px' }}>
@@ -426,27 +491,29 @@ export default function HistoryPage() {
                                 >
                                   {workflowStatus}
                                 </span>
-                                <button
-                                  type="button"
-                                  onClick={() => setEditingTaskId(task.id)}
-                                  style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '6px',
-                                    padding: '6px 12px',
-                                    borderRadius: '999px',
-                                    fontSize: '12px',
-                                    fontWeight: 700,
-                                    background: 'var(--bg-muted)',
-                                    color: 'var(--text)',
-                                    border: '1px solid var(--border)',
-                                    cursor: 'pointer',
-                                    whiteSpace: 'nowrap',
-                                  }}
-                                >
-                                  <Pencil size={12} strokeWidth={2.5} />
-                                  Edit
-                                </button>
+                                {task.category !== 'Client Inquiry' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditingTaskId(task.id)}
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '6px',
+                                      padding: '6px 12px',
+                                      borderRadius: '999px',
+                                      fontSize: '12px',
+                                      fontWeight: 700,
+                                      background: 'var(--bg-muted)',
+                                      color: 'var(--text)',
+                                      border: '1px solid var(--border)',
+                                      cursor: 'pointer',
+                                      whiteSpace: 'nowrap',
+                                    }}
+                                  >
+                                    <Pencil size={12} strokeWidth={2.5} />
+                                    Edit
+                                  </button>
+                                )}
                               </div>
                             </div>
 

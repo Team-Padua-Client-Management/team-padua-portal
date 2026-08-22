@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 import {
     Plus,
     LayoutGrid,
@@ -6,6 +7,7 @@ import {
     Trash2,
     CheckCircle2,
     Hourglass,
+    History,
 } from 'lucide-react';
 import { ClientInquiry } from '@src/features/dashboard/types/inquiry';
 import { UserProfile } from '@src/features/dashboard/components/UserAvatar';
@@ -610,14 +612,24 @@ export const InquiryList: React.FC<InquiryListProps> = ({
                         </h1>
                     </div>
 
-                    <button
-                        type="button"
-                        onClick={onCreateInquiry}
-                        className={`${styles.newTaskBtn} !py-1.5 !px-4 !text-[13px]`}
-                    >
-                        <Plus size={15} strokeWidth={2.5} />
-                        <span className="font-bold">Log Inquiry</span>
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                        <Link
+                            href="/admin/dashboard/history"
+                            style={{ textDecoration: 'none' }}
+                            className={`${styles.newTaskBtn} !py-1.5 !px-4 !text-[13px] !bg-surface-2 !text-text hover:!bg-surface-3 !border-border !border`}
+                        >
+                            <History size={15} strokeWidth={2.5} />
+                            <span className="font-bold">View History</span>
+                        </Link>
+                        <button
+                            type="button"
+                            onClick={onCreateInquiry}
+                            className={`${styles.newTaskBtn} !py-1.5 !px-4 !text-[13px]`}
+                        >
+                            <Plus size={15} strokeWidth={2.5} />
+                            <span className="font-bold">Log Inquiry</span>
+                        </button>
+                    </div>
                 </div>
 
                 <div className="flex items-center mt-0.5">
