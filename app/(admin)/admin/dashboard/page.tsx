@@ -138,11 +138,33 @@ export default function DashboardOverviewPage() {
     return calendarLogs.filter(log => log.assignedRole === calendarRoleFilter);
   }, [calendarLogs, calendarRoleFilter]);
 
-  const sortedCalendarLogs = [...filteredCalendarLogs].sort((a, b) => {
-    const dateA = new Date(a.date).getTime();
-    const dateB = new Date(b.date).getTime();
-    return dateB - dateA;
-  });
+  const sortedCalendarLogs = useMemo(() => {
+    const parseDateToTime = (dStr: string) => {
+      if (!dStr) return 0;
+      const parts = dStr.trim().split(/[\/\-\.]/);
+      if (parts.length === 3) {
+        if (parts[0].length === 4) {
+          return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])).getTime();
+        } else {
+          return new Date(Number(parts[2]), Number(parts[0]) - 1, Number(parts[1])).getTime();
+        }
+      }
+      const t = new Date(dStr).getTime();
+      return isNaN(t) ? 0 : t;
+    };
+
+    return [...filteredCalendarLogs].sort((a, b) => {
+      const tA = parseDateToTime(a.date);
+      const tB = parseDateToTime(b.date);
+      if (tA === tB && a.time && b.time) {
+        return a.time.localeCompare(b.time);
+      }
+      if (showCalendarHistory) {
+        return tB - tA;
+      }
+      return tA - tB;
+    });
+  }, [filteredCalendarLogs, showCalendarHistory]);
 
   const displayedCalendarLogs = useMemo(() => {
     return sortedCalendarLogs.filter((log) => {

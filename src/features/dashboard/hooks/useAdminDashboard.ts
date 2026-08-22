@@ -280,6 +280,33 @@ export const useAdminDashboard = () => {
             const uniqueActivities = Array.from(new Map(combinedActivities.map(item => [item.id, item])).values());
             setActivities(uniqueActivities);
             localStorage.setItem('tp_user_activities', JSON.stringify(uniqueActivities));
+
+            const extraCalLogs: CalendarActivityItem[] = calData.map((evt: any) => ({
+              id: evt.id,
+              title: evt.title || 'Untitled Activity',
+              date: evt.event_date || evt.date || evt.created_at?.split('T')[0] || '',
+              time: evt.start_time || evt.time || '',
+              mode: (evt.mode || (evt.location_name ? 'Onsite' : 'Online')) as 'Online' | 'Onsite',
+              location: evt.location_name || evt.location || '',
+              category: evt.category || (evt.description && evt.description.split('\n')[0]) || 'Client Meeting',
+              assignedRole: (evt.assigned_role || evt.role || 'Advisor') as 'Admin' | 'Advisor' | 'Bizdev',
+              notes: evt.description || evt.notes || '',
+              createdAt: evt.created_at || new Date().toISOString(),
+              completed: evt.status === 'Completed' || evt.status === 'Done' || evt.completed === true,
+              status: evt.status,
+              _sourceTable: 'calendar_events' as any
+            }));
+
+            setCalendarLogs((prev) => {
+              const combined = [...prev, ...extraCalLogs];
+              const map = new Map<string, CalendarActivityItem>();
+              for (const item of combined) {
+                if (!map.has(item.id)) {
+                  map.set(item.id, item);
+                }
+              }
+              return Array.from(map.values());
+            });
           }
         } catch (e) {
           console.error('Error fetching calendar_events:', e);

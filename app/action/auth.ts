@@ -28,6 +28,7 @@ import {
   timingSafeDelay,
 } from "@src/lib/auth/security";
 import { AUTH_CONSTANTS, type AuthActionResult } from "@src/lib/auth/types";
+import { getSiteUrl } from "@src/lib/getSiteUrl";
 
 // ─── Sign In ─────────────────────────────────────────────────────────────────
 
@@ -208,7 +209,7 @@ export const SignUp = async (formData: FormData): Promise<AuthActionResult> => {
   const supabase = await createClient();
 
   console.log("[DEBUG - SIGNUP]: Registering user", email);
-  const redirectUrl = `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/auth/callback`;
+  const redirectUrl = `${getSiteUrl()}/auth/callback`;
   const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
     email,
     password,
@@ -320,7 +321,7 @@ export const ForgotPasswordAction = async (
     const supabase = await createClient();
     console.log("[DEBUG - RESET PWD]: Sending reset email to", email);
     await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/auth/callback?type=password_reset`,
+      redirectTo: `${getSiteUrl()}/auth/callback?type=password_reset`,
     });
   }
 

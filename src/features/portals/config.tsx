@@ -145,22 +145,22 @@ export const portalsConfig: PortalListItem[] = [
   },
   {
     slug: 'task-tracker',
-    name: 'Task Tracker',
-    description: 'Internal Team Padua Task Tracker portal and dashboard.',
+    name: 'Bizdev Tracker',
+    description: 'Internal Team Padua Bizdev Tracker portal and dashboard.',
     defaultUrl: 'https://teampaduatracker.vercel.app/tasktracker',
     brandColor: '#E44D26',
     logo: (className = "w-10 h-10") => (
       <img
         src="/Image/icon/TP.png"
-        alt="Task Tracker"
+        alt="Bizdev Tracker"
         className={`${className} object-contain`}
       />
     )
   },
   {
     slug: 'sun-life',
-    name: 'Sun Life Portal',
-    description: 'Primary customer service operations portal and tools.',
+    name: 'Sun Life Website',
+    description: 'Primary customer service operations website and tools.',
     defaultUrl: 'https://www.sunlife.com.ph/en/',
     brandColor: '#F4C542',
     logo: (className = "w-10 h-10") => (
@@ -194,7 +194,7 @@ export const portalsConfig: PortalListItem[] = [
   },
   {
     slug: 'advisor-office',
-    name: 'Advisor Office',
+    name: 'Advisor Home Office',
     description: 'Advisor administrative services, commission logs, and operational reports.',
     defaultUrl: 'https://advisorhomeoffice.sunlife.com.ph/aho/index.html#/:',
     brandColor: '#D89D00',

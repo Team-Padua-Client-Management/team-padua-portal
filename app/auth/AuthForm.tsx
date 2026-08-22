@@ -7,6 +7,7 @@ import { supabase } from "@src/lib/supabase/client";
 import { SignIn, SignUp } from "../action/auth";
 
 import type { AuthActionResult } from "@src/lib/auth/types";
+import { getSiteUrl } from "@src/lib/getSiteUrl";
 
 const SAVED_EMAIL_KEY = "tp_saved_email";
 const SAVED_GOOGLE_KEY = "tp_saved_google";
@@ -384,7 +385,7 @@ export const AuthForm = ({ action }: AuthFormProps) => {
   const signInWithGoogle = async () => {
     setGoogleLoading(true);
     setError(null);
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
+    const siteUrl = getSiteUrl();
     const redirectTarget = `${siteUrl}/auth/callback${nextParam ? `?next=${encodeURIComponent(nextParam)}` : ''}`;
     const { error: err } = await supabase.auth.signInWithOAuth({
       provider: "google",

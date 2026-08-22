@@ -184,9 +184,9 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
     { name: 'JotForm', href: '/admin/portals/jotform' },
     { name: 'Microsoft Teams', href: '/admin/portals/microsoft-teams' },
     { name: 'Zoom', href: '/admin/portals/zoom' },
-    { name: 'Task Tracker', href: '/admin/portals/task-tracker' },
-    { name: 'Sun Life', href: '/admin/portals/sun-life' },
-    { name: 'Advisor Office', href: '/admin/portals/advisor-office' },
+    { name: 'Bizdev Tracker', href: '/admin/portals/task-tracker' },
+    { name: 'Sun Life Website', href: '/admin/portals/sun-life' },
+    { name: 'Advisor Home Office', href: '/admin/portals/advisor-office' },
     { name: 'Client Policy Card', href: '/admin/portals/client-policy-card' },
     { name: 'Daniel Padua Portfolio', href: '/admin/portals/daniel-padua-portfolio' },
   ];

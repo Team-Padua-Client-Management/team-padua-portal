@@ -101,6 +101,7 @@ export default function BirthdayCard({ birthdays = [], advisors = [] }: Birthday
   const [birthdayItems, setBirthdayItems] = useState<BirthdayItem[]>(birthdays);
   const [status, setStatus] = useState<FetchStatus>('idle');
   const [selectedAdvisor, setSelectedAdvisor] = useState('All');
+  const [whenFilter, setWhenFilter] = useState<'All' | 'Yesterday' | 'Today' | 'Tomorrow'>('All');
 
   useEffect(() => {
     let mounted = true;
@@ -178,45 +179,75 @@ export default function BirthdayCard({ birthdays = [], advisors = [] }: Birthday
   }, [advisorList]);
 
   const filteredBirthdays = useMemo(() => {
-    if (selectedAdvisor === 'All') return birthdayItems;
-    return birthdayItems.filter((b) => b.advisorId === selectedAdvisor);
-  }, [birthdayItems, selectedAdvisor]);
+    let items = selectedAdvisor === 'All'
+      ? birthdayItems
+      : birthdayItems.filter((b) => b.advisorId === selectedAdvisor);
+
+    if (whenFilter !== 'All') {
+      const targetWhen = whenFilter.toLowerCase();
+      items = items.filter((b) => b.when === targetWhen);
+    }
+
+    const priority = { yesterday: 0, today: 1, tomorrow: 2 };
+    return [...items].sort((a, b) => (priority[a.when] ?? 99) - (priority[b.when] ?? 99));
+  }, [birthdayItems, selectedAdvisor, whenFilter]);
 
   const todayCount = filteredBirthdays.filter((b) => b.when === 'today').length;
   const isLoading = status === 'loading' || status === 'idle';
 
   return (
     <div className={`${styles.dashboardCard} ${styles.birthdayCard}`}>
-      <div className={`${styles.dashboardCardHeader} !p-4`}>
-        <div className="flex items-center gap-2.5">
-          <div className={`${styles.birthdayIconBadge} !w-9 !h-9 !p-2`}>
-            <Cake size={22} strokeWidth={2.5} />
+      <div className={`${styles.dashboardCardHeader} !p-4 !pb-2 flex-col !items-stretch gap-2.5`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className={`${styles.birthdayIconBadge} !w-9 !h-9 !p-2`}>
+              <Cake size={22} strokeWidth={2.5} />
+            </div>
+            <div className="flex items-center">
+              <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight m-0 leading-none">
+                Client Birthdays
+              </h1>
+            </div>
           </div>
-          <div className="flex items-center">
-            <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight m-0 leading-none">
-              Client Birthdays
-            </h1>
+
+          <div className={`${styles.headerRightActions} flex items-center gap-2`}>
+            <select
+              value={selectedAdvisor}
+              onChange={(e) => setSelectedAdvisor(e.target.value)}
+              className="text-xs border border-border/70 bg-surface text-text-secondary rounded-lg px-2 py-1 outline-none"
+            >
+              {advisorOptions.map((advisor) => (
+                <option key={advisor.id} value={advisor.id}>
+                  {advisor.name}
+                </option>
+              ))}
+            </select>
+            {todayCount > 0 && (
+              <span className={`${styles.birthdayTodayPill} !text-[14px] !px-3.5 !py-1.5 !font-bold !gap-1.5`}>
+                <Sparkles size={16} />
+                {todayCount} Today!
+              </span>
+            )}
           </div>
         </div>
 
-        <div className={`${styles.headerRightActions} flex items-center gap-2`}>
-          <select
-            value={selectedAdvisor}
-            onChange={(e) => setSelectedAdvisor(e.target.value)}
-            className="text-xs border border-border/70 bg-surface text-text-secondary rounded-lg px-2 py-1 outline-none"
-          >
-            {advisorOptions.map((advisor) => (
-              <option key={advisor.id} value={advisor.id}>
-                {advisor.name}
-              </option>
-            ))}
-          </select>
-          {todayCount > 0 && (
-            <span className={`${styles.birthdayTodayPill} !text-[14px] !px-3.5 !py-1.5 !font-bold !gap-1.5`}>
-              <Sparkles size={16} />
-              {todayCount} Today!
-            </span>
-          )}
+        <div className="flex items-center gap-1.5 pt-1">
+          {(['All', 'Yesterday', 'Today', 'Tomorrow'] as const).map((filter) => {
+            const isActive = whenFilter === filter;
+            return (
+              <button
+                key={filter}
+                type="button"
+                onClick={() => setWhenFilter(filter)}
+                className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition-all shrink-0 cursor-pointer border ${isActive
+                    ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white border-amber-500 shadow-sm shadow-amber-500/20 scale-[1.02]'
+                    : 'bg-surface/80 text-text-secondary border-border/70 hover:border-amber-500/50 hover:text-text hover:bg-surface'
+                  }`}
+              >
+                {filter}
+              </button>
+            );
+          })}
         </div>
       </div>
 

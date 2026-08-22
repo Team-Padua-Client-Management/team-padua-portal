@@ -71,17 +71,31 @@ export function getActivityLifecycleStatus(activity: CalendarActivityItem): Acti
     return 'Cancelled';
   }
 
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  const todayStr = `${year}-${month}-${day}`;
-
   if (!activity.date) return 'Upcoming';
 
-  if (activity.date === todayStr) {
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+
+  let actDate: Date | null = null;
+  const parts = activity.date.trim().split(/[\/\-\.]/);
+  if (parts.length === 3) {
+    if (parts[0].length === 4) {
+      actDate = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+    } else {
+      actDate = new Date(Number(parts[2]), Number(parts[0]) - 1, Number(parts[1]));
+    }
+  } else {
+    const parsed = new Date(activity.date);
+    if (!isNaN(parsed.getTime())) actDate = parsed;
+  }
+
+  if (!actDate || isNaN(actDate.getTime())) return 'Upcoming';
+
+  const actStart = new Date(actDate.getFullYear(), actDate.getMonth(), actDate.getDate()).getTime();
+
+  if (actStart === todayStart) {
     return 'Today';
-  } else if (activity.date > todayStr) {
+  } else if (actStart > todayStart) {
     return 'Upcoming';
   } else {
     return 'Overdue';

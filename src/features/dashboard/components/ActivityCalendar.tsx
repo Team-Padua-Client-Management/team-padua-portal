@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { CalendarClock, Plus, ExternalLink, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { CalendarClock, Plus, ExternalLink, ChevronLeft, ChevronRight, X, CalendarCheck } from 'lucide-react';
 import { ActivityEvent, formatDisplayDate, formatDisplayTime } from './ActivityCard';
 import styles from '@/styles/admin/dashboard/page.module.css';
 
@@ -68,12 +68,10 @@ export default function ActivityCalendar({
           <h3>Activity Tracker Calendar</h3>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          {calendarUrl && (
-            <Link href={calendarUrl} className={styles.trackerLink} style={{ opacity: 0.85 }}>
-              <ExternalLink size={12} strokeWidth={2} />
-              Full Calendar
-            </Link>
-          )}
+          <Link href={calendarUrl || "/admin/calendar"} className={styles.trackerLink} title="View Admin Calendar">
+            <CalendarCheck size={13} strokeWidth={2} />
+            <span>Calendar</span>
+          </Link>
           <button type="button" onClick={onOpenLogModal} className={styles.trackerLink}>
             <Plus size={13} strokeWidth={2} />
             Log Activity

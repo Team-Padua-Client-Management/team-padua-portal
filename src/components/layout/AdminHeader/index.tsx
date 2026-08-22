@@ -10,6 +10,7 @@ import { supabase } from '@src/lib/supabase/client';
 import NotificationBell from "@src/components/shared/NotificationBell";
 import { useAdminLayoutContext } from '@src/components/layout';
 import ProfileAvatar from "@src/components/shared/ProfileAvatar";
+import EnvironmentSwitcher from "@src/components/shared/EnvironmentSwitcher";
 import { isDarkTheme, useThemeTransition } from "@src/lib/theme";
 
 // Search hook & dropdown
@@ -331,7 +332,7 @@ export default function AdminHeader({ onMenuClick }: HeaderProps) {
         </div> */}
 
         <div className={styles.rightSection}>
-
+          <EnvironmentSwitcher compact />
           <NotificationBell />
 
           <div ref={dropdownRef} className={styles.profileContainer}>
