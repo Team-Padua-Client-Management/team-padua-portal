@@ -87,6 +87,7 @@ interface PolicyOwnerGroup {
   owner: string;
   insured: string;
   policyNumber: string;
+  serviceRequestNumber?: string;
 }
 
 export const INQUIRY_TYPE_OPTIONS = ['Address Concern', 'Pending Response', 'Client Servicing'] as const;
@@ -117,6 +118,9 @@ function parsePolicyGroups(parsedMeta: any): PolicyOwnerGroup[] {
           policyNumber: typeof g?.policyNumber === 'string'
             ? g.policyNumber
             : (typeof g?.policy_number === 'string' ? g.policy_number : ''),
+          serviceRequestNumber: typeof g?.serviceRequestNumber === 'string'
+            ? g.serviceRequestNumber
+            : (typeof g?.service_request_number === 'string' ? g.service_request_number : (parsedMeta.service_request_number || '')),
         }));
       }
     } catch {
@@ -125,6 +129,7 @@ function parsePolicyGroups(parsedMeta: any): PolicyOwnerGroup[] {
           owner: parsedMeta.policy_owner || '',
           insured: parsedMeta.policy_insured || '',
           policyNumber: parsedMeta.policy_number || '',
+          serviceRequestNumber: parsedMeta.service_request_number || '',
         },
       ];
     }
@@ -135,12 +140,18 @@ function parsePolicyGroups(parsedMeta: any): PolicyOwnerGroup[] {
       owner: parsedMeta.policy_owner || '',
       insured: parsedMeta.policy_insured || '',
       policyNumber: parsedMeta.policy_number || '',
+      serviceRequestNumber: parsedMeta.service_request_number || '',
     },
   ];
 }
 
 function serializePolicyGroups(groups: PolicyOwnerGroup[]): string {
-  return JSON.stringify(groups.map((g) => ({ owner: g.owner, insured: g.insured, policyNumber: g.policyNumber })));
+  return JSON.stringify(groups.map((g) => ({
+    owner: g.owner,
+    insured: g.insured,
+    policyNumber: g.policyNumber,
+    serviceRequestNumber: g.serviceRequestNumber || '',
+  })));
 }
 
 interface PolicyOwnerGroupCardProps {
@@ -151,6 +162,7 @@ interface PolicyOwnerGroupCardProps {
   onOwnerChange: (val: string) => void;
   onInsuredChange: (val: string) => void;
   onPolicyNumberChange: (val: string) => void;
+  onServiceRequestNumberChange: (val: string) => void;
   onRemoveGroup: () => void;
 }
 
@@ -162,6 +174,7 @@ function PolicyOwnerGroupCard({
   onOwnerChange,
   onInsuredChange,
   onPolicyNumberChange,
+  onServiceRequestNumberChange,
   onRemoveGroup,
 }: PolicyOwnerGroupCardProps) {
   const isDifferentFromOwner = relationship === 'DIFFERENT_FROM_OWNER';
@@ -247,6 +260,20 @@ function PolicyOwnerGroupCard({
           />
         </div>
       </div>
+
+      <div style={cardShellStyle}>
+        <div className={styles.userPickerContainer}>
+          <FieldLabel>Service Request Number</FieldLabel>
+          <input
+            type="text"
+            placeholder="Enter Service Request Number (e.g. SR-12345678)"
+            value={group.serviceRequestNumber || ''}
+            onChange={(e) => onServiceRequestNumberChange(e.target.value)}
+            className="px-3 py-2.5 border border-border bg-surface text-sm font-medium w-full"
+            style={inputStyle}
+          />
+        </div>
+      </div>
     </div>
   );
 }
@@ -274,9 +301,13 @@ function PolicyOwnerSection({ relationship, groups, isSettingUpTask, onGroupsCha
     onGroupsChange(groups.map((g, i) => (i === groupIdx ? { ...g, policyNumber: value } : g)));
   };
 
+  const updateServiceRequestNumber = (groupIdx: number, value: string) => {
+    onGroupsChange(groups.map((g, i) => (i === groupIdx ? { ...g, serviceRequestNumber: value } : g)));
+  };
+
   const removeOwnerGroup = (groupIdx: number) => {
     const next = groups.filter((_, i) => i !== groupIdx);
-    onGroupsChange(next.length > 0 ? next : [{ owner: '', insured: '', policyNumber: '' }]);
+    onGroupsChange(next.length > 0 ? next : [{ owner: '', insured: '', policyNumber: '', serviceRequestNumber: '' }]);
   };
 
   return (
@@ -291,6 +322,7 @@ function PolicyOwnerSection({ relationship, groups, isSettingUpTask, onGroupsCha
           onOwnerChange={(val) => updateOwner(idx, val)}
           onInsuredChange={(val) => updateInsured(idx, val)}
           onPolicyNumberChange={(val) => updatePolicyNumber(idx, val)}
+          onServiceRequestNumberChange={(val) => updateServiceRequestNumber(idx, val)}
           onRemoveGroup={() => removeOwnerGroup(idx)}
         />
       ))}
@@ -542,7 +574,7 @@ function ClientServicingModal({
   const policyRelationship = parsedMeta.policy_insured_relationship || DEFAULT_POLICY_RELATIONSHIP;
   const policyGroups = useMemo(
     () => parsePolicyGroups(parsedMeta),
-    [parsedMeta.policy_groups, parsedMeta.policy_owner, parsedMeta.policy_insured, parsedMeta.policy_number]
+    [parsedMeta.policy_groups, parsedMeta.policy_owner, parsedMeta.policy_insured, parsedMeta.policy_number, parsedMeta.service_request_number]
   );
 
   const savePolicyGroups = (newGroups: PolicyOwnerGroup[]) => {
@@ -552,6 +584,7 @@ function ClientServicingModal({
     updatedMeta.policy_owner = newGroups[0]?.owner || '';
     updatedMeta.policy_insured = newGroups[0]?.insured || '';
     updatedMeta.policy_number = newGroups[0]?.policyNumber || '';
+    updatedMeta.service_request_number = newGroups[0]?.serviceRequestNumber || '';
     onSaveField(task.id, { notes: buildTaskNotes(updatedMeta, updatedMeta.timeline) });
   };
 
@@ -559,7 +592,7 @@ function ClientServicingModal({
     let nextGroups = policyGroups;
     if (value === 'SAME_AS_OWNER') {
       nextGroups = policyGroups.slice(0, 1);
-      if (nextGroups.length === 0) nextGroups = [{ owner: '', insured: '', policyNumber: '' }];
+      if (nextGroups.length === 0) nextGroups = [{ owner: '', insured: '', policyNumber: '', serviceRequestNumber: '' }];
     }
     const updatedMeta: any = { ...parsedMeta };
     delete updatedMeta.policy_insured_count;
@@ -568,6 +601,7 @@ function ClientServicingModal({
     updatedMeta.policy_owner = nextGroups[0]?.owner || '';
     updatedMeta.policy_insured = nextGroups[0]?.insured || '';
     updatedMeta.policy_number = nextGroups[0]?.policyNumber || '';
+    updatedMeta.service_request_number = nextGroups[0]?.serviceRequestNumber || '';
     onSaveField(task.id, { notes: buildTaskNotes(updatedMeta, updatedMeta.timeline) });
   };
 

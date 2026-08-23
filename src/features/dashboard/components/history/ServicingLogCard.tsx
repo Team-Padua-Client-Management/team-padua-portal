@@ -101,6 +101,11 @@ export default function ServicingLogCard({
           value={meta.policy_number}
           icon={Hash}
         />
+        <MetadataField
+          label="Service Request #"
+          value={meta.service_request_number || (task as any).service_request_number}
+          icon={FileText}
+        />
         {showInsured && (
           <MetadataField
             label="Policy Insured"

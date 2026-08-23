@@ -63,6 +63,7 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
     const [policyOwner, setPolicyOwner] = useState(meta.policy_owner || '');
     const [policyInsured, setPolicyInsured] = useState(meta.policy_insured || '');
     const [policyNumber, setPolicyNumber] = useState(meta.policy_number || '');
+    const [serviceRequestNumber, setServiceRequestNumber] = useState(meta.service_request_number || (task as any).service_request_number || '');
     const [workflowStatus, setWorkflowStatus] = useState<WorkflowStatus>(meta.workflow_status || DEFAULT_WORKFLOW_STATUS);
     const [processedBy, setProcessedBy] = useState(task.processed_by || '');
     const [assignedTo, setAssignedTo] = useState(task.assigned_to || '');
@@ -73,6 +74,7 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
         setPolicyOwner(meta.policy_owner || '');
         setPolicyInsured(meta.policy_insured || '');
         setPolicyNumber(meta.policy_number || '');
+        setServiceRequestNumber(meta.service_request_number || (task as any).service_request_number || '');
         setWorkflowStatus(meta.workflow_status || DEFAULT_WORKFLOW_STATUS);
         setProcessedBy(task.processed_by || '');
         setAssignedTo(task.assigned_to || '');
@@ -155,6 +157,7 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
                 policy_owner: policyOwner,
                 policy_insured: policyInsured,
                 policy_number: policyNumber,
+                service_request_number: serviceRequestNumber,
                 workflow_status: workflowStatus,
                 date_of_request: dateOfRequest,
             };
@@ -162,6 +165,7 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
             const newNotes = buildTaskNotes(updatedMeta, timeline);
             const taskUpdates: Record<string, unknown> = {
                 notes: newNotes,
+                service_request_number: serviceRequestNumber,
             };
 
             if (processedBy !== (task.processed_by || '')) {
@@ -383,7 +387,7 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
                     </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
                     <div style={fieldBoxStyle}>
                         <div style={sectionLabelStyle}>Policy Number</div>
                         {isEditing ? (
@@ -397,6 +401,23 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
                         ) : (
                             <div style={{ ...inputStyle, fontSize: '0.85rem' }}>
                                 {policyNumber || 'N/A'}
+                            </div>
+                        )}
+                    </div>
+
+                    <div style={fieldBoxStyle}>
+                        <div style={sectionLabelStyle}>Service Request #</div>
+                        {isEditing ? (
+                            <input
+                                type="text"
+                                value={serviceRequestNumber}
+                                onChange={(e) => setServiceRequestNumber(e.target.value)}
+                                placeholder="e.g. SR-12345678"
+                                style={inputStyle}
+                            />
+                        ) : (
+                            <div style={{ ...inputStyle, fontSize: '0.85rem' }}>
+                                {serviceRequestNumber || 'N/A'}
                             </div>
                         )}
                     </div>

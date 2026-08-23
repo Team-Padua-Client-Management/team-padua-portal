@@ -600,6 +600,7 @@ export const useAdminDashboard = () => {
       notes: newNotes,
       category: (inquiry as any).category || 'Others',
       status: 'Pending',
+      service_request_number: currentMeta.service_request_number || (inquiry as any).service_request_number || null,
       assigned_to: (inquiry as any).assigned_to || activeUserId,
       processed_by: inquiry.processed_by || activeUserId,
       created_at: new Date().toISOString(),
