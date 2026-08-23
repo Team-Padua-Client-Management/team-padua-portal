@@ -120,14 +120,14 @@ export default function FormsHubPage() {
 
           {/* Search bar */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-            <div className="relative max-w-md">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <div className="relative max-w-md group">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none group-focus-within:text-blue-500 transition-colors duration-200" size={18} />
               <input
                 type="text"
                 placeholder="Search forms by name..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition duration-150 text-gray-900 placeholder-gray-400"
+                className="w-full pl-11 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition duration-150 text-gray-900 placeholder-gray-400"
               />
             </div>
           </div>

@@ -89,9 +89,16 @@ export const mapDbTaskToCalendarActivity = (
     _sourceTable: sourceTable,
     onlinePlatform: act.onlinePlatform,
     onlineMeetingLink: act.onlineMeetingLink,
+    meeting_link_raw: act.meeting_link_raw,
     onlineMeetingId: act.onlineMeetingId,
     onlinePasscode: act.onlinePasscode,
-    onsiteVenue: act.onsiteVenue,
+    onsiteVenue: act.onsiteVenue || act.venue_name,
+    venue_name: act.venue_name || act.onsiteVenue,
+    venue_address: act.venue_address,
+    venue_place_id: act.venue_place_id,
+    venue_lat: act.venue_lat ?? act.latitude,
+    venue_lng: act.venue_lng ?? act.longitude,
+    venue_maps_url: act.venue_maps_url || act.googleMapsUrl,
     onsiteBuilding: act.onsiteBuilding,
     onsiteStreet: act.onsiteStreet,
     onsiteBarangay: act.onsiteBarangay,
@@ -101,9 +108,9 @@ export const mapDbTaskToCalendarActivity = (
     onsiteIslandGroup: act.onsiteIslandGroup,
     onsiteRegion: act.onsiteRegion,
     region: act.region,
-    latitude: act.latitude,
-    longitude: act.longitude,
-    googleMapsUrl: act.googleMapsUrl
+    latitude: act.latitude ?? act.venue_lat,
+    longitude: act.longitude ?? act.venue_lng,
+    googleMapsUrl: act.googleMapsUrl || act.venue_maps_url
   };
 };
 
@@ -205,63 +212,8 @@ export function getBirthdaysAroundNow(clients: any[]): BirthdayItem[] {
     }
   }
 
-  if (matched.length === 0) {
-    const todayFormatted = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    const yesterdayFormatted = yesterday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    const tomorrowFormatted = tomorrow.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-
-    const c1Name = clients && clients[0]?.client_name ? clients[0].client_name : 'Maria Santos-Reyes';
-    const c2Name = clients && clients[1]?.client_name ? clients[1].client_name : 'Gabriel Alcantara';
-    const c3Name = clients && clients[2]?.client_name ? clients[2].client_name : 'Sophia De Guzman';
-    const c4Name = clients && clients[3]?.client_name ? clients[3].client_name : 'Christopher Lim';
-
-    const a1 = clients?.[0] ? extractAdvisor(clients[0]) : {};
-    const a2 = clients?.[1] ? extractAdvisor(clients[1]) : {};
-    const a3 = clients?.[2] ? extractAdvisor(clients[2]) : {};
-    const a4 = clients?.[3] ? extractAdvisor(clients[3]) : {};
-
-    matched.push(
-      {
-        id: 'bday-active-1',
-        name: c1Name,
-        date: todayFormatted,
-        when: 'today',
-        age: 45,
-        advisorId: a1.advisorId ?? '',
-        advisorName: a1.advisorName ?? '',
-      },
-      {
-        id: 'bday-active-2',
-        name: c2Name,
-        date: todayFormatted,
-        when: 'today',
-        age: 32,
-        advisorId: a2.advisorId ?? '',
-        advisorName: a2.advisorName ?? '',
-      },
-      {
-        id: 'bday-active-3',
-        name: c3Name,
-        date: tomorrowFormatted,
-        when: 'tomorrow',
-        age: 28,
-        advisorId: a3.advisorId ?? '',
-        advisorName: a3.advisorName ?? '',
-      },
-      {
-        id: 'bday-active-4',
-        name: c4Name,
-        date: yesterdayFormatted,
-        when: 'yesterday',
-        age: 50,
-        advisorId: a4.advisorId ?? '',
-        advisorName: a4.advisorName ?? '',
-      }
-    );
-  }
-
-  const priority = { yesterday: 0, today: 1, tomorrow: 2 };
-  matched.sort((a, b) => priority[a.when] - priority[b.when]);
+  const priority: Record<string, number> = { yesterday: 0, today: 1, tomorrow: 2 };
+  matched.sort((a, b) => (priority[a.when] ?? 99) - (priority[b.when] ?? 99));
 
   return matched;
 }

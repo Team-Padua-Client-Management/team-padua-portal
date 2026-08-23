@@ -1,5 +1,5 @@
 import React from 'react';
-import { CalendarClock, Calendar, Video, Building2, Trash2, CheckCircle2, MapPin } from 'lucide-react';
+import { CalendarClock, Calendar, Video, Building2, Trash2, CheckCircle2, MapPin, ExternalLink } from 'lucide-react';
 import styles from '@/styles/admin/dashboard/page.module.css';
 import UserAvatar, { UserProfile } from './UserAvatar';
 
@@ -21,9 +21,16 @@ export type CalendarActivityItem = {
   _sourceTable?: 'client_servicing_tasks' | 'tasks';
   onlinePlatform?: string;
   onlineMeetingLink?: string;
+  meeting_link_raw?: string;
   onlineMeetingId?: string;
   onlinePasscode?: string;
   onsiteVenue?: string;
+  venue_name?: string;
+  venue_address?: string;
+  venue_place_id?: string;
+  venue_lat?: number;
+  venue_lng?: number;
+  venue_maps_url?: string;
   onsiteBuilding?: string;
   onsiteStreet?: string;
   onsiteBarangay?: string;
@@ -102,6 +109,18 @@ export function getActivityLifecycleStatus(activity: CalendarActivityItem): Acti
   }
 }
 
+/** Formats a URL ensuring standard protocol */
+function formatUrl(url?: string): string | null {
+  if (!url) return null;
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (/^(zoom\.us|meet\.google\.com|teams\.microsoft\.com|teams\.live\.com|webex\.com)/i.test(trimmed)) {
+    return `https://${trimmed}`;
+  }
+  return trimmed.includes('.') ? `https://${trimmed}` : null;
+}
+
 export default function CalendarActivityCard({
   activity,
   matchingProfiles = [],
@@ -165,6 +184,27 @@ export default function CalendarActivityCard({
   const displayedProfiles = matchingProfiles.slice(0, MAX_AVATARS);
   const remainingCount = matchingProfiles.length - MAX_AVATARS;
 
+  // Compute location/maps URL for Onsite — uses OpenStreetMap
+  const onsiteLocationText = activity.venue_name || activity.onsiteVenue || activity.location || '';
+  const hasOsmCoords = typeof activity.venue_lat === 'number' && typeof activity.venue_lng === 'number';
+  const googleMapsUrl =
+    activity.venue_maps_url ||
+    activity.googleMapsUrl ||
+    (hasOsmCoords
+      ? `https://www.openstreetmap.org/?mlat=${activity.venue_lat}&mlon=${activity.venue_lng}#map=17/${activity.venue_lat}/${activity.venue_lng}`
+      : onsiteLocationText
+        ? `https://www.openstreetmap.org/search?query=${encodeURIComponent(
+            [activity.venue_name, activity.venue_address, activity.onsiteVenue, activity.location, activity.onsiteCity, activity.onsiteProvince]
+              .filter(Boolean)
+              .join(', ') || onsiteLocationText
+          )}`
+        : null);
+
+  // Compute online meeting link for Online
+  const rawMeetingLink = activity.onlineMeetingLink || (activity.location?.startsWith('http') ? activity.location : undefined);
+  const formattedMeetingUrl = formatUrl(rawMeetingLink);
+  const onlinePlatformName = activity.onlinePlatform || (formattedMeetingUrl?.includes('zoom') ? 'Zoom Meeting' : formattedMeetingUrl?.includes('meet.google') ? 'Google Meet' : formattedMeetingUrl?.includes('teams') ? 'MS Teams' : activity.location || 'Online');
+
   return (
     <div
       className={styles.activityCard}
@@ -193,6 +233,7 @@ export default function CalendarActivityCard({
             <button
               onClick={(e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 onComplete(activity.id);
               }}
               className="text-emerald-600 hover:text-emerald-700 transition-colors flex-shrink-0 p-1 rounded hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
@@ -207,6 +248,7 @@ export default function CalendarActivityCard({
             <button
               onClick={(e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 onDelete(activity.id);
               }}
               className="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20"
@@ -234,16 +276,57 @@ export default function CalendarActivityCard({
 
           <span className={styles.activityCardMetaDivider} />
 
-          <span className={styles.activityCardMetaItem}>
-            {activity.mode === 'Online' ? <Video size={11} strokeWidth={1.8} /> : <Building2 size={11} strokeWidth={1.8} />}
-            {activity.mode}
-            {activity.location && (
-              <span className={styles.activityCardLocation} title={activity.location}>
-                <MapPin size={10} strokeWidth={1.8} />
-                {activity.location}
+          {/* Mode & Clickable Links (Google Maps for Onsite, Meeting Link for Online) */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {activity.mode === 'Online' ? (
+              formattedMeetingUrl ? (
+                <a
+                  href={formattedMeetingUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline bg-blue-50/80 dark:bg-blue-900/30 px-1.5 py-0.5 rounded border border-blue-200/60 dark:border-blue-800/50 transition-all hover:shadow-xs group max-w-[170px]"
+                  title={`Join Online: ${formattedMeetingUrl}`}
+                >
+                  <Video size={11} className="text-blue-500 shrink-0" />
+                  <span className="truncate">{onlinePlatformName}</span>
+                  <ExternalLink size={9} className="text-blue-400 group-hover:text-blue-600 shrink-0" />
+                </a>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-[11px] text-gray-600 dark:text-gray-400">
+                  <Video size={11} strokeWidth={1.8} className="text-blue-500" />
+                  <span>{onlinePlatformName}</span>
+                </span>
+              )
+            ) : (
+              googleMapsUrl ? (
+                <a
+                  href={googleMapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline bg-blue-50/80 dark:bg-blue-900/30 px-1.5 py-0.5 rounded border border-blue-200/60 dark:border-blue-800/50 transition-all hover:shadow-xs group max-w-[170px]"
+                  title={`Open in Google Maps: ${onsiteLocationText}`}
+                >
+                  <MapPin size={11} className="text-blue-500 shrink-0" />
+                  <span className="truncate">{onsiteLocationText || 'Onsite Venue'}</span>
+                  <ExternalLink size={9} className="text-blue-400 group-hover:text-blue-600 shrink-0" />
+                </a>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-[11px] text-gray-600 dark:text-gray-400">
+                  <Building2 size={11} strokeWidth={1.8} className="text-amber-600" />
+                  <span>{onsiteLocationText || 'Onsite'}</span>
+                </span>
+              )
+            )}
+
+            {/* Online Passcode/ID Indicator if present */}
+            {activity.mode === 'Online' && (activity.onlineMeetingId || activity.onlinePasscode) && (
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono" title={`ID: ${activity.onlineMeetingId || 'None'} | Pass: ${activity.onlinePasscode || 'None'}`}>
+                {activity.onlineMeetingId ? `ID: ${activity.onlineMeetingId}` : ''}
               </span>
             )}
-          </span>
+          </div>
         </div>
 
         {matchingProfiles.length > 0 && (

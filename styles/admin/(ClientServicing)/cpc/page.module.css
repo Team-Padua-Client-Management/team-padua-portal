@@ -252,7 +252,7 @@
 
 .searchInput {
     width: 100%;
-    padding: 0.5rem 1rem 0.5rem 2.5rem;
+    padding: 0.5rem 1rem 0.5rem 2.75rem;
     border-radius: 0.375rem;
     border: 1px solid #cbd5e1;
     font-size: 0.8125rem;
@@ -275,6 +275,12 @@
     top: 50%;
     transform: translateY(-50%);
     color: #64748b;
+    pointer-events: none;
+    transition: color 0.2s ease;
+}
+
+.searchWrapper:focus-within .searchIcon {
+    color: #F4C542;
 }
 
 .selectInput {

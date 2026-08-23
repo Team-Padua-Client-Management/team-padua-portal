@@ -40,7 +40,7 @@ import {
   getCategoryMeta,
 } from '@src/features/dashboard/components/history';
 
-export default function HistoryPage() {
+export default function AnalyticsHistoryPage() {
   const {
     userTasks,
     clientInquiries = [],
@@ -279,7 +279,6 @@ export default function HistoryPage() {
 
     return sortedCategories.map((cat) => {
       const items = groupsMap.get(cat)!;
-      // Sort items within group by date (newest first)
       items.sort((a, b) => {
         const dateA = a.type === 'calendar' ? a.data.date || a.data.createdAt : a.data.created_at;
         const dateB = b.type === 'calendar' ? b.data.date || b.data.createdAt : b.data.created_at;
@@ -321,7 +320,7 @@ export default function HistoryPage() {
       <div className={styles.mainCol}>
         <Header />
         <motion.main className={styles.content} variants={containerVariants} initial="hidden" animate="show">
-          <motion.div variants={fadeVariants} className="flex flex-col gap-5 px-4 md:px-6 w-full">
+          <motion.div variants={fadeVariants} className="flex flex-col gap-5 px-4 md:px-8 max-w-7xl mx-auto w-full">
 
             {/* 1. PAGE HEADER */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-3 pb-1">

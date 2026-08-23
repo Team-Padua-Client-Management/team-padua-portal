@@ -374,8 +374,8 @@ export default function FundWithdrawalPage() {
 
           <div className="bg-white rounded-3xl shadow-[0_1px_3px_rgba(0,0,0,0.04)] border border-gray-100 overflow-hidden">
             <div className="p-4 border-b border-gray-100 flex gap-4 bg-gray-50/40">
-              <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={17} />
+              <div className="relative flex-1 max-w-md group">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none group-focus-within:text-amber-500 transition-colors duration-200" size={17} />
                 <input
                   type="text"
                   placeholder="Search withdrawal requests..."

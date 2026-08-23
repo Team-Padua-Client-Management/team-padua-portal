@@ -1,63 +1,141 @@
-import React, { useState } from 'react';
-import { X, Video, Building2 } from 'lucide-react';
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { 
+  X, 
+  Video, 
+  Building2, 
+  Sparkles, 
+  AlertCircle, 
+  CheckCircle2, 
+  ExternalLink,
+  MapPin,
+  Calendar as CalendarIcon,
+  Clock
+} from 'lucide-react';
 import styles from '@/styles/admin/dashboard/page.module.css';
 import { CalendarActivityItem } from './CalendarActivityCard';
-import PhilippineLocationSelector from '@src/components/shared/PhilippineLocationSelector';
-import { REGIONS, PROVINCES, CITIES } from '@src/constants/philippineLocations';
+import VenuePicker, { VenueData } from '@src/components/shared/VenuePicker';
+import { useMeetingLinkParser } from '../hooks/useMeetingLinkParser';
 
-const CATEGORY_OPTIONS = ['Meeting', 'Training', 'Work Session', 'Speaking Engagement', 'Bonding Activity'];
+const CATEGORY_OPTIONS = ['Meeting', 'Training', 'Work Session', 'Speaking Engagement', 'Bonding Activity', 'Client Servicing', 'Others'];
 const ROLE_OPTIONS = ['Admin', 'Advisor', 'Bizdev'] as const;
 const MODE_OPTIONS = ['Online', 'Onsite'] as const;
 
 interface CalendarActivityModalProps {
-  onSave: (activity: Omit<CalendarActivityItem, 'id' | 'createdAt'>) => void;
+  onSave: (activity: Omit<CalendarActivityItem, 'id' | 'createdAt'>, existingId?: string) => void;
   onClose: () => void;
+  initialActivity?: Partial<CalendarActivityItem>;
 }
 
-export default function CalendarActivityModal({ onSave, onClose }: CalendarActivityModalProps) {
-  const [title, setTitle] = useState('');
-  const [date, setDate] = useState('');
-  const [time, setTime] = useState('');
-  const [mode, setMode] = useState<'Online' | 'Onsite'>('Online');
-  const [category, setCategory] = useState(CATEGORY_OPTIONS[0]);
-  const [assignedRole, setAssignedRole] = useState<'Admin' | 'Advisor' | 'Bizdev'>('Advisor');
-  const [notes, setNotes] = useState('');
+export default function CalendarActivityModal({ 
+  onSave, 
+  onClose,
+  initialActivity 
+}: CalendarActivityModalProps) {
+  const [title, setTitle] = useState(initialActivity?.title || '');
+  const [date, setDate] = useState(initialActivity?.date || '');
+  const [time, setTime] = useState(initialActivity?.time || '');
+  const [mode, setMode] = useState<'Online' | 'Onsite'>(initialActivity?.mode || 'Online');
+  const [category, setCategory] = useState(initialActivity?.category || CATEGORY_OPTIONS[0]);
+  const [assignedRole, setAssignedRole] = useState<'Admin' | 'Advisor' | 'Bizdev'>(initialActivity?.assignedRole || 'Advisor');
+  const [notes, setNotes] = useState(initialActivity?.notes || '');
 
   // Online details
-  const [onlinePlatform, setOnlinePlatform] = useState('');
-  const [onlineMeetingLink, setOnlineMeetingLink] = useState('');
-  const [onlineMeetingId, setOnlineMeetingId] = useState('');
-  const [onlinePasscode, setOnlinePasscode] = useState('');
+  const [onlinePlatform, setOnlinePlatform] = useState(initialActivity?.onlinePlatform || '');
+  const [onlineMeetingLink, setOnlineMeetingLink] = useState(initialActivity?.onlineMeetingLink || '');
+  const [onlineMeetingId, setOnlineMeetingId] = useState(initialActivity?.onlineMeetingId || '');
+  const [onlinePasscode, setOnlinePasscode] = useState(initialActivity?.onlinePasscode || '');
+  const [hasManuallyEditedDetails, setHasManuallyEditedDetails] = useState(false);
 
-  // Onsite details
-  const [onsiteVenue, setOnsiteVenue] = useState('');
+  // Onsite details (Google Places data)
+  const [venueData, setVenueData] = useState<VenueData | null>(() => {
+    if (initialActivity?.venue_name || initialActivity?.onsiteVenue) {
+      return {
+        venue_name: initialActivity.venue_name || initialActivity.onsiteVenue || '',
+        venue_address: initialActivity.venue_address,
+        venue_place_id: initialActivity.venue_place_id,
+        venue_lat: initialActivity.venue_lat ?? initialActivity.latitude,
+        venue_lng: initialActivity.venue_lng ?? initialActivity.longitude,
+        venue_maps_url: initialActivity.venue_maps_url || initialActivity.googleMapsUrl,
+      };
+    }
+    return null;
+  });
+
+  // Real-time Meeting Link parser
+  const parsedMeeting = useMeetingLinkParser(onlineMeetingLink);
+
+  // Auto-fill when URL parses into a known platform unless user has manually intervened
+  useEffect(() => {
+    if (parsedMeeting.isDetected && !hasManuallyEditedDetails) {
+      if (parsedMeeting.platform) {
+        setOnlinePlatform(parsedMeeting.platform);
+      }
+      if (parsedMeeting.meetingId) {
+        setOnlineMeetingId(parsedMeeting.meetingId);
+      }
+      if (parsedMeeting.passcode) {
+        setOnlinePasscode(parsedMeeting.passcode);
+      }
+    }
+  }, [parsedMeeting, hasManuallyEditedDetails]);
+
+  const handleLinkPasteOrBlur = () => {
+    if (parsedMeeting.isDetected) {
+      if (parsedMeeting.platform) setOnlinePlatform(parsedMeeting.platform);
+      if (parsedMeeting.meetingId) setOnlineMeetingId(parsedMeeting.meetingId);
+      if (parsedMeeting.passcode) setOnlinePasscode(parsedMeeting.passcode);
+    }
+  };
 
   const handleSave = () => {
     if (!title.trim() || !date) return;
-    
-    const computedLocation = mode === 'Online'
-      ? onlinePlatform
-      : onsiteVenue.trim();
 
-    onSave({
-      title: title.trim(),
-      date,
-      time: time || undefined,
-      mode,
-      location: computedLocation,
-      onlinePlatform: onlinePlatform.trim(),
-      onlineMeetingLink: onlineMeetingLink.trim(),
-      onlineMeetingId: onlineMeetingId.trim(),
-      onlinePasscode: onlinePasscode.trim(),
-      onsiteVenue: onsiteVenue.trim(),
-      category,
-      assignedRole,
-      notes: notes.trim() || undefined,
-    });
+    if (mode === 'Online') {
+      const computedLocation = onlinePlatform.trim() || 'Online';
+      onSave({
+        title: title.trim(),
+        date,
+        time: time || undefined,
+        mode: 'Online',
+        location: computedLocation,
+        category,
+        assignedRole,
+        notes: notes.trim() || undefined,
+        onlinePlatform: onlinePlatform.trim() || (parsedMeeting.platform as string) || 'Online',
+        onlineMeetingLink: onlineMeetingLink.trim(),
+        meeting_link_raw: onlineMeetingLink.trim(),
+        onlineMeetingId: onlineMeetingId.trim(),
+        onlinePasscode: onlinePasscode.trim(),
+      }, initialActivity?.id);
+    } else {
+      const venueName = venueData?.venue_name?.trim() || '';
+      const computedLocation = venueName || venueData?.venue_address || 'Onsite';
+
+      onSave({
+        title: title.trim(),
+        date,
+        time: time || undefined,
+        mode: 'Onsite',
+        location: computedLocation,
+        category,
+        assignedRole,
+        notes: notes.trim() || undefined,
+        onsiteVenue: venueName,
+        venue_name: venueName,
+        venue_address: venueData?.venue_address?.trim(),
+        venue_place_id: venueData?.venue_place_id,
+        venue_lat: venueData?.venue_lat,
+        venue_lng: venueData?.venue_lng,
+        venue_maps_url: venueData?.venue_maps_url,
+        googleMapsUrl: venueData?.venue_maps_url,
+      }, initialActivity?.id);
+    }
   };
 
-  // Calendar modal uses a neutral/blue accent since it has no specific status
-  const currentStatusColor = '#2563EB'; // Blue
+  const isSaveDisabled = !title.trim() || !date || (!parsedMeeting.isValid && !!onlineMeetingLink.trim());
+  const currentStatusColor = '#2563EB'; // Primary Blue
 
   return (
     <div className={styles.taskModalOverlay} onClick={onClose}>
@@ -66,6 +144,7 @@ export default function CalendarActivityModal({ onSave, onClose }: CalendarActiv
         style={{ borderTop: `4px solid ${currentStatusColor}` }}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Header */}
         <div className={styles.taskModalHeader}>
           <div className={styles.modalTitleGroup}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
@@ -85,24 +164,24 @@ export default function CalendarActivityModal({ onSave, onClose }: CalendarActiv
           </button>
         </div>
         
+        {/* Body Content */}
         <div className={styles.modalBodyContent}>
+          {/* Mode Selector */}
           <div className={styles.modalSection}>
-            <label className={styles.formFieldLabel}>Mode</label>
+            <label className={styles.formFieldLabel}>Activity Mode</label>
             <div className={styles.segmentedStatusRow}>
               {MODE_OPTIONS.map((st) => {
                 const isActive = mode === st;
-                const colorHex = '#2563EB'; // Unified blue
-
                 return (
                   <button
                     key={st}
                     type="button"
                     className={`${styles.statusSegmentBtn} ${isActive ? styles.statusSegmentActive : ''}`}
                     style={isActive ? {
-                      background: colorHex,
+                      background: currentStatusColor,
                       color: '#FFFFFF',
-                      borderColor: colorHex,
-                      boxShadow: `0 2px 8px ${colorHex}55`
+                      borderColor: currentStatusColor,
+                      boxShadow: `0 2px 8px ${currentStatusColor}55`
                     } : undefined}
                     onClick={() => setMode(st)}
                   >
@@ -114,6 +193,7 @@ export default function CalendarActivityModal({ onSave, onClose }: CalendarActiv
             </div>
           </div>
           
+          {/* Date & Time */}
           <div className={styles.modalTwoCol}>
             <div className={styles.formField}>
               <label className={styles.formFieldLabel}>Date *</label>
@@ -136,6 +216,7 @@ export default function CalendarActivityModal({ onSave, onClose }: CalendarActiv
             </div>
           </div>
 
+          {/* Category & Assigned Role */}
           <div className={styles.modalTwoCol}>
             <div className={styles.formField}>
               <label className={styles.formFieldLabel}>Category</label>
@@ -159,97 +240,165 @@ export default function CalendarActivityModal({ onSave, onClose }: CalendarActiv
             </div>
           </div>
             
+          {/* MODE: ONLINE (With Smart Zoom / Meeting Link Autofill) */}
           {mode === 'Online' ? (
             <div className={styles.modalSection}>
-              <div className="bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/30 rounded-2xl p-4 flex flex-col gap-3">
+              <div className="bg-blue-50/60 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-800/40 rounded-2xl p-4 flex flex-col gap-3.5">
+                
+                {/* Meeting Link Input */}
+                <div className={styles.formField}>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className={styles.formFieldLabel}>Meeting Link</label>
+                    {parsedMeeting.isDetected && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/50 px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-800 animate-in fade-in">
+                        <Sparkles size={10} /> Auto-detected {parsedMeeting.platform}
+                      </span>
+                    )}
+                  </div>
+                  
+                  <input
+                    type="url"
+                    className={`${styles.formInput} ${!parsedMeeting.isValid ? 'border-rose-400 ring-2 ring-rose-500/10' : ''}`}
+                    value={onlineMeetingLink}
+                    onChange={(e) => {
+                      setOnlineMeetingLink(e.target.value);
+                      setHasManuallyEditedDetails(false);
+                    }}
+                    onBlur={handleLinkPasteOrBlur}
+                    onPaste={handleLinkPasteOrBlur}
+                    placeholder="e.g. https://zoom.us/j/1234567890?pwd=... or meet.google.com/xxx-xxxx-xxx"
+                  />
+
+                  {!parsedMeeting.isValid && (
+                    <p className="text-[11px] text-rose-500 font-medium mt-1 flex items-center gap-1">
+                      <AlertCircle size={11} /> {parsedMeeting.error}
+                    </p>
+                  )}
+
+                  {parsedMeeting.note && (
+                    <p className="text-[11px] text-blue-600 dark:text-blue-400 font-medium mt-1 flex items-center gap-1">
+                      <CheckCircle2 size={11} /> {parsedMeeting.note}
+                    </p>
+                  )}
+                </div>
+
+                {/* Platform, Meeting ID, and Passcode */}
                 <div className={styles.modalTwoCol}>
                   <div className={styles.formField}>
-                    <label className={styles.formFieldLabel}>Platform</label>
+                    <div className="flex items-center justify-between">
+                      <label className={styles.formFieldLabel}>Platform</label>
+                      {parsedMeeting.isDetected && parsedMeeting.platform && (
+                        <span className="text-[9px] font-bold text-blue-600 dark:text-blue-400">Detected</span>
+                      )}
+                    </div>
                     <input
                       type="text"
                       className={styles.formInput}
                       value={onlinePlatform}
-                      onChange={(e) => setOnlinePlatform(e.target.value)}
-                      placeholder="e.g. Zoom, Google Meet"
+                      onChange={(e) => {
+                        setOnlinePlatform(e.target.value);
+                        setHasManuallyEditedDetails(true);
+                      }}
+                      placeholder="e.g. Zoom, Google Meet, MS Teams"
                     />
                   </div>
-                  <div className={styles.formField}>
-                    <label className={styles.formFieldLabel}>Meeting Link</label>
-                    <input
-                      type="url"
-                      className={styles.formInput}
-                      value={onlineMeetingLink}
-                      onChange={(e) => setOnlineMeetingLink(e.target.value)}
-                      placeholder="https://zoom.us/j/..."
-                    />
-                  </div>
+
+                  {!parsedMeeting.isGoogleMeet && (
+                    <div className={styles.formField}>
+                      <div className="flex items-center justify-between">
+                        <label className={styles.formFieldLabel}>Meeting ID</label>
+                        {parsedMeeting.meetingId && (
+                          <span className="text-[9px] font-bold text-blue-600 dark:text-blue-400">Extracted</span>
+                        )}
+                      </div>
+                      <input
+                        type="text"
+                        className={styles.formInput}
+                        value={onlineMeetingId}
+                        onChange={(e) => {
+                          setOnlineMeetingId(e.target.value);
+                          setHasManuallyEditedDetails(true);
+                        }}
+                        placeholder="e.g. 123 4567 8901"
+                      />
+                    </div>
+                  )}
                 </div>
-                <div className={styles.modalTwoCol}>
+
+                {!parsedMeeting.isGoogleMeet && (
                   <div className={styles.formField}>
-                    <label className={styles.formFieldLabel}>Meeting ID</label>
-                    <input
-                      type="text"
-                      className={styles.formInput}
-                      value={onlineMeetingId}
-                      onChange={(e) => setOnlineMeetingId(e.target.value)}
-                      placeholder="Optional"
-                    />
-                  </div>
-                  <div className={styles.formField}>
-                    <label className={styles.formFieldLabel}>Passcode</label>
+                    <div className="flex items-center justify-between">
+                      <label className={styles.formFieldLabel}>Passcode (Optional)</label>
+                      {parsedMeeting.passcode && (
+                        <span className="text-[9px] font-bold text-blue-600 dark:text-blue-400">Extracted</span>
+                      )}
+                    </div>
                     <input
                       type="text"
                       className={styles.formInput}
                       value={onlinePasscode}
-                      onChange={(e) => setOnlinePasscode(e.target.value)}
-                      placeholder="Optional"
+                      onChange={(e) => {
+                        setOnlinePasscode(e.target.value);
+                        setHasManuallyEditedDetails(true);
+                      }}
+                      placeholder="e.g. 123456"
                     />
                   </div>
-                </div>
+                )}
               </div>
             </div>
           ) : (
+            /* MODE: ONSITE (Google Places Autocomplete Venue Picker) */
             <div className={styles.modalSection}>
-              <div className="bg-green-50/50 dark:bg-green-900/10 border border-green-100 dark:border-green-800/30 rounded-2xl p-4 flex flex-col gap-3">
-                <div className={styles.formField}>
-                  <label className={styles.formFieldLabel}>Venue Name</label>
-                  <input
-                    type="text"
-                    className={styles.formInput}
-                    value={onsiteVenue}
-                    onChange={(e) => setOnsiteVenue(e.target.value)}
-                    placeholder="e.g. Starbucks, Client Residence, Office Lobby"
-                  />
+              <div className="bg-emerald-50/40 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-800/40 rounded-2xl p-4 flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <label className={styles.formFieldLabel}>
+                    Venue / Location
+                  </label>
+                  <span className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
+                    <MapPin size={10} className="text-emerald-500" /> Links to OpenStreetMap
+                  </span>
                 </div>
+
+                {/* Google Places Autocomplete Venue Picker */}
+                <VenuePicker
+                  value={venueData || undefined}
+                  onChange={(selectedVenue) => setVenueData(selectedVenue)}
+                  placeholder="Search venue or landmark (e.g. SM Megamall, Ayala Triangle)..."
+                />
               </div>
             </div>
           )}
 
+          {/* Notes */}
           <div className={styles.modalSection}>
-            <label className={styles.formFieldLabel}>Notes</label>
+            <label className={styles.formFieldLabel}>Notes / Agenda</label>
             <textarea
               className={styles.appleNotesTextarea}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Type additional details..."
+              placeholder="Type additional details or meeting agenda..."
               rows={3}
             />
           </div>
         </div>
         
+        {/* Footer */}
         <div className={styles.modalFooter}>
           <div /> {/* Spacer */}
           <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button type="button" className={styles.ghostCancelBtn} onClick={onClose}>Cancel</button>
+            <button type="button" className={styles.ghostCancelBtn} onClick={onClose}>
+              Cancel
+            </button>
             <button 
               type="button" 
               className={styles.goldSaveBtn} 
               onClick={handleSave}
-              disabled={!title.trim() || !date}
+              disabled={isSaveDisabled}
               style={{ 
                 background: currentStatusColor,
-                opacity: (!title.trim() || !date) ? 0.5 : 1, 
-                cursor: (!title.trim() || !date) ? 'not-allowed' : 'pointer' 
+                opacity: isSaveDisabled ? 0.5 : 1, 
+                cursor: isSaveDisabled ? 'not-allowed' : 'pointer' 
               }}
             >
               Save Activity
@@ -260,4 +409,3 @@ export default function CalendarActivityModal({ onSave, onClose }: CalendarActiv
     </div>
   );
 }
-

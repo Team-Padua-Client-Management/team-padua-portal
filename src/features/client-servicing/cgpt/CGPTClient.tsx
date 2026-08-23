@@ -1,4 +1,4 @@
-// C:\website\team-padua-portal\src\features\client-servicing\cpst\CPSTClient.tsx
+// C:\website\team-padua-portal\src\features\client-servicing\cgpt\CGPTClient.tsx
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -15,7 +15,7 @@ import SignaturePad from '@src/components/ui/SignaturePad';
 import { exportToPDF, exportToDOCS } from '@src/lib/export';
 import ExportDropdown from '@src/components/shared/ExportDropdown';
 import { ConfirmModal } from '@src/components/modals/ConfirmModal';
-import styles from "@/styles/admin/cpst/page.module.css";
+import styles from "@/styles/admin/cgpt/page.module.css";
 
 export interface AdvisorRecord {
   id: string;
@@ -23,6 +23,227 @@ export interface AdvisorRecord {
   advisorName: string;
   email: string;
   createdAt?: string;
+}
+
+export interface BirthdayItem {
+  id: string;
+  name: string;
+  date: string;
+  when: 'today' | 'yesterday' | 'tomorrow';
+  age?: number;
+  advisorId: string;
+  advisorName: string;
+  policyNo?: string;
+}
+
+export function extractMonthDayYear(birthRaw: string): { year: number; month: number; day: number } | null {
+  if (!birthRaw) return null;
+  const trimmed = String(birthRaw).trim();
+
+  // YYYY-MM-DD or YYYY/MM/DD
+  const dateOnlyMatch = trimmed.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
+  if (dateOnlyMatch) {
+    const year = parseInt(dateOnlyMatch[1], 10);
+    const month = parseInt(dateOnlyMatch[2], 10) - 1;
+    const day = parseInt(dateOnlyMatch[3], 10);
+    if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+      return { year, month, day };
+    }
+  }
+
+  // MM/DD/YYYY or M/D/YYYY
+  const slashMatch = trimmed.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/);
+  if (slashMatch) {
+    const month = parseInt(slashMatch[1], 10) - 1;
+    const day = parseInt(slashMatch[2], 10);
+    const year = parseInt(slashMatch[3], 10);
+    if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+      return { year, month, day };
+    }
+  }
+
+  const parsed = new Date(trimmed);
+  if (!isNaN(parsed.getTime())) {
+    return { year: parsed.getFullYear(), month: parsed.getMonth(), day: parsed.getDate() };
+  }
+
+  return null;
+}
+
+export function computeBirthdayWhenAndAge(birthRaw: string | null): {
+  when: 'today' | 'yesterday' | 'tomorrow';
+  ageTurning: number;
+  dateDisplay: string;
+} | null {
+  if (!birthRaw) return null;
+
+  const extracted = extractMonthDayYear(birthRaw);
+  if (!extracted) return null;
+
+  const { year: birthYear, month, day } = extracted;
+
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const thisYear = todayStart.getFullYear();
+
+  const birthdayThisYear = new Date(thisYear, month, day);
+  const diffDays = Math.round((birthdayThisYear.getTime() - todayStart.getTime()) / 86400000);
+
+  let when: 'today' | 'yesterday' | 'tomorrow' | null = null;
+  if (diffDays === 0) when = 'today';
+  else if (diffDays === 1) when = 'tomorrow';
+  else if (diffDays === -1) when = 'yesterday';
+
+  if (!when) return null;
+
+  const ageTurning = thisYear - birthYear;
+  const dateDisplay = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(
+    new Date(thisYear, month, day)
+  );
+
+  return { when, ageTurning, dateDisplay };
+}
+
+export async function getClientBirthdays(options?: {
+  advisorId?: string;
+  dateRange?: 'all' | 'yesterday' | 'today' | 'tomorrow' | 'All' | 'Yesterday' | 'Today' | 'Tomorrow';
+}): Promise<{
+  birthdays: BirthdayItem[];
+  advisors: AdvisorRecord[];
+}> {
+  try {
+    const [advisorsRes, clientsRes] = await Promise.all([
+      supabase.from('advisors').select('*').order('advisor_name', { ascending: true }),
+      supabase
+        .from('cgpt_clients')
+        .select('*, advisor:advisors(*)')
+        .order('created_at', { ascending: false }),
+    ]);
+
+    const advisorsData = advisorsRes.data || [];
+    let clientsData = clientsRes.data || [];
+
+    if (clientsRes.error) {
+      console.warn('cgpt_clients query returned error, checking cpst_clients fallback:', clientsRes.error);
+      const fallbackRes = await supabase
+        .from('cpst_clients')
+        .select('*, advisor:advisors(*)')
+        .order('created_at', { ascending: false });
+      if (fallbackRes.data && fallbackRes.data.length > 0) {
+        clientsData = fallbackRes.data;
+      }
+    }
+
+    const advisors: AdvisorRecord[] = advisorsData.map((a: any) => ({
+      id: a.id,
+      advisorCode: a.advisor_code || '',
+      advisorName: a.advisor_name || '',
+      email: a.email || '',
+      createdAt: a.created_at || '',
+    }));
+
+    const items: BirthdayItem[] = [];
+
+    for (const c of clientsData) {
+      const birthdate = c.birthdate || c.birth_date || c.dob || c.birthday;
+      const computed = computeBirthdayWhenAndAge(birthdate);
+      if (!computed) continue;
+
+      const advisorRecord = Array.isArray(c.advisor) ? c.advisor[0] : c.advisor;
+      const advId = advisorRecord?.id || c.advisor_id || 'Unassigned';
+      const advName = advisorRecord?.advisor_name || 'Unassigned';
+
+      items.push({
+        id: c.id,
+        name: c.client_name || c.name || 'Unnamed Client',
+        date: computed.dateDisplay,
+        when: computed.when,
+        age: computed.ageTurning,
+        advisorId: advId,
+        advisorName: advName,
+        policyNo: c.policy_number || undefined,
+      });
+    }
+
+    let filtered = items;
+    if (options?.advisorId && options.advisorId !== 'All') {
+      filtered = filtered.filter((b) => b.advisorId === options.advisorId);
+    }
+    if (options?.dateRange && options.dateRange.toLowerCase() !== 'all') {
+      const range = options.dateRange.toLowerCase();
+      filtered = filtered.filter((b) => b.when === range);
+    }
+
+    const priority: Record<string, number> = { yesterday: 0, today: 1, tomorrow: 2 };
+    filtered.sort((a, b) => (priority[a.when] ?? 99) - (priority[b.when] ?? 99));
+
+    return { birthdays: filtered, advisors };
+  } catch (err) {
+    console.error('Error in getClientBirthdays:', err);
+    return { birthdays: [], advisors: [] };
+  }
+}
+
+export function useClientBirthdays(
+  initialAdvisor = 'All',
+  initialFilter: 'All' | 'Yesterday' | 'Today' | 'Tomorrow' = 'All'
+) {
+  const [advisors, setAdvisors] = useState<AdvisorRecord[]>([]);
+  const [allBirthdays, setAllBirthdays] = useState<BirthdayItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<any>(null);
+  const [selectedAdvisor, setSelectedAdvisor] = useState(initialAdvisor);
+  const [whenFilter, setWhenFilter] = useState<'All' | 'Yesterday' | 'Today' | 'Tomorrow'>(initialFilter);
+
+  const fetchBirthdays = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await getClientBirthdays();
+      setAllBirthdays(res.birthdays);
+      setAdvisors(res.advisors);
+    } catch (err) {
+      setError(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchBirthdays();
+  }, []);
+
+  const filteredBirthdays = useMemo(() => {
+    let items = selectedAdvisor === 'All'
+      ? allBirthdays
+      : allBirthdays.filter((b) => b.advisorId === selectedAdvisor);
+
+    if (whenFilter !== 'All') {
+      const targetWhen = whenFilter.toLowerCase();
+      items = items.filter((b) => b.when === targetWhen);
+    }
+
+    const priority: Record<string, number> = { yesterday: 0, today: 1, tomorrow: 2 };
+    return [...items].sort((a, b) => (priority[a.when] ?? 99) - (priority[b.when] ?? 99));
+  }, [allBirthdays, selectedAdvisor, whenFilter]);
+
+  const todayCount = useMemo(() => {
+    return filteredBirthdays.filter((b) => b.when === 'today').length;
+  }, [filteredBirthdays]);
+
+  return {
+    birthdays: allBirthdays,
+    filteredBirthdays,
+    advisors,
+    loading,
+    error,
+    selectedAdvisor,
+    setSelectedAdvisor,
+    whenFilter,
+    setWhenFilter,
+    todayCount,
+    refetch: fetchBirthdays,
+  };
 }
 
 export interface ClientManagementRecord {
@@ -53,7 +274,6 @@ export interface ClientManagementRecord {
 export interface ClientDisplayRecord {
   id: string;
   clientId: string;
-  recordType: 'CLIENT' | 'BENEFICIARY';
   name: string;
   clientName: string;
   relationship: string;
@@ -70,6 +290,8 @@ export interface ClientDisplayRecord {
   birthdate?: string;
   created_at?: string;
   rawClient: ClientManagementRecord;
+  isMonthHeader?: boolean;
+  label?: string;
 }
 
 export interface ClientRecord {
@@ -216,7 +438,7 @@ function parseBeneficiaryEntries(raw: string): BeneficiaryEntry[] {
     });
 }
 
-interface CPSTClientProps {
+interface CGPTClientProps {
   canCreate: boolean;
   canEdit: boolean;
   canDelete: boolean;
@@ -226,16 +448,15 @@ interface CPSTClientProps {
 const formInputClass = "w-full px-3.5 py-2.5 border border-border rounded-2xl text-xs focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 bg-card text-foreground transition-all duration-200";
 const formLabelClass = "block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5";
 
-export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }: CPSTClientProps) {
+export default function CGPTClient({ canCreate, canEdit, canDelete, canExport }: CGPTClientProps) {
   const [advisors, setAdvisors] = useState<AdvisorRecord[]>([]);
   const [clients, setClients] = useState<ClientManagementRecord[]>([]);
   const [selectedAdvisor, setSelectedAdvisor] = useState<AdvisorRecord | null>(null);
 
   const [advisorSearch, setAdvisorSearch] = useState('');
   const [clientSearch, setClientSearch] = useState('');
-  const [productFilter, setProductFilter] = useState('ALL');
-  const [recordTypeFilter, setRecordTypeFilter] = useState<'ALL' | 'CLIENTS' | 'BENEFICIARIES'>('ALL');
-  const [sortBy, setSortBy] = useState('newest');
+  const [birthdayMonthFilter, setBirthdayMonthFilter] = useState('ALL');
+  const [sortBy, setSortBy] = useState('birthday-month');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -317,7 +538,7 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
       }
 
       const { data: clientsData, error: clientsErr } = await supabase
-        .from('cpst_clients')
+        .from('cgpt_clients')
         .select('*, advisor:advisors(*)')
         .order('created_at', { ascending: false });
 
@@ -441,11 +662,14 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
     const records: ClientDisplayRecord[] = [];
 
     advisorClients.forEach(c => {
+      const displayName = c.beneficiary && c.beneficiary.trim()
+        ? `${c.clientName} (${c.beneficiary.trim()})`
+        : c.clientName;
+
       records.push({
-        id: `${c.id}-client`,
+        id: c.id,
         clientId: c.id,
-        recordType: 'CLIENT',
-        name: c.clientName,
+        name: displayName,
         clientName: c.clientName,
         relationship: c.relationship || '',
         policyNumber: c.policyNumber || '',
@@ -462,80 +686,100 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
         created_at: c.created_at || '',
         rawClient: c
       });
-
-      if (c.beneficiary && c.beneficiary.trim()) {
-        const beneficiaryEntries = parseBeneficiaryEntries(c.beneficiary);
-
-        beneficiaryEntries.forEach((entry, idx) => {
-          records.push({
-            id: `${c.id}-ben-${idx}`,
-            clientId: c.id,
-            recordType: 'BENEFICIARY',
-            name: entry.name,
-            clientName: c.clientName,
-            relationship: entry.relationship,
-            policyNumber: c.policyNumber || '',
-            product: c.product || '',
-            approvalDate: c.approvalDate || '',
-            annualPremium: c.annualPremium || 0,
-            mobileNumber: c.mobileNumber || '',
-            email: c.email || '',
-            address: c.address || '',
-            beneficiary: c.beneficiary || '',
-            fundAllocation: c.fundAllocation || '',
-            modeOfPayment: c.modeOfPayment || 'Annual',
-            birthdate: c.birthdate || '',
-            created_at: c.created_at || '',
-            rawClient: c
-          });
-        });
-      }
     });
 
     return records;
   }, [advisorClients, selectedAdvisor]);
 
   const filteredDisplayRecords = useMemo(() => {
-    return advisorDisplayRecords.filter(r => {
-      if (recordTypeFilter === 'CLIENTS' && r.recordType !== 'CLIENT') return false;
-      if (recordTypeFilter === 'BENEFICIARIES' && r.recordType !== 'BENEFICIARY') return false;
-
-      if (productFilter !== 'ALL' && r.product !== productFilter) return false;
+    const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const filtered = advisorDisplayRecords.filter(r => {
+      if (birthdayMonthFilter !== 'ALL') {
+        const bd = r.rawClient?.birthdate;
+        if (!bd) return false;
+        const d = new Date(bd + 'T00:00:00');
+        if (isNaN(d.getTime())) return false;
+        if (MONTH_NAMES[d.getMonth()] !== birthdayMonthFilter) return false;
+      }
 
       if (clientSearch.trim()) {
         const s = clientSearch.toLowerCase();
-        if (r.recordType === 'CLIENT') {
-          const matchName = r.name?.toLowerCase().includes(s);
-          const matchPolicy = r.policyNumber?.toLowerCase().includes(s);
-          const matchRel = r.relationship?.toLowerCase().includes(s);
-          if (!matchName && !matchPolicy && !matchRel) return false;
-        } else {
-          const matchBenName = r.name?.toLowerCase().includes(s);
-          const matchClientName = r.clientName?.toLowerCase().includes(s);
-          const matchPolicy = r.policyNumber?.toLowerCase().includes(s);
-          const matchRel = r.relationship?.toLowerCase().includes(s);
-          if (!matchBenName && !matchClientName && !matchPolicy && !matchRel) return false;
-        }
+        const matchName = r.name?.toLowerCase().includes(s);
+        const matchClientName = r.clientName?.toLowerCase().includes(s);
+        const matchPolicy = r.policyNumber?.toLowerCase().includes(s);
+        if (!matchName && !matchClientName && !matchPolicy) return false;
       }
       return true;
-    }).sort((a, b) => {
+    });
+
+    const getBd = (r: ClientDisplayRecord) => {
+      const bd = r.rawClient?.birthdate;
+      if (!bd) return null;
+      const d = new Date(bd + 'T00:00:00');
+      return isNaN(d.getTime()) ? null : d;
+    };
+
+    const sorted = [...filtered].sort((a, b) => {
+      if (sortBy === 'birthday-month' || sortBy === 'birthday-asc') {
+        const dA = getBd(a);
+        const dB = getBd(b);
+        const mA = dA ? dA.getMonth() * 100 + dA.getDate() : 99999;
+        const mB = dB ? dB.getMonth() * 100 + dB.getDate() : 99999;
+        if (mA !== mB) return mA - mB;
+        return (a.name || '').localeCompare(b.name || '');
+      }
+      if (sortBy === 'name') return (a.name || '').localeCompare(b.name || '');
       if (sortBy === 'newest') return new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime();
       if (sortBy === 'oldest') return new Date(a.created_at || '').getTime() - new Date(b.created_at || '').getTime();
-      if (sortBy === 'name') return (a.name || '').localeCompare(b.name || '');
       return 0;
     });
-  }, [advisorDisplayRecords, recordTypeFilter, productFilter, clientSearch, sortBy]);
+
+    // Only insert month headers when sorting by birthday
+    if (sortBy !== 'birthday-month' && sortBy !== 'birthday-asc') {
+      return sorted;
+    }
+
+    const result: ClientDisplayRecord[] = [];
+    let currentMonth: string | null = null;
+
+    sorted.forEach((record, index) => {
+      const bd = getBd(record);
+      if (bd) {
+        const monthName = MONTH_NAMES[bd.getMonth()].toUpperCase();
+        if (monthName !== currentMonth) {
+          currentMonth = monthName;
+          result.push({
+            id: `month-header-${monthName.toLowerCase()}-${index}`,
+            clientId: '',
+            isMonthHeader: true,
+            label: monthName,
+            name: monthName,
+            clientName: '',
+            relationship: '',
+            policyNumber: '',
+            product: '',
+            approvalDate: '',
+            annualPremium: 0,
+            mobileNumber: '',
+            email: '',
+            address: '',
+            beneficiary: '',
+            fundAllocation: '',
+            modeOfPayment: '',
+            rawClient: record.rawClient
+          });
+        }
+      }
+      result.push(record);
+    });
+
+    return result;
+  }, [advisorDisplayRecords, birthdayMonthFilter, clientSearch, sortBy]);
 
   // ─── Selection helpers ────────────────────────────────────────────────────
-  // CLIENT rows have id = `${clientId}-client`.
-  // BENEFICIARY rows have id = `${clientId}-ben-${idx}` — selecting them
-  // would inflate the count without adding new unique clients to delete.
-  // We restrict "Select All" to CLIENT rows only and derive the unique
-  // client count from whatever mix of rows the user has actually selected.
-
-  /** All CLIENT-only rows from the current filtered view. */
+  /** All real client rows (ignoring synthetic month headers) from the current filtered view. */
   const filteredClientOnlyIds = useMemo(
-    () => filteredDisplayRecords.filter(r => r.recordType === 'CLIENT').map(r => r.id),
+    () => filteredDisplayRecords.filter(r => !r.isMonthHeader).map(r => r.id),
     [filteredDisplayRecords]
   );
 
@@ -610,13 +854,13 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
 
       if (currentClient.id) {
         result = await supabase
-          .from("cpst_clients")
+          .from("cgpt_clients")
           .update(payload)
           .eq("id", currentClient.id)
           .select();
       } else {
         result = await supabase
-          .from("cpst_clients")
+          .from("cgpt_clients")
           .insert([{ ...payload, id: crypto.randomUUID() }])
           .select();
       }
@@ -678,7 +922,7 @@ ${result.error?.hint}
   const handleSaveDocFields = async () => {
     if (!currentClient.id) return;
     try {
-      await supabase.from('cpst_clients').update({
+      await supabase.from('cgpt_clients').update({
         id_type: docFormData.idType || null,
         id_number: docFormData.idNumber || null,
         id_expiration_date: docFormData.idExpirationDate || null,
@@ -756,7 +1000,7 @@ ${result.error?.hint}
           const chunk = targetClientIds.slice(i, i + CHUNK_SIZE);
 
           const { error } = await supabase
-            .from('cpst_clients')
+            .from('cgpt_clients')
             .delete()
             .in('id', chunk)
             .eq('advisor_id', selectedAdvisor!.id);
@@ -771,7 +1015,7 @@ ${result.error?.hint}
         setSelectedIds([]);
       } else {
         const { error } = await supabase
-          .from('cpst_clients')
+          .from('cgpt_clients')
           .delete()
           .eq('id', clientToDelete);
 
@@ -781,7 +1025,7 @@ ${result.error?.hint}
           return;
         }
 
-        setSelectedIds(prev => prev.filter(id => id !== clientToDelete && !id.startsWith(`${clientToDelete}-ben-`)));
+        setSelectedIds(prev => prev.filter(id => id !== clientToDelete));
       }
 
       await fetchData();
@@ -1224,7 +1468,7 @@ ${result.error?.hint}
 
     try {
       const { data: existingClients } = await supabase
-        .from('cpst_clients')
+        .from('cgpt_clients')
         .select('id, email, mobile_number, policy_number, client_name, birthdate')
         .eq('advisor_id', importAdvisorId);
 
@@ -1281,7 +1525,7 @@ ${result.error?.hint}
         });
       }
 
-      const { error } = await supabase.from('cpst_clients').upsert(recordsToUpsert).select();
+      const { error } = await supabase.from('cgpt_clients').upsert(recordsToUpsert).select();
       if (error) throw error;
 
       setImportState(prev => ({
@@ -1404,6 +1648,19 @@ ${result.error?.hint}
     }
   };
 
+  // Helper: extract rows from PDF or Word text for birthday scanning
+  const extractRowsFromText = (rawText: string): any[][] => {
+    // Normalize month name abbreviations to dates
+    const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    const rows: string[][] = lines.map(line => line.split(/\t|,|;|\|/).map(c => c.trim()));
+    // If single-column (e.g. PDF), split by 2+ spaces
+    const isSingleCol = rows.every(r => r.length === 1);
+    if (isSingleCol) {
+      return lines.map(line => line.split(/\s{2,}/).map(c => c.trim()));
+    }
+    return rows;
+  };
+
   const handleFileSelected = async (file: File) => {
     if (importTarget === 'clients' && !importAdvisorId) {
       setImportState({ phase: 'error', fileName: file.name, validation: null, importedCount: 0, errorMessage: 'Please select an Advisor before uploading clients.' });
@@ -1413,6 +1670,48 @@ ${result.error?.hint}
     setImportState({ phase: 'reading', fileName: file.name, validation: null, importedCount: 0, errorMessage: '' });
 
     try {
+      const ext = file.name.split('.').pop()?.toLowerCase();
+
+      // PDF: extract text and scan for birthday patterns
+      if (ext === 'pdf') {
+        const pdfjsLib = await import('pdfjs-dist');
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+        const buffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+        let allText = '';
+        for (let p = 1; p <= pdf.numPages; p++) {
+          const page = await pdf.getPage(p);
+          const tc = await page.getTextContent();
+          allText += tc.items.map((i: any) => i.str).join(' ') + '\n';
+        }
+        const rows = extractRowsFromText(allText);
+        if (importTarget === 'clients') {
+          const result = parseClientRows(rows);
+          setImportState(prev => ({ ...prev, phase: 'preview', validation: result as any }));
+        } else {
+          const result = parseAdvisorRows(rows);
+          setImportState(prev => ({ ...prev, phase: 'preview', validation: result as any }));
+        }
+        return;
+      }
+
+      // Word (.docx): extract text via mammoth
+      if (ext === 'docx' || ext === 'doc') {
+        const mammoth = await import('mammoth');
+        const buffer = await file.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer: buffer });
+        const rows = extractRowsFromText(result.value);
+        if (importTarget === 'clients') {
+          const r = parseClientRows(rows);
+          setImportState(prev => ({ ...prev, phase: 'preview', validation: r as any }));
+        } else {
+          const r = parseAdvisorRows(rows);
+          setImportState(prev => ({ ...prev, phase: 'preview', validation: r as any }));
+        }
+        return;
+      }
+
+      // Excel / CSV
       const XLSX = await import('xlsx');
       const buffer = await file.arrayBuffer();
 
@@ -1494,18 +1793,15 @@ ${result.error?.hint}
     e.preventDefault();
     setIsDragging(false);
     const file = e.dataTransfer.files?.[0];
-    if (file && (file.name.endsWith('.csv') || file.name.endsWith('.xlsx'))) {
-      handleFileSelected(file);
-    }
+    if (file) handleFileSelected(file);
   };
 
   const exportToCSV = () => {
-    if (!canExport || filteredDisplayRecords.length === 0) return;
-    const headers = ['Record Type', 'Name', 'Associated Client', 'Relationship', 'Policy Number', 'Product', 'Approval Date', 'Annual Premium', 'Mobile', 'Email', 'Address', 'Beneficiary', 'Payment Mode'];
-    const rows = filteredDisplayRecords.map(c => [
-      c.recordType,
+    const clientRows = filteredDisplayRecords.filter(r => !r.isMonthHeader);
+    if (!canExport || clientRows.length === 0) return;
+    const headers = ['Name', 'Relationship', 'Policy Number', 'Product', 'Approval Date', 'Annual Premium', 'Mobile', 'Email', 'Address', 'Beneficiary', 'Payment Mode'];
+    const rows = clientRows.map(c => [
       c.name,
-      c.recordType === 'BENEFICIARY' ? c.clientName : '',
       c.relationship,
       c.policyNumber,
       c.product,
@@ -1527,12 +1823,11 @@ ${result.error?.hint}
   };
 
   const handleExportPDF = () => {
-    if (!canExport || filteredDisplayRecords.length === 0) return;
-    const headers = ['Type', 'Name', 'Associated Client', 'Policy Number', 'Product', 'Approval Date', 'Premium', 'Mobile Number', 'Email', 'Payment Mode'];
-    const rows = filteredDisplayRecords.map(c => [
-      c.recordType,
+    const clientRows = filteredDisplayRecords.filter(r => !r.isMonthHeader);
+    if (!canExport || clientRows.length === 0) return;
+    const headers = ['Name', 'Policy Number', 'Product', 'Approval Date', 'Premium', 'Mobile Number', 'Email', 'Payment Mode'];
+    const rows = clientRows.map(c => [
       c.name,
-      c.recordType === 'BENEFICIARY' ? c.clientName : '—',
       c.policyNumber || '—',
       c.product || '—',
       c.approvalDate || '—',
@@ -1556,18 +1851,17 @@ ${result.error?.hint}
   };
 
   const handleExport = (format: 'csv' | 'pdf' | 'word') => {
-    if (!canExport || filteredDisplayRecords.length === 0) return;
-    const headers = ['Type', 'Name', 'Associated Client', 'Policy Number', 'Product', 'Approval Date', 'Premium', 'Mobile Number', 'Email', 'Payment Mode'];
+    const clientRows = filteredDisplayRecords.filter(r => !r.isMonthHeader);
+    if (!canExport || clientRows.length === 0) return;
+    const headers = ['Name', 'Policy Number', 'Product', 'Approval Date', 'Premium', 'Mobile Number', 'Email', 'Payment Mode'];
 
     if (format === 'csv') {
       exportToCSV();
     } else if (format === 'pdf') {
       handleExportPDF();
     } else if (format === 'word') {
-      const rows = filteredDisplayRecords.map(c => [
-        c.recordType,
+      const rows = clientRows.map(c => [
         c.name,
-        c.recordType === 'BENEFICIARY' ? c.clientName : '—',
         c.policyNumber || '—',
         c.product || '—',
         c.approvalDate || '—',
@@ -1612,22 +1906,19 @@ ${result.error?.hint}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
                 <h1 className={styles.text_56}>
-                  {selectedAdvisor ? selectedAdvisor.advisorName : 'Advisor Registry'}
+                  {selectedAdvisor ? selectedAdvisor.advisorName : 'Advisor Birthday Center'}
                 </h1>
-                <p className={styles.table_57}>
+                <p className="text-xs text-text-secondary mt-1 max-w-2xl">
                   {selectedAdvisor
-                    ? `Client Registry for Advisor Code: ${selectedAdvisor.advisorCode}`
-                    : 'Client Advisor Management System (CAMS) main registry.'}
+                    ? `Client Birthday Center for Advisor Code: ${selectedAdvisor.advisorCode}`
+                    : 'Client Greetings & Presentation Tracker (CGPT) main center.'}
                 </p>
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
                 {selectedAdvisor && (
-                  <button
-                    onClick={() => setSelectedAdvisor(null)}
-                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-border bg-card text-text text-[11.5px] font-bold shadow-sm hover:bg-surface-2 transition-all duration-200 active:scale-[0.98]"
-                  >
-                    <ArrowLeft size={14} /> Back to Advisor Registry
+                  <button onClick={() => setSelectedAdvisor(null)} className="flex items-center gap-2 px-4 py-2 bg-card border border-border rounded-xl text-[11.5px] font-bold hover:bg-surface-2 active:scale-[0.97] transition-all duration-200">
+                    <ArrowLeft size={14} /> Back to Advisor Center
                   </button>
                 )}
 
@@ -1702,7 +1993,7 @@ ${result.error?.hint}
                   <div>
                     <div className={styles.container_68}>
                       <FileSpreadsheet size={15} className={styles.text_69} />
-                      <h3 className={styles.table_70}>CAMS Batch Import</h3>
+                      <h3 className={styles.table_70}>CGPT Batch Import</h3>
                     </div>
                     <p className={styles.text_71}>
                       Upload Excel or CSV files to batch import clients under a selected advisor, or batch import new advisors.
@@ -1872,19 +2163,26 @@ ${result.error?.hint}
                   />
                 </div>
                 <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-                  <select value={recordTypeFilter} onChange={e => setRecordTypeFilter(e.target.value as any)} className="h-10 px-4 bg-surface border border-border rounded-xl text-[11.5px] font-semibold text-text focus:outline-none focus:border-primary">
-                    <option value="ALL">All Records</option>
-                    <option value="CLIENTS">Clients Only</option>
-                    <option value="BENEFICIARIES">Beneficiaries Only</option>
-                  </select>
-                  <select value={productFilter} onChange={e => setProductFilter(e.target.value)} className="h-10 px-4 bg-surface border border-border rounded-xl text-[11.5px] font-semibold text-text focus:outline-none focus:border-primary">
-                    <option value="ALL">All Products</option>
-                    {PRODUCTS.map(p => <option key={p} value={p}>{p}</option>)}
+                  <select value={birthdayMonthFilter} onChange={e => setBirthdayMonthFilter(e.target.value)} className="h-10 px-4 bg-surface border border-border rounded-xl text-[11.5px] font-semibold text-text focus:outline-none focus:border-primary">
+                    <option value="ALL">🎂 All Months</option>
+                    <option value="January">January</option>
+                    <option value="February">February</option>
+                    <option value="March">March</option>
+                    <option value="April">April</option>
+                    <option value="May">May</option>
+                    <option value="June">June</option>
+                    <option value="July">July</option>
+                    <option value="August">August</option>
+                    <option value="September">September</option>
+                    <option value="October">October</option>
+                    <option value="November">November</option>
+                    <option value="December">December</option>
                   </select>
                   <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="h-10 px-4 bg-surface border border-border rounded-xl text-[11.5px] font-semibold text-text focus:outline-none focus:border-primary">
-                    <option value="newest">Newest First</option>
-                    <option value="oldest">Oldest First</option>
+                    <option value="birthday-month">🗓 Birthday Calendar (Jan → Dec)</option>
                     <option value="name">Name A-Z</option>
+                    <option value="newest">Newest Added</option>
+                    <option value="oldest">Oldest Added</option>
                   </select>
                   {canExport && (
                     <ExportDropdown onExport={handleExport} />
@@ -1914,10 +2212,6 @@ ${result.error?.hint}
                             checked={isAllClientsSelected}
                             onChange={(e) => {
                               if (e.target.checked) {
-                                // Only select CLIENT rows — beneficiary rows are
-                                // synthetic display rows that share a clientId;
-                                // including them inflates the count without
-                                // representing additional DB records.
                                 setSelectedIds(prev =>
                                   Array.from(new Set([...prev, ...filteredClientOnlyIds]))
                                 );
@@ -1931,88 +2225,91 @@ ${result.error?.hint}
                           />
                         </th>
                         <th className="py-4 px-4 font-bold text-[10.5px] uppercase tracking-wider text-text-secondary">Client Name / Beneficiary Name</th>
-                        <th className="py-4 px-4 font-bold text-[10.5px] uppercase tracking-wider text-text-secondary">Relationship</th>
-                        <th className="py-4 px-4 font-bold text-[10.5px] uppercase tracking-wider text-text-secondary">Policy Number</th>
-                        <th className="py-4 px-4 font-bold text-[10.5px] uppercase tracking-wider text-text-secondary">Product</th>
-                        <th className="py-4 px-4 font-bold text-[10.5px] uppercase tracking-wider text-text-secondary">Approval Date</th>
-                        <th className="py-4 px-4 font-bold text-[10.5px] uppercase tracking-wider text-text-secondary">Annual Premium</th>
-                        <th className="py-4 px-4 font-bold text-[10.5px] uppercase tracking-wider text-text-secondary">Mobile Number</th>
-                        <th className="py-4 px-4 font-bold text-[10.5px] uppercase tracking-wider text-text-secondary">Email</th>
-                        <th className="py-4 px-4 font-bold text-[10.5px] uppercase tracking-wider text-text-secondary">Address</th>
-                        <th className="py-4 px-4 font-bold text-[10.5px] uppercase tracking-wider text-text-secondary">Beneficiary</th>
-                        <th className="py-4 px-4 font-bold text-[10.5px] uppercase tracking-wider text-text-secondary">Fund Allocation</th>
-                        <th className="py-4 px-4 font-bold text-[10.5px] uppercase tracking-wider text-text-secondary">Mode of Payment</th>
+                        <th className="py-4 px-4 font-bold text-[10.5px] uppercase tracking-wider text-text-secondary">MONTH - BIRTHDATE</th>
+                        <th className="py-4 px-4 font-bold text-[10.5px] uppercase tracking-wider text-text-secondary">Age</th>
                         <th className="py-4 px-4 font-bold text-[10.5px] uppercase tracking-wider text-text-secondary text-right sticky right-0 bg-surface-2/60">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border/40">
                       {loading ? (
-                        <tr><td colSpan={14} className="py-8 text-center text-text-secondary text-[11.5px]">Loading records...</td></tr>
-                      ) : filteredDisplayRecords.map((record, i) => (
-                        <tr key={record.id} className="group hover:bg-surface-2/40 transition-colors">
-                          <td className="py-3 px-4">
-                            <div className="flex items-center gap-3">
-                              <input
-                                type="checkbox"
-                                checked={selectedIds.includes(record.id)}
-                                onChange={(e) => {
-                                  if (e.target.checked) setSelectedIds([...selectedIds, record.id]);
-                                  else setSelectedIds(selectedIds.filter(id => id !== record.id));
-                                }}
-                                className="rounded border-border/50 bg-transparent text-primary focus:ring-primary focus:ring-offset-surface cursor-pointer w-4 h-4"
-                              />
-                              <span className="text-[11.5px] text-text-secondary font-mono">{i + 1}</span>
-                            </div>
-                          </td>
-                          <td className="py-3 px-4">
-                            {record.recordType === 'CLIENT' ? (
-                              <span className="font-bold text-text text-[12.5px]">{record.name}</span>
-                            ) : (
-                              <div>
+                        <tr><td colSpan={5} className="py-8 text-center text-text-secondary text-[11.5px]">Loading records...</td></tr>
+                      ) : (() => {
+                        let clientRowIndex = 0;
+                        return filteredDisplayRecords.map((record) => {
+                          if (record.isMonthHeader) {
+                            return (
+                              <tr key={record.id} className="bg-amber-100/70 dark:bg-amber-500/15 border-y border-amber-300/60 dark:border-amber-500/30">
+                                <td colSpan={5} className="py-2.5 px-4 text-center font-extrabold text-[12px] uppercase tracking-widest text-amber-900 dark:text-amber-300 select-none">
+                                  {record.label || record.name}
+                                </td>
+                              </tr>
+                            );
+                          }
+
+                          clientRowIndex++;
+                          const currentDisplayIndex = clientRowIndex;
+
+                          let formattedBirthdate = '—';
+                          let age: string | number = '—';
+                          const rawBd = record.rawClient?.birthdate;
+                          if (rawBd) {
+                            const d = new Date(rawBd + 'T00:00:00');
+                            if (!isNaN(d.getTime())) {
+                              formattedBirthdate = `${d.toLocaleString('default', { month: 'long' }).toUpperCase()} - ${d.getDate()}`;
+                              const today = new Date();
+                              let calcAge = today.getFullYear() - d.getFullYear();
+                              const hasHadBirthday =
+                                today.getMonth() > d.getMonth() ||
+                                (today.getMonth() === d.getMonth() && today.getDate() >= d.getDate());
+                              if (!hasHadBirthday) calcAge--;
+                              age = `${calcAge}yrs`;
+                            }
+                          }
+                          return (
+                            <tr key={record.id} className="group hover:bg-surface-2/40 transition-colors">
+                              <td className="py-3 px-4">
+                                <div className="flex items-center gap-3">
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedIds.includes(record.id)}
+                                    onChange={(e) => {
+                                      if (e.target.checked) setSelectedIds([...selectedIds, record.id]);
+                                      else setSelectedIds(selectedIds.filter(id => id !== record.id));
+                                    }}
+                                    className="rounded border-border/50 bg-transparent text-primary focus:ring-primary focus:ring-offset-surface cursor-pointer w-4 h-4"
+                                  />
+                                  <span className="text-[11.5px] text-text-secondary font-mono">{currentDisplayIndex}</span>
+                                </div>
+                              </td>
+                              <td className="py-3 px-4">
                                 <div className="font-bold text-text text-[12.5px]">{record.name}</div>
-                                {record.relationship && (
-                                  <div className="text-[10.5px] text-text-secondary font-normal mt-0.5">
-                                    ({record.clientName}&apos;s {record.relationship})
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </td>
-                          <td className="py-3 px-4 text-text-secondary text-[11.5px]">{record.relationship || '—'}</td>
-                          <td className="py-3 px-4 font-mono font-semibold text-text text-[11.5px]">
-                            {record.policyNumber ? <span className="bg-surface border border-border px-2 py-0.5 rounded-md">{record.policyNumber}</span> : '—'}
-                          </td>
-                          <td className="py-3 px-4 text-text-secondary text-[11.5px]">{record.product || '—'}</td>
-                          <td className="py-3 px-4 text-text-secondary text-[11.5px]">{record.approvalDate || '—'}</td>
-                          <td className="py-3 px-4 font-bold text-green-600 dark:text-green-400 text-[12px]">₱{record.annualPremium?.toLocaleString() || '0'}</td>
-                          <td className="py-3 px-4 text-text-secondary text-[11.5px]">{record.mobileNumber || '—'}</td>
-                          <td className="py-3 px-4 text-text-secondary text-[11.5px]">{record.email || '—'}</td>
-                          <td className="py-3 px-4 text-text-secondary text-[11.5px] max-w-[200px] truncate" title={record.address}>{record.address || '—'}</td>
-                          <td className="py-3 px-4 text-text-secondary text-[11.5px]">{record.beneficiary || '—'}</td>
-                          <td className="py-3 px-4 text-text-secondary text-[11.5px]">{record.fundAllocation || '—'}</td>
-                          <td className="py-3 px-4 text-text-secondary text-[11.5px]">{record.modeOfPayment || '—'}</td>
-                          <td className="py-2.5 px-4 text-right sticky right-0 bg-card group-hover:bg-surface-2/40 transition-colors">
-                            <div className="flex justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                              <button onClick={() => { setCurrentClient(record.rawClient); setActiveModal('actions'); }} className="p-2 text-muted hover:text-blue-500 transition-colors duration-200 bg-card border border-transparent hover:border-blue-500 rounded-full shadow-sm" title="Forms & Services">
-                                <MoreVertical size={14} />
-                              </button>
-                              {canEdit && (
-                                <button onClick={() => { setCurrentClient(record.rawClient); setActiveModal('edit'); }} className="p-2 text-muted hover:text-[#F4C542] transition-colors duration-200 bg-card border border-transparent hover:border-primary rounded-full shadow-sm" title="Edit">
-                                  <Edit2 size={14} />
-                                </button>
-                              )}
-                              {canDelete && (
-                                <button onClick={() => confirmDeleteClient(record.clientId)} className="p-2 text-muted hover:text-red-500 transition-colors duration-200 bg-card border border-transparent hover:border-red-500 rounded-full shadow-sm" title="Delete">
-                                  <Trash2 size={14} />
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                      {!loading && filteredDisplayRecords.length === 0 && (
+                              </td>
+                              <td className="py-3 px-4 text-text-secondary text-[11.5px]">{formattedBirthdate}</td>
+                              <td className="py-3 px-4 text-text-secondary text-[11.5px]">{age}</td>
+                              <td className="py-2.5 px-4 text-right sticky right-0 bg-card group-hover:bg-surface-2/40 transition-colors">
+                                <div className="flex justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                  <button onClick={() => { setCurrentClient(record.rawClient); setActiveModal('actions'); }} className="p-2 text-muted hover:text-blue-500 transition-colors duration-200 bg-card border border-transparent hover:border-blue-500 rounded-full shadow-sm" title="Forms & Services">
+                                    <MoreVertical size={14} />
+                                  </button>
+                                  {canEdit && (
+                                    <button onClick={() => { setCurrentClient(record.rawClient); setActiveModal('edit'); }} className="p-2 text-muted hover:text-[#F4C542] transition-colors duration-200 bg-card border border-transparent hover:border-primary rounded-full shadow-sm" title="Edit">
+                                      <Edit2 size={14} />
+                                    </button>
+                                  )}
+                                  {canDelete && (
+                                    <button onClick={() => confirmDeleteClient(record.clientId)} className="p-2 text-muted hover:text-red-500 transition-colors duration-200 bg-card border border-transparent hover:border-red-500 rounded-full shadow-sm" title="Delete">
+                                      <Trash2 size={14} />
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        });
+                      })()}
+                      {!loading && filteredDisplayRecords.filter(r => !r.isMonthHeader).length === 0 && (
                         <tr>
-                          <td colSpan={14} className="py-8 text-center text-text-secondary text-sm">No records assigned to this advisor matching search criteria.</td>
+                          <td colSpan={5} className="py-8 text-center text-text-secondary text-sm">No records assigned to this advisor matching search criteria.</td>
                         </tr>
                       )}
                     </tbody>
@@ -2038,7 +2335,7 @@ ${result.error?.hint}
             </div>
 
             <div className="p-6 overflow-y-auto flex-1 space-y-5">
-              <form id="cpst-form" onSubmit={handleSaveClient} className="space-y-4 text-left">
+              <form id="cgpt-form" onSubmit={handleSaveClient} className="space-y-4 text-left">
                 {!selectedAdvisor && (
                   <div>
                     <label className={formLabelClass}>Advisor <span className="text-red-500">*</span></label>
@@ -2066,41 +2363,7 @@ ${result.error?.hint}
                   <label className={formLabelClass}>Relationship</label>
                   <input type="text" value={currentClient.relationship || ''} onChange={e => setCurrentClient({ ...currentClient, relationship: e.target.value })} className={formInputClass} placeholder="Spouse, Mother, Sister, etc." />
                 </div>
-                <div>
-                  <label className={formLabelClass}>Approval Date</label>
-                  <input type="date" value={currentClient.approvalDate || ''} onChange={e => setCurrentClient({ ...currentClient, approvalDate: e.target.value })} className={formInputClass} />
-                </div>
 
-                <div>
-                  <label className={formLabelClass}>Policy Number</label>
-                  <input type="text" value={currentClient.policyNumber || ''} onChange={e => setCurrentClient({ ...currentClient, policyNumber: e.target.value })} className={formInputClass} placeholder="POL-12345" />
-                </div>
-                <div>
-                  <label className={formLabelClass}>Product</label>
-                  <select value={currentClient.product || ''} onChange={e => setCurrentClient({ ...currentClient, product: e.target.value })} className={formInputClass}>
-                    <option value="">Select Product</option>
-                    {PRODUCTS.map(p => <option key={p} value={p}>{p}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className={formLabelClass}>Annual Premium</label>
-                  <input type="number" value={currentClient.annualPremium || ''} onChange={e => setCurrentClient({ ...currentClient, annualPremium: Number(e.target.value) })} className={formInputClass} placeholder="0.00" />
-                </div>
-
-                <div>
-                  <label className={formLabelClass}>Mode of Payment</label>
-                  <select value={currentClient.modeOfPayment || 'Annual'} onChange={e => setCurrentClient({ ...currentClient, modeOfPayment: e.target.value })} className={formInputClass}>
-                    {PAYMENT_MODES.map(p => <option key={p} value={p}>{p}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className={formLabelClass}>Fund Allocation</label>
-                  <input type="text" value={currentClient.fundAllocation || ''} onChange={e => setCurrentClient({ ...currentClient, fundAllocation: e.target.value })} className={formInputClass} placeholder="100% Equity" />
-                </div>
-                <div>
-                  <label className={formLabelClass}>Beneficiary</label>
-                  <input type="text" value={currentClient.beneficiary || ''} onChange={e => setCurrentClient({ ...currentClient, beneficiary: e.target.value })} className={formInputClass} placeholder="Name (relationship), Name (relationship)" />
-                </div>
 
                 <div>
                   <label className={formLabelClass}>Mobile Number</label>
@@ -2110,114 +2373,11 @@ ${result.error?.hint}
                   <label className={formLabelClass}>Email Address</label>
                   <input type="email" value={currentClient.email || ''} onChange={e => setCurrentClient({ ...currentClient, email: e.target.value })} className={formInputClass} placeholder="email@example.com" />
                 </div>
-                <div>
-                  <label className={formLabelClass}>Address</label>
-                  <input type="text" value={currentClient.address || ''} onChange={e => setCurrentClient({ ...currentClient, address: e.target.value })} className={formInputClass} placeholder="Full Address" />
-                </div>
-
-                <div className="w-full bg-white dark:bg-card border border-slate-200 dark:border-border rounded-3xl p-4 flex flex-col gap-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Valid ID</span>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className={formLabelClass}>ID Type</label>
-                      <select
-                        value={currentClient.idType || ''}
-                        onChange={(e) => setCurrentClient({ ...currentClient, idType: e.target.value })}
-                        className={formInputClass}
-                      >
-                        <option value="">Select ID Type</option>
-                        {["Philippine Passport", "Driver's License", "UMID", "PhilHealth ID", "SSS ID", "PRC ID", "Postal ID", "Voter's ID", "Other"].map(type => (
-                          <option key={type} value={type}>{type}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className={formLabelClass}>ID Number</label>
-                      <input
-                        type="text"
-                        value={currentClient.idNumber || ''}
-                        onChange={(e) => setCurrentClient({ ...currentClient, idNumber: e.target.value })}
-                        className={formInputClass}
-                        placeholder="ID Number"
-                      />
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className={formLabelClass}>Expiration Date</label>
-                      <input
-                        type="date"
-                        value={currentClient.idExpirationDate || ''}
-                        onChange={(e) => setCurrentClient({ ...currentClient, idExpirationDate: e.target.value })}
-                        className={formInputClass}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="relative border-2 border-dashed border-slate-200 dark:border-border bg-slate-50/60 dark:bg-surface-2 rounded-2xl min-h-[220px] w-full flex items-center justify-center overflow-hidden transition-colors duration-200">
-                    {uploadingId ? (
-                      <div className="flex flex-col items-center gap-2 text-slate-400">
-                        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                        <span className="text-sm font-medium">Uploading...</span>
-                      </div>
-                    ) : !currentClient.idAttachmentUrl ? (
-                      <label className="flex flex-col items-center justify-center gap-2 cursor-pointer w-full min-h-[220px] text-slate-400 hover:text-slate-600 transition-all duration-200 rounded-2xl">
-                        <div className="w-11 h-11 rounded-2xl bg-white dark:bg-card border border-slate-200 dark:border-border flex items-center justify-center shadow-sm">
-                          <Upload size={20} />
-                        </div>
-                        <span className="text-sm font-medium">Upload ID Image</span>
-                        <input
-                          type="file"
-                          accept="image/*,.pdf"
-                          className="hidden"
-                          onChange={handleIdUpload}
-                        />
-                      </label>
-                    ) : (
-                      <div className="relative w-full min-h-[220px] flex flex-col items-center justify-center bg-white dark:bg-card rounded-2xl group overflow-hidden">
-                        {currentClient.idAttachmentUrl.toLowerCase().includes('.pdf') || (currentClient.idAttachmentUrl.startsWith('blob:') && !currentClient.idAttachmentUrl.includes('image')) ? (
-                          <a href={currentClient.idAttachmentUrl} target="_blank" rel="noreferrer" className="flex flex-col items-center gap-2 text-primary hover:text-primary/80 transition-colors">
-                            <FileText size={40} />
-                            <span className="text-xs font-semibold">Document Attached (Click to View)</span>
-                          </a>
-                        ) : (
-                          <a href={currentClient.idAttachmentUrl} target="_blank" rel="noreferrer" className="w-full h-full flex items-center justify-center cursor-zoom-in group-hover:opacity-90 transition-opacity">
-                            <img src={currentClient.idAttachmentUrl} alt="ID Preview" className="max-h-[300px] w-full object-contain" />
-                          </a>
-                        )}
-                        <label className="absolute bottom-3 right-3 bg-black/70 hover:bg-black text-white px-4 py-2 rounded-full text-xs font-bold cursor-pointer backdrop-blur-md transition-colors opacity-0 group-hover:opacity-100 flex items-center gap-2 shadow-lg">
-                          <Upload size={14} /> Replace ID
-                          <input type="file" accept="image/*,.pdf" className="hidden" onChange={handleIdUpload} />
-                        </label>
-                      </div>
-                    )}
-                  </div>
-
-                  {currentClient.idAttachmentUrl && (
-                    <div className="flex justify-end mt-1">
-                      <button
-                        type="button"
-                        onClick={() => setCurrentClient({ ...currentClient, idAttachmentUrl: '' })}
-                        className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-500 hover:text-red-500 transition-colors duration-200 border border-slate-200 dark:border-border hover:border-red-200 hover:bg-red-50 dark:hover:bg-red-900/20 bg-white dark:bg-card rounded-full"
-                      >
-                        <Trash2 size={13} /> Remove ID
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <SignaturePad
-                    initialSignature={currentClient.signatureData}
-                    onSignatureChange={(sig) => setCurrentClient({ ...currentClient, signatureData: sig || undefined })}
-                  />
-                </div>
               </form>
             </div>
 
             <div className="flex gap-3 p-6 border-t border-border bg-card shrink-0">
-              <button type="submit" form="cpst-form" className="flex-1 bg-linear-to-r from-[#F4C542] to-[#e6b800] hover:from-[#e6b800] hover:to-[#c59d28] text-black font-extrabold text-sm py-2.5 rounded-full transition-all duration-200 cursor-pointer border border-[#F4C542]/30 shadow-sm active:scale-[0.97]">
+              <button type="submit" form="cgpt-form" className="flex-1 bg-linear-to-r from-[#F4C542] to-[#e6b800] hover:from-[#e6b800] hover:to-[#c59d28] text-black font-extrabold text-sm py-2.5 rounded-full transition-all duration-200 cursor-pointer border border-[#F4C542]/30 shadow-sm active:scale-[0.97]">
                 Confirm Save
               </button>
               <button type="button" onClick={() => setActiveModal(null)} className="flex-1 bg-transparent border border-border text-text hover:bg-surface-2 text-xs font-semibold py-2.5 rounded-full transition-all duration-200 cursor-pointer active:scale-[0.97]">
@@ -2233,7 +2393,7 @@ ${result.error?.hint}
           <div className="bg-card border border-border w-full max-w-xl rounded-[28px] shadow-2xl relative flex flex-col overflow-hidden animate-in zoom-in-95 duration-150 max-h-[90vh]">
             <div className="flex items-center justify-between p-5 border-b border-border bg-surface-2 shrink-0">
               <div>
-                <h2 className="text-base font-bold text-text">CAMS Batch Import</h2>
+                <h2 className="text-base font-bold text-text">CGPT Batch Import</h2>
                 <p className="text-xs text-text-secondary">
                   {selectedAdvisor ? `Importing clients directly into ${selectedAdvisor.advisorName}'s registry.` : 'Process client registers via CSV or Excel sheets.'}
                 </p>
@@ -2518,42 +2678,39 @@ ${result.error?.hint}
                             <thead>
                               <tr className="bg-surface-2">
                                 <th className="sticky top-9 left-0 z-20 bg-surface-2 border-b border-r border-border px-3 py-2.5 font-bold text-text-secondary w-[48px]">#</th>
-                                <th className="sticky top-9 left-[48px] z-20 bg-surface-2 border-b border-r border-border px-3 py-2.5 font-bold text-text-secondary w-[190px]">Client Name</th>
-                                <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[170px]">Beneficiary</th>
-                                <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[110px]">Birthday</th>
-                                <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[60px]">Age</th>
-                                <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[110px]">Relationship</th>
-                                <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[130px]">Policy No.</th>
-                                <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[160px]">Product</th>
-                                <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[130px]">Approval Date</th>
-                                <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[130px]">Annual Premium</th>
-                                <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[130px]">Mobile Number</th>
-                                <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[190px]">Email</th>
-                                <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[200px]">Address</th>
-                                <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[140px]">Fund Allocation</th>
-                                <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[130px]">Mode of Payment</th>
+                                <th className="sticky top-9 left-[48px] z-20 bg-surface-2 border-b border-r border-border px-3 py-2.5 font-bold text-text-secondary w-[280px]">Client Name / Beneficiary Name</th>
+                                <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[150px]">MONTH - BIRTHDATE</th>
+                                <th className="sticky top-9 z-10 bg-surface-2 border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[80px]">Age</th>
                               </tr>
                             </thead>
                             <tbody>
-                              {importState.validation.newClients.slice(0, 200).map((r: any, i: number) => (
-                                <tr key={i} className={`${i % 2 === 0 ? 'bg-card' : 'bg-surface-2/40'} hover:bg-primary/10 transition-colors`}>
-                                  <td className={`sticky left-0 z-10 ${i % 2 === 0 ? 'bg-card' : 'bg-surface-2/40'} border-r border-b border-border/40 px-3 py-2 text-text-secondary font-mono`}>{i + 1}</td>
-                                  <td className={`sticky left-[48px] z-10 ${i % 2 === 0 ? 'bg-card' : 'bg-surface-2/40'} border-r border-b border-border/40 px-3 py-2 font-bold text-text truncate`} title={r.clientName}>{r.clientName || '—'}</td>
-                                  <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate" title={r.beneficiary}>{r.beneficiary || '—'}</td>
-                                  <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate">{r.birthdate || '—'}</td>
-                                  <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate">{r.age || '—'}</td>
-                                  <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate">{r.relationship || '—'}</td>
-                                  <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate font-mono">{r.policyNumber || '—'}</td>
-                                  <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate">{r.product || '—'}</td>
-                                  <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate">{r.approvalDate || '—'}</td>
-                                  <td className="border-b border-border/40 px-3 py-2 text-emerald-600 dark:text-emerald-400 font-semibold truncate">{r.annualPremium ? `₱${Number(r.annualPremium).toLocaleString()}` : '—'}</td>
-                                  <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate">{r.mobileNumber || '—'}</td>
-                                  <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate" title={r.email}>{r.email || '—'}</td>
-                                  <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate" title={r.address}>{r.address || '—'}</td>
-                                  <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate">{r.fundAllocation || '—'}</td>
-                                  <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate">{r.modeOfPayment?.trim() || '—'}</td>
-                                </tr>
-                              ))}
+                              {importState.validation.newClients.slice(0, 200).map((r: any, i: number) => {
+                                let formattedBirthdate = '—';
+                                let age = '—';
+                                if (r.birthdate) {
+                                  const d = new Date(r.birthdate + 'T00:00:00');
+                                  if (!isNaN(d.getTime())) {
+                                    formattedBirthdate = `${d.toLocaleString('default', { month: 'long' }).toUpperCase()} - ${d.getDate()}`;
+                                    const today = new Date();
+                                    let calcAge = today.getFullYear() - d.getFullYear();
+                                    const hasHadBirthdayThisYear =
+                                      today.getMonth() > d.getMonth() ||
+                                      (today.getMonth() === d.getMonth() && today.getDate() >= d.getDate());
+                                    if (!hasHadBirthdayThisYear) calcAge--;
+                                    age = calcAge.toString();
+                                  }
+                                }
+                                return (
+                                  <tr key={i} className={`${i % 2 === 0 ? 'bg-card' : 'bg-surface-2/40'} hover:bg-primary/10 transition-colors`}>
+                                    <td className={`sticky left-0 z-10 ${i % 2 === 0 ? 'bg-card' : 'bg-surface-2/40'} border-r border-b border-border/40 px-3 py-2 text-text-secondary font-mono`}>{i + 1}</td>
+                                    <td className={`sticky left-[48px] z-10 ${i % 2 === 0 ? 'bg-card' : 'bg-surface-2/40'} border-r border-b border-border/40 px-3 py-2 font-bold text-text truncate`} title={r.clientName + (r.beneficiary ? ` / ${r.beneficiary}` : '')}>
+                                      {r.clientName || '—'}{r.beneficiary ? ` / ${r.beneficiary}` : ''}
+                                    </td>
+                                    <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate">{formattedBirthdate}</td>
+                                    <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate">{age}</td>
+                                  </tr>
+                                );
+                              })}
                             </tbody>
                           </table>
                         </div>
@@ -2598,9 +2755,7 @@ ${result.error?.hint}
                             <thead>
                               <tr className="bg-surface-2">
                                 <th className="sticky left-0 z-10 bg-surface-2 border-r border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[48px]">#</th>
-                                <th className="sticky left-[48px] z-10 bg-surface-2 border-r border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[190px]">Client Name</th>
-                                <th className="border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[170px]">Beneficiary</th>
-                                {importTarget === 'clients' && <th className="border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[130px]">Policy No.</th>}
+                                <th className="sticky left-[48px] z-10 bg-surface-2 border-r border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[280px]">Client Name / Beneficiary Name</th>
                                 <th className="border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[280px]">Match Reason</th>
                               </tr>
                             </thead>
@@ -2609,12 +2764,10 @@ ${result.error?.hint}
                                 <tr key={i} className={`${i % 2 === 0 ? 'bg-card' : 'bg-surface-2/40'} opacity-70 hover:opacity-100 transition-opacity`}>
                                   <td className={`sticky left-0 z-10 ${i % 2 === 0 ? 'bg-card' : 'bg-surface-2/40'} border-r border-b border-border/40 px-3 py-2 text-text-secondary font-mono`}>{i + 1}</td>
                                   <td className={`sticky left-[48px] z-10 ${i % 2 === 0 ? 'bg-card' : 'bg-surface-2/40'} border-r border-b border-border/40 px-3 py-2 font-bold text-text truncate`}>
-                                    {importTarget === 'clients' ? (r.clientName || '—') : r.advisorName}
+                                    {importTarget === 'clients' ? `${r.clientName || '—'}${r.beneficiary ? ` / ${r.beneficiary}` : ''}` : r.advisorName}
                                   </td>
-                                  <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate">{r.beneficiary || '—'}</td>
-                                  {importTarget === 'clients' && <td className="border-b border-border/40 px-3 py-2 text-text-secondary truncate font-mono">{r.policyNumber || '—'}</td>}
                                   <td className="border-b border-border/40 px-3 py-2 text-text-secondary italic truncate">
-                                    Matches: {r._matchedName} — Policy {r._matchedPolicy || 'N/A'}
+                                    Matches: {r._matchedName}
                                   </td>
                                 </tr>
                               ))}

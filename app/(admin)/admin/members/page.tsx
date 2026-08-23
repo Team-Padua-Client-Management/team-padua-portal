@@ -68,6 +68,8 @@ export default async function AdminMembers() {
                 provider: u.app_metadata?.provider || "email",
                 status: profile.status || (u.email_confirmed_at ? "Active" : "Pending"),
                 presence_status: profile.status || "Offline",
+                last_seen_at: profile.last_seen_at || u.last_sign_in_at || profile.updated_at || "",
+                display_order: profile.display_order ?? 0,
                 joined: u.created_at ?? "",
                 lastActive: u.last_sign_in_at ?? "",
                 client_servicing_permissions: profile.client_servicing_permissions || {
@@ -79,6 +81,12 @@ export default async function AdminMembers() {
                     mngt: { view: false, create: false, edit: false, delete: false, export: false },
                 },
             };
+        })
+        .sort((a, b) => {
+            if (a.display_order && b.display_order) return a.display_order - b.display_order;
+            if (a.display_order && !b.display_order) return -1;
+            if (!a.display_order && b.display_order) return 1;
+            return new Date(b.joined || 0).getTime() - new Date(a.joined || 0).getTime();
         });
 
     // Derive the logged-in admin's role to gate admin-only features (e.g. Edit Avatar)
@@ -174,7 +182,7 @@ export default async function AdminMembers() {
                     </div>
 
                     {/* Members Interactive Table Component */}
-                    <AdminMembersTable initialUsers={users} currentUserRole={currentUserRole} />
+                    <AdminMembersTable initialUsers={users} currentUserRole={currentUserRole} currentUserId={user.id} />
                 </div>
             </div>
         </div>

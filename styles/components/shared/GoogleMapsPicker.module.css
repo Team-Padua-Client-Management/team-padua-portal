@@ -13,13 +13,13 @@
 .searchInput {
   width: 100%;
   padding: 0.5rem 0.75rem;
-  padding-left: 2rem;
+  padding-left: 2.25rem;
   border-radius: 0.5rem;
   border: 1px solid var(--border);
   background-color: var(--card);
   color: var(--foreground);
   font-size: 0.75rem;
-  transition: border-color 0.2rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .searchInput:focus {
@@ -29,10 +29,16 @@
 
 .searchIcon {
   position: absolute;
-  left: 0.6rem;
-  top: 0.55rem;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
   color: var(--muted-foreground);
   pointer-events: none;
+  transition: color 0.2s ease;
+}
+
+.searchWrapper:focus-within .searchIcon {
+  color: #F4C542;
 }
 
 .mapWrapper {

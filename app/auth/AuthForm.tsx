@@ -2,10 +2,22 @@
 
 import React, { useState, useTransition, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { Eye, EyeOff, Lock, Mail, AlertCircle, CheckCircle2, X, Users, User, Shield, Phone, ChevronDown, ArrowRight, Sparkles } from "lucide-react";
+import { 
+  Eye, 
+  EyeOff, 
+  Lock, 
+  Mail, 
+  AlertCircle, 
+  CheckCircle2, 
+  X, 
+  User, 
+  Shield, 
+  Phone, 
+  Check,
+  ArrowRight
+} from "lucide-react";
 import { supabase } from "@src/lib/supabase/client";
 import { SignIn, SignUp } from "../action/auth";
-
 import type { AuthActionResult } from "@src/lib/auth/types";
 import { getSiteUrl } from "@src/lib/getSiteUrl";
 
@@ -13,7 +25,7 @@ const SAVED_EMAIL_KEY = "tp_saved_email";
 const SAVED_GOOGLE_KEY = "tp_saved_google";
 
 type AuthFormProps = {
-  action: (formData: FormData) => Promise<AuthActionResult>;
+  action?: (formData: FormData) => Promise<AuthActionResult>;
 };
 
 type SavedGoogle = { name: string; email: string; avatar: string } | null;
@@ -28,19 +40,33 @@ const getPasswordChecks = (value: string) => [
 
 const getPasswordStrength = (value: string) => {
   if (!value) {
-    return { score: 0, label: "Start typing", percent: 0, barClass: "bg-slate-200", textClass: "text-slate-400" };
+    return { score: 0, label: "Start typing", percent: 0, barClass: "bg-slate-200 dark:bg-slate-800", textClass: "text-slate-400" };
   }
-  if (value.length < 8) {
-    return { score: 1, label: "Weak", percent: 33, barClass: "bg-rose-500", textClass: "text-rose-600" };
+  const checks = getPasswordChecks(value);
+  const passed = checks.filter((c) => c.valid).length;
+
+  if (passed <= 2 || value.length < 8) {
+    return { score: 1, label: "Weak", percent: 33, barClass: "bg-rose-500", textClass: "text-rose-600 dark:text-rose-400" };
   }
-  if (value.length < 12) {
-    return { score: 2, label: "Good", percent: 66, barClass: "bg-amber-500", textClass: "text-amber-600" };
+  if (passed <= 4) {
+    return { score: 2, label: "Medium", percent: 66, barClass: "bg-amber-500", textClass: "text-amber-600 dark:text-amber-400" };
   }
-  return { score: 3, label: "Strong", percent: 100, barClass: "bg-emerald-500", textClass: "text-emerald-600" };
+  return { score: 3, label: "Strong", percent: 100, barClass: "bg-emerald-500", textClass: "text-emerald-600 dark:text-emerald-400" };
+};
+
+const validateEmailFormat = (value: string) => {
+  const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+  return emailRegex.test(value.trim());
+};
+
+const validatePHPhoneFormat = (value: string) => {
+  if (!value.trim()) return true; // Optional field
+  const cleaned = value.trim().replace(/[\s\-()]/g, "");
+  return /^(?:\+?63|0)9\d{9}$/.test(cleaned);
 };
 
 const GoogleIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+  <svg width="16" height="16" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
     <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.2l6.8-6.8C35.8 2.2 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.5 13 17.8 9.5 24 9.5z" />
     <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.6 5.9c4.4-4.1 7-10.1 7-17.1z" />
     <path fill="#FBBC05" d="M10.6 28.6A14.8 14.8 0 0 1 9.5 24c0-1.6.3-3.1.7-4.6l-7.9-6.1A23.9 23.9 0 0 0 0 24c0 3.8.9 7.4 2.5 10.6l8.1-6z" />
@@ -49,7 +75,7 @@ const GoogleIcon = () => (
 );
 
 const Spinner = () => (
-  <svg className="w-4 h-4 animate-spin text-slate-800 dark:text-slate-900" viewBox="0 0 24 24" fill="none">
+  <svg className="w-4 h-4 animate-spin text-slate-900" viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
   </svg>
@@ -62,25 +88,56 @@ type FloatingLabelInputProps = {
   type?: string;
   value: string;
   onChange: (v: string) => void;
+  onBlur?: () => void;
   icon: React.ElementType;
   rightSlot?: React.ReactNode;
   autoComplete?: string;
   required?: boolean;
+  error?: string | null;
+  touched?: boolean;
 };
 
-function FloatingLabelInput({ id, label, name, type = "text", value, onChange, icon: Icon, rightSlot, autoComplete, required = true }: FloatingLabelInputProps) {
+function FloatingLabelInput({ 
+  id, 
+  label, 
+  name, 
+  type = "text", 
+  value, 
+  onChange, 
+  onBlur,
+  icon: Icon, 
+  rightSlot, 
+  autoComplete, 
+  required = true,
+  error,
+  touched
+}: FloatingLabelInputProps) {
   const [focused, setFocused] = useState(false);
   const active = focused || value.length > 0;
+  const isInvalid = !!(touched && error);
 
   return (
-    <div className="relative w-full">
-      <div className={`flex items-center rounded-2xl border bg-slate-50/50 dark:bg-slate-900 px-4 py-3 transition-all ${
-        focused
-          ? "border-[#FFC72C] ring-2 ring-[#FFC72C]/10 bg-white dark:bg-slate-950"
-          : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
-      }`}>
+    <div className="w-full">
+      <div 
+        className={`flex items-center rounded-2xl border px-4 py-3 transition-all duration-200 ${
+          isInvalid
+            ? "border-rose-400 bg-rose-50/40 dark:border-rose-500/80 dark:bg-rose-950/20 ring-2 ring-rose-500/10"
+            : focused
+              ? "border-[#FFC72C] ring-2 ring-[#FFC72C]/20 bg-white dark:bg-slate-950 shadow-sm"
+              : "border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60 hover:border-slate-300 dark:hover:border-slate-700"
+        }`}
+      >
         <div className="flex items-center pointer-events-none mr-3">
-          <Icon size={16} className={focused ? "text-[#A3843B] dark:text-[#FFC72C]" : "text-slate-400"} />
+          <Icon 
+            size={16} 
+            className={
+              isInvalid
+                ? "text-rose-500"
+                : focused 
+                  ? "text-[#A3843B] dark:text-[#FFC72C]" 
+                  : "text-slate-400"
+            } 
+          />
         </div>
         <div className="relative flex-1">
           <input
@@ -90,25 +147,42 @@ function FloatingLabelInput({ id, label, name, type = "text", value, onChange, i
             value={value}
             autoComplete={autoComplete}
             required={required}
+            aria-required={required}
+            aria-invalid={isInvalid}
+            aria-describedby={isInvalid ? `${id}-error` : undefined}
             onFocus={() => setFocused(true)}
-            onBlur={() => setFocused(false)}
+            onBlur={() => {
+              setFocused(false);
+              if (onBlur) onBlur();
+            }}
             onChange={(e) => onChange(e.target.value)}
             className="w-full pt-4 pb-1 bg-transparent outline-none text-xs md:text-sm text-[#1B1B1B] dark:text-white placeholder-transparent"
             placeholder={label}
           />
           <label
             htmlFor={id}
-            className={`absolute left-0 transition-all pointer-events-none select-none ${
+            className={`absolute left-0 transition-all duration-200 pointer-events-none select-none ${
               active 
-                ? "-top-1 text-[9px] font-bold uppercase tracking-wider text-[#A3843B] dark:text-[#FFC72C]" 
+                ? `-top-1 text-[9px] font-bold uppercase tracking-wider ${
+                    isInvalid 
+                      ? "text-rose-600 dark:text-rose-400" 
+                      : "text-[#A3843B] dark:text-[#FFC72C]"
+                  }` 
                 : "top-2 text-xs md:text-sm text-slate-400"
             }`}
           >
-            {label}
+            {label} {required && <span className="text-rose-500">*</span>}
           </label>
         </div>
         {rightSlot && <div className="ml-2 flex items-center">{rightSlot}</div>}
       </div>
+
+      {isInvalid && (
+        <p id={`${id}-error`} className="mt-1.5 px-1 flex items-center gap-1.5 text-[11px] text-rose-600 dark:text-rose-400 font-medium animate-in fade-in duration-200">
+          <AlertCircle size={12} className="shrink-0 text-rose-500" />
+          <span>{error}</span>
+        </p>
+      )}
     </div>
   );
 }
@@ -134,9 +208,13 @@ function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm bg-black/40">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm bg-black/40 animate-in fade-in duration-300">
       <div className="relative bg-white dark:bg-slate-900 rounded-[28px] shadow-xl w-full max-w-md p-8 border border-slate-100 dark:border-slate-800 space-y-6">
-        <button onClick={onClose} className="absolute top-5 right-5 p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+        <button 
+          onClick={onClose} 
+          aria-label="Close modal"
+          className="absolute top-5 right-5 p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+        >
           <X className="w-4 h-4 text-slate-400 hover:text-slate-600" />
         </button>
 
@@ -147,7 +225,7 @@ function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
             </div>
             <h2 className="text-xl font-bold text-slate-950 dark:text-white">Check your inbox</h2>
             <p className="text-xs text-slate-500 dark:text-slate-400">Reset link sent to <span className="font-semibold text-slate-800 dark:text-slate-200">{email}</span></p>
-            <button onClick={onClose} className="w-full bg-[#FFC72C] hover:bg-[#d8ad2d] text-slate-950 font-bold py-3 rounded-xl transition-all text-xs uppercase tracking-wider">
+            <button onClick={onClose} className="w-full bg-[#FFC72C] hover:bg-[#d8ad2d] text-slate-950 font-bold py-3 rounded-xl transition-all text-xs uppercase tracking-wider active:scale-[0.98]">
               Done
             </button>
           </div>
@@ -158,7 +236,7 @@ function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
             </div>
             <div>
               <h2 className="text-xl font-bold text-slate-950 dark:text-white">Reset your password</h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">We'll send a password recovery link to your email address.</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">We&apos;ll send a password recovery link to your email address.</p>
             </div>
 
             {error && (
@@ -177,7 +255,7 @@ function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
             <button
               onClick={handleReset}
               disabled={loading}
-              className="w-full bg-[#FFC72C] hover:bg-[#d8ad2d] text-[#1B1B1B] font-bold py-3 rounded-xl transition-all text-xs uppercase tracking-wider disabled:opacity-50"
+              className="w-full bg-[#FFC72C] hover:bg-[#d8ad2d] text-[#1B1B1B] font-bold py-3 rounded-xl transition-all text-xs uppercase tracking-wider disabled:opacity-50 active:scale-[0.98]"
             >
               {loading ? "Sending…" : "Send reset link"}
             </button>
@@ -192,7 +270,6 @@ function PendingApprovalModal({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-md animate-in fade-in duration-500">
       <div className="relative w-full max-w-md rounded-[32px] border border-slate-100 dark:border-slate-800 bg-white/90 dark:bg-slate-950/90 backdrop-blur-xl p-8 shadow-2xl space-y-6 animate-in zoom-in-95 slide-in-from-bottom-4 duration-500">
-        
         <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-tr from-amber-100 to-amber-50 dark:from-amber-950/40 dark:to-amber-900/40 shadow-inner mb-6 relative">
           <div className="absolute inset-0 rounded-full border-2 border-amber-200 dark:border-amber-800 animate-[spin_3s_linear_infinite] opacity-50 border-t-amber-500" />
           <Shield className="h-10 w-10 text-amber-600 dark:text-amber-400 animate-in zoom-in duration-500 delay-150" />
@@ -201,7 +278,7 @@ function PendingApprovalModal({ onClose }: { onClose: () => void }) {
         <div className="space-y-2 text-center mb-6">
           <h2 className="text-2xl font-extrabold text-slate-950 dark:text-white tracking-tight">Account Under Review</h2>
           <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
-            Your email has been verified successfully. Your account is currently being reviewed by an administrator.
+            Your email has been verified successfully. Your advisor account is currently being reviewed by a Team Padua administrator.
           </p>
         </div>
 
@@ -274,16 +351,23 @@ export const AuthForm = ({ action }: AuthFormProps) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [role, setRole] = useState("Financial Advisor");
   const [phone, setPhone] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
+
+  // Field touched state for inline real-time error display
+  const [nameTouched, setNameTouched] = useState(false);
+  const [emailTouched, setEmailTouched] = useState(false);
+  const [phoneTouched, setPhoneTouched] = useState(false);
+  const [passwordTouched, setPasswordTouched] = useState(false);
+  const [confirmPasswordTouched, setConfirmPasswordTouched] = useState(false);
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
-  const [passwordFeedback, setPasswordFeedback] = useState<string | null>(null);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [showForgot, setShowForgot] = useState(false);
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
@@ -314,36 +398,86 @@ export const AuthForm = ({ action }: AuthFormProps) => {
     }
   }, [urlMessage, urlError]);
 
+  // Validation calculations
+  const nameIsValid = name.trim().length >= 2;
+  const nameError = nameTouched && !nameIsValid 
+    ? (name.trim().length === 0 ? "Full name is required." : "Full name must be at least 2 characters.")
+    : null;
+
+  const emailIsValid = validateEmailFormat(email);
+  const emailError = emailTouched && !emailIsValid
+    ? (email.trim().length === 0 ? "Email address is required." : "Please enter a valid email address.")
+    : null;
+
+  const phoneIsValid = validatePHPhoneFormat(phone);
+  const phoneError = phoneTouched && !phoneIsValid
+    ? "Please enter a valid Philippine mobile number (e.g. 09171234567 or +639171234567)."
+    : null;
+
   const passwordChecks = getPasswordChecks(password);
   const passwordIsValid = passwordChecks.every((check) => check.valid);
   const passwordStrength = getPasswordStrength(password);
   const shouldShowPasswordHints = password.length > 0;
+  const passwordError = passwordTouched && !passwordIsValid
+    ? "Password does not meet the security requirements below."
+    : null;
+
+  const confirmPasswordMatches = confirmPassword.length > 0 && password === confirmPassword;
   const confirmPasswordState = confirmPassword.length > 0
-    ? password === confirmPassword
+    ? confirmPasswordMatches
       ? { valid: true, message: "Passwords match" }
       : { valid: false, message: "Passwords do not match" }
     : null;
+  const confirmPasswordError = confirmPasswordTouched && !confirmPasswordMatches
+    ? (confirmPassword.length === 0 ? "Please confirm your password." : "Passwords do not match.")
+    : null;
 
-  const canSubmit = email.length > 0 && password.length > 0 && (isLogin
-    ? true
-    : name.trim().length > 0 && passwordIsValid && confirmPassword.length > 0 && confirmPasswordState?.valid && termsAccepted);
+  // Form submission criteria
+  const isRegistrationValid = 
+    nameIsValid && 
+    emailIsValid && 
+    phoneIsValid && 
+    passwordIsValid && 
+    confirmPasswordMatches && 
+    termsAccepted;
+
+  const isLoginValid = email.trim().length > 0 && password.length > 0;
+  const canSubmit = isLogin ? isLoginValid : isRegistrationValid;
+
+  const resetValidationState = () => {
+    setNameTouched(false);
+    setEmailTouched(false);
+    setPhoneTouched(false);
+    setPasswordTouched(false);
+    setConfirmPasswordTouched(false);
+    setError(null);
+    setSuccessMessage(null);
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
-    setPasswordFeedback(null);
+    setSuccessMessage(null);
+
+    // Mark all fields as touched to trigger any field-level errors
+    setNameTouched(true);
+    setEmailTouched(true);
+    setPhoneTouched(true);
+    setPasswordTouched(true);
+    setConfirmPasswordTouched(true);
 
     if (!isLogin) {
-      if (!termsAccepted) {
-        setError("You must accept the Terms and Conditions to register.");
+      if (!isRegistrationValid) {
+        if (!termsAccepted) {
+          setError("Please agree to the Terms and Conditions to complete your registration.");
+        } else {
+          setError("Please resolve the highlighted validation errors before registering.");
+        }
         return;
       }
-      if (!passwordIsValid) {
-        setPasswordFeedback("Password must meet all requirements.");
-        return;
-      }
-      if (!confirmPassword || password !== confirmPassword) {
-        setPasswordFeedback("Please confirm your password correctly.");
+    } else {
+      if (!isLoginValid) {
+        setError("Please enter your email and password.");
         return;
       }
     }
@@ -353,7 +487,7 @@ export const AuthForm = ({ action }: AuthFormProps) => {
       : localStorage.removeItem(SAVED_EMAIL_KEY);
 
     const formData = new FormData(e.currentTarget);
-    formData.append("role", role); // explicitly add select dropdown state
+    formData.append("role", "Financial Advisor"); // Standardized advisor role
     formData.append("termsAccepted", termsAccepted ? "true" : "false");
 
     startTransition(async () => {
@@ -371,13 +505,14 @@ export const AuthForm = ({ action }: AuthFormProps) => {
       }
 
       if (!isLogin) {
+        setSuccessMessage("Account created successfully! Please check your email for verification.");
         setConfirmationEmail((result as { email?: string } | undefined)?.email || email);
         setShowConfirmationModal(true);
         setPassword("");
         setConfirmPassword("");
         setShowPassword(false);
         setShowConfirmPassword(false);
-        setPasswordFeedback(null);
+        resetValidationState();
       }
     });
   };
@@ -394,7 +529,11 @@ export const AuthForm = ({ action }: AuthFormProps) => {
         queryParams: { prompt: "select_account" },
       },
     });
-    if (err) { setError(err.message); setGoogleLoading(false); return; }
+    if (err) { 
+      setError(err.message); 
+      setGoogleLoading(false); 
+      return; 
+    }
   };
 
   const clearSavedGoogle = (e: React.MouseEvent) => {
@@ -410,20 +549,15 @@ export const AuthForm = ({ action }: AuthFormProps) => {
 
       {showConfirmationModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-md animate-in fade-in duration-500">
-          <div className="relative w-full max-w-md rounded-[32px] border border-slate-100 dark:border-slate-800 bg-white/90 dark:bg-slate-950/90 backdrop-blur-xl p-8 shadow-2xl space-y-6 animate-in zoom-in-95 slide-in-from-bottom-4 duration-500">
+          <div className="relative w-full max-w-md rounded-[32px] border border-slate-100 dark:border-slate-800 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl p-8 shadow-2xl space-y-6 animate-in zoom-in-95 slide-in-from-bottom-4 duration-500">
             
-            {/* Confetti effect using absolute divs (simulated) */}
-            <div className="absolute top-0 left-0 w-full h-full overflow-hidden rounded-[32px] pointer-events-none">
-              <div className="absolute top-[-20%] left-[20%] w-24 h-24 bg-[#FFC72C] rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse" />
-              <div className="absolute bottom-[-10%] right-[10%] w-32 h-32 bg-emerald-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" style={{ animationDelay: '1s' }} />
-            </div>
-
             <button
               onClick={() => {
                 setShowConfirmationModal(false);
                 setIsLogin(true);
               }}
-              className="absolute top-5 right-5 p-2 rounded-xl hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-colors text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 z-10"
+              aria-label="Close modal and sign in"
+              className="absolute top-5 right-5 p-2 rounded-xl hover:bg-slate-100/80 dark:hover:bg-slate-800/80 transition-colors text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 z-10"
             >
               <X className="w-5 h-5" />
             </button>
@@ -436,88 +570,36 @@ export const AuthForm = ({ action }: AuthFormProps) => {
 
               <div className="space-y-2 text-center mb-6">
                 <h2 className="text-2xl font-extrabold text-slate-950 dark:text-white tracking-tight">
-                  {role === "Business Development Lead" ? "🎉 Registration Submitted" : "🎉 Account Created Successfully"}
+                  🎉 Registration Successful
                 </h2>
                 <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
-                  {role === "Business Development Lead" ? "Your account requires administrator approval." : "We've sent a verification link to your email."}
+                  We&apos;ve sent a verification link to your email.
                 </p>
               </div>
 
-              {role === "Business Development Lead" ? (
-                <div className="space-y-0 relative">
-                  <div className="flex items-center gap-4 text-sm relative z-10">
-                    <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 border border-emerald-200">
-                      <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                    </div>
-                    <span className="font-bold text-slate-800 dark:text-slate-200">Registration Complete</span>
-                  </div>
-                  <div className="w-0.5 h-6 bg-emerald-200 dark:bg-emerald-800 ml-4 -my-1 relative z-0" />
-                  
-                  <div className="flex items-center gap-4 text-sm relative z-10">
-                    <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 border border-emerald-200">
-                      <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="font-bold text-slate-800 dark:text-slate-200">Verification Email Sent</span>
-                      <span className="text-[10px] text-slate-500 font-medium">{confirmationEmail || email}</span>
-                    </div>
-                  </div>
-                  <div className="w-0.5 h-6 bg-slate-200 dark:bg-slate-700 ml-4 -my-1 relative z-0" />
-                  
-                  <div className="flex items-center gap-4 text-sm relative z-10">
-                    <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center shrink-0 border border-amber-200 dark:border-amber-700 shadow-[0_0_10px_rgba(251,191,36,0.3)]">
-                      <div className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
-                    </div>
-                    <span className="font-bold text-amber-700 dark:text-amber-400">Awaiting Email Verification</span>
-                  </div>
-                  <div className="w-0.5 h-6 bg-slate-200 dark:bg-slate-700 ml-4 -my-1 relative z-0" />
-                  
-                  <div className="flex items-center gap-4 text-sm relative z-10 opacity-60 grayscale">
-                    <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700">
-                      <Shield className="w-4 h-4 text-slate-500" />
-                    </div>
-                    <span className="font-bold text-slate-600 dark:text-slate-400">Awaiting Admin Review</span>
-                  </div>
-                  <div className="w-0.5 h-6 bg-slate-200 dark:bg-slate-700 ml-4 -my-1 relative z-0 opacity-60" />
-                  
-                  <div className="flex items-center gap-4 text-sm relative z-10 opacity-60 grayscale">
-                    <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700">
-                      <Lock className="w-4 h-4 text-slate-500" />
-                    </div>
-                    <span className="font-bold text-slate-600 dark:text-slate-400">Account Activation</span>
-                  </div>
+              <div className="space-y-6">
+                <div className="bg-slate-50/80 dark:bg-slate-900/50 rounded-2xl p-4 text-center border border-slate-200/60 dark:border-slate-800 shadow-inner">
+                  <a href={`mailto:${confirmationEmail || email}`} className="text-base font-bold text-[#A3843B] dark:text-[#FFC72C] hover:underline break-all">
+                    {confirmationEmail || email}
+                  </a>
+                </div>
 
-                  <div className="mt-6 bg-[#FFF9EC] dark:bg-[#FFC72C]/10 border border-[#FFC72C]/30 rounded-2xl p-4 text-center shadow-sm">
-                    <p className="text-xs text-[#A3843B] dark:text-[#FFC72C] font-bold leading-relaxed">
-                      After verifying your email, your application will be reviewed by a Team Padua administrator.
-                    </p>
+                <div className="space-y-3 pt-2">
+                  <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 text-center mb-4">Next Steps</p>
+                  <div className="flex items-center gap-4 bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-100 dark:border-slate-800 shadow-sm transition-transform hover:-translate-y-0.5">
+                    <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center shrink-0 text-emerald-600 dark:text-emerald-400 font-extrabold text-sm border border-emerald-200 dark:border-emerald-800/50">1</div>
+                    <span className="font-bold text-slate-800 dark:text-slate-200 text-sm">Verify your email address</span>
+                  </div>
+                  <div className="flex items-center gap-4 bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-100 dark:border-slate-800 shadow-sm transition-transform hover:-translate-y-0.5">
+                    <div className="w-8 h-8 rounded-full bg-[#FFF9EC] dark:bg-[#FFC72C]/10 flex items-center justify-center shrink-0 text-[#A3843B] dark:text-[#FFC72C] font-extrabold text-sm border border-[#FFC72C]/30">2</div>
+                    <span className="font-bold text-slate-800 dark:text-slate-200 text-sm">Administrator approval review</span>
+                  </div>
+                  <div className="flex items-center gap-4 bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-100 dark:border-slate-800 shadow-sm transition-transform hover:-translate-y-0.5">
+                    <div className="w-8 h-8 rounded-full bg-[#FFF9EC] dark:bg-[#FFC72C]/10 flex items-center justify-center shrink-0 text-[#A3843B] dark:text-[#FFC72C] font-extrabold text-sm border border-[#FFC72C]/30">3</div>
+                    <span className="font-bold text-slate-800 dark:text-slate-200 text-sm">Access your advisor dashboard</span>
                   </div>
                 </div>
-              ) : (
-                <div className="space-y-6">
-                  <div className="bg-slate-50/80 dark:bg-slate-900/50 rounded-2xl p-4 text-center border border-slate-200/60 dark:border-slate-800 shadow-inner">
-                    <a href={`mailto:${confirmationEmail || email}`} className="text-base font-bold text-[#A3843B] dark:text-[#FFC72C] hover:underline break-all">
-                      {confirmationEmail || email}
-                    </a>
-                  </div>
-
-                  <div className="space-y-3 pt-2">
-                    <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 text-center mb-4">Next Steps</p>
-                    <div className="flex items-center gap-4 bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-100 dark:border-slate-800 shadow-sm transition-transform hover:-translate-y-0.5">
-                      <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center shrink-0 text-emerald-600 dark:text-emerald-400 font-extrabold text-sm border border-emerald-200 dark:border-emerald-800/50">1</div>
-                      <span className="font-bold text-slate-800 dark:text-slate-200 text-sm">Verify your email</span>
-                    </div>
-                    <div className="flex items-center gap-4 bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-100 dark:border-slate-800 shadow-sm transition-transform hover:-translate-y-0.5">
-                      <div className="w-8 h-8 rounded-full bg-[#FFF9EC] dark:bg-[#FFC72C]/10 flex items-center justify-center shrink-0 text-[#A3843B] dark:text-[#FFC72C] font-extrabold text-sm border border-[#FFC72C]/30">2</div>
-                      <span className="font-bold text-slate-800 dark:text-slate-200 text-sm">Return to login</span>
-                    </div>
-                    <div className="flex items-center gap-4 bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-100 dark:border-slate-800 shadow-sm transition-transform hover:-translate-y-0.5">
-                      <div className="w-8 h-8 rounded-full bg-[#FFF9EC] dark:bg-[#FFC72C]/10 flex items-center justify-center shrink-0 text-[#A3843B] dark:text-[#FFC72C] font-extrabold text-sm border border-[#FFC72C]/30">3</div>
-                      <span className="font-bold text-slate-800 dark:text-slate-200 text-sm">Access your dashboard</span>
-                    </div>
-                  </div>
-                </div>
-              )}
+              </div>
 
               <div className="space-y-3 pt-6">
                 <button
@@ -527,16 +609,9 @@ export const AuthForm = ({ action }: AuthFormProps) => {
                     setIsLogin(true);
                     setError(null);
                   }}
-                  className="w-full rounded-2xl bg-[#FFC72C] hover:bg-[#d8ad2d] px-4 py-4 text-xs font-extrabold uppercase tracking-wider text-slate-950 transition-all shadow-lg shadow-[#FFC72C]/20 hover:shadow-xl hover:shadow-[#FFC72C]/30 active:scale-[0.98]"
+                  className="w-full rounded-2xl bg-[#FFC72C] hover:bg-[#d8ad2d] px-4 py-4 text-xs font-extrabold uppercase tracking-wider text-slate-950 transition-all shadow-lg shadow-[#FFC72C]/20 hover:shadow-xl hover:shadow-[#FFC72C]/30 active:scale-[0.98] cursor-pointer"
                 >
-                  Back to Login
-                </button>
-                <button
-                  type="button"
-                  onClick={() => alert("Verification email resent. (Implementation pending backend support)")}
-                  className="w-full rounded-2xl bg-transparent border-2 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 px-4 py-3.5 text-xs font-bold text-slate-500 dark:text-slate-400 transition-colors"
-                >
-                  Resend verification email
+                  Return to Sign In
                 </button>
               </div>
             </div>
@@ -544,7 +619,8 @@ export const AuthForm = ({ action }: AuthFormProps) => {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4 w-full">
+      <form onSubmit={handleSubmit} className="space-y-4 w-full" noValidate>
+        {/* Banner: Info Notification */}
         {infoMessage && (
           <div className="flex items-center gap-3 bg-amber-50 dark:bg-amber-950/30 border-2 border-amber-200 dark:border-amber-900/60 rounded-2xl px-4 py-3 animate-in slide-in-from-top-2">
             <CheckCircle2 className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
@@ -552,6 +628,15 @@ export const AuthForm = ({ action }: AuthFormProps) => {
           </div>
         )}
 
+        {/* Banner: Success Notification */}
+        {successMessage && (
+          <div className="flex items-center gap-3 bg-emerald-50 dark:bg-emerald-950/30 border-2 border-emerald-200 dark:border-emerald-900/60 rounded-2xl px-4 py-3 animate-in slide-in-from-top-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <p className="text-xs text-emerald-900 dark:text-emerald-200 font-semibold flex-1">{successMessage}</p>
+          </div>
+        )}
+
+        {/* Banner: Error Notification */}
         {error && (
           <div className="flex items-center gap-3 bg-rose-50 dark:bg-rose-950/20 border-2 border-rose-100 dark:border-rose-900/50 rounded-2xl px-4 py-3 animate-in slide-in-from-top-2">
             <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
@@ -559,134 +644,227 @@ export const AuthForm = ({ action }: AuthFormProps) => {
           </div>
         )}
 
-        {/* SIGN UP EXTENDED FORM FIELDS */}
+        {/* REGISTRATION FIELDS */}
         {!isLogin && (
-          <div className="space-y-4">
+          <div className="space-y-4 animate-in fade-in duration-300">
+            {/* Full Name */}
             <FloatingLabelInput
-              id="name" label="Full name" name="name"
-              type="text" value={name} onChange={setName}
-              icon={User} autoComplete="name"
+              id="name"
+              label="Full Name"
+              name="name"
+              type="text"
+              value={name}
+              onChange={(val) => {
+                setName(val);
+                if (nameTouched && val.trim().length >= 2) setError(null);
+              }}
+              onBlur={() => setNameTouched(true)}
+              icon={User}
+              autoComplete="name"
+              required={true}
+              error={nameError}
+              touched={nameTouched}
             />
 
-            <div className="relative w-full">
-              <div className="flex items-center rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 px-4 py-3 transition-all focus-within:border-[#FFC72C] focus-within:ring-2 focus-within:ring-[#FFC72C]/10 focus-within:bg-white dark:focus-within:bg-slate-950 relative">
-                <div className="flex items-center pointer-events-none mr-3">
-                  <Shield size={16} className="text-slate-400" />
-                </div>
-                <div className="relative flex-1">
-                  <select
-                    id="role"
-                    value={role}
-                    onChange={(e) => setRole(e.target.value)}
-                    className="w-full pt-4 pb-1 bg-transparent outline-none text-xs md:text-sm text-[#1B1B1B] dark:text-white appearance-none cursor-pointer pr-8"
-                  >
-                    <option value="Financial Advisor" className="dark:bg-slate-900">Financial Advisor</option>
-                    <option value="Business Development Lead" className="dark:bg-slate-900">Business Development Lead</option>
-                  </select>
-                  <label htmlFor="role" className="absolute left-0 -top-1 text-[9px] font-bold uppercase tracking-wider text-[#A3843B] dark:text-[#FFC72C]">
-                    Advisor Role
-                  </label>
-                </div>
-                <div className="absolute right-4 pointer-events-none flex items-center">
-                  <ChevronDown size={14} className="text-slate-400" />
-                </div>
-              </div>
-            </div>
-
+            {/* Mobile Number (Philippine Format) */}
             <FloatingLabelInput
-              id="phone" label="Mobile number" name="phone"
-              type="tel" value={phone} onChange={setPhone}
-              icon={Phone} autoComplete="tel" required={false}
+              id="phone"
+              label="Mobile Number (PH)"
+              name="phone"
+              type="tel"
+              value={phone}
+              onChange={(val) => {
+                setPhone(val);
+                if (phoneTouched) setError(null);
+              }}
+              onBlur={() => setPhoneTouched(true)}
+              icon={Phone}
+              autoComplete="tel"
+              required={false}
+              error={phoneError}
+              touched={phoneTouched}
             />
           </div>
         )}
 
+        {/* Email Address */}
         <FloatingLabelInput
-          id="email" label="Email address" name="email"
-          type="email" value={email} onChange={setEmail}
-          icon={Mail} autoComplete="email"
+          id="email"
+          label="Email Address"
+          name="email"
+          type="email"
+          value={email}
+          onChange={(val) => {
+            setEmail(val);
+            if (emailTouched && validateEmailFormat(val)) setError(null);
+          }}
+          onBlur={() => setEmailTouched(true)}
+          icon={Mail}
+          autoComplete="email"
+          required={true}
+          error={emailError}
+          touched={emailTouched}
         />
 
+        {/* Password */}
         <FloatingLabelInput
-          id="password" label="Password" name="password" 
-          type={showPassword ? "text" : "password"} value={password}
-          onChange={(value) => {
-            setPassword(value);
-            if (passwordFeedback) setPasswordFeedback(null);
-          }} icon={Lock} autoComplete={isLogin ? "current-password" : "new-password"}
+          id="password"
+          label={isLogin ? "Password" : "Create Password"}
+          name="password"
+          type={showPassword ? "text" : "password"}
+          value={password}
+          onChange={(val) => {
+            setPassword(val);
+            if (passwordTouched && getPasswordChecks(val).every((c) => c.valid)) setError(null);
+          }}
+          onBlur={() => setPasswordTouched(true)}
+          icon={Lock}
+          autoComplete={isLogin ? "current-password" : "new-password"}
+          required={true}
+          error={!isLogin ? passwordError : null}
+          touched={passwordTouched}
           rightSlot={
-            <button type="button" onClick={() => setShowPassword(!showPassword)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
-              {showPassword ? <EyeOff size={14} className="text-slate-400" /> : <Eye size={14} className="text-slate-400" />}
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              className="p-1.5 hover:bg-slate-200/60 dark:hover:bg-slate-800 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-[#FFC72C] outline-none"
+            >
+              {showPassword ? (
+                <EyeOff size={15} className="text-slate-500 hover:text-slate-800 dark:hover:text-slate-200" />
+              ) : (
+                <Eye size={15} className="text-slate-500 hover:text-slate-800 dark:hover:text-slate-200" />
+              )}
             </button>
           }
         />
 
+        {/* Real-time Password Strength Meter for Registration */}
         {!isLogin && (
-          <div className={`mt-2 space-y-3 overflow-hidden rounded-2xl border border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/50 p-3 transition-all duration-300 ${shouldShowPasswordHints ? "max-h-80 opacity-100" : "max-h-0 border-transparent bg-transparent p-0 opacity-0"}`}>
+          <div
+            className={`space-y-3 overflow-hidden rounded-2xl border transition-all duration-300 ${
+              shouldShowPasswordHints
+                ? "max-h-96 border-slate-200 dark:border-slate-800/80 bg-slate-50/70 dark:bg-slate-900/60 p-3.5 opacity-100"
+                : "max-h-0 border-transparent bg-transparent p-0 opacity-0"
+            }`}
+          >
             <div className="flex items-center justify-between gap-3">
-              <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-slate-400">Strength</p>
-              <span className={`text-[10px] font-bold uppercase ${passwordStrength.textClass}`}>{passwordStrength.label}</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Password Strength</span>
+              <span className={`text-[11px] font-extrabold uppercase ${passwordStrength.textClass}`}>
+                {passwordStrength.label}
+              </span>
             </div>
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-950">
-              <div className={`h-full rounded-full transition-all duration-200 ${passwordStrength.barClass}`} style={{ width: `${passwordStrength.percent}%` }} />
+            
+            {/* Visual Progress Bar */}
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
+              <div 
+                className={`h-full rounded-full transition-all duration-300 ${passwordStrength.barClass}`} 
+                style={{ width: `${passwordStrength.percent}%` }} 
+              />
             </div>
-            <div className="space-y-1.5 mt-2">
+
+            {/* Live Requirements Checklist */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1">
               {passwordChecks.map((check) => (
-                <div key={check.label} className="flex items-center gap-2 text-[10px]">
+                <div key={check.label} className="flex items-center gap-2 text-[11px] transition-colors">
                   {check.valid ? (
-                    <CheckCircle2 size={12} className="text-emerald-500" />
+                    <div className="w-3.5 h-3.5 rounded-full bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center shrink-0">
+                      <Check size={10} className="text-emerald-600 dark:text-emerald-400 stroke-[3]" />
+                    </div>
                   ) : (
-                    <div className="w-3 h-3 rounded-full border border-slate-300 dark:border-slate-700" />
+                    <div className="w-3.5 h-3.5 rounded-full border border-slate-300 dark:border-slate-700 shrink-0" />
                   )}
-                  <span className={check.valid ? "text-emerald-600 font-semibold" : "text-slate-400"}>{check.label}</span>
+                  <span className={check.valid ? "text-emerald-700 dark:text-emerald-400 font-medium" : "text-slate-400"}>
+                    {check.label}
+                  </span>
                 </div>
               ))}
             </div>
-            {passwordFeedback && (
-              <p className="text-[10px] font-bold text-rose-500">{passwordFeedback}</p>
+          </div>
+        )}
+
+        {/* Confirm Password (Registration Only) */}
+        {!isLogin && (
+          <div className="space-y-1.5 animate-in fade-in duration-300">
+            <FloatingLabelInput
+              id="confirmPassword"
+              label="Confirm Password"
+              name="confirmPassword"
+              type={showConfirmPassword ? "text" : "password"}
+              value={confirmPassword}
+              onChange={(val) => {
+                setConfirmPassword(val);
+                if (confirmPasswordTouched && val === password) setError(null);
+              }}
+              onBlur={() => setConfirmPasswordTouched(true)}
+              icon={Lock}
+              autoComplete="new-password"
+              required={true}
+              error={confirmPasswordError}
+              touched={confirmPasswordTouched}
+              rightSlot={
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                  className="p-1.5 hover:bg-slate-200/60 dark:hover:bg-slate-800 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-[#FFC72C] outline-none"
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff size={15} className="text-slate-500 hover:text-slate-800 dark:hover:text-slate-200" />
+                  ) : (
+                    <Eye size={15} className="text-slate-500 hover:text-slate-800 dark:hover:text-slate-200" />
+                  )}
+                </button>
+              }
+            />
+
+            {confirmPasswordState && (
+              <div 
+                className={`flex items-center gap-1.5 px-1 text-[11px] font-semibold animate-in fade-in duration-150 ${
+                  confirmPasswordState.valid 
+                    ? "text-emerald-600 dark:text-emerald-400" 
+                    : "text-rose-600 dark:text-rose-400"
+                }`}
+              >
+                {confirmPasswordState.valid ? (
+                  <CheckCircle2 size={13} className="text-emerald-500" />
+                ) : (
+                  <AlertCircle size={13} className="text-rose-500" />
+                )}
+                <span>{confirmPasswordState.message}</span>
+              </div>
             )}
           </div>
         )}
 
+        {/* Terms and Conditions Checkbox (Registration Only) */}
         {!isLogin && (
-          <FloatingLabelInput
-            id="confirmPassword" label="Confirm password" name="confirmPassword"
-            type={showConfirmPassword ? "text" : "password"} value={confirmPassword}
-            onChange={(value) => {
-              setConfirmPassword(value);
-              if (passwordFeedback) setPasswordFeedback(null);
-            }} icon={Lock} autoComplete="new-password"
-            rightSlot={
-              <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
-                {showConfirmPassword ? <EyeOff size={14} className="text-slate-400" /> : <Eye size={14} className="text-slate-400" />}
-              </button>
-            }
-          />
-        )}
-
-        {!isLogin && confirmPasswordState && (
-          <div className={`flex items-center gap-2 text-[10px] ${confirmPasswordState.valid ? "text-emerald-600" : "text-rose-500"}`}>
-            {confirmPasswordState.valid ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
-            <span className="font-semibold">{confirmPasswordState.message}</span>
-          </div>
-        )}
-
-        {!isLogin && (
-          <div className="flex items-center gap-2.5 pt-1 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              id="termsAccepted"
-              name="termsAcceptedCheckbox"
-              checked={termsAccepted}
-              onChange={(e) => setTermsAccepted(e.target.checked)}
-              className="w-4 h-4 rounded border-slate-300 text-[#FFC72C] focus:ring-[#FFC72C] cursor-pointer"
-            />
-            <label htmlFor="termsAccepted" className="text-xs text-slate-600 dark:text-slate-400 font-medium cursor-pointer">
-              I agree to the <a href="/terms" target="_blank" rel="noreferrer" className="text-[#A3843B] dark:text-[#FFC72C] font-bold hover:underline">Terms and Conditions</a>
+          <div className="flex items-start gap-3 pt-1 cursor-pointer select-none">
+            <div className="flex items-center h-5 mt-0.5">
+              <input
+                type="checkbox"
+                id="termsAccepted"
+                name="termsAcceptedCheckbox"
+                checked={termsAccepted}
+                onChange={(e) => setTermsAccepted(e.target.checked)}
+                className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-[#FFC72C] focus:ring-[#FFC72C] focus:ring-offset-0 cursor-pointer accent-[#FFC72C]"
+              />
+            </div>
+            <label htmlFor="termsAccepted" className="text-xs text-slate-600 dark:text-slate-400 font-medium cursor-pointer leading-tight">
+              I agree to the{' '}
+              <a 
+                href="/terms" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="font-bold text-[#A3843B] dark:text-[#FFC72C] hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#FFC72C] rounded-sm"
+              >
+                Terms and Conditions
+              </a>
             </label>
           </div>
         )}
 
+        {/* Remember Me & Forgot Password (Login Only) */}
         {isLogin && (
           <div className="flex items-center justify-between text-xs pt-1">
             <label className="flex items-center gap-2 cursor-pointer select-none">
@@ -694,64 +872,73 @@ export const AuthForm = ({ action }: AuthFormProps) => {
                 type="checkbox"
                 checked={rememberMe}
                 onChange={() => setRememberMe(!rememberMe)}
-                className="w-4 h-4 rounded border-slate-300 text-[#FFC72C] focus:ring-[#FFC72C] cursor-pointer"
+                className="w-4 h-4 rounded border-slate-300 text-[#FFC72C] focus:ring-[#FFC72C] cursor-pointer accent-[#FFC72C]"
               />
               <span className="text-slate-600 dark:text-slate-400 font-medium">Remember me</span>
             </label>
             <button
               type="button"
               onClick={() => setShowForgot(true)}
-              className="text-[#A3843B] dark:text-[#FFC72C] hover:underline font-bold"
+              className="text-[#A3843B] dark:text-[#FFC72C] hover:underline font-bold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#FFC72C] rounded-sm"
             >
               Forgot password?
             </button>
           </div>
         )}
 
+        {/* Primary Action Button (Sign In / Register Account) */}
         <button
           type="submit"
           disabled={isPending || !canSubmit}
-          className="w-full bg-[#FFC72C] hover:bg-[#d8ad2d] disabled:opacity-50 text-slate-950 font-extrabold py-3.5 rounded-2xl transition-all text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-amber-400/10 hover:shadow-lg"
+          className={`w-full bg-[#FFC72C] text-slate-950 font-extrabold py-3.5 rounded-2xl transition-all duration-200 text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md shadow-amber-400/10 ${
+            !canSubmit || isPending
+              ? "opacity-50 cursor-not-allowed"
+              : "hover:bg-[#d8ad2d] hover:shadow-lg hover:shadow-amber-400/20 active:scale-[0.98] cursor-pointer"
+          }`}
         >
           {isPending ? (
             <>
               <Spinner />
-              {isLogin ? "Signing in…" : "Registering…"}
+              <span>{isLogin ? "Signing in…" : "Registering…"}</span>
             </>
-          ) : isLogin ? "Sign In" : "Register Account"}
+          ) : (
+            <span>{isLogin ? "Sign In" : "Register Account"}</span>
+          )}
         </button>
 
+        {/* Switch Login / Sign Up Toggle */}
         <div className="text-center pt-2">
           <button
             type="button"
             onClick={() => {
               setIsLogin(!isLogin);
-              setError(null);
+              resetValidationState();
               setPassword("");
               setConfirmPassword("");
               setShowPassword(false);
               setShowConfirmPassword(false);
-              setPasswordFeedback(null);
             }}
-            className="text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors"
+            className="text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#FFC72C] rounded-sm"
           >
             {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
           </button>
         </div>
 
+        {/* Divider */}
         <div className="flex items-center my-6">
-          <div className="flex-1 border-t border-slate-100 dark:border-slate-900" />
+          <div className="flex-1 border-t border-slate-200 dark:border-slate-800" />
           <span className="px-3 text-[10px] text-zinc-400 uppercase tracking-widest font-bold">or</span>
-          <div className="flex-1 border-t border-slate-100 dark:border-slate-900" />
+          <div className="flex-1 border-t border-slate-200 dark:border-slate-800" />
         </div>
 
+        {/* Google OAuth Section */}
         {savedGoogle ? (
-          <div className="border border-slate-100 dark:border-slate-800 p-4 rounded-2xl flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
+          <div className="border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50 transition-colors">
             <button
               type="button"
               onClick={signInWithGoogle}
               disabled={googleLoading}
-              className="flex items-center gap-3 text-left flex-1"
+              className="flex items-center gap-3 text-left flex-1 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#FFC72C] rounded-xl"
             >
               {savedGoogle.avatar ? (
                 <img src={savedGoogle.avatar} alt={savedGoogle.name} className="w-9 h-9 rounded-full border border-slate-200" />
@@ -766,7 +953,11 @@ export const AuthForm = ({ action }: AuthFormProps) => {
               </div>
             </button>
             <div className="flex items-center gap-2">
-              <button type="button" onClick={clearSavedGoogle} className="text-xs text-rose-500 font-bold hover:underline">
+              <button 
+                type="button" 
+                onClick={clearSavedGoogle} 
+                className="text-xs text-rose-500 hover:text-rose-600 font-bold hover:underline"
+              >
                 Remove
               </button>
             </div>
@@ -776,10 +967,10 @@ export const AuthForm = ({ action }: AuthFormProps) => {
             type="button"
             onClick={signInWithGoogle}
             disabled={googleLoading}
-            className="w-full flex items-center justify-center gap-3 border border-slate-200 dark:border-slate-800 hover:bg-[#FFF9EC]/20 dark:hover:bg-slate-900 rounded-2xl py-3.5 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+            className="w-full flex items-center justify-center gap-3 border border-slate-200 dark:border-slate-800 hover:bg-slate-100/60 dark:hover:bg-slate-900/80 rounded-2xl py-3.5 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 transition-all cursor-pointer active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFC72C]"
           >
             <GoogleIcon />
-            {googleLoading ? "Connecting…" : "Continue with Google"}
+            <span>{googleLoading ? "Connecting…" : "Continue with Google"}</span>
           </button>
         )}
       </form>
@@ -788,4 +979,3 @@ export const AuthForm = ({ action }: AuthFormProps) => {
 };
 
 export default AuthForm;
-

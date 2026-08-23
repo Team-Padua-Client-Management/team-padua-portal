@@ -145,14 +145,14 @@ export function CAMSFilterBar({
 }: CAMSFilterBarProps) {
   return (
     <div className="flex flex-col md:flex-row items-center gap-3 bg-card border border-border/50 p-4 rounded-xl shadow-2xs w-full">
-      <div className="relative flex-1 w-full">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-text-secondary" />
+      <div className="relative flex-1 w-full group">
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-text-secondary pointer-events-none group-focus-within:text-primary transition-colors duration-200" />
         <input
           type="text"
           placeholder={searchPlaceholder}
           value={searchValue}
           onChange={e => onSearchChange(e.target.value)}
-          className="w-full bg-card border border-border/50 rounded-full h-11 pl-10 pr-4 text-sm text-text transition duration-150 focus:outline-none focus:border-[#F4C542] focus:ring-2 focus:ring-[#F4C542]/10"
+          className="w-full bg-card border border-border/50 rounded-full h-11 pl-11 pr-4 text-sm text-text transition duration-150 focus:outline-none focus:border-[#F4C542] focus:ring-2 focus:ring-[#F4C542]/10"
         />
       </div>
       {children && (

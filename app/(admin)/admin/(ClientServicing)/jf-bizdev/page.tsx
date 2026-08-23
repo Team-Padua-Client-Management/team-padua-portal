@@ -201,14 +201,14 @@ export default function JotFormBizDevPage() {
           {/* Data List Table */}
           <div className="bg-card border border-border/50 shadow-[0_2px_10px_rgb(0,0,0,0.04)] rounded-[20px] overflow-hidden">
             <div className="p-5 border-b border-border flex flex-col md:flex-row gap-4 justify-between items-center bg-card">
-              <div className="relative w-full md:w-80">
-                <Search className="absolute left-3 top-2.5 text-muted" size={16} />
+              <div className="relative w-full md:w-80 group">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted pointer-events-none group-focus-within:text-primary transition-colors duration-200" size={16} />
                 <input
                   type="text"
                   placeholder="Search recruit records..."
                   value={search}
                   onChange={e => setSearch(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 border border-border rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary bg-card text-text"
+                  className="w-full pl-11 pr-4 py-2 border border-border rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary bg-card text-text"
                 />
               </div>
             </div>

@@ -17,4 +17,5 @@ export { default as ConfirmDeleteModal } from './components/ConfirmDeleteModal';
 export { default as UserAvatar } from './components/UserAvatar';
 export { default as UserPickerSelect } from './components/UserPickerSelect';
 export { default as StatusBadge } from './components/StatusBadge';
+export { useMeetingLinkParser, parseMeetingLink, formatMeetingId } from './hooks/useMeetingLinkParser';
 

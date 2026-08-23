@@ -210,6 +210,21 @@ export default function UserHeader({ onMenuClick, isSidebarOpen }: UserHeaderPro
   }, []);
 
   const handleLogout = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        await supabase
+          .from("profiles")
+          .update({
+            last_seen_at: new Date().toISOString(),
+            status: "offline",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", session.user.id);
+      }
+    } catch {
+      // Best-effort presence cleanup on logout
+    }
     await supabase.auth.signOut();
     router.push('/auth/login');
   };

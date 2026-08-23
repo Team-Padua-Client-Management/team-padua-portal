@@ -313,8 +313,8 @@ export const useAdminDashboard = () => {
         }
       }
 
-      const { data: cpstClientsData, error: cpstErr } = await supabase
-        .from('cpst_clients')
+      let { data: cpstClientsData, error: cpstErr } = await supabase
+        .from('cgpt_clients')
         .select(`
           id,
           client_name,
@@ -327,13 +327,37 @@ export const useAdminDashboard = () => {
           )
         `);
 
+      if (cpstErr || (!cpstClientsData || cpstClientsData.length === 0)) {
+        const fallbackRes = await supabase
+          .from('cpst_clients')
+          .select(`
+            id,
+            client_name,
+            birthdate,
+            advisor_id,
+            advisor:advisors(
+              id,
+              advisor_name,
+              advisor_code
+            )
+          `);
+        if (fallbackRes.data && fallbackRes.data.length > 0) {
+          cpstClientsData = fallbackRes.data;
+          cpstErr = null;
+        }
+      }
+
       if (!cpstErr && cpstClientsData && Array.isArray(cpstClientsData)) {
         const matched = getBirthdaysAroundNow(cpstClientsData);
         setClientBirthdays(matched);
       }
 
       const { count: membersCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
-      const { count: cpstCount } = await supabase.from('cpst_clients').select('*', { count: 'exact', head: true });
+      let { count: cpstCount } = await supabase.from('cgpt_clients').select('*', { count: 'exact', head: true });
+      if (!cpstCount) {
+        const { count: fallbackCpstCount } = await supabase.from('cpst_clients').select('*', { count: 'exact', head: true });
+        cpstCount = fallbackCpstCount;
+      }
       const { count: acrCount } = await supabase.from('acr_clients').select('*', { count: 'exact', head: true });
       const { count: cpcCount } = await supabase.from('cpc_clients').select('*', { count: 'exact', head: true });
       const { count: fstCount } = await supabase.from('fst_clients').select('*', { count: 'exact', head: true });
@@ -845,7 +869,10 @@ export const useAdminDashboard = () => {
     });
   };
 
-  const handleSaveCalendarActivity = async (activityData: Omit<CalendarActivityItem, 'id' | 'createdAt'>) => {
+  const handleSaveCalendarActivity = async (
+    activityData: Omit<CalendarActivityItem, 'id' | 'createdAt'>,
+    existingId?: string
+  ) => {
     const activeUserId = currentUserIdRef.current || currentUserId;
 
     const descriptionJson = JSON.stringify({
@@ -862,9 +889,16 @@ export const useAdminDashboard = () => {
         assignedRole: activityData.assignedRole,
         onlinePlatform: activityData.onlinePlatform,
         onlineMeetingLink: activityData.onlineMeetingLink,
+        meeting_link_raw: activityData.meeting_link_raw,
         onlineMeetingId: activityData.onlineMeetingId,
         onlinePasscode: activityData.onlinePasscode,
-        onsiteVenue: activityData.onsiteVenue,
+        onsiteVenue: activityData.onsiteVenue || activityData.venue_name,
+        venue_name: activityData.venue_name || activityData.onsiteVenue,
+        venue_address: activityData.venue_address,
+        venue_place_id: activityData.venue_place_id,
+        venue_lat: activityData.venue_lat ?? activityData.latitude,
+        venue_lng: activityData.venue_lng ?? activityData.longitude,
+        venue_maps_url: activityData.venue_maps_url || activityData.googleMapsUrl,
         onsiteBuilding: activityData.onsiteBuilding,
         onsiteStreet: activityData.onsiteStreet,
         onsiteBarangay: activityData.onsiteBarangay,
@@ -874,11 +908,46 @@ export const useAdminDashboard = () => {
         onsiteIslandGroup: activityData.onsiteIslandGroup,
         onsiteRegion: activityData.onsiteRegion,
         region: activityData.region,
-        latitude: activityData.latitude,
-        longitude: activityData.longitude,
-        googleMapsUrl: activityData.googleMapsUrl
+        latitude: activityData.latitude ?? activityData.venue_lat,
+        longitude: activityData.longitude ?? activityData.venue_lng,
+        googleMapsUrl: activityData.googleMapsUrl || activityData.venue_maps_url
       }
     });
+
+    if (existingId) {
+      try {
+        const { error: updateErr } = await supabase
+          .from('client_servicing_tasks')
+          .update({
+            title: activityData.title,
+            notes: descriptionJson,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingId);
+
+        if (updateErr) {
+          console.error('Error updating calendar activity in client_servicing_tasks:', updateErr);
+        }
+      } catch (err) {
+        console.error('Error saving updated calendar activity to Supabase:', err);
+      }
+
+      setCalendarLogs(prev =>
+        prev.map(item =>
+          item.id === existingId
+            ? { ...item, ...activityData }
+            : item
+        )
+      );
+      setIsCalendarModalOpen(false);
+
+      createNotification({
+        title: 'Calendar Activity Updated',
+        description: `Calendar activity "${activityData.title}" was updated.`,
+        type: 'info',
+      });
+      return;
+    }
 
     const newDbTask: any = {
       user_id: activeUserId,

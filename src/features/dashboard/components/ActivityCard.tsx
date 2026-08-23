@@ -1,5 +1,5 @@
 import React from 'react';
-import { CalendarClock, Calendar, MapPin } from 'lucide-react';
+import { CalendarClock, Calendar, MapPin, Video, ExternalLink } from 'lucide-react';
 import styles from '@/styles/admin/dashboard/page.module.css';
 
 export type ActivityType =
@@ -54,7 +54,24 @@ export function getStatusClass(status: ActivityStatus): string {
   return styles.statusScheduled;
 }
 
+function formatUrl(url?: string): string | null {
+  if (!url) return null;
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (/^(zoom\.us|meet\.google\.com|teams\.microsoft\.com|teams\.live\.com|webex\.com)/i.test(trimmed)) {
+    return `https://${trimmed}`;
+  }
+  return trimmed.includes('.') && !trimmed.includes(' ') ? `https://${trimmed}` : null;
+}
+
 export default function ActivityCard({ activity, onSelect }: ActivityCardProps) {
+  const meetingUrl = formatUrl(activity.location);
+  const isOnlineUrl = !!meetingUrl;
+  const googleMapsUrl = activity.location && !isOnlineUrl
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(activity.location)}`
+    : null;
+
   return (
     <div
       className={styles.activityCard}
@@ -75,11 +92,40 @@ export default function ActivityCard({ activity, onSelect }: ActivityCardProps) 
       </div>
       {activity.location && (
         <div className={styles.activityLocation}>
-          <MapPin size={11} strokeWidth={1.8} />
-          <span>{activity.location}</span>
+          {isOnlineUrl ? (
+            <a
+              href={meetingUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline max-w-[200px] truncate"
+              title={`Open meeting: ${meetingUrl}`}
+            >
+              <Video size={11} strokeWidth={1.8} className="text-blue-500 shrink-0" />
+              <span className="truncate">Join Meeting</span>
+              <ExternalLink size={9} className="text-blue-400 shrink-0" />
+            </a>
+          ) : googleMapsUrl ? (
+            <a
+              href={googleMapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline max-w-[200px] truncate"
+              title={`Open in Google Maps: ${activity.location}`}
+            >
+              <MapPin size={11} strokeWidth={1.8} className="text-blue-500 shrink-0" />
+              <span className="truncate">{activity.location}</span>
+              <ExternalLink size={9} className="text-blue-400 shrink-0" />
+            </a>
+          ) : (
+            <span className="inline-flex items-center gap-1">
+              <MapPin size={11} strokeWidth={1.8} />
+              <span>{activity.location}</span>
+            </span>
+          )}
         </div>
       )}
     </div>
   );
 }
-
