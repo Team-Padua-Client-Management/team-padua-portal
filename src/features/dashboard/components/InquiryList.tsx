@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import {
     Plus,
@@ -75,13 +76,16 @@ function resolveProfile(inquiry: ClientInquiry, allProfiles: UserProfile[]): Use
 
 function useHoverController<T>() {
     const [active, setActive] = useState<T | null>(null);
+    const [rect, setRect] = useState<{ top: number; left: number; right: number; height: number } | null>(null);
 
-    const open = (value: T) => {
+    const open = (value: T, targetRect?: { top: number; left: number; right: number; height: number }) => {
         setActive(value);
+        if (targetRect) setRect(targetRect);
     };
 
     const closeNow = () => {
         setActive(null);
+        setRect(null);
     };
 
     useEffect(() => {
@@ -96,6 +100,7 @@ function useHoverController<T>() {
 
             if (!isInsideTrigger && !isInsidePopover) {
                 setActive(null);
+                setRect(null);
             }
         };
 
@@ -105,7 +110,7 @@ function useHoverController<T>() {
         };
     }, [active]);
 
-    return { active, open, cancelClose: () => {}, scheduleClose: () => {}, closeNow };
+    return { active, rect, open, cancelClose: () => {}, scheduleClose: () => {}, closeNow };
 }
 
 interface StageCardProps {
@@ -382,6 +387,7 @@ function InquiryRow({
 interface StagePopoverProps {
     stage: StageMeta;
     inquiries: ClientInquiry[];
+    rect?: { top: number; left: number; right: number; height: number } | null;
     onDeleteInquiry: (id: string) => void;
     saveInquiryField: (id: string, updates: Record<string, any>) => Promise<void>;
     onSelectInquiry: (inquiry: ClientInquiry) => void;
@@ -395,6 +401,7 @@ interface StagePopoverProps {
 function StagePopover({
     stage,
     inquiries,
+    rect,
     onDeleteInquiry,
     saveInquiryField,
     onSelectInquiry,
@@ -405,7 +412,7 @@ function StagePopover({
     onMouseLeave,
 }: StagePopoverProps) {
     const total = inquiries.length;
-    const { active: hoveredInquiry, open: openPreview, cancelClose: cancelPreviewClose, scheduleClose: schedulePreviewClose } =
+    const { active: hoveredInquiry, open: openPreview } =
         useHoverController<ClientInquiry>();
 
     const currentStatus = stageToStatus(stage.id);
@@ -416,27 +423,49 @@ function StagePopover({
 
     const previewProfile = hoveredInquiry ? resolveProfile(hoveredInquiry, allProfiles) : undefined;
 
-    return (
+    const VIEWPORT_MARGIN = 16;
+    const POPOVER_WIDTH = 460;
+    const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
+    const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
+
+    const spaceRight = rect ? viewportWidth - rect.right : 500;
+    const isRight = spaceRight >= POPOVER_WIDTH + VIEWPORT_MARGIN;
+    const left = rect
+        ? isRight
+            ? rect.right + 16
+            : Math.max(VIEWPORT_MARGIN, rect.left - POPOVER_WIDTH - 16)
+        : 100;
+
+    const estimatedHeight = 440;
+    const rawTop = rect ? rect.top : 100;
+    const top = Math.min(
+        Math.max(rawTop, VIEWPORT_MARGIN),
+        Math.max(VIEWPORT_MARGIN, viewportHeight - estimatedHeight - VIEWPORT_MARGIN)
+    );
+    const maxHeight = Math.max(200, viewportHeight - top - VIEWPORT_MARGIN);
+
+    if (typeof document === 'undefined') return null;
+
+    return createPortal(
         <div
             data-cmp-popover="stage-popover"
             onMouseEnter={onMouseEnter}
             onMouseLeave={onMouseLeave}
             style={{
-                position: 'absolute',
-                top: 0,
-                left: '100%',
-                marginLeft: '16px',
+                position: 'fixed',
+                top: `${top}px`,
+                left: `${left}px`,
                 display: 'flex',
                 alignItems: 'flex-start',
                 gap: '16px',
-                zIndex: 100,
+                zIndex: 9999,
             }}
             className="stage-popover"
         >
             <div
                 style={{
                     width: '460px',
-                    maxHeight: '440px',
+                    maxHeight: `${maxHeight}px`,
                     overflowY: 'auto',
                     background: 'var(--surface)',
                     borderRadius: '16px',
@@ -556,7 +585,8 @@ function StagePopover({
                     />
                 </div>
             )}
-        </div>
+        </div>,
+        document.body
     );
 }
 
@@ -583,7 +613,7 @@ export const InquiryList: React.FC<InquiryListProps> = ({
     onCopyToAddressed,
     variant = 'card',
 }) => {
-    const { active: activeStage, open: openStage, cancelClose, scheduleClose } = useHoverController<InquiryStageId>();
+    const { active: activeStage, rect: stageRect, open: openStage } = useHoverController<InquiryStageId>();
 
     const stageBuckets = useMemo(() => {
         const buckets: Record<InquiryStageId, ClientInquiry[]> = {
@@ -642,7 +672,7 @@ export const InquiryList: React.FC<InquiryListProps> = ({
                                 key={stage.id}
                                 data-cmp-trigger="stage-card"
                                 style={{ position: 'relative' }}
-                                onMouseEnter={() => openStage(stage.id)}
+                                onMouseEnter={(e) => openStage(stage.id, e.currentTarget.getBoundingClientRect())}
                             >
                                 <div
                                     className={`flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer ${
@@ -670,6 +700,7 @@ export const InquiryList: React.FC<InquiryListProps> = ({
                                     <StagePopover
                                         stage={stage}
                                         inquiries={stageBuckets[stage.id]}
+                                        rect={stageRect}
                                         onDeleteInquiry={onDeleteInquiry}
                                         saveInquiryField={saveInquiryField}
                                         onSelectInquiry={onSelectInquiry}
@@ -746,13 +777,14 @@ export const InquiryList: React.FC<InquiryListProps> = ({
                                 key={stage.id}
                                 data-cmp-trigger="stage-card"
                                 style={{ position: 'relative' }}
-                                onMouseEnter={() => openStage(stage.id)}
+                                onMouseEnter={(e) => openStage(stage.id, e.currentTarget.getBoundingClientRect())}
                             >
                                 <StageCard meta={stage} count={stageBuckets[stage.id].length} active={activeStage === stage.id} />
                                 {activeStage === stage.id && (
                                     <StagePopover
                                         stage={stage}
                                         inquiries={stageBuckets[stage.id]}
+                                        rect={stageRect}
                                         onDeleteInquiry={onDeleteInquiry}
                                         saveInquiryField={saveInquiryField}
                                         onSelectInquiry={onSelectInquiry}

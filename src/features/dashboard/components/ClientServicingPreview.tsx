@@ -101,12 +101,13 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
     );
 
     const viewportHeight = window.innerHeight;
-    const estimatedCardHeight = 580;
-    const rawTop = rect.top + rect.height / 2 - estimatedCardHeight / 2;
+    const estimatedCardHeight = 540;
+    const rawTop = rect.top;
     const top = Math.min(
         Math.max(rawTop, VIEWPORT_MARGIN),
-        viewportHeight - estimatedCardHeight - VIEWPORT_MARGIN
+        Math.max(VIEWPORT_MARGIN, viewportHeight - estimatedCardHeight - VIEWPORT_MARGIN)
     );
+    const maxHeight = Math.max(200, viewportHeight - top - VIEWPORT_MARGIN);
 
     const categoryLabel = normalizeCategory(task.category);
 
@@ -223,6 +224,8 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
                 left: `${left}px`,
                 width: `${PREVIEW_CARD_WIDTH}px`,
                 maxWidth: `calc(100vw - ${VIEWPORT_MARGIN * 2}px)`,
+                maxHeight: `${maxHeight}px`,
+                overflowY: 'auto',
                 boxSizing: 'border-box',
                 background: '#FFFFFF',
                 borderRadius: '18px',

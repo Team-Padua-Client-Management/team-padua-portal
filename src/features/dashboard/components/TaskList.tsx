@@ -209,13 +209,16 @@ const STAGE_CLOSE_DELAY_MS = 200;
 
 function useStageHoverController<T extends string>() {
   const [activeStage, setActiveStage] = useState<T | null>(null);
+  const [stageRect, setStageRect] = useState<{ top: number; left: number; right: number; height: number } | null>(null);
 
-  const openStage = (stageId: T) => {
+  const openStage = (stageId: T, rect?: { top: number; left: number; right: number; height: number }) => {
     setActiveStage(stageId);
+    if (rect) setStageRect(rect);
   };
 
   const closeNow = () => {
     setActiveStage(null);
+    setStageRect(null);
   };
 
   useEffect(() => {
@@ -230,6 +233,7 @@ function useStageHoverController<T extends string>() {
 
       if (!isInsideTrigger && !isInsidePopover) {
         setActiveStage(null);
+        setStageRect(null);
       }
     };
 
@@ -239,7 +243,7 @@ function useStageHoverController<T extends string>() {
     };
   }, [activeStage]);
 
-  return { activeStage, openStage, cancelClose: () => {}, scheduleClose: () => {}, closeNow };
+  return { activeStage, stageRect, openStage, cancelClose: () => {}, scheduleClose: () => {}, closeNow };
 }
 
 function findProfileInLists(id: string | null | undefined, allProfiles: UserProfile[], bizDevProfiles: UserProfile[]): UserProfile | null {
@@ -624,6 +628,7 @@ interface StagePopoverProps {
   rows: CategoryRowGroup[];
   allProfiles: UserProfile[];
   bizDevProfiles: UserProfile[];
+  rect?: { top: number; left: number; right: number; height: number } | null;
   onDeleteTask?: (taskId: string) => void;
   onSaveTaskField?: (taskId: string, updates: Record<string, unknown>) => void;
   onMouseEnter?: () => void;
@@ -635,6 +640,7 @@ function StagePopover({
   rows,
   allProfiles,
   bizDevProfiles,
+  rect,
   onDeleteTask,
   onSaveTaskField,
   onMouseEnter,
@@ -655,24 +661,46 @@ function StagePopover({
     });
   };
 
-  return (
+  const VIEWPORT_MARGIN = 16;
+  const POPOVER_WIDTH = 460;
+  const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
+  const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
+
+  const spaceRight = rect ? viewportWidth - rect.right : 500;
+  const isRight = spaceRight >= POPOVER_WIDTH + VIEWPORT_MARGIN;
+  const left = rect
+    ? isRight
+      ? rect.right + 16
+      : Math.max(VIEWPORT_MARGIN, rect.left - POPOVER_WIDTH - 16)
+    : 100;
+
+  const estimatedHeight = 400;
+  const rawTop = rect ? rect.top : 100;
+  const top = Math.min(
+    Math.max(rawTop, VIEWPORT_MARGIN),
+    Math.max(VIEWPORT_MARGIN, viewportHeight - estimatedHeight - VIEWPORT_MARGIN)
+  );
+  const maxHeight = Math.max(200, viewportHeight - top - VIEWPORT_MARGIN);
+
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
     <div
       data-cmp-popover="stage-popover"
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       style={{
-        position: 'absolute',
-        top: 0,
-        left: '100%',
-        marginLeft: '16px',
-        width: '460px',
-        maxHeight: '400px',
+        position: 'fixed',
+        top: `${top}px`,
+        left: `${left}px`,
+        width: `${POPOVER_WIDTH}px`,
+        maxHeight: `${maxHeight}px`,
         overflowY: 'auto',
         background: 'var(--surface)',
         borderRadius: '16px',
         boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
         border: '1px solid var(--border)',
-        zIndex: 100,
+        zIndex: 9999,
       }}
       className="stage-popover"
     >
@@ -719,7 +747,8 @@ function StagePopover({
           ))
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -799,7 +828,7 @@ export default function TaskList({
     return tasks.filter(t => normalizeCategory(t.category) !== 'Inquiry');
   }, [tasks]);
 
-  const { activeStage, openStage, cancelClose, scheduleClose } = useStageHoverController<WorkflowStage>();
+  const { activeStage, stageRect, openStage } = useStageHoverController<WorkflowStage>();
 
   const findProfileById = (id: string | null): UserProfile | null => {
     if (!id) return null;
@@ -909,7 +938,7 @@ export default function TaskList({
                 key={stage.id}
                 data-cmp-trigger="stage-card"
                 style={{ position: 'relative' }}
-                onMouseEnter={() => openStage(stage.id as WorkflowStage)}
+                onMouseEnter={(e) => openStage(stage.id as WorkflowStage, e.currentTarget.getBoundingClientRect())}
               >
                 <div
                   className={`flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer ${
@@ -939,10 +968,9 @@ export default function TaskList({
                     rows={activeStageRows}
                     allProfiles={allProfiles}
                     bizDevProfiles={bizDevProfiles}
+                    rect={stageRect}
                     onDeleteTask={onDeleteTask}
                     onSaveTaskField={_onSaveTaskField}
-                    onMouseEnter={cancelClose}
-                    onMouseLeave={scheduleClose}
                   />
                 )}
               </div>
@@ -1019,7 +1047,7 @@ export default function TaskList({
                 key={stage.id}
                 data-cmp-trigger="stage-card"
                 style={{ position: 'relative' }}
-                onMouseEnter={() => openStage(stage.id as WorkflowStage)}
+                onMouseEnter={(e) => openStage(stage.id as WorkflowStage, e.currentTarget.getBoundingClientRect())}
               >
                 <StageCard
                   meta={stage}
@@ -1032,10 +1060,9 @@ export default function TaskList({
                     rows={activeStageRows}
                     allProfiles={allProfiles}
                     bizDevProfiles={bizDevProfiles}
+                    rect={stageRect}
                     onDeleteTask={onDeleteTask}
                     onSaveTaskField={_onSaveTaskField}
-                    onMouseEnter={cancelClose}
-                    onMouseLeave={scheduleClose}
                   />
                 )}
               </div>
@@ -1426,6 +1453,7 @@ interface InquiryStagePopoverProps {
   inquiries: WorkflowTaskItem[];
   allProfiles: UserProfile[];
   bizDevProfiles: UserProfile[];
+  rect?: { top: number; left: number; right: number; height: number } | null;
   onSelectTask: (taskId: string) => void;
   onDeleteTask?: (taskId: string) => void;
   onSaveTaskField?: (taskId: string, updates: Record<string, unknown>) => void;
@@ -1438,30 +1466,53 @@ function InquiryStagePopover({
   inquiries,
   allProfiles,
   bizDevProfiles,
+  rect,
   onSelectTask,
   onDeleteTask,
   onSaveTaskField,
   onMouseEnter,
   onMouseLeave,
 }: InquiryStagePopoverProps) {
-  return (
+  const VIEWPORT_MARGIN = 16;
+  const POPOVER_WIDTH = 460;
+  const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
+  const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
+
+  const spaceRight = rect ? viewportWidth - rect.right : 500;
+  const isRight = spaceRight >= POPOVER_WIDTH + VIEWPORT_MARGIN;
+  const left = rect
+    ? isRight
+      ? rect.right + 16
+      : Math.max(VIEWPORT_MARGIN, rect.left - POPOVER_WIDTH - 16)
+    : 100;
+
+  const estimatedHeight = 440;
+  const rawTop = rect ? rect.top : 100;
+  const top = Math.min(
+    Math.max(rawTop, VIEWPORT_MARGIN),
+    Math.max(VIEWPORT_MARGIN, viewportHeight - estimatedHeight - VIEWPORT_MARGIN)
+  );
+  const maxHeight = Math.max(200, viewportHeight - top - VIEWPORT_MARGIN);
+
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
     <div
       data-cmp-popover="stage-popover"
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       style={{
-        position: 'absolute',
-        top: 0,
-        left: '100%',
-        marginLeft: '16px',
-        width: '460px',
-        maxHeight: '480px',
+        position: 'fixed',
+        top: `${top}px`,
+        left: `${left}px`,
+        width: `${POPOVER_WIDTH}px`,
+        maxHeight: `${maxHeight}px`,
         overflowY: 'auto',
         background: 'var(--surface)',
         borderRadius: '16px',
         boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
         border: '1px solid var(--border)',
-        zIndex: 100,
+        zIndex: 9999,
       }}
       className="stage-popover"
     >
@@ -1507,7 +1558,8 @@ function InquiryStagePopover({
             ))
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -1536,7 +1588,7 @@ export function ClientInquiries({
   isUserView = false,
   showCreateButton = true,
 }: ClientInquiriesProps) {
-  const { activeStage, openStage, cancelClose, scheduleClose } = useStageHoverController<InquiryStage>();
+  const { activeStage, stageRect, openStage, cancelClose, scheduleClose } = useStageHoverController<InquiryStage>();
 
   const inquiryTasks = useMemo(() => {
     return tasks.filter(
@@ -1629,7 +1681,7 @@ export function ClientInquiries({
                 key={stage.id}
                 data-cmp-trigger="stage-card"
                 style={{ position: 'relative' }}
-                onMouseEnter={() => openStage(stage.id as InquiryStage)}
+                onMouseEnter={(e) => openStage(stage.id as InquiryStage, e.currentTarget.getBoundingClientRect())}
               >
                 <StageCard
                   meta={stage}
@@ -1642,6 +1694,7 @@ export function ClientInquiries({
                     inquiries={stageBuckets[stage.id as InquiryStage]}
                     allProfiles={allProfiles}
                     bizDevProfiles={bizDevProfiles}
+                    rect={stageRect}
                     onSelectTask={onSelectTask}
                     onDeleteTask={onDeleteTask}
                     onSaveTaskField={onSaveTaskField}

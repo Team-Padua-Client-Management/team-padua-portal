@@ -79,7 +79,7 @@ export function formatRelativeTime(isoString?: string): string {
   if (diffHr < 24) return `${diffHr}h ago`;
   const diffDay = Math.floor(diffHr / 24);
   if (diffDay < 7) return `${diffDay}d ago`;
-  return new Date(isoString).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return new Date(isoString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 export function formatFormattedTime(isoString?: string): string {
