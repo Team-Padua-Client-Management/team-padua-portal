@@ -75,42 +75,37 @@ function resolveProfile(inquiry: ClientInquiry, allProfiles: UserProfile[]): Use
 
 function useHoverController<T>() {
     const [active, setActive] = useState<T | null>(null);
-    const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-    const cancelClose = () => {
-        if (closeTimerRef.current) {
-            clearTimeout(closeTimerRef.current);
-            closeTimerRef.current = null;
-        }
-    };
-
-    const scheduleClose = (delay: number) => {
-        cancelClose();
-        closeTimerRef.current = setTimeout(() => {
-            setActive(null);
-            closeTimerRef.current = null;
-        }, delay);
-    };
 
     const open = (value: T) => {
-        cancelClose();
         setActive(value);
     };
 
     const closeNow = () => {
-        cancelClose();
         setActive(null);
     };
 
     useEffect(() => {
-        return () => {
-            if (closeTimerRef.current) {
-                clearTimeout(closeTimerRef.current);
+        if (!active) return;
+
+        const handlePointerDown = (e: PointerEvent | MouseEvent) => {
+            const target = e.target as HTMLElement | null;
+            if (!target) return;
+
+            const isInsideTrigger = target.closest?.('[data-cmp-trigger]');
+            const isInsidePopover = target.closest?.('[data-cmp-popover]');
+
+            if (!isInsideTrigger && !isInsidePopover) {
+                setActive(null);
             }
         };
-    }, []);
 
-    return { active, open, cancelClose, scheduleClose, closeNow };
+        document.addEventListener('pointerdown', handlePointerDown);
+        return () => {
+            document.removeEventListener('pointerdown', handlePointerDown);
+        };
+    }, [active]);
+
+    return { active, open, cancelClose: () => {}, scheduleClose: () => {}, closeNow };
 }
 
 interface StageCardProps {
@@ -171,7 +166,7 @@ interface InquiryRowProps {
     saveInquiryField: (id: string, updates: Record<string, any>) => Promise<void>;
     onSelectInquiry: (inquiry: ClientInquiry) => void;
     onHoverInquiry: (inquiry: ClientInquiry) => void;
-    onLeaveInquiry: () => void;
+    onLeaveInquiry?: () => void;
     allProfiles: UserProfile[];
     onCopyToPending?: (inquiry: ClientInquiry) => void;
     onCopyToAddressed?: (inquiry: ClientInquiry) => void;
@@ -195,8 +190,8 @@ function InquiryRow({
 
     return (
         <div
+            data-cmp-trigger="inquiry-row"
             onMouseEnter={() => onHoverInquiry(inquiry)}
-            onMouseLeave={onLeaveInquiry}
             style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -423,6 +418,7 @@ function StagePopover({
 
     return (
         <div
+            data-cmp-popover="stage-popover"
             onMouseEnter={onMouseEnter}
             onMouseLeave={onMouseLeave}
             style={{
@@ -488,7 +484,6 @@ function StagePopover({
                                 saveInquiryField={saveInquiryField}
                                 onSelectInquiry={onSelectInquiry}
                                 onHoverInquiry={openPreview}
-                                onLeaveInquiry={() => schedulePreviewClose(PREVIEW_CLOSE_DELAY_MS)}
                                 allProfiles={allProfiles}
                                 onCopyToPending={onCopyToPending}
                                 onCopyToAddressed={onCopyToAddressed}
@@ -552,7 +547,7 @@ function StagePopover({
             </div>
 
             {hoveredInquiry && (
-                <div onMouseEnter={cancelPreviewClose} onMouseLeave={() => schedulePreviewClose(PREVIEW_CLOSE_DELAY_MS)}>
+                <div>
                     <InquiryPreview
                         inquiry={hoveredInquiry}
                         processedByProfile={previewProfile}
@@ -645,9 +640,9 @@ export const InquiryList: React.FC<InquiryListProps> = ({
                         return (
                             <div
                                 key={stage.id}
+                                data-cmp-trigger="stage-card"
                                 style={{ position: 'relative' }}
                                 onMouseEnter={() => openStage(stage.id)}
-                                onMouseLeave={() => scheduleClose(STAGE_CLOSE_DELAY_MS)}
                             >
                                 <div
                                     className={`flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer ${
@@ -681,8 +676,6 @@ export const InquiryList: React.FC<InquiryListProps> = ({
                                         allProfiles={allProfiles}
                                         onCopyToPending={onCopyToPending}
                                         onCopyToAddressed={onCopyToAddressed}
-                                        onMouseEnter={cancelClose}
-                                        onMouseLeave={() => scheduleClose(STAGE_CLOSE_DELAY_MS)}
                                     />
                                 )}
                             </div>
@@ -751,9 +744,9 @@ export const InquiryList: React.FC<InquiryListProps> = ({
                         {INQUIRY_STAGES.map((stage) => (
                             <div
                                 key={stage.id}
+                                data-cmp-trigger="stage-card"
                                 style={{ position: 'relative' }}
                                 onMouseEnter={() => openStage(stage.id)}
-                                onMouseLeave={() => scheduleClose(STAGE_CLOSE_DELAY_MS)}
                             >
                                 <StageCard meta={stage} count={stageBuckets[stage.id].length} active={activeStage === stage.id} />
                                 {activeStage === stage.id && (
@@ -766,8 +759,6 @@ export const InquiryList: React.FC<InquiryListProps> = ({
                                         allProfiles={allProfiles}
                                         onCopyToPending={onCopyToPending}
                                         onCopyToAddressed={onCopyToAddressed}
-                                        onMouseEnter={cancelClose}
-                                        onMouseLeave={() => scheduleClose(STAGE_CLOSE_DELAY_MS)}
                                     />
                                 )}
                             </div>

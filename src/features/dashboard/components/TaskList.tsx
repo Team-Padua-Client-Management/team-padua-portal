@@ -209,42 +209,37 @@ const STAGE_CLOSE_DELAY_MS = 200;
 
 function useStageHoverController<T extends string>() {
   const [activeStage, setActiveStage] = useState<T | null>(null);
-  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const cancelClose = () => {
-    if (closeTimerRef.current) {
-      clearTimeout(closeTimerRef.current);
-      closeTimerRef.current = null;
-    }
-  };
-
-  const scheduleClose = () => {
-    cancelClose();
-    closeTimerRef.current = setTimeout(() => {
-      setActiveStage(null);
-      closeTimerRef.current = null;
-    }, STAGE_CLOSE_DELAY_MS);
-  };
 
   const openStage = (stageId: T) => {
-    cancelClose();
     setActiveStage(stageId);
   };
 
   const closeNow = () => {
-    cancelClose();
     setActiveStage(null);
   };
 
   useEffect(() => {
-    return () => {
-      if (closeTimerRef.current) {
-        clearTimeout(closeTimerRef.current);
+    if (!activeStage) return;
+
+    const handlePointerDown = (e: PointerEvent | MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+
+      const isInsideTrigger = target.closest?.('[data-cmp-trigger]');
+      const isInsidePopover = target.closest?.('[data-cmp-popover]');
+
+      if (!isInsideTrigger && !isInsidePopover) {
+        setActiveStage(null);
       }
     };
-  }, []);
 
-  return { activeStage, openStage, cancelClose, scheduleClose, closeNow };
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+    };
+  }, [activeStage]);
+
+  return { activeStage, openStage, cancelClose: () => {}, scheduleClose: () => {}, closeNow };
 }
 
 function findProfileInLists(id: string | null | undefined, allProfiles: UserProfile[], bizDevProfiles: UserProfile[]): UserProfile | null {
@@ -282,7 +277,6 @@ function ServicingTaskRow({
   const [showPreview, setShowPreview] = useState(false);
   const [previewRect, setPreviewRect] = useState<PreviewRect | null>(null);
   const rowRef = useRef<HTMLDivElement>(null);
-  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const measureRect = () => {
     if (!rowRef.current) return;
@@ -290,35 +284,43 @@ function ServicingTaskRow({
     setPreviewRect({ top: rect.top, left: rect.left, right: rect.right, height: rect.height });
   };
 
-  const cancelClose = () => {
-    if (closeTimerRef.current) {
-      clearTimeout(closeTimerRef.current);
-      closeTimerRef.current = null;
-    }
-  };
-
-  const scheduleClose = () => {
-    cancelClose();
-    closeTimerRef.current = setTimeout(() => {
-      setShowPreview(false);
-    }, 400);
-  };
-
   const handleMouseEnter = () => {
-    cancelClose();
+    window.dispatchEvent(new CustomEvent('cmp-task-hover', { detail: { id: task.id } }));
     measureRect();
     setShowPreview(true);
   };
 
-  const handleMouseLeave = () => {
-    scheduleClose();
-  };
+  useEffect(() => {
+    const handleOtherHover = (e: Event) => {
+      const customEvt = e as CustomEvent;
+      if (customEvt.detail?.id !== task.id) {
+        setShowPreview(false);
+      }
+    };
+    window.addEventListener('cmp-task-hover', handleOtherHover);
+    return () => window.removeEventListener('cmp-task-hover', handleOtherHover);
+  }, [task.id]);
 
   useEffect(() => {
-    return () => {
-      cancelClose();
+    if (!showPreview) return;
+
+    const handlePointerDown = (e: PointerEvent | MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+
+      const isInsideRow = rowRef.current?.contains(target);
+      const isInsidePopover = target.closest?.('[data-cmp-popover="true"]');
+
+      if (!isInsideRow && !isInsidePopover) {
+        setShowPreview(false);
+      }
     };
-  }, []);
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+    };
+  }, [showPreview]);
 
   useEffect(() => {
     if (!showPreview) return;
@@ -337,8 +339,8 @@ function ServicingTaskRow({
   return (
     <div
       ref={rowRef}
+      data-cmp-trigger="servicing-row"
       onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
       style={{
         position: 'relative',
         display: 'flex',
@@ -415,8 +417,6 @@ function ServicingTaskRow({
             bizDevProfiles={bizDevProfiles}
             rect={previewRect}
             onSaveTaskField={onSaveTaskField}
-            onMouseEnter={cancelClose}
-            onMouseLeave={scheduleClose}
           />,
           document.body
         )
@@ -657,6 +657,7 @@ function StagePopover({
 
   return (
     <div
+      data-cmp-popover="stage-popover"
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       style={{
@@ -906,9 +907,9 @@ export default function TaskList({
             return (
               <div
                 key={stage.id}
+                data-cmp-trigger="stage-card"
                 style={{ position: 'relative' }}
                 onMouseEnter={() => openStage(stage.id as WorkflowStage)}
-                onMouseLeave={scheduleClose}
               >
                 <div
                   className={`flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer ${
@@ -1016,9 +1017,9 @@ export default function TaskList({
             {WORKFLOW_STAGES.map((stage) => (
               <div
                 key={stage.id}
+                data-cmp-trigger="stage-card"
                 style={{ position: 'relative' }}
                 onMouseEnter={() => openStage(stage.id as WorkflowStage)}
-                onMouseLeave={scheduleClose}
               >
                 <StageCard
                   meta={stage}
@@ -1163,6 +1164,7 @@ function InquiryPreviewCard({ task, meta, processedProfile, loggedByLabel, rect 
 
   return (
     <div
+      data-cmp-popover="true"
       style={{
         position: 'fixed',
         top: `${top}px`,
@@ -1272,13 +1274,42 @@ function InquiryRow({ task, stage, allProfiles, bizDevProfiles, onClick, onDelet
   };
 
   const handleMouseEnter = () => {
+    window.dispatchEvent(new CustomEvent('cmp-inquiry-hover', { detail: { id: task.id } }));
     measureRect();
     setShowPreview(true);
   };
 
-  const handleMouseLeave = () => {
-    setShowPreview(false);
-  };
+  useEffect(() => {
+    const handleOtherHover = (e: Event) => {
+      const customEvt = e as CustomEvent;
+      if (customEvt.detail?.id !== task.id) {
+        setShowPreview(false);
+      }
+    };
+    window.addEventListener('cmp-inquiry-hover', handleOtherHover);
+    return () => window.removeEventListener('cmp-inquiry-hover', handleOtherHover);
+  }, [task.id]);
+
+  useEffect(() => {
+    if (!showPreview) return;
+
+    const handlePointerDown = (e: PointerEvent | MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+
+      const isInsideRow = rowRef.current?.contains(target);
+      const isInsidePopover = target.closest?.('[data-cmp-popover="true"]');
+
+      if (!isInsideRow && !isInsidePopover) {
+        setShowPreview(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+    };
+  }, [showPreview]);
 
   useEffect(() => {
     if (!showPreview) return;
@@ -1299,8 +1330,8 @@ function InquiryRow({ task, stage, allProfiles, bizDevProfiles, onClick, onDelet
   return (
     <div
       ref={rowRef}
+      data-cmp-trigger="inquiry-row"
       onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
       style={{
         position: 'relative',
         display: 'grid',
@@ -1415,6 +1446,7 @@ function InquiryStagePopover({
 }: InquiryStagePopoverProps) {
   return (
     <div
+      data-cmp-popover="stage-popover"
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       style={{
@@ -1595,9 +1627,9 @@ export function ClientInquiries({
             {INQUIRY_STAGES.map((stage) => (
               <div
                 key={stage.id}
+                data-cmp-trigger="stage-card"
                 style={{ position: 'relative' }}
                 onMouseEnter={() => openStage(stage.id as InquiryStage)}
-                onMouseLeave={scheduleClose}
               >
                 <StageCard
                   meta={stage}

@@ -116,6 +116,7 @@ export const InquiryPreview: React.FC<InquiryPreviewProps> = ({
 
     return (
         <div
+            data-cmp-popover="true"
             onMouseEnter={onMouseEnter}
             onMouseLeave={onMouseLeave}
             style={{

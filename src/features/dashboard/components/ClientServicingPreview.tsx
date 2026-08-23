@@ -214,6 +214,7 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
 
     return (
         <div
+            data-cmp-popover="true"
             onMouseEnter={onMouseEnter}
             onMouseLeave={onMouseLeave}
             style={{
