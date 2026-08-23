@@ -197,7 +197,11 @@
 }
 
 .table_57 {
-  @apply flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200;
+  @apply flex items-center gap-1 opacity-0 transition-opacity duration-200;
+}
+
+.container_53:hover .table_57 {
+  @apply opacity-100;
 }
 
 .card_58 {

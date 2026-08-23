@@ -269,11 +269,12 @@
   @apply flex justify-between items-start relative z-10;
 }
 .navCardIconWrapper {
-  @apply p-3 rounded-xl transition-all duration-300 transform group-hover:scale-110;
+  @apply p-3 rounded-xl transition-all duration-300 transform;
   background: color-mix(in srgb, var(--surface-2) 50%, transparent);
   color: var(--text-secondary);
 }
 .navCard:hover .navCardIconWrapper {
+  @apply scale-110;
   color: var(--primary);
   background: color-mix(in srgb, var(--primary) 10%, transparent);
 }

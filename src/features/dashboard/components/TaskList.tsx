@@ -192,7 +192,7 @@ function workflowStageToStatus(stage: WorkflowStage): WorkflowStatus {
 interface StageMeta {
   id: string;
   label: string;
-  icon: React.ComponentType<{ size?: number; strokeWidth?: number }>;
+  icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
 }
 
 const WORKFLOW_STAGES: StageMeta[] = [
@@ -778,6 +778,7 @@ interface TaskListProps {
   onDeleteTask?: (taskId: string) => void;
   isUserView?: boolean;
   showCreateButton?: boolean;
+  variant?: 'card' | 'compact-strip';
 }
 
 export default function TaskList({
@@ -791,6 +792,7 @@ export default function TaskList({
   onDeleteTask,
   isUserView = false,
   showCreateButton = true,
+  variant = 'card',
 }: TaskListProps) {
   const servicingTasks = useMemo(() => {
     return tasks.filter(t => normalizeCategory(t.category) !== 'Inquiry');
@@ -859,6 +861,96 @@ export default function TaskList({
   }, [activeStage, stageBuckets, allProfiles, bizDevProfiles]);
 
   const totalLogged = servicingTasks.length;
+
+  if (variant === 'compact-strip') {
+    return (
+      <div className={`${styles.monitoringCard} ${styles.compactKpiStripCard}`}>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-border">
+          <div className="flex items-center gap-2">
+            <LayoutGrid size={17} strokeWidth={2.2} className="text-gray-700 dark:text-gray-300 shrink-0" />
+            <h3 className="text-base font-extrabold text-gray-900 dark:text-white tracking-tight m-0 leading-none">
+              Client Servicing Monitoring
+            </h3>
+            <span className="ml-1 text-xs font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
+              <strong className="font-extrabold text-amber-600 dark:text-amber-400">{totalLogged}</strong> Total
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 self-end sm:self-auto">
+            <Link
+              href={isUserView ? "/dashboard/history" : "/admin/dashboard/history"}
+              style={{ textDecoration: 'none' }}
+              className={`${styles.newTaskBtn} !py-1 !px-3 !text-[11.5px] !bg-surface-2 !text-text hover:!bg-surface-3 !border-border !border`}
+            >
+              <History size={13} strokeWidth={2.5} />
+              <span className="font-bold">View History</span>
+            </Link>
+            {showCreateButton && (
+              <button
+                type="button"
+                onClick={onCreateTask}
+                className={`${styles.newTaskBtn} !py-1 !px-3 !text-[11.5px]`}
+              >
+                <Plus size={13} strokeWidth={2.5} />
+                <span className="font-bold">Log Request</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-1">
+          {WORKFLOW_STAGES.map((stage) => {
+            const Icon = stage.icon;
+            const count = stageBuckets[stage.id as WorkflowStage].length;
+            const isActive = activeStage === stage.id;
+            return (
+              <div
+                key={stage.id}
+                style={{ position: 'relative' }}
+                onMouseEnter={() => openStage(stage.id as WorkflowStage)}
+                onMouseLeave={scheduleClose}
+              >
+                <div
+                  className={`flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer ${
+                    isActive
+                      ? 'bg-purple-500/10 border-purple-500 shadow-sm'
+                      : 'bg-surface border-border hover:bg-surface-2 hover:border-purple-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Icon size={16} strokeWidth={2} className={isActive ? 'text-purple-600 dark:text-purple-400 shrink-0' : 'text-text-tertiary shrink-0'} />
+                    <span className="text-[12px] font-semibold text-text truncate">
+                      {stage.label.replace('Requests', '').trim()}
+                    </span>
+                  </div>
+                  <span
+                    className={`text-[16px] font-extrabold ml-2 shrink-0 ${
+                      isActive ? 'text-purple-600 dark:text-purple-400' : 'text-text'
+                    }`}
+                  >
+                    {count}
+                  </span>
+                </div>
+
+                {isActive && (
+                  <StagePopover
+                    stage={stage}
+                    rows={activeStageRows}
+                    allProfiles={allProfiles}
+                    bizDevProfiles={bizDevProfiles}
+                    onDeleteTask={onDeleteTask}
+                    onSaveTaskField={_onSaveTaskField}
+                    onMouseEnter={cancelClose}
+                    onMouseLeave={scheduleClose}
+                  />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.monitoringCard}>

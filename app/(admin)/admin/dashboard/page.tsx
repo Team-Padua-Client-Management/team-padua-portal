@@ -10,20 +10,18 @@ import styles from "@/styles/admin/dashboard/page.module.css";
 import WelcomeModal from "@src/components/modals/WelcomeModal";
 
 import DashboardHero from "@src/features/dashboard/components/DashboardHero";
-import ClientServicingStats from "@src/features/dashboard/components/ClientServicingStats";
-// import ClientServicingToDo from "@src/features/dashboard/components/ClientServicingToDo";
-import TaskList from "@src/features/dashboard/components/TaskList";
-import InquiryList from "@src/features/dashboard/components/InquiryList";
-import BirthdayCard from "@src/features/dashboard/components/BirthdayCard";
-import CalendarActivityCard, { getActivityLifecycleStatus } from "@src/features/dashboard/components/CalendarActivityCard";
+import DashboardLayoutSwitcher, { DashboardLayoutMode } from "@src/features/dashboard/components/DashboardLayoutSwitcher";
+import DashboardLayout1 from "@src/features/dashboard/components/layouts/DashboardLayout1";
+import DashboardLayout2 from "@src/features/dashboard/components/layouts/DashboardLayout2";
+import DashboardLayout3 from "@src/features/dashboard/components/layouts/DashboardLayout3";
+import DashboardLayout4 from "@src/features/dashboard/components/layouts/DashboardLayout4";
 import CalendarActivityModal from "@src/features/dashboard/components/CalendarActivityModal";
-import ActivityCalendar from "@src/features/dashboard/components/ActivityCalendar";
-import RequestFormsAccordion from "@src/features/dashboard/components/RequestFormsAccordion";
 import TaskModal from "@src/features/dashboard/components/TaskModal";
 import InquiryModal from "@src/features/dashboard/components/InquiryModal";
 import ActivityModal from "@src/features/dashboard/components/ActivityModal";
 import EventDetailsModal from "@src/features/dashboard/components/EventDetailsModal";
 import ConfirmDeleteModal from "@src/features/dashboard/components/ConfirmDeleteModal";
+import { getActivityLifecycleStatus } from "@src/features/dashboard/components/CalendarActivityCard";
 
 import { useDashboardClock } from '@src/features/dashboard/hooks/useDashboardClock';
 import { usePomodoroTimer } from '@src/features/dashboard/hooks/usePomodoroTimer';
@@ -38,7 +36,27 @@ import {
 export default function DashboardOverviewPage() {
   const { greeting, dayPeriod, currentDate, currentTime } = useDashboardClock();
 
+  const [layoutMode, setLayoutMode] = React.useState<DashboardLayoutMode>('layout-1');
 
+  React.useEffect(() => {
+    try {
+      const saved = localStorage.getItem('team_padua_admin_layout') as DashboardLayoutMode;
+      if (saved && ['layout-1', 'layout-2', 'layout-3', 'layout-4'].includes(saved)) {
+        setLayoutMode(saved);
+      }
+    } catch {
+      // ignore localStorage errors
+    }
+  }, []);
+
+  const handleSelectLayout = (layout: DashboardLayoutMode) => {
+    setLayoutMode(layout);
+    try {
+      localStorage.setItem('team_padua_admin_layout', layout);
+    } catch {
+      // ignore
+    }
+  };
 
   const {
 
@@ -179,6 +197,45 @@ export default function DashboardOverviewPage() {
   const selectedTaskForModal = userTasks.find((t) => t.id === selectedTaskIdForModal) || null;
   const selectedInquiry = hookSelectedInquiry || clientInquiries.find((i: any) => i.id === selectedInquiryId) || null;
 
+  const sharedLayoutProps = {
+    userTasks,
+    allProfiles,
+    bizDevProfiles,
+    clientInquiries,
+    clientBirthdays,
+    advisors,
+    activities,
+    miniCalendarMonth,
+    selectedMiniDate,
+    displayedCalendarLogs,
+    calendarRoleFilter,
+    showCalendarHistory,
+    kpis,
+    userRole,
+    userPermissions,
+    onCreateTask: handleCreateTask,
+    onToggleTaskComplete: handleToggleCheckbox,
+    onSelectTask: (id: string) => setSelectedTaskIdForModal(id),
+    onSaveTaskField: saveTaskField,
+    onDeleteTask: handleDeleteTask,
+    onCreateInquiry: handleCreateInquiry,
+    onDeleteInquiry: handleDeleteInquiry,
+    onSaveInquiryField: saveInquiryField,
+    onSelectInquiry: (item: any) => setSelectedInquiryId(item.id),
+    onCopyToPending: copyInquiryToPendingSubmission,
+    onCopyToAddressed: copyInquiryToAddressedConcerns,
+    setShowCalendarHistory,
+    onOpenCalendarModal: () => setIsCalendarModalOpen(true),
+    setCalendarRoleFilter,
+    promptDeleteCalendarActivity,
+    handleCompleteCalendarActivity,
+    onPrevMiniMonth: goToPrevMiniMonth,
+    onNextMiniMonth: goToNextMiniMonth,
+    onSelectMiniDate: (dateKey: string | null) => setSelectedMiniDate(dateKey),
+    onOpenLogModal: openLogModal,
+    onSelectEvent: handleEventClick,
+  };
+
   return (
     <div className={styles.shell}>
       <WelcomeModal
@@ -226,149 +283,28 @@ export default function DashboardOverviewPage() {
             />
           </motion.section>
 
-          <motion.div variants={fadeVariants} className={styles.boardGrid}>
+          {/* Layout Mode Selector */}
+          <motion.section variants={fadeVariants}>
+            <DashboardLayoutSwitcher
+              currentLayout={layoutMode}
+              onSelectLayout={handleSelectLayout}
+            />
+          </motion.section>
 
-            <div className={styles.boardCol}>
-              <TaskList
-                tasks={userTasks}
-                allProfiles={allProfiles}
-                bizDevProfiles={bizDevProfiles}
-                onCreateTask={handleCreateTask}
-                onToggleComplete={handleToggleCheckbox}
-                onSelectTask={(id) => setSelectedTaskIdForModal(id)}
-                onSaveTaskField={saveTaskField}
-                onDeleteTask={handleDeleteTask}
-              />
-              <InquiryList
-                inquiries={clientInquiries}
-                allProfiles={allProfiles}
-                onCreateInquiry={handleCreateInquiry}
-                onDeleteInquiry={handleDeleteInquiry}
-                saveInquiryField={saveInquiryField}
-                onSelectInquiry={(item) => setSelectedInquiryId(item.id)}
-                onCopyToPending={copyInquiryToPendingSubmission}
-                onCopyToAddressed={copyInquiryToAddressedConcerns}
-              />
-              {/* <ClientServicingToDo
-                tasks={userTasks}
-                personalTodos={personalTodos}
-                allProfiles={allProfiles}
-                bizDevProfiles={bizDevProfiles}
-                onCreatePersonalTodo={handleCreatePersonalTodo}
-                onToggleComplete={handleToggleCheckbox}
-                onTogglePersonalTodoComplete={handleTogglePersonalTodoComplete}
-                onDeletePersonalTodo={handleDeletePersonalTodo}
-                onSelectTask={(id) => setSelectedTaskIdForModal(id)}
-              /> */}
-            </div>
-
-            <div className={styles.centerCol}>
-              <BirthdayCard
-                birthdays={clientBirthdays}
-                advisors={advisors}
-              />
-
-              <div className={styles.activitiesCard}>
-                <div className={`${styles.dashboardCardHeader} !flex-col !items-stretch !gap-3 !p-4`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <CalendarDays size={18} strokeWidth={2.2} className="text-gray-700 dark:text-gray-300" />
-                      <h3 className="text-[15px] font-extrabold text-gray-900 dark:text-white tracking-tight m-0 leading-none">
-                        Calendar of Activities
-                      </h3>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setShowCalendarHistory((prev) => !prev)}
-                        className={`!py-1 !px-3 !text-[11px] font-bold rounded-lg transition-all border cursor-pointer ${showCalendarHistory
-                          ? 'bg-amber-500 text-white border-amber-500 shadow-sm'
-                          : 'bg-surface/80 text-text-secondary border-border/70 hover:bg-surface'
-                          }`}
-                      >
-                        {showCalendarHistory ? 'Active Activities' : 'View History'}
-                      </button>
-
-                      <button type="button" onClick={() => setIsCalendarModalOpen(true)} className={`${styles.newTaskBtn} !py-1 !px-3 !text-[11px]`}>
-                        <Plus size={13} strokeWidth={2.5} />
-                        <span className="font-bold">Add Activity</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-                    {['All', 'Admin', 'Advisor', 'Bizdev'].map((role) => {
-                      const isActive = calendarRoleFilter === role;
-                      return (
-                        <button
-                          key={role}
-                          type="button"
-                          onClick={() => setCalendarRoleFilter(role as any)}
-                          className={`px-3 py-1 rounded-lg text-[10.5px] font-semibold transition-all shrink-0 cursor-pointer border ${isActive
-                            ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white border-amber-500 shadow-sm shadow-amber-500/20 scale-[1.02]'
-                            : 'bg-surface/80 text-text-secondary border-border/70 hover:border-amber-500/50 hover:text-text hover:bg-surface'
-                            }`}
-                        >
-                          {role}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className={styles.dashboardCardBody}>
-                  {displayedCalendarLogs.length === 0 ? (
-                    <div className={styles.emptyStateContainer} onClick={() => setIsCalendarModalOpen(true)} style={{ cursor: 'pointer' }}>
-                      <div className={styles.emptyStateIcon}>📅</div>
-                      <div className={styles.emptyStateTitle}>
-                        {showCalendarHistory ? 'No activity history' : 'No active activities scheduled'}
-                      </div>
-                      <div className={styles.emptyStateDescription}>
-                        {showCalendarHistory
-                          ? 'Completed and cancelled activities will appear here.'
-                          : 'Click to log a new activity for the team.'}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className={styles.activityList}>
-                      {displayedCalendarLogs.map((log, idx) => {
-                        let matchingProfiles = [] as typeof allProfiles;
-                        if (log.assignedRole === 'Bizdev') {
-                          matchingProfiles = bizDevProfiles;
-                        } else {
-                          matchingProfiles = allProfiles.filter(p => p.role?.toLowerCase().includes(log.assignedRole.toLowerCase()));
-                        }
-
-                        return (
-                          <CalendarActivityCard
-                            key={log.id ? `${log.id}-${idx}` : `log-${idx}`}
-                            activity={log}
-                            matchingProfiles={matchingProfiles}
-                            onDelete={promptDeleteCalendarActivity}
-                            onComplete={handleCompleteCalendarActivity}
-                          />
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className={styles.boardCol}>
-              <ActivityCalendar
-                activities={activities}
-                miniCalendarMonth={miniCalendarMonth}
-                selectedMiniDate={selectedMiniDate}
-                onPrevMonth={goToPrevMiniMonth}
-                onNextMonth={goToNextMiniMonth}
-                onSelectDate={(dateKey) => setSelectedMiniDate(dateKey)}
-                onOpenLogModal={openLogModal}
-                onSelectEvent={handleEventClick}
-              />
-
-              <RequestFormsAccordion kpis={kpis} userRole={userRole} userPermissions={userPermissions} />
-            </div>
+          {/* Active Dashboard Layout */}
+          <motion.div variants={fadeVariants} key={layoutMode}>
+            {layoutMode === 'layout-2' && (
+              <DashboardLayout2 {...sharedLayoutProps} />
+            )}
+            {layoutMode === 'layout-3' && (
+              <DashboardLayout3 {...sharedLayoutProps} />
+            )}
+            {layoutMode === 'layout-4' && (
+              <DashboardLayout4 {...sharedLayoutProps} />
+            )}
+            {(layoutMode === 'layout-1' || (!['layout-2', 'layout-3', 'layout-4'].includes(layoutMode))) && (
+              <DashboardLayout1 {...sharedLayoutProps} />
+            )}
           </motion.div>
 
           <motion.footer variants={fadeVariants} className={styles.footer}>

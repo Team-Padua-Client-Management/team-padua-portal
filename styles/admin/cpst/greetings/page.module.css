@@ -472,7 +472,12 @@
 }
 
 .table_112 {
-  @apply p-1 text-muted-foreground hover:text-red-500 transition rounded opacity-0 group-hover:opacity-100 cursor-pointer;
+  @apply p-1 text-muted-foreground hover:text-red-500 transition rounded opacity-0 cursor-pointer;
+}
+
+tr:hover .table_112,
+:global(.group):hover .table_112 {
+  @apply opacity-100;
 }
 
 .container_113 {

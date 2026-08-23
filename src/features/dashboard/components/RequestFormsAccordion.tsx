@@ -41,6 +41,8 @@ interface RequestFormsAccordionProps {
   };
   userRole?: string | null;
   userPermissions?: UserPermissions;
+  variant?: 'accordion' | 'grid';
+  defaultExpanded?: boolean;
 }
 
 function hasFormAccess(
@@ -55,8 +57,14 @@ function hasFormAccess(
   return userPermissions[moduleKey]?.view === true;
 }
 
-export default function RequestFormsAccordion({ kpis, userRole, userPermissions }: RequestFormsAccordionProps) {
-  const [isCardExpanded, setIsCardExpanded] = useState(false);
+export default function RequestFormsAccordion({
+  kpis,
+  userRole,
+  userPermissions,
+  variant = 'accordion',
+  defaultExpanded = false,
+}: RequestFormsAccordionProps) {
+  const [isCardExpanded, setIsCardExpanded] = useState(defaultExpanded);
   const [expandedFormId, setExpandedFormId] = useState<string | null>(null);
 
   const forms: CsrFormItem[] = useMemo(() => [
@@ -219,6 +227,125 @@ export default function RequestFormsAccordion({ kpis, userRole, userPermissions 
   const toggleFormExpand = (formId: string) => {
     setExpandedFormId((prev) => (prev === formId ? null : formId));
   };
+
+  if (variant === 'grid') {
+    return (
+      <div className={`${styles.dashboardCard} ${styles.requestFormsLaunchpadCard}`}>
+        <div className={styles.dashboardCardHeader}>
+          <div className={styles.headerTitleWrapper}>
+            <div className={styles.headerIconBadge}>
+              <FileText size={18} strokeWidth={2.2} />
+            </div>
+            <div className="flex flex-col">
+              <h3 className="text-lg font-extrabold text-gray-900 dark:text-white tracking-tight m-0 leading-tight">
+                Client Servicing Requests
+              </h3>
+              <span className="text-xs font-semibold text-text-secondary">
+                Primary Action Hub &bull; Direct Portals Launch
+              </span>
+            </div>
+          </div>
+
+          <div className={styles.headerRightActions}>
+            <span className={styles.formsCountPill} title="Total Active Servicing Requests">
+              <Zap size={12} className={styles.sparkleIcon} />
+              {totalActiveRequests} Active
+            </span>
+          </div>
+        </div>
+
+        <div className={styles.dashboardCardBody} style={{ padding: '4px 0 0' }}>
+          {accessibleForms.length === 0 ? (
+            <div className={styles.emptyStateContainer}>
+              <div className={styles.emptyStateIcon}>
+                <Lock size={24} className="text-gray-400" />
+              </div>
+              <div className={styles.emptyStateTitle}>No Forms Available</div>
+              <div className={styles.emptyStateDescription}>
+                You do not have permission to access any Client Servicing forms.
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
+              {formsWithAccess.map((form) => {
+                if (!form.hasAccess) {
+                  return (
+                    <div
+                      key={form.id}
+                      className="flex flex-col justify-between p-3.5 rounded-xl border border-border bg-surface/50 opacity-40"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span
+                          className="px-2 py-0.5 rounded text-xs font-extrabold"
+                          style={{ color: form.accent, background: form.tint }}
+                        >
+                          {form.id}
+                        </span>
+                        <Lock size={12} className="text-gray-400" />
+                      </div>
+                      <div className="text-xs font-bold text-text mb-1 truncate">{form.name}</div>
+                      <div className="text-[10.5px] text-text-tertiary">Access Required</div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div
+                    key={form.id}
+                    className="group relative flex flex-col justify-between p-3.5 rounded-xl border border-border bg-surface hover:bg-surface-2 hover:border-amber-500/50 hover:shadow-md transition-all duration-200"
+                    style={{ borderLeft: `3.5px solid ${form.accent}` }}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between gap-1.5 mb-2">
+                        <span
+                          className="px-2 py-0.5 rounded text-[11px] font-black tracking-wide"
+                          style={{ color: form.accent, background: form.tint }}
+                        >
+                          {form.id}
+                        </span>
+                        <span
+                          className={`text-[11px] font-extrabold px-1.5 py-0.5 rounded-full ${
+                            form.count > 0
+                              ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 font-black'
+                              : 'text-text-tertiary bg-surface-2'
+                          }`}
+                          title={`${form.count} active requests`}
+                        >
+                          {form.count} {form.count === 1 ? 'req' : 'reqs'}
+                        </span>
+                      </div>
+
+                      <h4 className="text-[13px] font-bold text-text m-0 mb-1 leading-snug line-clamp-2" title={form.name}>
+                        {form.name}
+                      </h4>
+                      <p className="text-[11px] text-text-secondary m-0 mb-3 line-clamp-2 leading-relaxed">
+                        {form.description}
+                      </p>
+                    </div>
+
+                    <div className="pt-2 border-t border-border/60 flex items-center justify-between">
+                      <span className="text-[10px] font-semibold text-text-tertiary flex items-center gap-1">
+                        <Zap size={10} style={{ color: form.accent }} />
+                        {form.sla.split(' ')[0]} SLA
+                      </span>
+                      <Link
+                        href={form.href}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-500 hover:text-white transition-all shadow-xs"
+                        title={`Launch ${form.name}`}
+                      >
+                        <span>Launch</span>
+                        <ArrowUpRight size={11} strokeWidth={2.5} />
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`${styles.dashboardCard} ${styles.requestFormsCard} ${!isCardExpanded ? styles.requestFormsCardCollapsed : ''}`}>

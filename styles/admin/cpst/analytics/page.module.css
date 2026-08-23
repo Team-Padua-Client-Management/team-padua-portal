@@ -312,7 +312,11 @@
 }
 
 .table_72 {
-  @apply h-4 w-full bg-muted/10 rounded-full overflow-hidden relative group-hover:bg-surface-2/20 transition-colors;
+  @apply h-4 w-full bg-muted/10 rounded-full overflow-hidden relative transition-colors;
+}
+
+.container_67:hover .table_72 {
+  @apply bg-surface-2/20;
 }
 
 .table_73 {
@@ -352,7 +356,11 @@
 }
 
 .card_82 {
-  @apply absolute bottom-full mb-2 bg-card border border-border text-foreground text-[9px] font-mono p-2 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20 min-w-24 text-center space-y-0.5;
+  @apply absolute bottom-full mb-2 bg-card border border-border text-foreground text-[9px] font-mono p-2 rounded-lg shadow-lg opacity-0 transition-opacity pointer-events-none z-20 min-w-24 text-center space-y-0.5;
+}
+
+.container_81:hover .card_82 {
+  @apply opacity-100;
 }
 
 .text_83 {

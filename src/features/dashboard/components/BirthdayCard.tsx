@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import Link from 'next/link';
-import { Cake, Sparkles, ExternalLink } from 'lucide-react';
+import { Cake, Sparkles, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
 import {
   BirthdayItem,
   useClientBirthdays,
@@ -22,9 +22,20 @@ export interface AdvisorItem {
 interface BirthdayCardProps {
   birthdays?: BirthdayItem[];
   advisors?: AdvisorItem[];
+  collapsible?: boolean;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
+  className?: string;
 }
 
-export default function BirthdayCard({ birthdays, advisors }: BirthdayCardProps) {
+export default function BirthdayCard({
+  birthdays,
+  advisors,
+  collapsible = false,
+  isCollapsed = false,
+  onToggleCollapse,
+  className = '',
+}: BirthdayCardProps) {
   const {
     filteredBirthdays,
     advisors: fetchedAdvisors,
@@ -98,8 +109,7 @@ export default function BirthdayCard({ birthdays, advisors }: BirthdayCardProps)
             )}
           </div>
           <span className={styles.birthdayDateMeta}>
-            {item.date} {item.age !== undefined && item.age > 0 ? `• ${item.age} yrs old` : ''}{' '}
-            {item.advisorName ? `• ${item.advisorName}` : ''}
+            {item.date} &bull; {item.advisorName || 'Advisor'}
           </span>
         </div>
 
@@ -113,7 +123,7 @@ export default function BirthdayCard({ birthdays, advisors }: BirthdayCardProps)
   };
 
   return (
-    <div className={`${styles.dashboardCard} ${styles.birthdayCard}`}>
+    <div className={`${styles.dashboardCard} ${styles.birthdayCard} ${className}`}>
       <div className={`${styles.dashboardCardHeader} !p-4 !pb-2 flex-col !items-stretch gap-2.5`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
@@ -145,75 +155,91 @@ export default function BirthdayCard({ birthdays, advisors }: BirthdayCardProps)
                 {todayCount} Today!
               </span>
             )}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-1.5 pt-1">
-          {(['All', 'Yesterday', 'Today', 'Tomorrow'] as const).map((filter) => {
-            const isActive = whenFilter === filter;
-            return (
+            {collapsible && onToggleCollapse && (
               <button
-                key={filter}
                 type="button"
-                onClick={() => setWhenFilter(filter)}
-                className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition-all shrink-0 cursor-pointer border ${isActive
-                    ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white border-amber-500 shadow-sm shadow-amber-500/20 scale-[1.02]'
-                    : 'bg-surface/80 text-text-secondary border-border/70 hover:border-amber-500/50 hover:text-text hover:bg-surface'
-                  }`}
+                onClick={onToggleCollapse}
+                className="p-1 rounded-lg hover:bg-surface-2 text-text-secondary hover:text-text transition-colors border border-border/50"
+                aria-label={isCollapsed ? 'Expand Client Birthdays' : 'Collapse Client Birthdays'}
+                title={isCollapsed ? 'Expand' : 'Collapse'}
               >
-                {filter}
+                {isCollapsed ? <ChevronDown size={15} /> : <ChevronUp size={15} />}
               </button>
-            );
-          })}
+            )}
+          </div>
         </div>
-      </div>
 
-      <div className={styles.dashboardCardBody}>
-        {isLoading ? (
-          <div className={styles.birthdayEmptyContainer}>
-            <div className={styles.birthdayEmptyIcon}>🎂</div>
-            <div className={styles.emptyStateTitle}>Loading birthdays...</div>
-          </div>
-        ) : status === 'error' ? (
-          <div className={styles.birthdayEmptyContainer}>
-            <div className={styles.birthdayEmptyIcon}>🎂</div>
-            <div className={styles.emptyStateTitle}>Couldn't load birthdays</div>
-            <div className={styles.emptyStateDescription}>
-              Something went wrong fetching client birthdays. Please try again later.
-            </div>
-          </div>
-        ) : filteredBirthdays.length === 0 ? (
-          <div className={styles.birthdayEmptyContainer}>
-            <div className={styles.birthdayEmptyIcon}>🎂</div>
-            <div className={styles.emptyStateTitle}>No client birthdays today, yesterday, or tomorrow</div>
-            <div className={styles.emptyStateDescription}>
-              Upcoming client birthdays will automatically appear here when due.
-            </div>
-            <Link href="/admin/cgpt" className={styles.birthdayEmptyLinkBtn}>
-              <span>Open CPST Birthday Center</span>
-              <ExternalLink size={12} />
-            </Link>
-          </div>
-        ) : whenFilter === 'All' ? (
-          <div className="flex flex-col gap-3.5">
-            {groupedSections.map((section) => (
-              <div key={section.key} className={styles.birthdayGroupSection}>
-                <div className={styles.birthdayGroupHeader}>
-                  <span className={styles.birthdayGroupTitle}>{section.label}</span>
-                  <span className={styles.birthdayGroupCount}>{section.items.length}</span>
-                </div>
-                <div className={styles.birthdayList}>
-                  {section.items.map(renderBirthdayItem)}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className={styles.birthdayList}>
-            {filteredBirthdays.map(renderBirthdayItem)}
+        {!isCollapsed && (
+          <div className="flex items-center gap-1.5 pt-1">
+            {(['All', 'Yesterday', 'Today', 'Tomorrow'] as const).map((filter) => {
+              const isActive = whenFilter === filter;
+              return (
+                <button
+                  key={filter}
+                  type="button"
+                  onClick={() => setWhenFilter(filter)}
+                  className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition-all shrink-0 cursor-pointer border ${
+                    isActive
+                      ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white border-amber-500 shadow-sm shadow-amber-500/20 scale-[1.02]'
+                      : 'bg-surface/80 text-text-secondary border-border/70 hover:border-amber-500/50 hover:text-text hover:bg-surface'
+                  }`}
+                >
+                  {filter}
+                </button>
+              );
+            })}
           </div>
         )}
       </div>
+
+      {!isCollapsed && (
+        <div className={styles.dashboardCardBody}>
+          {isLoading ? (
+            <div className={styles.birthdayEmptyContainer}>
+              <div className={styles.birthdayEmptyIcon}>🎂</div>
+              <div className={styles.emptyStateTitle}>Loading birthdays...</div>
+            </div>
+          ) : status === 'error' ? (
+            <div className={styles.birthdayEmptyContainer}>
+              <div className={styles.birthdayEmptyIcon}>🎂</div>
+              <div className={styles.emptyStateTitle}>Couldn&apos;t load birthdays</div>
+              <div className={styles.emptyStateDescription}>
+                Something went wrong fetching client birthdays. Please try again later.
+              </div>
+            </div>
+          ) : filteredBirthdays.length === 0 ? (
+            <div className={styles.birthdayEmptyContainer}>
+              <div className={styles.birthdayEmptyIcon}>🎂</div>
+              <div className={styles.emptyStateTitle}>No client birthdays today, yesterday, or tomorrow</div>
+              <div className={styles.emptyStateDescription}>
+                Upcoming client birthdays will automatically appear here when due.
+              </div>
+              <Link href="/admin/cgpt" className={styles.birthdayEmptyLinkBtn}>
+                <span>Open CPST Birthday Center</span>
+                <ExternalLink size={12} />
+              </Link>
+            </div>
+          ) : whenFilter === 'All' ? (
+            <div className="flex flex-col gap-3.5">
+              {groupedSections.map((section) => (
+                <div key={section.key} className={styles.birthdayGroupSection}>
+                  <div className={styles.birthdayGroupHeader}>
+                    <span className={styles.birthdayGroupTitle}>{section.label}</span>
+                    <span className={styles.birthdayGroupCount}>{section.items.length}</span>
+                  </div>
+                  <div className={styles.birthdayList}>
+                    {section.items.map(renderBirthdayItem)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className={styles.birthdayList}>
+              {filteredBirthdays.map(renderBirthdayItem)}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -236,7 +236,11 @@
 }
 
 .table_53 {
-  @apply w-full h-10 rounded border border-border transition-all group-hover:scale-102;
+  @apply w-full h-10 rounded border border-border transition-all;
+}
+
+.container_52:hover .table_53 {
+  @apply scale-102;
 }
 
 .table_54 {
@@ -604,7 +608,11 @@
 }
 
 .table_145 {
-  @apply flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity;
+  @apply flex items-center gap-1 opacity-0 transition-opacity;
+}
+
+.container_141:hover .table_145 {
+  @apply opacity-100;
 }
 
 .card_146 {

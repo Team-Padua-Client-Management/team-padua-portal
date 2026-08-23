@@ -24,7 +24,7 @@ type InquiryStageId = 'addressed' | 'pending';
 interface StageMeta {
     id: InquiryStageId;
     label: string;
-    icon: React.ComponentType<{ size?: number; strokeWidth?: number }>;
+    icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
 }
 
 const INQUIRY_STAGES: StageMeta[] = [
@@ -574,6 +574,7 @@ export interface InquiryListProps {
     allProfiles: UserProfile[];
     onCopyToPending?: (inquiry: ClientInquiry) => void;
     onCopyToAddressed?: (inquiry: ClientInquiry) => void;
+    variant?: 'card' | 'compact-strip';
 }
 
 export const InquiryList: React.FC<InquiryListProps> = ({
@@ -585,6 +586,7 @@ export const InquiryList: React.FC<InquiryListProps> = ({
     allProfiles,
     onCopyToPending,
     onCopyToAddressed,
+    variant = 'card',
 }) => {
     const { active: activeStage, open: openStage, cancelClose, scheduleClose } = useHoverController<InquiryStageId>();
 
@@ -600,6 +602,96 @@ export const InquiryList: React.FC<InquiryListProps> = ({
     }, [inquiries]);
 
     const totalLogged = inquiries.length;
+
+    if (variant === 'compact-strip') {
+        return (
+            <div className={`${styles.monitoringCard} ${styles.compactKpiStripCard}`}>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-border">
+                    <div className="flex items-center gap-2">
+                        <LayoutGrid size={17} strokeWidth={2.2} className="text-gray-700 dark:text-gray-300 shrink-0" />
+                        <h3 className="text-base font-extrabold text-gray-900 dark:text-white tracking-tight m-0 leading-none">
+                            Client Inquiries
+                        </h3>
+                        <span className="ml-1 text-xs font-bold px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20">
+                            <strong className="font-extrabold text-purple-600 dark:text-purple-400">{totalLogged}</strong> Total
+                        </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 self-end sm:self-auto">
+                        <Link
+                            href="/admin/dashboard/history"
+                            style={{ textDecoration: 'none' }}
+                            className={`${styles.newTaskBtn} !py-1 !px-3 !text-[11.5px] !bg-surface-2 !text-text hover:!bg-surface-3 !border-border !border`}
+                        >
+                            <History size={13} strokeWidth={2.5} />
+                            <span className="font-bold">View History</span>
+                        </Link>
+                        <button
+                            type="button"
+                            onClick={onCreateInquiry}
+                            className={`${styles.newTaskBtn} !py-1 !px-3 !text-[11.5px]`}
+                        >
+                            <Plus size={13} strokeWidth={2.5} />
+                            <span className="font-bold">Log Inquiry</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                    {INQUIRY_STAGES.map((stage) => {
+                        const Icon = stage.icon;
+                        const count = stageBuckets[stage.id].length;
+                        const isActive = activeStage === stage.id;
+                        return (
+                            <div
+                                key={stage.id}
+                                style={{ position: 'relative' }}
+                                onMouseEnter={() => openStage(stage.id)}
+                                onMouseLeave={() => scheduleClose(STAGE_CLOSE_DELAY_MS)}
+                            >
+                                <div
+                                    className={`flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer ${
+                                        isActive
+                                            ? 'bg-purple-500/10 border-purple-500 shadow-sm'
+                                            : 'bg-surface border-border hover:bg-surface-2 hover:border-purple-300'
+                                    }`}
+                                >
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <Icon size={16} strokeWidth={2} className={isActive ? 'text-purple-600 dark:text-purple-400 shrink-0' : 'text-text-tertiary shrink-0'} />
+                                        <span className="text-[12px] font-semibold text-text truncate">
+                                            {stage.label}
+                                        </span>
+                                    </div>
+                                    <span
+                                        className={`text-[16px] font-extrabold ml-2 shrink-0 ${
+                                            isActive ? 'text-purple-600 dark:text-purple-400' : 'text-text'
+                                        }`}
+                                    >
+                                        {count}
+                                    </span>
+                                </div>
+
+                                {isActive && (
+                                    <StagePopover
+                                        stage={stage}
+                                        inquiries={stageBuckets[stage.id]}
+                                        onDeleteInquiry={onDeleteInquiry}
+                                        saveInquiryField={saveInquiryField}
+                                        onSelectInquiry={onSelectInquiry}
+                                        allProfiles={allProfiles}
+                                        onCopyToPending={onCopyToPending}
+                                        onCopyToAddressed={onCopyToAddressed}
+                                        onMouseEnter={cancelClose}
+                                        onMouseLeave={() => scheduleClose(STAGE_CLOSE_DELAY_MS)}
+                                    />
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className={styles.monitoringCard}>

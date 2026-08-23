@@ -31,7 +31,11 @@
 }
 
 .table_4 {
-  @apply w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5 text-zinc-400 group-hover:text-[#F4C542];
+  @apply w-3.5 h-3.5 transition-transform text-zinc-400;
+}
+
+.table_3:hover .table_4 {
+  @apply -translate-x-0.5 text-[#F4C542];
 }
 
 

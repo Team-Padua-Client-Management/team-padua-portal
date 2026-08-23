@@ -69,7 +69,11 @@
 }
 
 .portalActionLink {
-  @apply flex items-center gap-1 text-[11px] font-bold text-[#A97800] dark:text-[#F4C542] mt-2 group-hover:underline;
+  @apply flex items-center gap-1 text-[11px] font-bold text-[#A97800] dark:text-[#F4C542] mt-2;
+}
+
+.portalCard:hover .portalActionLink {
+  @apply underline;
 }
 
 /* Control Controls Block (Filters & Search) */
@@ -82,7 +86,11 @@
 }
 
 .searchWrapper {
-  @apply relative flex-1 max-w-md group;
+  @apply relative flex-1 max-w-md;
+}
+
+.searchWrapper:focus-within .searchIcon {
+  @apply text-primary;
 }
 
 .searchInput {
@@ -90,7 +98,7 @@
 }
 
 .searchIcon {
-  @apply absolute left-3.5 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none group-focus-within:text-primary transition-colors duration-200 w-4 h-4;
+  @apply absolute left-3.5 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none transition-colors duration-200 w-4 h-4;
 }
 
 .filtersRight {
