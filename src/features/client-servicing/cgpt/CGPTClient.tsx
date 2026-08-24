@@ -1,11 +1,10 @@
-// C:\website\team-padua-portal\src\features\client-servicing\cgpt\CGPTClient.tsx
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   Plus, Search, Edit2, Trash2, X, ChevronRight, ArrowLeft,
   Upload, FileSpreadsheet, CheckCircle2, Target, Users,
-  AlertCircle, Eye, EyeOff, UserCheck, UserPlus, Briefcase, Mail, MoreVertical, FileText
+  AlertCircle, Eye, EyeOff, UserCheck, UserPlus, Briefcase, Mail, MoreVertical, FileText, ShieldAlert
 } from 'lucide-react';
 import Link from 'next/link';
 import { AdminHeader } from '@src/components/layout';
@@ -40,7 +39,6 @@ export function extractMonthDayYear(birthRaw: string): { year: number; month: nu
   if (!birthRaw) return null;
   const trimmed = String(birthRaw).trim();
 
-  // YYYY-MM-DD or YYYY/MM/DD
   const dateOnlyMatch = trimmed.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
   if (dateOnlyMatch) {
     const year = parseInt(dateOnlyMatch[1], 10);
@@ -51,7 +49,6 @@ export function extractMonthDayYear(birthRaw: string): { year: number; month: nu
     }
   }
 
-  // MM/DD/YYYY or M/D/YYYY
   const slashMatch = trimmed.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/);
   if (slashMatch) {
     const month = parseInt(slashMatch[1], 10) - 1;
@@ -145,13 +142,17 @@ export async function getClientBirthdays(options?: {
     const items: BirthdayItem[] = [];
 
     for (const c of clientsData) {
+      const advisorRecord = Array.isArray(c.advisor) ? c.advisor[0] : c.advisor;
+      const advId = c.advisor_id || advisorRecord?.id || 'Unassigned';
+      const advName = advisorRecord?.advisor_name || 'Unassigned';
+
+      if (options?.advisorId && options.advisorId !== 'All' && advId !== options.advisorId) {
+        continue;
+      }
+
       const birthdate = c.birthdate || c.birth_date || c.dob || c.birthday;
       const computed = computeBirthdayWhenAndAge(birthdate);
       if (!computed) continue;
-
-      const advisorRecord = Array.isArray(c.advisor) ? c.advisor[0] : c.advisor;
-      const advId = advisorRecord?.id || c.advisor_id || 'Unassigned';
-      const advName = advisorRecord?.advisor_name || 'Unassigned';
 
       items.push({
         id: c.id,
@@ -166,9 +167,6 @@ export async function getClientBirthdays(options?: {
     }
 
     let filtered = items;
-    if (options?.advisorId && options.advisorId !== 'All') {
-      filtered = filtered.filter((b) => b.advisorId === options.advisorId);
-    }
     if (options?.dateRange && options.dateRange.toLowerCase() !== 'all') {
       const range = options.dateRange.toLowerCase();
       filtered = filtered.filter((b) => b.when === range);
@@ -388,6 +386,107 @@ function findColumnIndex(headerRow: any[], keywords: string[]): number {
   });
 }
 
+function normalizeNameForMatch(s: string): string {
+  return String(s || '')
+    .toLowerCase()
+    .replace(/[^a-z\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function nameTokensOverlap(haystack: string, candidateName: string): boolean {
+  const haystackNorm = normalizeNameForMatch(haystack);
+  const nameTokens = normalizeNameForMatch(candidateName).split(' ').filter(t => t.length >= 3);
+  if (nameTokens.length === 0 || !haystackNorm) return false;
+  let hits = 0;
+  nameTokens.forEach(t => {
+    if (haystackNorm.includes(t)) hits++;
+  });
+  if (nameTokens.length === 1) return hits >= 1;
+  return hits >= 2;
+}
+
+function resolveClientSheetRows(
+  wb: any,
+  XLSXModule: any,
+  advisor: AdvisorRecord | undefined
+): any[][] {
+  const sheetNames: string[] = wb.SheetNames || [];
+
+  if (sheetNames.length === 0) {
+    throw new Error('The uploaded file has no readable sheets.');
+  }
+
+  if (sheetNames.length === 1 || !advisor) {
+    const sheet = wb.Sheets[sheetNames[0]];
+    return XLSXModule.utils.sheet_to_json(sheet, {
+      header: 1,
+      raw: true,
+      defval: ''
+    });
+  }
+
+  const byNameMatch = sheetNames.find(sn =>
+    (advisor.advisorCode &&
+      normalizeHeader(sn).includes(normalizeHeader(advisor.advisorCode))) ||
+    nameTokensOverlap(sn, advisor.advisorName)
+  );
+
+  if (byNameMatch) {
+    const sheet = wb.Sheets[byNameMatch];
+    return XLSXModule.utils.sheet_to_json(sheet, {
+      header: 1,
+      raw: true,
+      defval: ''
+    });
+  }
+
+  const titleMatches: { name: string; rows: any[][] }[] = [];
+
+  for (const sn of sheetNames) {
+    const sheet = wb.Sheets[sn];
+
+    const rows = XLSXModule.utils.sheet_to_json(sheet, {
+      header: 1,
+      raw: true,
+      defval: ''
+    });
+
+    const sampleText = rows
+      .slice(0, 6)
+      .map((r: any[]) => (r || []).join(' '))
+      .join(' ');
+
+    if (nameTokensOverlap(sampleText, advisor.advisorName)) {
+      titleMatches.push({ name: sn, rows });
+    }
+  }
+
+  if (titleMatches.length === 1) {
+    return titleMatches[0].rows;
+  }
+
+  if (titleMatches.length === 0) {
+    throw new Error(`This file has multiple tabs (${sheetNames.join(', ')}) and none appear to match ${advisor.advisorName}. Upload a file or tab containing only this advisor's data.`);
+  }
+
+  throw new Error(`This file has multiple tabs that could match ${advisor.advisorName} (${titleMatches.map(t => t.name).join(', ')}). Upload a file containing only this advisor's data.`);
+}
+
+function assertRowsBelongToAdvisor(rows: any[][], advisor: AdvisorRecord | undefined, allAdvisors: AdvisorRecord[]): void {
+  if (!advisor) return;
+  const sampleText = rows.slice(0, 8).map(r => (r || []).join(' ')).join(' ');
+  if (!sampleText.trim()) return;
+
+  const matchesLocked = nameTokensOverlap(sampleText, advisor.advisorName);
+  if (matchesLocked) return;
+
+  const otherMatch = allAdvisors.find(a => a.id !== advisor.id && nameTokensOverlap(sampleText, a.advisorName));
+  if (otherMatch) {
+    throw new Error(`This file's content appears to belong to "${otherMatch.advisorName}", not "${advisor.advisorName}". Import blocked to prevent cross-advisor data mixing. Please verify you uploaded the correct advisor's file.`);
+  }
+}
+
 function parseEmbeddedBeneficiary(raw: string): EmbeddedBeneficiaryResult {
   const trimmed = raw.trim();
   const match = trimmed.match(/^(.+?)\s*\(([^)]*)\)\s*$/);
@@ -448,6 +547,11 @@ interface CGPTClientProps {
 const formInputClass = "w-full px-3.5 py-2.5 border border-border rounded-2xl text-xs focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 bg-card text-foreground transition-all duration-200";
 const formLabelClass = "block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5";
 
+function formatBirthdateWithYear(d: Date): string {
+  const month = d.toLocaleString('default', { month: 'short' });
+  return `${month} ${d.getDate()}, ${d.getFullYear()}`;
+}
+
 export default function CGPTClient({ canCreate, canEdit, canDelete, canExport }: CGPTClientProps) {
   const [advisors, setAdvisors] = useState<AdvisorRecord[]>([]);
   const [clients, setClients] = useState<ClientManagementRecord[]>([]);
@@ -490,12 +594,15 @@ export default function CGPTClient({ canCreate, canEdit, canDelete, canExport }:
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
+  const effectiveImportAdvisorId = selectedAdvisor ? selectedAdvisor.id : importAdvisorId;
+
   const [importState, setImportState] = useState<{
     phase: 'idle' | 'reading' | 'password' | 'preview' | 'importing' | 'done' | 'error';
     fileName: string;
     validation: {
       newClients: any[];
       duplicateClients: any[];
+      crossAdvisorConflicts: any[];
       invalid: { rowNumber: number; reason: string; rawData: any }[];
       stats: { skippedHeaders: number; skippedEmpty: number; skippedInvalid: number };
     } | null;
@@ -503,6 +610,7 @@ export default function CGPTClient({ canCreate, canEdit, canDelete, canExport }:
     importedCount?: number;
     updatedCount?: number;
     skippedCount?: number;
+    crossAdvisorSkippedCount?: number;
     skippedHeaders?: number;
     skippedEmpty?: number;
     skippedInvalid?: number;
@@ -515,6 +623,7 @@ export default function CGPTClient({ canCreate, canEdit, canDelete, canExport }:
     importedCount: 0,
     updatedCount: 0,
     skippedCount: 0,
+    crossAdvisorSkippedCount: 0,
     skippedHeaders: 0,
     skippedEmpty: 0,
     skippedInvalid: 0,
@@ -522,7 +631,7 @@ export default function CGPTClient({ canCreate, canEdit, canDelete, canExport }:
   });
 
   const resetImportState = () => {
-    setImportState({ phase: 'idle', fileName: '', validation: null, totalRows: 0, importedCount: 0, updatedCount: 0, skippedCount: 0, skippedHeaders: 0, skippedEmpty: 0, skippedInvalid: 0, errorMessage: '' });
+    setImportState({ phase: 'idle', fileName: '', validation: null, totalRows: 0, importedCount: 0, updatedCount: 0, skippedCount: 0, crossAdvisorSkippedCount: 0, skippedHeaders: 0, skippedEmpty: 0, skippedInvalid: 0, errorMessage: '' });
   };
 
   const fetchData = async () => {
@@ -692,7 +801,7 @@ export default function CGPTClient({ canCreate, canEdit, canDelete, canExport }:
   }, [advisorClients, selectedAdvisor]);
 
   const filteredDisplayRecords = useMemo(() => {
-    const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     const filtered = advisorDisplayRecords.filter(r => {
       if (birthdayMonthFilter !== 'ALL') {
         const bd = r.rawClient?.birthdate;
@@ -734,7 +843,6 @@ export default function CGPTClient({ canCreate, canEdit, canDelete, canExport }:
       return 0;
     });
 
-    // Only insert month headers when sorting by birthday
     if (sortBy !== 'birthday-month' && sortBy !== 'birthday-asc') {
       return sorted;
     }
@@ -776,8 +884,6 @@ export default function CGPTClient({ canCreate, canEdit, canDelete, canExport }:
     return result;
   }, [advisorDisplayRecords, birthdayMonthFilter, clientSearch, sortBy]);
 
-  // ─── Selection helpers ────────────────────────────────────────────────────
-  /** All real client rows (ignoring synthetic month headers) from the current filtered view. */
   const filteredClientOnlyIds = useMemo(
     () => filteredDisplayRecords.filter(r => !r.isMonthHeader).map(r => r.id),
     [filteredDisplayRecords]
@@ -791,7 +897,6 @@ export default function CGPTClient({ canCreate, canEdit, canDelete, canExport }:
     filteredClientOnlyIds.some(id => selectedIds.includes(id)) &&
     !isAllClientsSelected;
 
-  /** Unique DB client IDs represented by the current selection (deduped). */
   const selectedClientIds = useMemo(() => {
     return Array.from(
       new Set(
@@ -990,11 +1095,6 @@ ${result.error?.hint}
           return;
         }
 
-        // Safety guard: only delete rows belonging to the currently selected
-        // advisor so a cross-advisor accident is impossible.
-        // IDs are chunked into batches of 150 to avoid exceeding the URL
-        // length limit that PostgREST enforces when all UUIDs are inlined
-        // into a single query string (causes 400 Bad Request for large sets).
         const CHUNK_SIZE = 150;
         for (let i = 0; i < targetClientIds.length; i += CHUNK_SIZE) {
           const chunk = targetClientIds.slice(i, i + CHUNK_SIZE);
@@ -1110,28 +1210,45 @@ ${result.error?.hint}
 
   const parseClientRows = (rows: any[][]) => {
     let headerIndex = -1;
-    const requiredHeaders = ["client name", "email address", "contact number", "location", "date of birth", "age"];
+    const maxScan = Math.min(rows.length, 30);
 
-    for (let i = 0; i < Math.min(rows.length, 30); i++) {
+    for (let i = 0; i < maxScan; i++) {
       const row = rows[i] || [];
-      const lowerCells = row.map(cell => String(cell).toLowerCase().trim());
-
-      let matchCount = 0;
-      for (const h of requiredHeaders) {
-        if (lowerCells.some(cell => cell.includes(h))) {
-          matchCount++;
-        }
-      }
-
-      if (matchCount >= 3) {
+      const cells = row.map((cell: any) => String(cell ?? '').toLowerCase().trim());
+      const hasExactNameHeader = cells.some(c => c === 'client name / beneficiary name' || c === 'client name');
+      const hasMonthOrBirthHeader = cells.some(c =>
+        c.includes('month') || c.includes('birthdate') || c.includes('date of birth') || c.includes('birthday') || c.includes('dob')
+      );
+      const hasAgeHeader = cells.some(c => c === 'age');
+      if (hasExactNameHeader && (hasMonthOrBirthHeader || hasAgeHeader)) {
         headerIndex = i;
         break;
       }
     }
 
     if (headerIndex === -1) {
+      const requiredHeaders = ["client name", "email address", "contact number", "location", "date of birth", "age"];
+      for (let i = 0; i < maxScan; i++) {
+        const row = rows[i] || [];
+        const lowerCells = row.map((cell: any) => String(cell ?? '').toLowerCase().trim());
+
+        let matchCount = 0;
+        for (const h of requiredHeaders) {
+          if (lowerCells.some(cell => cell.includes(h))) {
+            matchCount++;
+          }
+        }
+
+        if (matchCount >= 3) {
+          headerIndex = i;
+          break;
+        }
+      }
+    }
+
+    if (headerIndex === -1) {
       for (let i = 0; i < Math.min(rows.length, 20); i++) {
-        const row = rows[i].map(c => String(c).toLowerCase().trim());
+        const row = (rows[i] || []).map((c: any) => String(c ?? '').toLowerCase().trim());
 
         if (
           row.some(c => c.includes("client name / beneficiary name")) &&
@@ -1142,12 +1259,12 @@ ${result.error?.hint}
           break;
         }
       }
+    }
 
-      if (headerIndex === -1) {
-        throw new Error(
-          "Could not detect valid header row."
-        );
-      }
+    if (headerIndex === -1) {
+      throw new Error(
+        "Could not detect valid header row."
+      );
     }
 
     const headerRow = rows[headerIndex] || [];
@@ -1188,12 +1305,9 @@ ${result.error?.hint}
       "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"
     ]);
 
-    const advisorScopedClients = importTarget === 'clients' && importAdvisorId
-      ? clients.filter(c => c.advisorId === importAdvisorId)
-      : clients;
-
     const newClients: Partial<ClientManagementRecord & { _matchedName?: string; _matchedPolicy?: string; age?: string }>[] = [];
     const duplicateClients: Partial<ClientManagementRecord & { _matchedName?: string; _matchedPolicy?: string; age?: string }>[] = [];
+    const crossAdvisorConflicts: Partial<ClientManagementRecord & { _matchedName?: string; _matchedPolicy?: string; _conflictAdvisorId?: string; _conflictAdvisorName?: string; age?: string }>[] = [];
     const invalid: { rowNumber: number; reason: string; rawData: any }[] = [];
 
     let skippedHeaders = 0;
@@ -1204,6 +1318,12 @@ ${result.error?.hint}
       const row = rows[i];
       if (!row || row.every((cell: any) => !String(cell).trim())) {
         skippedEmpty++;
+        continue;
+      }
+
+      const nonEmptyCells = row.map((c: any) => String(c ?? '').trim()).filter(Boolean);
+      if (nonEmptyCells.length === 1 && MONTH_HEADERS.has(nonEmptyCells[0].toUpperCase())) {
+        skippedHeaders++;
         continue;
       }
 
@@ -1300,7 +1420,9 @@ ${result.error?.hint}
         continue;
       }
 
-      const match = advisorScopedClients.find(c =>
+      const match = clients.find(c =>
+        (email && c.email && c.email.toLowerCase() === email.toLowerCase()) ||
+        (mobileNumber && c.mobileNumber && c.mobileNumber === mobileNumber) ||
         (policyNumber && c.policyNumber === policyNumber) ||
         (!policyNumber && c.clientName.toLowerCase() === clientName.toLowerCase() && c.birthdate === birthdate)
       );
@@ -1323,18 +1445,29 @@ ${result.error?.hint}
       };
 
       if (match) {
-        duplicateClients.push({
-          ...record,
-          _matchedName: match.clientName,
-          _matchedPolicy: match.policyNumber
-        });
+        if (match.advisorId === effectiveImportAdvisorId) {
+          duplicateClients.push({
+            ...record,
+            _matchedName: match.clientName,
+            _matchedPolicy: match.policyNumber
+          });
+        } else {
+          const conflictAdvisor = advisors.find(a => a.id === match.advisorId);
+          crossAdvisorConflicts.push({
+            ...record,
+            _matchedName: match.clientName,
+            _matchedPolicy: match.policyNumber,
+            _conflictAdvisorId: match.advisorId,
+            _conflictAdvisorName: conflictAdvisor?.advisorName || 'Another Advisor'
+          });
+        }
         continue;
       }
 
       newClients.push(record);
     }
 
-    return { newClients, duplicateClients, invalid, stats: { skippedHeaders, skippedEmpty, skippedInvalid } };
+    return { newClients, duplicateClients, crossAdvisorConflicts, invalid, stats: { skippedHeaders, skippedEmpty, skippedInvalid } };
   };
 
   const parseAdvisorRows = (rows: any[][]) => {
@@ -1411,7 +1544,7 @@ ${result.error?.hint}
       newClients.push({ advisorName, advisorCode, email });
     }
 
-    return { newClients, duplicateClients, invalid, stats: { skippedHeaders, skippedEmpty, skippedInvalid } };
+    return { newClients, duplicateClients, crossAdvisorConflicts: [] as any[], invalid, stats: { skippedHeaders, skippedEmpty, skippedInvalid } };
   };
 
   const handleDecryptAndImport = async () => {
@@ -1454,9 +1587,10 @@ ${result.error?.hint}
   const processAndImportClients = async (
     validRows: Partial<ClientManagementRecord>[],
     fileName: string,
+    targetAdvisorId: string,
     parseStats?: { skippedHeaders: number; skippedEmpty: number; skippedInvalid: number }
   ) => {
-    if (validRows.length === 0 || !importAdvisorId) return;
+    if (validRows.length === 0 || !targetAdvisorId) return;
     setImportState(prev => ({ ...prev, phase: 'importing', fileName }));
 
     const parseDate = (value: any) => {
@@ -1467,54 +1601,65 @@ ${result.error?.hint}
     };
 
     try {
-      const { data: existingClients } = await supabase
+      const { data: allExistingClients, error: fetchErr } = await supabase
         .from('cgpt_clients')
-        .select('id, email, mobile_number, policy_number, client_name, birthdate')
-        .eq('advisor_id', importAdvisorId);
+        .select('id, advisor_id, email, mobile_number, policy_number, client_name, birthdate');
 
-      const recordsToUpsert: any[] = [];
+      if (fetchErr) throw fetchErr;
+
+      const matchesExisting = (record: Partial<ClientManagementRecord>, existing: any) => {
+        const recordEmail = (record.email || '').toLowerCase().trim();
+        const recordMobile = (record.mobileNumber || '').trim();
+        const recordPolicy = (record.policyNumber || '').trim();
+        const recordName = (record.clientName || '').toLowerCase().trim();
+        const recordBirthdate = (record as any).birthdate || '';
+
+        if (recordEmail && existing.email && String(existing.email).toLowerCase().trim() === recordEmail) return true;
+        if (recordMobile && existing.mobile_number && String(existing.mobile_number).trim() === recordMobile) return true;
+        if (recordPolicy && existing.policy_number && String(existing.policy_number).trim() === recordPolicy) return true;
+        if (!recordPolicy && recordName && existing.client_name && String(existing.client_name).toLowerCase().trim() === recordName && existing.birthdate === recordBirthdate) return true;
+        return false;
+      };
+
+      const recordsToInsert: any[] = [];
       let importedCount = 0;
-      let updatedCount = 0;
       let skippedCount = 0;
+      let crossAdvisorSkippedCount = 0;
 
       for (const record of validRows) {
-        const existing = existingClients?.find(c =>
-          (c.email && record.email && c.email.toLowerCase() === record.email.toLowerCase()) ||
-          (c.mobile_number && record.mobileNumber && c.mobile_number === record.mobileNumber) ||
-          (c.policy_number && record.policyNumber && c.policy_number === record.policyNumber) ||
-          (!record.policyNumber && c.client_name && record.clientName && c.client_name.toLowerCase() === record.clientName.toLowerCase() && c.birthdate === (record as any).birthdate)
-        );
+        const inBatchMatch = recordsToInsert.find(r => matchesExisting(record, {
+          email: r.email,
+          mobile_number: r.mobile_number,
+          policy_number: r.policy_number,
+          client_name: r.client_name,
+          birthdate: r.birthdate
+        }));
 
-        const existingInBatch = recordsToUpsert.find(c =>
-          (c.email && record.email && c.email.toLowerCase() === record.email.toLowerCase()) ||
-          (c.mobile_number && record.mobileNumber && c.mobile_number === record.mobileNumber) ||
-          (c.policy_number && record.policyNumber && c.policy_number === record.policyNumber) ||
-          (!record.policyNumber && c.client_name && record.clientName && c.client_name.toLowerCase() === record.clientName.toLowerCase())
-        );
-
-        if (existingInBatch) {
+        if (inBatchMatch) {
           skippedCount++;
           continue;
         }
 
-        let id = '';
-        if (existing) {
-          id = existing.id;
-          updatedCount++;
-        } else {
-          id = crypto.randomUUID();
-          importedCount++;
+        const existingMatch = (allExistingClients || []).find(c => matchesExisting(record, c));
+
+        if (existingMatch) {
+          if (existingMatch.advisor_id === targetAdvisorId) {
+            skippedCount++;
+          } else {
+            crossAdvisorSkippedCount++;
+          }
+          continue;
         }
 
-        recordsToUpsert.push({
-          id,
-          advisor_id: importAdvisorId,
+        recordsToInsert.push({
+          id: crypto.randomUUID(),
+          advisor_id: targetAdvisorId,
           client_name: record.clientName,
           relationship: record.relationship || '',
           policy_number: record.policyNumber || null,
           product: record.product || null,
           approval_date: parseDate(record.approvalDate),
-          birthdate: parseDate((record as any).birthday || (record as any).birthdate),
+          birthdate: parseDate((record as any).birthdate),
           annual_premium: record.annualPremium || 0,
           mobile_number: record.mobileNumber || '',
           email: record.email || '',
@@ -1523,18 +1668,22 @@ ${result.error?.hint}
           fund_allocation: record.fundAllocation || '',
           mode_of_payment: record.modeOfPayment || 'Annual',
         });
+        importedCount++;
       }
 
-      const { error } = await supabase.from('cgpt_clients').upsert(recordsToUpsert).select();
-      if (error) throw error;
+      if (recordsToInsert.length > 0) {
+        const { error } = await supabase.from('cgpt_clients').insert(recordsToInsert).select();
+        if (error) throw error;
+      }
 
       setImportState(prev => ({
         ...prev,
         phase: 'done',
         totalRows: validRows.length + (parseStats ? parseStats.skippedHeaders + parseStats.skippedEmpty + parseStats.skippedInvalid : 0),
         importedCount,
-        updatedCount,
+        updatedCount: 0,
         skippedCount,
+        crossAdvisorSkippedCount,
         skippedHeaders: parseStats?.skippedHeaders || 0,
         skippedEmpty: parseStats?.skippedEmpty || 0,
         skippedInvalid: parseStats?.skippedInvalid || 0
@@ -1627,15 +1776,23 @@ ${result.error?.hint}
       const XLSX = await import('xlsx');
       const buffer = await file.arrayBuffer();
       const wb = XLSX.read(buffer, { type: 'array', cellDates: false });
-      const sheet = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1, raw: true, defval: '' });
+
+      let rows: any[][];
+      if (importTarget === 'clients') {
+        const lockedAdvisor = advisors.find(a => a.id === effectiveImportAdvisorId);
+        rows = resolveClientSheetRows(wb, XLSX, lockedAdvisor);
+        assertRowsBelongToAdvisor(rows, lockedAdvisor, advisors);
+      } else {
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        rows = XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1, raw: true, defval: '' });
+      }
 
       if (importTarget === 'clients') {
-        const { newClients, duplicateClients, invalid, stats } = parseClientRows(rows);
-        setImportState(prev => ({ ...prev, phase: 'preview', validation: { newClients, duplicateClients, invalid, stats } as any }));
+        const { newClients, duplicateClients, crossAdvisorConflicts, invalid, stats } = parseClientRows(rows);
+        setImportState(prev => ({ ...prev, phase: 'preview', validation: { newClients, duplicateClients, crossAdvisorConflicts, invalid, stats } as any }));
       } else {
-        const { newClients, duplicateClients, invalid, stats } = parseAdvisorRows(rows);
-        setImportState(prev => ({ ...prev, phase: 'preview', validation: { newClients, duplicateClients, invalid, stats } as any }));
+        const { newClients, duplicateClients, crossAdvisorConflicts, invalid, stats } = parseAdvisorRows(rows);
+        setImportState(prev => ({ ...prev, phase: 'preview', validation: { newClients, duplicateClients, crossAdvisorConflicts, invalid, stats } as any }));
       }
     } catch (err) {
       setImportState({
@@ -1648,12 +1805,9 @@ ${result.error?.hint}
     }
   };
 
-  // Helper: extract rows from PDF or Word text for birthday scanning
   const extractRowsFromText = (rawText: string): any[][] => {
-    // Normalize month name abbreviations to dates
     const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
     const rows: string[][] = lines.map(line => line.split(/\t|,|;|\|/).map(c => c.trim()));
-    // If single-column (e.g. PDF), split by 2+ spaces
     const isSingleCol = rows.every(r => r.length === 1);
     if (isSingleCol) {
       return lines.map(line => line.split(/\s{2,}/).map(c => c.trim()));
@@ -1662,7 +1816,7 @@ ${result.error?.hint}
   };
 
   const handleFileSelected = async (file: File) => {
-    if (importTarget === 'clients' && !importAdvisorId) {
+    if (importTarget === 'clients' && !effectiveImportAdvisorId) {
       setImportState({ phase: 'error', fileName: file.name, validation: null, importedCount: 0, errorMessage: 'Please select an Advisor before uploading clients.' });
       return;
     }
@@ -1671,8 +1825,8 @@ ${result.error?.hint}
 
     try {
       const ext = file.name.split('.').pop()?.toLowerCase();
+      const lockedAdvisor = advisors.find(a => a.id === effectiveImportAdvisorId);
 
-      // PDF: extract text and scan for birthday patterns
       if (ext === 'pdf') {
         const pdfjsLib = await import('pdfjs-dist');
         pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -1686,6 +1840,7 @@ ${result.error?.hint}
         }
         const rows = extractRowsFromText(allText);
         if (importTarget === 'clients') {
+          assertRowsBelongToAdvisor(rows, lockedAdvisor, advisors);
           const result = parseClientRows(rows);
           setImportState(prev => ({ ...prev, phase: 'preview', validation: result as any }));
         } else {
@@ -1695,13 +1850,13 @@ ${result.error?.hint}
         return;
       }
 
-      // Word (.docx): extract text via mammoth
       if (ext === 'docx' || ext === 'doc') {
         const mammoth = await import('mammoth');
         const buffer = await file.arrayBuffer();
         const result = await mammoth.extractRawText({ arrayBuffer: buffer });
         const rows = extractRowsFromText(result.value);
         if (importTarget === 'clients') {
+          assertRowsBelongToAdvisor(rows, lockedAdvisor, advisors);
           const r = parseClientRows(rows);
           setImportState(prev => ({ ...prev, phase: 'preview', validation: r as any }));
         } else {
@@ -1711,7 +1866,6 @@ ${result.error?.hint}
         return;
       }
 
-      // Excel / CSV
       const XLSX = await import('xlsx');
       const buffer = await file.arrayBuffer();
 
@@ -1727,15 +1881,22 @@ ${result.error?.hint}
       }
 
       const wb = XLSX.read(buffer, { type: 'array', cellDates: false });
-      const sheet = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1, raw: true, defval: '' });
+
+      let rows: any[][];
+      if (importTarget === 'clients') {
+        rows = resolveClientSheetRows(wb, XLSX, lockedAdvisor);
+        assertRowsBelongToAdvisor(rows, lockedAdvisor, advisors);
+      } else {
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        rows = XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1, raw: true, defval: '' });
+      }
 
       if (importTarget === 'clients') {
-        const { newClients, duplicateClients, invalid, stats } = parseClientRows(rows);
-        setImportState(prev => ({ ...prev, phase: 'preview', validation: { newClients, duplicateClients, invalid, stats } as any }));
+        const { newClients, duplicateClients, crossAdvisorConflicts, invalid, stats } = parseClientRows(rows);
+        setImportState(prev => ({ ...prev, phase: 'preview', validation: { newClients, duplicateClients, crossAdvisorConflicts, invalid, stats } as any }));
       } else {
-        const { newClients, duplicateClients, invalid, stats } = parseAdvisorRows(rows);
-        setImportState(prev => ({ ...prev, phase: 'preview', validation: { newClients, duplicateClients, invalid, stats } as any }));
+        const { newClients, duplicateClients, crossAdvisorConflicts, invalid, stats } = parseAdvisorRows(rows);
+        setImportState(prev => ({ ...prev, phase: 'preview', validation: { newClients, duplicateClients, crossAdvisorConflicts, invalid, stats } as any }));
       }
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -1756,7 +1917,7 @@ ${result.error?.hint}
   };
 
   const handlePasteImport = async (text: string) => {
-    if (importTarget === 'clients' && !importAdvisorId) {
+    if (importTarget === 'clients' && !effectiveImportAdvisorId) {
       setImportState({ phase: 'error', fileName: 'Pasted Grid Data', validation: null, importedCount: 0, errorMessage: 'Please select an Advisor before importing clients.' });
       return;
     }
@@ -1769,11 +1930,13 @@ ${result.error?.hint}
       if (rows.length < 2) throw new Error("No data found or insufficient rows.");
 
       if (importTarget === 'clients') {
-        const { newClients, duplicateClients, invalid, stats } = parseClientRows(rows);
-        setImportState(prev => ({ ...prev, phase: 'preview', validation: { newClients, duplicateClients, invalid, stats } as any }));
+        const lockedAdvisor = advisors.find(a => a.id === effectiveImportAdvisorId);
+        assertRowsBelongToAdvisor(rows, lockedAdvisor, advisors);
+        const { newClients, duplicateClients, crossAdvisorConflicts, invalid, stats } = parseClientRows(rows);
+        setImportState(prev => ({ ...prev, phase: 'preview', validation: { newClients, duplicateClients, crossAdvisorConflicts, invalid, stats } as any }));
       } else {
-        const { newClients, duplicateClients, invalid, stats } = parseAdvisorRows(rows);
-        setImportState(prev => ({ ...prev, phase: 'preview', validation: { newClients, duplicateClients, invalid, stats } as any }));
+        const { newClients, duplicateClients, crossAdvisorConflicts, invalid, stats } = parseAdvisorRows(rows);
+        setImportState(prev => ({ ...prev, phase: 'preview', validation: { newClients, duplicateClients, crossAdvisorConflicts, invalid, stats } as any }));
       }
     } catch (err) {
       setImportState({ phase: 'error', fileName: 'Pasted Grid Data', validation: null, importedCount: 0, errorMessage: err instanceof Error ? err.message : String(err) });
@@ -2255,7 +2418,7 @@ ${result.error?.hint}
                           if (rawBd) {
                             const d = new Date(rawBd + 'T00:00:00');
                             if (!isNaN(d.getTime())) {
-                              formattedBirthdate = `${d.toLocaleString('default', { month: 'long' }).toUpperCase()} - ${d.getDate()}`;
+                              formattedBirthdate = formatBirthdateWithYear(d);
                               const today = new Date();
                               let calcAge = today.getFullYear() - d.getFullYear();
                               const hasHadBirthday =
@@ -2395,7 +2558,7 @@ ${result.error?.hint}
               <div>
                 <h2 className="text-base font-bold text-text">CGPT Batch Import</h2>
                 <p className="text-xs text-text-secondary">
-                  {selectedAdvisor ? `Importing clients directly into ${selectedAdvisor.advisorName}'s registry.` : 'Process client registers via CSV or Excel sheets.'}
+                  {selectedAdvisor ? `🔒 Importing clients directly into ${selectedAdvisor.advisorName}'s registry.` : 'Process client registers via CSV or Excel sheets.'}
                 </p>
               </div>
               <button
@@ -2444,7 +2607,7 @@ ${result.error?.hint}
                 {selectedAdvisor ? (
                   <div className="w-full px-3.5 py-2.5 border border-primary/40 rounded-2xl text-xs bg-primary/10 text-foreground font-bold flex items-center gap-2">
                     <UserCheck size={14} className="text-primary shrink-0" />
-                    {selectedAdvisor.advisorName} ({selectedAdvisor.advisorCode})
+                    🔒 Import locked to {selectedAdvisor.advisorName} ({selectedAdvisor.advisorCode})
                   </div>
                 ) : (
                   <select
@@ -2546,7 +2709,7 @@ ${result.error?.hint}
                     <button
                       type="button"
                       onClick={() => handlePasteImport(pastedText)}
-                      disabled={!pastedText.trim() || !importAdvisorId}
+                      disabled={!pastedText.trim() || !effectiveImportAdvisorId}
                       className="w-full bg-primary text-black font-bold text-xs py-2.5 rounded-full border border-[#e0b53c] hover:bg-primary/80 active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Parse and Validate Paste
@@ -2630,14 +2793,21 @@ ${result.error?.hint}
 
             {importState.phase === 'preview' && importState.validation && (
               <div className="flex flex-col h-full max-h-[80vh] p-6 space-y-4 overflow-hidden">
-                <div className="text-left shrink-0">
+                <div className="text-left shrink-0 space-y-1">
                   <h3 className="text-sm font-bold text-text">Preview Valid Records</h3>
-                  <p className="text-xs text-text-secondary mt-1">
-                    Found {importState.validation.newClients.length} new records, {importState.validation.duplicateClients.length} duplicates, and {importState.validation.invalid.length} invalid rows.
+                  {importTarget === 'clients' && (
+                    <p className="text-[11px] font-bold text-primary flex items-center gap-1.5">
+                      🔒 Import locked to {advisors.find(a => a.id === effectiveImportAdvisorId)?.advisorName || selectedAdvisor?.advisorName || 'selected advisor'}
+                    </p>
+                  )}
+                  <p className="text-xs text-text-secondary">
+                    Found {importState.validation.newClients.length} new records, {importState.validation.duplicateClients.length} duplicates
+                    {importTarget === 'clients' ? `, ${importState.validation.crossAdvisorConflicts.length} cross-advisor conflicts, ` : ', '}
+                    and {importState.validation.invalid.length} invalid rows.
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 shrink-0">
+                <div className={`grid grid-cols-2 ${importTarget === 'clients' ? 'md:grid-cols-5' : 'md:grid-cols-4'} gap-3 shrink-0`}>
                   <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-500/25 rounded-2xl p-3.5">
                     <span className="block text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">New</span>
                     <span className="text-xl font-black text-emerald-600 dark:text-emerald-400">{importState.validation.newClients.length}</span>
@@ -2646,6 +2816,12 @@ ${result.error?.hint}
                     <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Duplicates</span>
                     <span className="text-xl font-black text-slate-500">{importState.validation.duplicateClients.length}</span>
                   </div>
+                  {importTarget === 'clients' && (
+                    <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-500/25 rounded-2xl p-3.5">
+                      <span className="block text-[10px] font-bold text-orange-600 dark:text-orange-400 uppercase tracking-wider">Cross-Advisor</span>
+                      <span className="text-xl font-black text-orange-600 dark:text-orange-400">{importState.validation.crossAdvisorConflicts.length}</span>
+                    </div>
+                  )}
                   <div className="bg-red-50 dark:bg-red-950/20 border border-red-500/25 rounded-2xl p-3.5">
                     <span className="block text-[10px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider">Invalid</span>
                     <span className="text-xl font-black text-red-600 dark:text-red-400">{importState.validation.invalid.length}</span>
@@ -2653,13 +2829,13 @@ ${result.error?.hint}
                   <div className="bg-primary/10 border border-primary/30 rounded-2xl p-3.5">
                     <span className="block text-[10px] font-bold text-[#A97800] dark:text-[#F4C542] uppercase tracking-wider">Total Rows</span>
                     <span className="text-xl font-black text-[#A97800] dark:text-[#F4C542]">
-                      {importState.validation.newClients.length + importState.validation.duplicateClients.length + importState.validation.invalid.length}
+                      {importState.validation.newClients.length + importState.validation.duplicateClients.length + importState.validation.crossAdvisorConflicts.length + importState.validation.invalid.length}
                     </span>
                   </div>
                 </div>
 
                 <div className="flex-1 overflow-auto rounded-2xl border border-border bg-card">
-                  {importState.validation.newClients.length === 0 && importState.validation.duplicateClients.length === 0 && importState.validation.invalid.length === 0 && (
+                  {importState.validation.newClients.length === 0 && importState.validation.duplicateClients.length === 0 && importState.validation.crossAdvisorConflicts.length === 0 && importState.validation.invalid.length === 0 && (
                     <div className="py-8 text-center text-text-secondary text-xs">No records to preview.</div>
                   )}
 
@@ -2690,7 +2866,7 @@ ${result.error?.hint}
                                 if (r.birthdate) {
                                   const d = new Date(r.birthdate + 'T00:00:00');
                                   if (!isNaN(d.getTime())) {
-                                    formattedBirthdate = `${d.toLocaleString('default', { month: 'long' }).toUpperCase()} - ${d.getDate()}`;
+                                    formattedBirthdate = formatBirthdateWithYear(d);
                                     const today = new Date();
                                     let calcAge = today.getFullYear() - d.getFullYear();
                                     const hasHadBirthdayThisYear =
@@ -2734,6 +2910,50 @@ ${result.error?.hint}
                           </tbody>
                         </table>
                       )}
+                    </div>
+                  )}
+
+                  {importTarget === 'clients' && importState.validation.crossAdvisorConflicts.length > 0 && (
+                    <div className="w-full border-t border-border">
+                      <details className="group" open>
+                        <summary className="bg-orange-50 dark:bg-orange-950/20 px-4 py-2.5 sticky top-0 z-30 cursor-pointer list-none flex items-center justify-between hover:bg-orange-100 dark:hover:bg-orange-950/40 transition-colors">
+                          <div className="flex items-center gap-2">
+                            <ShieldAlert size={14} className="text-orange-500" />
+                            <span className="px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-600 dark:text-orange-400 text-[10px] font-bold uppercase">Blocked</span>
+                            <h4 className="text-xs font-bold text-orange-600 dark:text-orange-400">
+                              Cross-Advisor Conflicts — Not Imported ({importState.validation.crossAdvisorConflicts.length})
+                            </h4>
+                          </div>
+                          <ChevronRight size={14} className="text-orange-500 transition-transform group-open:rotate-90" />
+                        </summary>
+                        <p className="px-4 py-2 text-[11px] text-text-secondary bg-orange-50/40 dark:bg-orange-950/10 border-b border-orange-500/10">
+                          These rows matched an existing client already assigned to a different advisor. They are never imported or reassigned automatically.
+                        </p>
+                        <div className="overflow-x-auto">
+                          <table className="text-left text-[11px] border-collapse table-fixed">
+                            <thead>
+                              <tr className="bg-surface-2">
+                                <th className="sticky left-0 z-10 bg-surface-2 border-r border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[48px]">#</th>
+                                <th className="sticky left-[48px] z-10 bg-surface-2 border-r border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[280px]">Client Name / Beneficiary Name</th>
+                                <th className="border-b border-border px-3 py-2.5 font-bold text-text-secondary w-[280px]">Belongs To</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {importState.validation.crossAdvisorConflicts.slice(0, 200).map((r: any, i: number) => (
+                                <tr key={i} className={`${i % 2 === 0 ? 'bg-card' : 'bg-surface-2/40'}`}>
+                                  <td className={`sticky left-0 z-10 ${i % 2 === 0 ? 'bg-card' : 'bg-surface-2/40'} border-r border-b border-border/40 px-3 py-2 text-text-secondary font-mono`}>{i + 1}</td>
+                                  <td className={`sticky left-[48px] z-10 ${i % 2 === 0 ? 'bg-card' : 'bg-surface-2/40'} border-r border-b border-border/40 px-3 py-2 font-bold text-text truncate`}>
+                                    {r.clientName || '—'}{r.beneficiary ? ` / ${r.beneficiary}` : ''}
+                                  </td>
+                                  <td className="border-b border-border/40 px-3 py-2 text-orange-600 dark:text-orange-400 font-semibold italic truncate">
+                                    {r._conflictAdvisorName} (matches: {r._matchedName})
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </details>
                     </div>
                   )}
 
@@ -2815,7 +3035,7 @@ ${result.error?.hint}
                   <button
                     onClick={() => {
                       if (importTarget === 'clients') {
-                        processAndImportClients(importState.validation!.newClients, importState.fileName, importState.validation!.stats);
+                        processAndImportClients(importState.validation!.newClients, importState.fileName, effectiveImportAdvisorId, importState.validation!.stats);
                       } else {
                         processAndImportAdvisors(importState.validation!.newClients, importState.fileName, importState.validation!.stats);
                       }
@@ -2862,6 +3082,12 @@ ${result.error?.hint}
                   <p className="text-xs text-text-secondary mt-1.5 leading-5">
                     <span className="font-bold text-emerald-500">{importState.importedCount}</span> New clients imported<br />
                     <span className="font-bold text-orange-500">{importState.validation?.duplicateClients?.length || 0}</span> Duplicates skipped (already in list)
+                    {!!importState.crossAdvisorSkippedCount && (
+                      <>
+                        <br />
+                        <span className="font-bold text-red-500">{importState.crossAdvisorSkippedCount}</span> Cross-advisor conflicts skipped (belong to another advisor)
+                      </>
+                    )}
                   </p>
                 </div>
                 <button
