@@ -153,9 +153,9 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
 
   const clientServicingItems = [
     { name: 'Client Management Tracker', href: '/admin/cpst' },
+    { name: 'Clients Birthday', href: '/admin/cgpt' },
     { name: 'Client Policy Card', href: '/admin/cpc' },
     { name: 'Premium Payment', href: '/admin/pptm' },
-    { name: 'Welcome Note & Poster', href: '/admin/cgpt' },
     { name: 'Social Media Visibility', href: '/admin/csmv' },
   ];
 
