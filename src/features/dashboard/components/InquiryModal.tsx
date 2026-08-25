@@ -39,9 +39,10 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({
         if (inquiry) {
             setFormData({
                 cmgc_name: inquiry.cmgc_name || '',
+                inquiry_type: inquiry.inquiry_type || 'Pending Response',
                 inquiry_concern: inquiry.inquiry_concern || '',
                 status: inquiry.status || 'Pending',
-                processed_by: inquiry.processed_by || currentUserProfile?.id || ''
+                processed_by: inquiry.processed_by || currentUserProfile?.id || null
             });
         }
     }, [inquiry, currentUserProfile]);
@@ -54,12 +55,18 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({
 
     const handleSave = async () => {
         setIsSaving(true);
-        await saveInquiryField(inquiry.id, {
-            ...formData,
-            processed_by: currentUserProfile?.id || ''
-        });
-        setIsSaving(false);
-        onClose();
+        try {
+            const processedByVal = formData.processed_by || currentUserProfile?.id || null;
+            await saveInquiryField(inquiry.id, {
+                ...formData,
+                processed_by: processedByVal ? processedByVal : null
+            });
+            onClose();
+        } catch (err) {
+            console.error('Failed to save inquiry from modal:', err);
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const handleClose = () => {

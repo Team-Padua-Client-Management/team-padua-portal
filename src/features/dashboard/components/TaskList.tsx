@@ -1375,11 +1375,17 @@ function InquiryRow({ task, stage, allProfiles, bizDevProfiles, onClick, onDelet
       className="hover:bg-surface-2 hover:shadow-sm"
     >
       <div onClick={onClick} style={{ cursor: 'pointer', flexGrow: 1 }}>
-        <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>
+        <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text)', lineHeight: 1.25 }}>
+          {meta.cmgc_name || task.title || 'Untitled Inquiry'}
+        </div>
+        <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginTop: '2px' }}>
+          {loggedByLabel}
+        </div>
+        <div style={{ fontSize: '10.5px', fontWeight: 600, color: 'var(--text-tertiary)', marginTop: '1px' }}>
           CMGC Name
         </div>
-        <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)' }}>
-          {meta.cmgc_name || task.title || 'Untitled Inquiry'}
+        <div style={{ fontSize: '11px', fontWeight: 700, color: '#D97706', marginTop: '3px' }}>
+          {task.status || 'Pending'}
         </div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

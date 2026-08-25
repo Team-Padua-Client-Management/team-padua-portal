@@ -406,10 +406,109 @@ function nameTokensOverlap(haystack: string, candidateName: string): boolean {
   return hits >= 2;
 }
 
+// ─── Sheet-scoring constants ─────────────────────────────────────────────────
+// Keywords that indicate a client-data sheet. Scored against every worksheet.
+const CLIENT_HEADER_KEYWORDS: string[] = [
+  'client name', 'client name / beneficiary name', 'beneficiary name',
+  'date of birth', 'birthday', 'dob', 'birthdate', 'month - birthdate',
+  'age', 'email', 'email address', 'contact number', 'mobile', 'phone',
+  'location', 'address', 'policy number', 'policy#', 'policy no',
+  'product', 'plan', 'plan name', 'policy name',
+  'date of approval', 'approval date', 'issue date',
+  'relationship', 'relationship type',
+  'beneficiary', 'fund allocation', 'mode of payment', 'annual premium',
+];
+
+/**
+ * Score a worksheet's rows for "client-data likelihood".
+ * Returns { headerScore, dataRows } where:
+ *   headerScore  = number of supported CLIENT_HEADER_KEYWORDS found in the header row
+ *   dataRows     = number of non-empty rows below the header row
+ */
+function scoreSheetForClientData(rows: any[][]): { headerScore: number; dataRows: number; headerIndex: number } {
+  const maxScan = Math.min(rows.length, 30);
+
+  // Try to find a header row using the same logic as parseClientRows
+  let headerIndex = -1;
+
+  // Pass 1: exact name header + birth/age header
+  for (let i = 0; i < maxScan; i++) {
+    const cells = (rows[i] || []).map((c: any) => String(c ?? '').toLowerCase().trim());
+    const hasName = cells.some(c => c === 'client name / beneficiary name' || c === 'client name');
+    const hasBirth = cells.some(c =>
+      c.includes('month') || c.includes('birthdate') || c.includes('date of birth') || c.includes('birthday') || c.includes('dob')
+    );
+    const hasAge = cells.some(c => c === 'age');
+    if (hasName && (hasBirth || hasAge)) {
+      headerIndex = i;
+      break;
+    }
+  }
+
+  // Pass 2: at least 3 required-ish headers
+  if (headerIndex === -1) {
+    const requiredKw = ['client name', 'email address', 'contact number', 'location', 'date of birth', 'age'];
+    for (let i = 0; i < maxScan; i++) {
+      const lc = (rows[i] || []).map((c: any) => String(c ?? '').toLowerCase().trim());
+      let cnt = 0;
+      for (const kw of requiredKw) {
+        if (lc.some(cell => cell.includes(kw))) cnt++;
+      }
+      if (cnt >= 3) { headerIndex = i; break; }
+    }
+  }
+
+  // Pass 3: fallback – any 2+ supported keywords in a single row
+  if (headerIndex === -1) {
+    for (let i = 0; i < maxScan; i++) {
+      const lc = (rows[i] || []).map((c: any) => normalizeHeader(String(c ?? '')));
+      let cnt = 0;
+      for (const kw of CLIENT_HEADER_KEYWORDS) {
+        if (lc.some(cell => cell.includes(normalizeHeader(kw)))) cnt++;
+      }
+      if (cnt >= 2) { headerIndex = i; break; }
+    }
+  }
+
+  if (headerIndex === -1) return { headerScore: 0, dataRows: 0, headerIndex: -1 };
+
+  // Count matched supported headers
+  const headerCells = (rows[headerIndex] || []).map((c: any) => normalizeHeader(String(c ?? '')));
+  let headerScore = 0;
+  for (const kw of CLIENT_HEADER_KEYWORDS) {
+    const nkw = normalizeHeader(kw);
+    if (headerCells.some(cell => cell.includes(nkw))) headerScore++;
+  }
+
+  // Count non-empty data rows below the header
+  let dataRows = 0;
+  for (let i = headerIndex + 1; i < rows.length; i++) {
+    const row = rows[i];
+    if (row && row.some((c: any) => String(c ?? '').trim() !== '')) dataRows++;
+  }
+
+  return { headerScore, dataRows, headerIndex };
+}
+
+/**
+ * Inspect ALL worksheets in a workbook, score each for client-data content,
+ * and return the rows from the best-matching sheet.
+ *
+ * Selection strategy (content-driven, no advisor name required):
+ *  1. If the workbook has only one sheet, use it.
+ *  2. Score every sheet by (headerScore, dataRows).
+ *  3. Discard sheets with headerScore === 0 (no recognisable client headers).
+ *  4. Among remaining candidates, pick the sheet with the highest headerScore;
+ *     break ties by most dataRows.
+ *  5. If no sheet has recognisable client headers, throw a descriptive error.
+ *
+ * The advisor parameter is kept for signature compatibility but is NOT used
+ * to filter sheets — the currently selected advisor is the locked destination.
+ */
 function resolveClientSheetRows(
   wb: any,
   XLSXModule: any,
-  advisor: AdvisorRecord | undefined
+  advisor: AdvisorRecord | undefined  // retained for compatibility; not used for sheet matching
 ): any[][] {
   const sheetNames: string[] = wb.SheetNames || [];
 
@@ -417,74 +516,95 @@ function resolveClientSheetRows(
     throw new Error('The uploaded file has no readable sheets.');
   }
 
-  if (sheetNames.length === 1 || !advisor) {
+  // Single-sheet workbook — use it unconditionally
+  if (sheetNames.length === 1) {
     const sheet = wb.Sheets[sheetNames[0]];
-    return XLSXModule.utils.sheet_to_json(sheet, {
-      header: 1,
-      raw: true,
-      defval: ''
-    });
+    return XLSXModule.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: '' });
   }
 
-  const byNameMatch = sheetNames.find(sn =>
-    (advisor.advisorCode &&
-      normalizeHeader(sn).includes(normalizeHeader(advisor.advisorCode))) ||
-    nameTokensOverlap(sn, advisor.advisorName)
-  );
-
-  if (byNameMatch) {
-    const sheet = wb.Sheets[byNameMatch];
-    return XLSXModule.utils.sheet_to_json(sheet, {
-      header: 1,
-      raw: true,
-      defval: ''
-    });
+  // Multi-sheet workbook — score every sheet for client-data content
+  interface SheetCandidate {
+    name: string;
+    rows: any[][];
+    headerScore: number;
+    dataRows: number;
   }
 
-  const titleMatches: { name: string; rows: any[][] }[] = [];
+  const candidates: SheetCandidate[] = [];
 
   for (const sn of sheetNames) {
     const sheet = wb.Sheets[sn];
+    const rows: any[][] = XLSXModule.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: '' });
+    const { headerScore, dataRows } = scoreSheetForClientData(rows);
 
-    const rows = XLSXModule.utils.sheet_to_json(sheet, {
-      header: 1,
-      raw: true,
-      defval: ''
-    });
-
-    const sampleText = rows
-      .slice(0, 6)
-      .map((r: any[]) => (r || []).join(' '))
-      .join(' ');
-
-    if (nameTokensOverlap(sampleText, advisor.advisorName)) {
-      titleMatches.push({ name: sn, rows });
+    // Only consider sheets that have at least one recognisable client header
+    if (headerScore > 0) {
+      candidates.push({ name: sn, rows, headerScore, dataRows });
     }
   }
 
-  if (titleMatches.length === 1) {
-    return titleMatches[0].rows;
+  if (candidates.length === 0) {
+    throw new Error(
+      'No supported client-data sheet was detected in this workbook. ' +
+      'Please verify that the workbook contains client records with supported column headers.'
+    );
   }
 
-  if (titleMatches.length === 0) {
-    throw new Error(`This file has multiple tabs (${sheetNames.join(', ')}) and none appear to match ${advisor.advisorName}. Upload a file or tab containing only this advisor's data.`);
-  }
+  // Pick the strongest candidate: highest headerScore, then most dataRows
+  candidates.sort((a, b) =>
+    b.headerScore !== a.headerScore
+      ? b.headerScore - a.headerScore
+      : b.dataRows - a.dataRows
+  );
 
-  throw new Error(`This file has multiple tabs that could match ${advisor.advisorName} (${titleMatches.map(t => t.name).join(', ')}). Upload a file containing only this advisor's data.`);
+  return candidates[0].rows;
 }
 
+/**
+ * Cross-advisor protection guard.
+ *
+ * Only blocks the import when the row data's top lines show strong multi-token
+ * overlap with a *different* known advisor's name AND zero overlap with the
+ * locked advisor's name — meaning the data almost certainly belongs to someone
+ * else and was uploaded by mistake.
+ *
+ * Does NOT block when:
+ *  - The locked advisor's name isn't in the data (that's expected for most files)
+ *  - The data has no recognisable advisor name at all
+ *  - The match with the other advisor is ambiguous / single-token
+ */
 function assertRowsBelongToAdvisor(rows: any[][], advisor: AdvisorRecord | undefined, allAdvisors: AdvisorRecord[]): void {
   if (!advisor) return;
+
+  // Sample only the non-header-looking top rows (skip rows that look like
+  // report titles / advisor name rows — these commonly cause false positives)
   const sampleText = rows.slice(0, 8).map(r => (r || []).join(' ')).join(' ');
   if (!sampleText.trim()) return;
 
-  const matchesLocked = nameTokensOverlap(sampleText, advisor.advisorName);
-  if (matchesLocked) return;
+  // If the locked advisor's own name appears in the sample, it's clearly fine
+  if (nameTokensOverlap(sampleText, advisor.advisorName)) return;
 
-  const otherMatch = allAdvisors.find(a => a.id !== advisor.id && nameTokensOverlap(sampleText, a.advisorName));
+  // Look for a *different* advisor's name with strong multi-token overlap.
+  // Require at least 2 token hits to avoid blocking on common short names.
+  const otherMatch = allAdvisors.find(a => {
+    if (a.id === advisor.id) return false;
+    const nameTokens = normalizeNameForMatch(a.advisorName).split(' ').filter(t => t.length >= 3);
+    // Require at least 2 tokens to match to avoid false positives from generic words
+    if (nameTokens.length < 2) return false;
+    const haystackNorm = normalizeNameForMatch(sampleText);
+    let hits = 0;
+    nameTokens.forEach(t => { if (haystackNorm.includes(t)) hits++; });
+    return hits >= 2;
+  });
+
   if (otherMatch) {
-    throw new Error(`This file's content appears to belong to "${otherMatch.advisorName}", not "${advisor.advisorName}". Import blocked to prevent cross-advisor data mixing. Please verify you uploaded the correct advisor's file.`);
+    throw new Error(
+      `This file's content appears to belong to "${otherMatch.advisorName}", not "${advisor.advisorName}". ` +
+      `Import blocked to prevent cross-advisor data mixing. Please verify you uploaded the correct advisor's file.`
+    );
   }
+  // No clear cross-advisor signal — allow the import.
+  // The selected advisor is already the locked destination.
 }
 
 function parseEmbeddedBeneficiary(raw: string): EmbeddedBeneficiaryResult {

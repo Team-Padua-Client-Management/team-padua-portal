@@ -248,29 +248,27 @@ function InquiryRow({
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                    <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>
-                        {profile?.full_name || 'Unknown User'}
+                    <span style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text)', lineHeight: 1.25 }}>
+                        {inquiry.cmgc_name || 'Untitled Client'}
                     </span>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                        <span style={{ fontSize: 11, color: '#b8860b', fontWeight: 700 }}>
-                            {profile?.role || 'USER'}
-                        </span>
-                        <span style={{ fontSize: 11, color: '#9ca3af' }}>•</span>
-                        <span style={{ fontSize: 12, color: '#6b7280' }}>
-                            {inquiry.cmgc_name || 'Untitled Client'}
-                        </span>
-                    </div>
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginTop: '2px' }}>
+                        {profile?.full_name || 'Unassigned'}
+                    </span>
+
+                    <span style={{ fontSize: '10.5px', fontWeight: 600, color: 'var(--text-tertiary)', marginTop: '1px' }}>
+                        CMGC Name
+                    </span>
 
                     <span
                         style={{
-                            fontSize: 11,
+                            fontSize: '11px',
                             fontWeight: 700,
                             color: typeMeta.accent,
-                            marginTop: 4,
+                            marginTop: '3px',
                         }}
                     >
-                        {typeMeta.label}
+                        {inquiry.status || 'Pending'}
                     </span>
                 </div>
             </div>

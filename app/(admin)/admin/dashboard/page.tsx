@@ -2,8 +2,8 @@
 
 import React, { useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, useReducedMotion } from 'framer-motion';
-import { CalendarDays, Plus } from 'lucide-react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { CalendarDays, Plus, CheckCircle2, RotateCcw, AlertTriangle, X, Trash2 } from 'lucide-react';
 import { AdminHeader as Header } from "@src/components/layout";
 import { AdminSidebar as Sidebar } from "@src/components/layout";
 import styles from "@/styles/admin/dashboard/page.module.css";
@@ -33,6 +33,21 @@ import {
   defaultPortals,
 } from '@src/features/dashboard/constants';
 
+interface PendingDeleteItem {
+  id: string;
+  type: 'task' | 'inquiry';
+  title: string;
+  secondsLeft: number;
+  timerId: NodeJS.Timeout;
+  intervalId: NodeJS.Timeout;
+}
+
+interface ConfirmDeleteItem {
+  id: string;
+  type: 'task' | 'inquiry';
+  title: string;
+}
+
 export default function DashboardOverviewPage() {
   const { greeting, dayPeriod, currentDate, currentTime } = useDashboardClock();
 
@@ -59,7 +74,6 @@ export default function DashboardOverviewPage() {
   };
 
   const {
-
     pomoMode,
     pomoSeconds,
     pomoIsRunning,
@@ -135,6 +149,12 @@ export default function DashboardOverviewPage() {
     userPermissions
   } = useAdminDashboard();
 
+  // Pending Deletes & Confirmation Modal State
+  const [confirmDeleteItem, setConfirmDeleteItem] = React.useState<ConfirmDeleteItem | null>(null);
+  const [pendingDeletes, setPendingDeletes] = React.useState<PendingDeleteItem[]>([]);
+  const pendingDeletesRef = React.useRef<PendingDeleteItem[]>([]);
+  pendingDeletesRef.current = pendingDeletes;
+
   const [showCalendarHistory, setShowCalendarHistory] = React.useState(false);
 
   const prefersReducedMotion = useReducedMotion();
@@ -143,6 +163,118 @@ export default function DashboardOverviewPage() {
   const currentUserProfile = useMemo(() => {
     return allProfiles.find((p) => p.id === currentUserId) || null;
   }, [allProfiles, currentUserId]);
+
+  // Execute permanent delete after countdown ends
+  const executePermanentDelete = React.useCallback(async (id: string, type: 'task' | 'inquiry') => {
+    setPendingDeletes((prev) => {
+      const target = prev.find((p) => p.id === id);
+      if (target) {
+        clearTimeout(target.timerId);
+        clearInterval(target.intervalId);
+      }
+      return prev.filter((p) => p.id !== id);
+    });
+
+    if (type === 'task') {
+      await handleDeleteTask(id);
+    } else if (type === 'inquiry') {
+      await handleDeleteInquiry(id);
+    }
+  }, [handleDeleteTask, handleDeleteInquiry]);
+
+  // Undo delete handler
+  const handleUndoDelete = React.useCallback((id: string) => {
+    setPendingDeletes((prev) => {
+      const target = prev.find((p) => p.id === id);
+      if (target) {
+        clearTimeout(target.timerId);
+        clearInterval(target.intervalId);
+      }
+      return prev.filter((p) => p.id !== id);
+    });
+  }, []);
+
+  // Request deletion (opens confirmation modal)
+  const requestDeleteTask = React.useCallback(async (taskId: string) => {
+    const task = userTasks.find((t) => t.id === taskId);
+    setConfirmDeleteItem({
+      id: taskId,
+      type: 'task',
+      title: task?.title || 'Client Servicing Task',
+    });
+  }, [userTasks]);
+
+  const requestDeleteInquiry = React.useCallback(async (inquiryId: string) => {
+    const inquiry = clientInquiries.find((i: any) => i.id === inquiryId);
+    setConfirmDeleteItem({
+      id: inquiryId,
+      type: 'inquiry',
+      title: inquiry?.cmgc_name || inquiry?.inquiry_concern || 'Client Inquiry',
+    });
+  }, [clientInquiries]);
+
+  // Confirm delete from modal
+  const handleConfirmDelete = () => {
+    if (!confirmDeleteItem) return;
+    const { id, type, title } = confirmDeleteItem;
+
+    if (type === 'task' && selectedTaskIdForModal === id) {
+      setSelectedTaskIdForModal(null);
+    }
+    if (type === 'inquiry' && selectedInquiryId === id) {
+      setSelectedInquiryId(null);
+    }
+
+    setConfirmDeleteItem(null);
+
+    const timerId = setTimeout(() => {
+      executePermanentDelete(id, type);
+    }, 5000);
+
+    const intervalId = setInterval(() => {
+      setPendingDeletes((prev) =>
+        prev.map((item) => {
+          if (item.id === id) {
+            return { ...item, secondsLeft: Math.max(0, item.secondsLeft - 1) };
+          }
+          return item;
+        })
+      );
+    }, 1000);
+
+    setPendingDeletes((prev) => [
+      ...prev.filter((p) => p.id !== id),
+      {
+        id,
+        type,
+        title,
+        secondsLeft: 5,
+        timerId,
+        intervalId,
+      },
+    ]);
+  };
+
+  // Cleanup timers on unmount
+  React.useEffect(() => {
+    return () => {
+      pendingDeletesRef.current.forEach((item) => {
+        clearTimeout(item.timerId);
+        clearInterval(item.intervalId);
+      });
+    };
+  }, []);
+
+  // Filter out pending deleted items from visible UI lists
+  const activePendingIds = useMemo(() => new Set(pendingDeletes.map((p) => p.id)), [pendingDeletes]);
+
+  const displayedUserTasks = useMemo(() => {
+    return userTasks.filter((t) => !activePendingIds.has(t.id));
+  }, [userTasks, activePendingIds]);
+
+  const displayedClientInquiries = useMemo(() => {
+    return clientInquiries.filter((i: any) => !activePendingIds.has(i.id));
+  }, [clientInquiries, activePendingIds]);
 
   const filteredActivities = useMemo(() => {
     if (!selectedMiniDate) return activities;
@@ -194,14 +326,14 @@ export default function DashboardOverviewPage() {
     });
   }, [sortedCalendarLogs, showCalendarHistory]);
 
-  const selectedTaskForModal = userTasks.find((t) => t.id === selectedTaskIdForModal) || null;
-  const selectedInquiry = hookSelectedInquiry || clientInquiries.find((i: any) => i.id === selectedInquiryId) || null;
+  const selectedTaskForModal = displayedUserTasks.find((t) => t.id === selectedTaskIdForModal) || null;
+  const selectedInquiry = (hookSelectedInquiry && !activePendingIds.has(hookSelectedInquiry.id) ? hookSelectedInquiry : null) || displayedClientInquiries.find((i: any) => i.id === selectedInquiryId) || null;
 
   const sharedLayoutProps = {
-    userTasks,
+    userTasks: displayedUserTasks,
     allProfiles,
     bizDevProfiles,
-    clientInquiries,
+    clientInquiries: displayedClientInquiries,
     clientBirthdays,
     advisors,
     activities,
@@ -217,9 +349,9 @@ export default function DashboardOverviewPage() {
     onToggleTaskComplete: handleToggleCheckbox,
     onSelectTask: (id: string) => setSelectedTaskIdForModal(id),
     onSaveTaskField: saveTaskField,
-    onDeleteTask: handleDeleteTask,
+    onDeleteTask: requestDeleteTask,
     onCreateInquiry: handleCreateInquiry,
-    onDeleteInquiry: handleDeleteInquiry,
+    onDeleteInquiry: requestDeleteInquiry,
     onSaveInquiryField: saveInquiryField,
     onSelectInquiry: (item: any) => setSelectedInquiryId(item.id),
     onCopyToPending: copyInquiryToPendingSubmission,
@@ -344,7 +476,7 @@ export default function DashboardOverviewPage() {
           bizDevProfiles={bizDevProfiles}
           currentUserProfile={currentUserProfile}
           onSaveField={saveTaskField}
-          onDeleteTask={handleDeleteTask}
+          onDeleteTask={requestDeleteTask}
           onClose={() => setSelectedTaskIdForModal(null)}
         />,
         document.body
@@ -357,7 +489,7 @@ export default function DashboardOverviewPage() {
           allProfiles={allProfiles}
           currentUserProfile={currentUserProfile}
           saveInquiryField={saveInquiryField}
-          handleDeleteInquiry={handleDeleteInquiry}
+          handleDeleteInquiry={requestDeleteInquiry}
           onClose={() => setSelectedInquiryId(null)}
         />,
         document.body
@@ -378,6 +510,273 @@ export default function DashboardOverviewPage() {
         />,
         document.body
       )}
+
+      {/* Delete Confirmation Modal for Inquiries & Client Servicing Monitoring */}
+      {isMounted && confirmDeleteItem && createPortal(
+        <div
+          onClick={() => setConfirmDeleteItem(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 15, 15, 0.55)',
+            backdropFilter: 'blur(3px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9998,
+            padding: '16px',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: '400px',
+              background: '#FFFFFF',
+              borderRadius: '24px',
+              boxShadow: '0 24px 64px rgba(0,0,0,0.22)',
+              padding: '28px',
+              textAlign: 'center',
+            }}
+          >
+            <div
+              style={{
+                width: '54px',
+                height: '54px',
+                borderRadius: '18px',
+                background: 'rgba(239, 68, 68, 0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 16px auto',
+                color: '#EF4444',
+              }}
+            >
+              <AlertTriangle size={28} strokeWidth={2.2} />
+            </div>
+
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#18181B', margin: '0 0 8px 0', letterSpacing: '-0.01em' }}>
+              Confirm Delete
+            </h3>
+
+            <p style={{ fontSize: '0.88rem', color: '#52525B', margin: '0 0 16px 0', lineHeight: 1.5, fontWeight: 500 }}>
+              Are you sure you want to delete this item? This action can be undone within 5 seconds.
+            </p>
+
+            {confirmDeleteItem.title && (
+              <div
+                style={{
+                  background: '#F4F4F5',
+                  borderRadius: '12px',
+                  padding: '9px 14px',
+                  marginBottom: '22px',
+                  fontSize: '0.82rem',
+                  color: '#3F3F46',
+                  fontWeight: 600,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {confirmDeleteItem.title}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setConfirmDeleteItem(null)}
+                style={{
+                  flex: 1,
+                  padding: '11px 0',
+                  borderRadius: '999px',
+                  border: '1px solid #E4E4E7',
+                  background: '#FFFFFF',
+                  color: '#3F3F46',
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                style={{
+                  flex: 1,
+                  padding: '11px 0',
+                  borderRadius: '999px',
+                  border: 'none',
+                  background: '#EF4444',
+                  color: '#FFFFFF',
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 14px rgba(239, 68, 68, 0.25)',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Floating Undo Delete Modals / Toasts (Bottom-Right) */}
+      {isMounted && createPortal(
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '24px',
+            zIndex: 9999,
+            display: 'flex',
+            flexDirection: 'column-reverse',
+            gap: '12px',
+            pointerEvents: 'none',
+            maxWidth: 'calc(100vw - 32px)',
+          }}
+        >
+          <AnimatePresence>
+            {pendingDeletes.map((item) => (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, y: 16, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 12, scale: 0.96, transition: { duration: 0.2 } }}
+                layout
+                style={{
+                  pointerEvents: 'auto',
+                  width: '380px',
+                  maxWidth: '100%',
+                  background: '#FFFFFF',
+                  border: '1px solid #E5E7EB',
+                  boxShadow: '0 10px 30px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04)',
+                  borderRadius: '12px',
+                  overflow: 'hidden',
+                  position: 'relative',
+                }}
+              >
+                <div style={{ padding: '16px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', minWidth: 0, flex: 1 }}>
+                    <div
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '8px',
+                        background: '#ECFDF5',
+                        border: '1px solid #A7F3D0',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                        color: '#059669',
+                        marginTop: '1px',
+                      }}
+                    >
+                      <CheckCircle2 size={18} strokeWidth={2.5} />
+                    </div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontSize: '14px', fontWeight: 700, color: '#111827', lineHeight: 1.3 }}>
+                        Item deleted successfully.
+                      </div>
+                      {item.title && (
+                        <div style={{ fontSize: '12px', fontWeight: 500, color: '#6B7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: '3px' }}>
+                          {item.title}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, marginTop: '2px' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleUndoDelete(item.id)}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        padding: '6px 12px',
+                        borderRadius: '8px',
+                        background: '#F9FAFB',
+                        color: '#B45309',
+                        fontWeight: 700,
+                        fontSize: '12px',
+                        border: '1px solid #FDE68A',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = '#FEF3C7';
+                        e.currentTarget.style.borderColor = '#F59E0B';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = '#F9FAFB';
+                        e.currentTarget.style.borderColor = '#FDE68A';
+                      }}
+                    >
+                      <RotateCcw size={13} strokeWidth={2.5} />
+                      <span>Undo ({item.secondsLeft}s)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => executePermanentDelete(item.id, item.type)}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '6px',
+                        background: 'transparent',
+                        color: '#9CA3AF',
+                        border: 'none',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = '#F3F4F6';
+                        e.currentTarget.style.color = '#4B5563';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'transparent';
+                        e.currentTarget.style.color = '#9CA3AF';
+                      }}
+                      title="Dismiss"
+                    >
+                      <X size={15} strokeWidth={2.2} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* 5-second animated countdown bar */}
+                <div
+                  style={{
+                    height: '3px',
+                    background: '#F3F4F6',
+                    width: '100%',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <div
+                    style={{
+                      height: '100%',
+                      background: '#D97706',
+                      width: `${(item.secondsLeft / 5) * 100}%`,
+                      transition: 'width 1s linear',
+                    }}
+                  />
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>,
+        document.body
+      )}
     </div>
   );
-}
+}
