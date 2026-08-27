@@ -95,15 +95,8 @@ export default function AdaPage() {
   const fetchRecords = async () => {
     try {
       setLoading(true);
-      const { data, error: err } = await supabase
-        .from(TABLE_NAME)
-        .select(`
-          *,
-          client:client_id(client_name, policy_number, birthdate)
-        `)
-        .order('created_at', { ascending: false });
-
-      if (err) throw err;
+      const { fetchScopedRequestRecords } = await import('@src/lib/authScope');
+      const data = await fetchScopedRequestRecords(TABLE_NAME, 'client_name, policy_number, birthdate');
       setRecords(data || []);
     } catch (err: any) {
       console.error("Error fetching ADA records:", err);

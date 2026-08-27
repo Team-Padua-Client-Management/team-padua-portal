@@ -307,56 +307,60 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
   const fetchData = async () => {
     setLoading(true);
     try {
-      const { data: advisorsData, error: advisorsErr } = await supabase
-        .from('advisors')
-        .select('*')
-        .order('advisor_name', { ascending: true });
+      const { getAuthScope } = await import('@src/lib/authScope');
+      const scope = await getAuthScope();
 
-      if (advisorsErr) {
-        console.error('Supabase Error fetching advisors:', advisorsErr);
-      }
-
-      const { data: clientsData, error: clientsErr } = await supabase
+      let loadedAdvisors: AdvisorRecord[] = [];
+      let clientsQuery = supabase
         .from('cpst_clients')
         .select('*, advisor:advisors(*)')
         .order('created_at', { ascending: false });
 
-      let loadedAdvisors: AdvisorRecord[] = [];
-
-      if (advisorsData && advisorsData.length > 0) {
-        loadedAdvisors = advisorsData.map((a: any) => ({
+      if (scope.isAdvisor) {
+        loadedAdvisors = scope.visibleAdvisors.map((a: any) => ({
           id: a.id,
           advisorCode: a.advisor_code || '',
           advisorName: a.advisor_name || '',
           email: a.email || '',
           createdAt: a.created_at || ''
         }));
-      } else if (clientsData && clientsData.length > 0) {
-        const advisorMap = new Map<string, AdvisorRecord>();
-        clientsData.forEach((c: any) => {
-          const advId = c.advisor_id || (c.advisor ? c.advisor.id : null);
-          if (advId && !advisorMap.has(advId)) {
-            if (c.advisor) {
-              advisorMap.set(advId, {
-                id: c.advisor.id,
-                advisorCode: c.advisor.advisor_code || '',
-                advisorName: c.advisor.advisor_name || 'Unknown Advisor',
-                email: c.advisor.email || ''
-              });
-            } else {
-              advisorMap.set(advId, {
-                id: advId,
-                advisorCode: '',
-                advisorName: 'Unknown Advisor',
-                email: ''
-              });
-            }
-          }
-        });
-        loadedAdvisors = Array.from(advisorMap.values());
+        if (scope.advisorId) {
+          clientsQuery = clientsQuery.eq('advisor_id', scope.advisorId);
+        }
+      } else if (scope.isBizdev) {
+        loadedAdvisors = scope.visibleAdvisors.map((a: any) => ({
+          id: a.id,
+          advisorCode: a.advisor_code || '',
+          advisorName: a.advisor_name || '',
+          email: a.email || '',
+          createdAt: a.created_at || ''
+        }));
+        if (scope.authorizedAdvisorIds.length > 0) {
+          clientsQuery = clientsQuery.in('advisor_id', scope.authorizedAdvisorIds);
+        } else {
+          clientsQuery = clientsQuery.eq('id', '00000000-0000-0000-0000-000000000000');
+        }
+      } else if (scope.isAdmin) {
+        const { data: advisorsData } = await supabase
+          .from('advisors')
+          .select('*')
+          .order('advisor_name', { ascending: true });
+        if (advisorsData) {
+          loadedAdvisors = advisorsData.map((a: any) => ({
+            id: a.id,
+            advisorCode: a.advisor_code || '',
+            advisorName: a.advisor_name || '',
+            email: a.email || '',
+            createdAt: a.created_at || ''
+          }));
+        }
+      } else {
+        loadedAdvisors = [];
+        clientsQuery = clientsQuery.eq('id', '00000000-0000-0000-0000-000000000000');
       }
 
       setAdvisors(loadedAdvisors);
+      const { data: clientsData, error: clientsErr } = await clientsQuery;
 
       if (clientsErr || !clientsData) {
         setClients([]);

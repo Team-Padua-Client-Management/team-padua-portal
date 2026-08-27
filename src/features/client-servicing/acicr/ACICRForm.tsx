@@ -18,8 +18,9 @@ export default function ACICRForm({ initialData, onClose, onSuccess }: ACICRForm
   useEffect(() => {
     const fetchClients = async () => {
       try {
-        const { data, error } = await supabase.from('cpst_clients').select('id, client_name, policy_number, birthdate').order('client_name');
-        if (!error && data) {
+        const { fetchScopedClients } = await import('@src/lib/authScope');
+        const data = await fetchScopedClients('id, client_name, policy_number, birthdate');
+        if (data) {
           setClients(data);
         }
       } catch (err) {

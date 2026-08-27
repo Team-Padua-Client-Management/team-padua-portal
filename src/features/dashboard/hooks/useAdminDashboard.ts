@@ -21,8 +21,15 @@ export type KpiData = {
   members: number;
   cpst: number;
   acr: number;
+  bcr: number;
   cpc: number;
   fst: number;
+  fw: number;
+  ada: number;
+  aca: number;
+  sro: number;
+  ppi: number;
+  acicr: number;
   mngt: number;
   ppu: number;
   attendance: number;
@@ -68,8 +75,9 @@ export const useAdminDashboard = () => {
   const [isMounted, setIsMounted] = useState(false);
 
   const [kpis, setKpis] = useState<KpiData>({
-    members: 0, cpst: 0, acr: 0, cpc: 0, fst: 0, mngt: 0,
-    ppu: 0, attendance: 0, announcements: 0, designs: 0, faqs: 0
+    members: 0, cpst: 0, acr: 0, bcr: 0, cpc: 0, fst: 0, fw: 0,
+    ada: 0, aca: 0, sro: 0, ppi: 0, acicr: 0,
+    mngt: 0, ppu: 0, attendance: 0, announcements: 0, designs: 0, faqs: 0
   });
 
   const currentUserIdRef = useRef<string | null>(null);
@@ -372,8 +380,15 @@ export const useAdminDashboard = () => {
         members: membersCount || 0,
         cpst: cpstCount || 0,
         acr: acrCount || 0,
+        bcr: 0,
         cpc: cpcCount || 0,
         fst: fstCount || 0,
+        fw: 0,
+        ada: 0,
+        aca: 0,
+        sro: 0,
+        ppi: 0,
+        acicr: 0,
         mngt: mngtCount || 0,
         ppu: ppuCount || 0,
         attendance: attendanceCount || 0,

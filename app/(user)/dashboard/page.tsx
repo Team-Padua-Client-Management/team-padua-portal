@@ -2,29 +2,27 @@
 
 /**
  * ============================================================================
- * TEAM PADUA USER PERSONAL DASHBOARD — SUPABASE & REALTIME INTEGRATION
+ * TEAM PADUA USER PERSONAL DASHBOARD — ROLE-BASED & DATA-SCOPED
  * ============================================================================
- * Clean component composition connected directly to Supabase:
+ * Clean component composition connected directly to Supabase with strict
+ * role-based data scoping:
  * - DashboardHero: Dynamic background decoration, quick portals, clock & Pomodoro
- * - ClientServicingMonitoring: Realtime Supabase tasks (client_servicing_tasks)
- * - To-do: Realtime Supabase to-do items (todo_tasks)
+ * - ClientServicingMonitoring: Realtime scoped tasks (client_servicing_tasks)
+ * - To-do: Realtime scoped to-do items (todo_tasks)
  * - Calendar of Activities: Log calendar activities (client_servicing_tasks / tasks)
- * - Activity Tracker Calendar: Realtime Supabase activity logs (calendar_events)
- * - RequestFormsAccordion: Enterprise accordion for all CSR request forms
+ * - Activity Tracker Calendar: Realtime scoped activity logs (calendar_events)
+ * - RequestFormsAccordion: Enterprise accordion for CSR request forms with role gating
+ * - Client Birthdays: Scoped birthday monitoring by Advisor & assigned Bizdev
  * ============================================================================
  */
 
-'use client';
-
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 
 import styles from "@/styles/admin/dashboard/page.module.css";
 import WelcomeModal from "@src/components/modals/WelcomeModal";
 import { CalendarDays, Plus } from 'lucide-react';
-import { supabase } from "@src/lib/supabase/client";
-import type { UserPermissions } from "@src/features/dashboard/components/RequestFormsAccordion";
 
 import DashboardHero from "@src/features/dashboard/components/DashboardHero";
 import ClientServicingToDo from "@src/features/dashboard/components/ClientServicingToDo";
@@ -35,13 +33,14 @@ import CalendarActivityModal from "@src/features/dashboard/components/CalendarAc
 import ActivityCalendar from "@src/features/dashboard/components/ActivityCalendar";
 import RequestFormsAccordion from "@src/features/dashboard/components/RequestFormsAccordion";
 import TaskModal from "@src/features/dashboard/components/TaskModal";
+import InquiryModal from "@src/features/dashboard/components/InquiryModal";
 import ActivityModal from "@src/features/dashboard/components/ActivityModal";
 import EventDetailsModal from "@src/features/dashboard/components/EventDetailsModal";
 import ConfirmDeleteModal from "@src/features/dashboard/components/ConfirmDeleteModal";
 
 import { useDashboardClock } from '@src/features/dashboard/hooks/useDashboardClock';
 import { usePomodoroTimer } from '@src/features/dashboard/hooks/usePomodoroTimer';
-import { useAdminDashboard } from '@src/features/dashboard/hooks/useAdminDashboard';
+import { useUserDashboard } from '@src/features/dashboard/hooks/useUserDashboard';
 import {
   containerVariants,
   itemVariants,
@@ -68,15 +67,20 @@ export default function UserPersonalDashboardPage() {
     showSplash,
     isRefreshing,
     adminName,
+    userName,
     customPortals,
     clientBirthdays,
     userTasks,
+    clientInquiries,
     allProfiles,
     bizDevProfiles,
     advisors,
     currentUserId,
     selectedTaskIdForModal,
     setSelectedTaskIdForModal,
+    selectedInquiryId,
+    setSelectedInquiryId,
+    selectedInquiry,
     activities,
     calendarLogs,
     isCalendarModalOpen,
@@ -108,41 +112,23 @@ export default function UserPersonalDashboardPage() {
     handleEventClick,
     handleDeleteEvent,
     saveTaskField,
+    saveInquiryField,
     handleToggleCheckbox,
     handleCreateTask,
     handleCreateInquiry,
     copyInquiryToPendingSubmission,
     copyInquiryToAddressedConcerns,
     handleDeleteTask,
+    handleDeleteInquiry,
     personalTodos,
     handleCreatePersonalTodo,
     handleTogglePersonalTodoComplete,
-    handleDeletePersonalTodo
-  } = useAdminDashboard();
+    handleDeletePersonalTodo,
+    userRole,
+    userPermissions
+  } = useUserDashboard();
 
   const [showCalendarHistory, setShowCalendarHistory] = useState(false);
-
-  const [userRole, setUserRole] = useState<string | null>(null);
-  const [userPermissions, setUserPermissions] = useState<UserPermissions>(null);
-
-  useEffect(() => {
-    async function fetchUserAccess() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role, client_servicing_permissions")
-        .eq("id", user.id)
-        .single();
-
-      if (profile) {
-        setUserRole(profile.role ?? null);
-        setUserPermissions(profile.client_servicing_permissions ?? null);
-      }
-    }
-    fetchUserAccess();
-  }, []);
 
   const prefersReducedMotion = useReducedMotion();
   const fadeVariants = prefersReducedMotion ? itemVariantsReduced : itemVariants;
@@ -169,13 +155,16 @@ export default function UserPersonalDashboardPage() {
   }, [sortedCalendarLogs, showCalendarHistory]);
 
   const selectedTaskForModal = userTasks.find((t) => t.id === selectedTaskIdForModal) || null;
+  const activeSelectedInquiry = selectedInquiry || clientInquiries.find((i: any) => i.id === selectedInquiryId) || null;
   const currentUserProfile = allProfiles.find(p => p.id === currentUserId) || null;
+
+  const roleLabel = userRole || 'Associate';
 
   return (
     <>
       <WelcomeModal 
-        userName={adminName} 
-        role="Associate" 
+        userName={userName || adminName} 
+        role={roleLabel} 
       />
 
       {showSplash && (
@@ -191,7 +180,7 @@ export default function UserPersonalDashboardPage() {
       <motion.main className={styles.content} variants={containerVariants} initial="hidden" animate="show">
         <motion.section variants={fadeVariants}>
           <DashboardHero
-            adminName={adminName}
+            adminName={userName || adminName}
             greeting={greeting}
             dayPeriod={dayPeriod}
             currentDate={currentDate}
@@ -230,7 +219,15 @@ export default function UserPersonalDashboardPage() {
               tasks={userTasks}
               onCreateTask={handleCreateTask}
               onCreateInquiry={handleCreateInquiry}
-              onSelectTask={(id) => setSelectedTaskIdForModal(id)}
+              onSelectTask={(id) => {
+                // If it's an inquiry ID in clientInquiries, open InquiryModal, otherwise TaskModal
+                const isItemInquiry = clientInquiries.some(i => i.id === id);
+                if (isItemInquiry) {
+                  setSelectedInquiryId(id);
+                } else {
+                  setSelectedTaskIdForModal(id);
+                }
+              }}
               onDeleteTask={handleDeleteTask}
             />
 
@@ -312,7 +309,7 @@ export default function UserPersonalDashboardPage() {
                     <div className={styles.emptyStateDescription}>
                       {showCalendarHistory
                         ? 'Completed and cancelled activities will appear here.'
-                        : 'Click to log a new activity for the team.'}
+                        : 'Click to log a new activity for your workspace.'}
                     </div>
                   </div>
                 ) : (
@@ -395,6 +392,19 @@ export default function UserPersonalDashboardPage() {
           onSaveField={saveTaskField}
           onDeleteTask={handleDeleteTask}
           onClose={() => setSelectedTaskIdForModal(null)}
+        />,
+        document.body
+      )}
+
+      {isMounted && activeSelectedInquiry && createPortal(
+        <InquiryModal
+          isOpen={true}
+          inquiry={activeSelectedInquiry}
+          allProfiles={allProfiles}
+          currentUserProfile={currentUserProfile}
+          saveInquiryField={saveInquiryField}
+          handleDeleteInquiry={handleDeleteInquiry}
+          onClose={() => setSelectedInquiryId(null)}
         />,
         document.body
       )}

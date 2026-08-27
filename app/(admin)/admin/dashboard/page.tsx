@@ -7,6 +7,7 @@ import { CalendarDays, Plus, CheckCircle2, RotateCcw, AlertTriangle, X, Trash2 }
 import { AdminHeader as Header } from "@src/components/layout";
 import { AdminSidebar as Sidebar } from "@src/components/layout";
 import styles from "@/styles/admin/dashboard/page.module.css";
+import AdminRouteGuard from "@src/components/guards/AdminRouteGuard";
 import WelcomeModal from "@src/components/modals/WelcomeModal";
 
 import DashboardHero from "@src/features/dashboard/components/DashboardHero";
@@ -48,7 +49,11 @@ interface ConfirmDeleteItem {
   title: string;
 }
 
-export default function DashboardOverviewPage() {
+/**
+ * Inner component — contains all data hooks and admin UI.
+ * Only rendered when the user is confirmed Admin by AdminRouteGuard.
+ */
+function AdminDashboardContent() {
   const { greeting, dayPeriod, currentDate, currentTime } = useDashboardClock();
 
   const [layoutMode, setLayoutMode] = React.useState<DashboardLayoutMode>('layout-1');
@@ -778,5 +783,18 @@ export default function DashboardOverviewPage() {
         document.body
       )}
     </div>
+  );
+}
+
+/**
+ * Page entry point.
+ * Wraps AdminDashboardContent in AdminRouteGuard so the hook and admin data
+ * are never loaded for unauthorized users.
+ */
+export default function DashboardOverviewPage() {
+  return (
+    <AdminRouteGuard>
+      <AdminDashboardContent />
+    </AdminRouteGuard>
   );
 }

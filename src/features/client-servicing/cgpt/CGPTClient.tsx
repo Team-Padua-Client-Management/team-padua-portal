@@ -446,23 +446,58 @@ export default function CGPTClient({
 
   const fetchData = async () => {
     try {
-      const [advisorsRes, clientsRes] = await Promise.all([
-        supabase.from('advisors').select('*').order('advisor_name', { ascending: true }),
-        supabase.from('cgpt_clients').select('*, advisor:advisors(*)').order('created_at', { ascending: false }),
-      ]);
+      setLoading(true);
+      const { getAuthScope } = await import('@src/lib/authScope');
+      const scope = await getAuthScope();
 
-      const advisorsData = (advisorsRes.data || []) as Array<Record<string, unknown>>;
-      const clientsData = (clientsRes.data || []) as Array<Record<string, unknown>>;
+      let loadedAdvisors: AdvisorRecord[] = [];
+      let clientsQuery = supabase
+        .from('cgpt_clients')
+        .select('*, advisor:advisors(*)')
+        .order('created_at', { ascending: false });
 
-      const loadedAdvisors: AdvisorRecord[] = advisorsData.map((a) => ({
-        id: String(a.id || ''),
-        advisorCode: String(a.advisor_code || ''),
-        advisorName: String(a.advisor_name || ''),
-        email: String(a.email || ''),
-        createdAt: typeof a.created_at === 'string' ? a.created_at : undefined,
-      }));
+      if (scope.isAdvisor) {
+        loadedAdvisors = scope.visibleAdvisors.map((a: any) => ({
+          id: String(a.id || ''),
+          advisorCode: String(a.advisor_code || ''),
+          advisorName: String(a.advisor_name || ''),
+          email: String(a.email || ''),
+          createdAt: typeof a.created_at === 'string' ? a.created_at : undefined,
+        }));
+        if (scope.advisorId) {
+          clientsQuery = clientsQuery.eq('advisor_id', scope.advisorId);
+        }
+      } else if (scope.isBizdev) {
+        loadedAdvisors = scope.visibleAdvisors.map((a: any) => ({
+          id: String(a.id || ''),
+          advisorCode: String(a.advisor_code || ''),
+          advisorName: String(a.advisor_name || ''),
+          email: String(a.email || ''),
+          createdAt: typeof a.created_at === 'string' ? a.created_at : undefined,
+        }));
+        if (scope.authorizedAdvisorIds.length > 0) {
+          clientsQuery = clientsQuery.in('advisor_id', scope.authorizedAdvisorIds);
+        } else {
+          clientsQuery = clientsQuery.eq('id', '00000000-0000-0000-0000-000000000000');
+        }
+      } else if (scope.isAdmin) {
+        const advisorsRes = await supabase.from('advisors').select('*').order('advisor_name', { ascending: true });
+        const advisorsData = (advisorsRes.data || []) as Array<Record<string, unknown>>;
+        loadedAdvisors = advisorsData.map((a) => ({
+          id: String(a.id || ''),
+          advisorCode: String(a.advisor_code || ''),
+          advisorName: String(a.advisor_name || ''),
+          email: String(a.email || ''),
+          createdAt: typeof a.created_at === 'string' ? a.created_at : undefined,
+        }));
+      } else {
+        loadedAdvisors = [];
+        clientsQuery = clientsQuery.eq('id', '00000000-0000-0000-0000-000000000000');
+      }
 
       setAdvisors(loadedAdvisors);
+      const clientsRes = await clientsQuery;
+      const clientsData = (clientsRes.data || []) as Array<Record<string, unknown>>;
 
       const mappedClients: ClientManagementRecord[] = clientsData.map((c) => {
         const adv = (Array.isArray(c.advisor) ? c.advisor[0] : c.advisor) as Record<string, unknown> | null;
@@ -507,75 +542,7 @@ export default function CGPTClient({
   };
 
   useEffect(() => {
-    let isMounted = true;
-    const init = async () => {
-      try {
-        const [advisorsRes, clientsRes] = await Promise.all([
-          supabase.from('advisors').select('*').order('advisor_name', { ascending: true }),
-          supabase.from('cgpt_clients').select('*, advisor:advisors(*)').order('created_at', { ascending: false }),
-        ]);
-
-        if (!isMounted) return;
-
-        const advisorsData = (advisorsRes.data || []) as Array<Record<string, unknown>>;
-        const clientsData = (clientsRes.data || []) as Array<Record<string, unknown>>;
-
-        const loadedAdvisors: AdvisorRecord[] = advisorsData.map((a) => ({
-          id: String(a.id || ''),
-          advisorCode: String(a.advisor_code || ''),
-          advisorName: String(a.advisor_name || ''),
-          email: String(a.email || ''),
-          createdAt: typeof a.created_at === 'string' ? a.created_at : undefined,
-        }));
-
-        setAdvisors(loadedAdvisors);
-
-        const mappedClients: ClientManagementRecord[] = clientsData.map((c) => {
-          const adv = (Array.isArray(c.advisor) ? c.advisor[0] : c.advisor) as Record<string, unknown> | null;
-          return {
-            id: String(c.id || ''),
-            advisorId: (c.advisor_id as string) || (adv?.id as string) || undefined,
-            advisor: adv
-              ? {
-                  id: String(adv.id || ''),
-                  advisorCode: String(adv.advisor_code || ''),
-                  advisorName: String(adv.advisor_name || ''),
-                  email: String(adv.email || ''),
-                }
-              : undefined,
-            clientName: String(c.client_name || c.name || ''),
-            relationship: typeof c.relationship === 'string' ? c.relationship : undefined,
-            policyNumber: typeof c.policy_number === 'string' ? c.policy_number : undefined,
-            product: typeof c.product === 'string' ? c.product : undefined,
-            approvalDate: typeof c.approval_date === 'string' ? c.approval_date : undefined,
-            annualPremium: typeof c.annual_premium === 'number' ? c.annual_premium : Number(c.annual_premium || 0),
-            mobileNumber: typeof c.mobile_number === 'string' ? c.mobile_number : undefined,
-            email: typeof c.email === 'string' ? c.email : undefined,
-            address: typeof c.address === 'string' ? c.address : undefined,
-            beneficiary: String(c.beneficiary || ''),
-            fundAllocation: typeof c.fund_allocation === 'string' ? c.fund_allocation : undefined,
-            modeOfPayment: typeof c.mode_of_payment === 'string' ? c.mode_of_payment : undefined,
-            birthdate: String(c.birthdate || c.birth_date || c.birthday || ''),
-            signatureData: typeof c.signature_data === 'string' ? c.signature_data : undefined,
-            idType: typeof c.id_type === 'string' ? c.id_type : undefined,
-            idNumber: typeof c.id_number === 'string' ? c.id_number : undefined,
-            idExpirationDate: typeof c.id_expiration_date === 'string' ? c.id_expiration_date : undefined,
-            idAttachmentUrl: typeof c.id_attachment_url === 'string' ? c.id_attachment_url : undefined,
-            created_at: String(c.created_at || ''),
-          };
-        });
-        setClients(mappedClients);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    };
-
-    init();
-    return () => {
-      isMounted = false;
-    };
+    fetchData();
   }, []);
 
   const totalClientsCount = clients.length;

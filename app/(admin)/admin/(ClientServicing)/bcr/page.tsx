@@ -377,21 +377,8 @@ export default function BeneficiaryChangeRequestPage() {
   const fetchRecords = async () => {
     try {
       setLoading(true);
-      const { data, error: err } = await supabase
-        .from(TABLE_NAME)
-        .select(`
-          *,
-          client:cpst_clients(client_name, policy_number, birthdate)
-        `)
-        .order('created_at', { ascending: false });
-
-      if (err) {
-        if (err.code === '42P01' || err.code === 'PGRST200') {
-          setRecords([]);
-          return;
-        }
-        throw err;
-      }
+      const { fetchScopedRequestRecords } = await import('@src/lib/authScope');
+      const data = await fetchScopedRequestRecords(TABLE_NAME, 'client_name, policy_number, birthdate');
       setRecords(data || []);
     } catch (err: any) {
       console.error('Error fetching records:', err);
