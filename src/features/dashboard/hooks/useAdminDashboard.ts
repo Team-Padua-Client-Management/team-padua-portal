@@ -604,7 +604,7 @@ export const useAdminDashboard = () => {
     }
   };
 
-  const copyInquiryToPendingSubmission = async (inquiry: ClientInquiry) => {
+  const copyInquiryToPendingSubmission = async (inquiry: ClientInquiry, targetCategory?: string) => {
     let activeUserId = currentUserIdRef.current || currentUserId;
 
     if (!activeUserId) {
@@ -631,7 +631,7 @@ export const useAdminDashboard = () => {
       user_id: activeUserId,
       title: clientName,
       notes: newNotes,
-      category: (inquiry as any).category || 'Others',
+      category: targetCategory || (inquiry as any).category || 'Others',
       status: 'Pending',
       service_request_number: currentMeta.service_request_number || (inquiry as any).service_request_number || null,
       assigned_to: (inquiry as any).assigned_to || activeUserId,
@@ -657,6 +657,11 @@ export const useAdminDashboard = () => {
     } catch (err) {
       console.error('Error copying inquiry:', err);
     }
+  };
+
+  const moveInquiryToPendingSubmission = async (inquiry: ClientInquiry, targetCategory?: string) => {
+    await copyInquiryToPendingSubmission(inquiry, targetCategory);
+    await handleDeleteInquiry(inquiry.id);
   };
 
   const copyInquiryToAddressedConcerns = async (inquiry: ClientInquiry) => {
@@ -1159,6 +1164,7 @@ export const useAdminDashboard = () => {
     handleCreateTask,
     handleCreateInquiry,
     copyInquiryToPendingSubmission,
+    moveInquiryToPendingSubmission,
     copyInquiryToAddressedConcerns,
     handleDeleteTask,
     handleDeleteInquiry,

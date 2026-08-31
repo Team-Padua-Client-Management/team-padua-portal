@@ -144,6 +144,7 @@ function AdminDashboardContent() {
     handleCreateTask,
     handleCreateInquiry,
     copyInquiryToPendingSubmission,
+    moveInquiryToPendingSubmission,
     copyInquiryToAddressedConcerns,
     handleDeleteTask,
     // personalTodos,
@@ -360,6 +361,7 @@ function AdminDashboardContent() {
     onSaveInquiryField: saveInquiryField,
     onSelectInquiry: (item: any) => setSelectedInquiryId(item.id),
     onCopyToPending: copyInquiryToPendingSubmission,
+    onMoveToPending: moveInquiryToPendingSubmission,
     onCopyToAddressed: copyInquiryToAddressedConcerns,
     setShowCalendarHistory,
     onOpenCalendarModal: () => setIsCalendarModalOpen(true),
@@ -523,12 +525,12 @@ function AdminDashboardContent() {
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(15, 15, 15, 0.55)',
-            backdropFilter: 'blur(3px)',
+            background: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(8px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 9998,
+            zIndex: 10050,
             padding: '16px',
           }}
         >

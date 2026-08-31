@@ -13,12 +13,11 @@ import {
 import { ClientInquiry } from '@src/features/dashboard/types/inquiry';
 import { UserProfile } from '@src/features/dashboard/components/UserAvatar';
 import { InquiryPreview } from '@src/features/dashboard/components/InquiryPreview';
+import { CategoryPickerModal } from './CategoryPickerModal';
 import styles from '@/styles/admin/dashboard/page.module.css';
 
 const PURPLE = '#6D28D9';
 const PURPLE_TINT = 'rgba(109, 40, 217, 0.08)';
-const STAGE_CLOSE_DELAY_MS = 200;
-const PREVIEW_CLOSE_DELAY_MS = 200;
 
 type InquiryStageId = 'addressed' | 'pending';
 
@@ -173,7 +172,8 @@ interface InquiryRowProps {
     onHoverInquiry: (inquiry: ClientInquiry) => void;
     onLeaveInquiry?: () => void;
     allProfiles: UserProfile[];
-    onCopyToPending?: (inquiry: ClientInquiry) => void;
+    onRequestMoveToPending?: (inquiry: ClientInquiry) => void;
+    onRequestCopyToPending?: (inquiry: ClientInquiry) => void;
     onCopyToAddressed?: (inquiry: ClientInquiry) => void;
 }
 
@@ -185,9 +185,9 @@ function InquiryRow({
     saveInquiryField,
     onSelectInquiry,
     onHoverInquiry,
-    onLeaveInquiry,
     allProfiles,
-    onCopyToPending,
+    onRequestMoveToPending,
+    onRequestCopyToPending,
     onCopyToAddressed,
 }: InquiryRowProps) {
     const profile = resolveProfile(inquiry, allProfiles);
@@ -283,19 +283,22 @@ function InquiryRow({
                             const value = e.target.value;
                             if (!value) return;
 
-                            let inquiryType: ClientInquiry['inquiry_type'];
-                            switch (value) {
-                                case 'Addressed Concerns':
-                                    inquiryType = 'Address Concern';
-                                    break;
-                                case 'Pending Response':
-                                    inquiryType = 'Pending Response';
-                                    break;
-                                default:
-                                    return;
+                            if (value === 'Pending for Submission') {
+                                onRequestMoveToPending?.(inquiry);
+                            } else {
+                                let inquiryType: ClientInquiry['inquiry_type'];
+                                switch (value) {
+                                    case 'Addressed Concerns':
+                                        inquiryType = 'Address Concern';
+                                        break;
+                                    case 'Pending Response':
+                                        inquiryType = 'Pending Response';
+                                        break;
+                                    default:
+                                        return;
+                                }
+                                saveInquiryField(inquiry.id, { inquiry_type: inquiryType });
                             }
-
-                            saveInquiryField(inquiry.id, { inquiry_type: inquiryType });
                         }}
                         style={{
                             padding: '4px 8px',
@@ -315,6 +318,9 @@ function InquiryRow({
                                 {option}
                             </option>
                         ))}
+                        <option value="Pending for Submission">
+                            Pending for Submission...
+                        </option>
                     </select>
 
                     <select
@@ -325,7 +331,7 @@ function InquiryRow({
                             const value = e.target.value;
                             if (!value) return;
                             if (value === 'Pending for Submission') {
-                                onCopyToPending?.(inquiry);
+                                onRequestCopyToPending?.(inquiry);
                             } else if (value === 'Addressed Concerns') {
                                 onCopyToAddressed?.(inquiry);
                             }
@@ -343,9 +349,12 @@ function InquiryRow({
                         <option value="" disabled>
                             Copy to...
                         </option>
+                        <option value="Pending for Submission">
+                            Pending for Submission...
+                        </option>
                         {stageId === 'addressed' ? (
-                            <option value="Pending for Submission">
-                                Pending for Submission
+                            <option value="Pending Response">
+                                Pending Response
                             </option>
                         ) : (
                             <option value="Addressed Concerns">
@@ -390,7 +399,9 @@ interface StagePopoverProps {
     saveInquiryField: (id: string, updates: Record<string, any>) => Promise<void>;
     onSelectInquiry: (inquiry: ClientInquiry) => void;
     allProfiles: UserProfile[];
-    onCopyToPending?: (inquiry: ClientInquiry) => void;
+    onRequestMoveToPending?: (inquiry: ClientInquiry) => void;
+    onRequestCopyToPending?: (inquiry: ClientInquiry) => void;
+    onRequestCopyToPendingBulk?: (inquiries: ClientInquiry[]) => void;
     onCopyToAddressed?: (inquiry: ClientInquiry) => void;
     onMouseEnter?: () => void;
     onMouseLeave?: () => void;
@@ -404,7 +415,9 @@ function StagePopover({
     saveInquiryField,
     onSelectInquiry,
     allProfiles,
-    onCopyToPending,
+    onRequestMoveToPending,
+    onRequestCopyToPending,
+    onRequestCopyToPendingBulk,
     onCopyToAddressed,
     onMouseEnter,
     onMouseLeave,
@@ -456,7 +469,7 @@ function StagePopover({
                 display: 'flex',
                 alignItems: 'flex-start',
                 gap: '16px',
-                zIndex: 9999,
+                zIndex: 9000,
             }}
             className="stage-popover"
         >
@@ -512,7 +525,8 @@ function StagePopover({
                                 onSelectInquiry={onSelectInquiry}
                                 onHoverInquiry={openPreview}
                                 allProfiles={allProfiles}
-                                onCopyToPending={onCopyToPending}
+                                onRequestMoveToPending={onRequestMoveToPending}
+                                onRequestCopyToPending={onRequestCopyToPending}
                                 onCopyToAddressed={onCopyToAddressed}
                             />
                         ))
@@ -542,7 +556,7 @@ function StagePopover({
                             e.stopPropagation();
                             const value = e.target.value;
                             if (value === 'Pending for Submission') {
-                                inquiries.forEach((inquiry) => onCopyToPending?.(inquiry));
+                                onRequestCopyToPendingBulk?.(inquiries);
                             } else if (value === 'Addressed Concerns') {
                                 inquiries.forEach((inquiry) => onCopyToAddressed?.(inquiry));
                             }
@@ -560,9 +574,12 @@ function StagePopover({
                         <option value="" disabled>
                             Select target...
                         </option>
+                        <option value="Pending for Submission">
+                            Pending for Submission...
+                        </option>
                         {stage.id === 'addressed' ? (
-                            <option value="Pending for Submission">
-                                Pending for Submission
+                            <option value="Pending Response">
+                                Pending Response
                             </option>
                         ) : (
                             <option value="Addressed Concerns">
@@ -595,7 +612,8 @@ export interface InquiryListProps {
     onDeleteInquiry: (inquiryId: string) => void;
     saveInquiryField: (inquiryId: string, updates: Record<string, any>) => Promise<void>;
     allProfiles: UserProfile[];
-    onCopyToPending?: (inquiry: ClientInquiry) => void;
+    onCopyToPending?: (inquiry: ClientInquiry, category?: string) => void;
+    onMoveToPending?: (inquiry: ClientInquiry, category?: string) => void;
     onCopyToAddressed?: (inquiry: ClientInquiry) => void;
     variant?: 'card' | 'compact-strip';
 }
@@ -608,10 +626,38 @@ export const InquiryList: React.FC<InquiryListProps> = ({
     saveInquiryField,
     allProfiles,
     onCopyToPending,
+    onMoveToPending,
     onCopyToAddressed,
     variant = 'card',
 }) => {
     const { active: activeStage, rect: stageRect, open: openStage } = useHoverController<InquiryStageId>();
+
+    const [categoryPickerState, setCategoryPickerState] = useState<{
+        isOpen: boolean;
+        actionType: 'move' | 'copy';
+        inquiries: ClientInquiry[];
+    }>({
+        isOpen: false,
+        actionType: 'copy',
+        inquiries: [],
+    });
+
+    const handleSelectCategory = (categoryCode: string) => {
+        const { actionType, inquiries: targetInquiries } = categoryPickerState;
+        targetInquiries.forEach((inquiry) => {
+            if (actionType === 'move') {
+                if (onMoveToPending) {
+                    onMoveToPending(inquiry, categoryCode);
+                } else if (onCopyToPending) {
+                    onCopyToPending(inquiry, categoryCode);
+                    onDeleteInquiry(inquiry.id);
+                }
+            } else {
+                onCopyToPending?.(inquiry, categoryCode);
+            }
+        });
+        setCategoryPickerState({ isOpen: false, actionType: 'copy', inquiries: [] });
+    };
 
     const stageBuckets = useMemo(() => {
         const buckets: Record<InquiryStageId, ClientInquiry[]> = {
@@ -625,6 +671,18 @@ export const InquiryList: React.FC<InquiryListProps> = ({
     }, [inquiries]);
 
     const totalLogged = inquiries.length;
+
+    const handleRequestMoveToPending = (inquiry: ClientInquiry) => {
+        setCategoryPickerState({ isOpen: true, actionType: 'move', inquiries: [inquiry] });
+    };
+
+    const handleRequestCopyToPending = (inquiry: ClientInquiry) => {
+        setCategoryPickerState({ isOpen: true, actionType: 'copy', inquiries: [inquiry] });
+    };
+
+    const handleRequestCopyToPendingBulk = (bulkInquiries: ClientInquiry[]) => {
+        setCategoryPickerState({ isOpen: true, actionType: 'copy', inquiries: bulkInquiries });
+    };
 
     if (variant === 'compact-strip') {
         return (
@@ -703,7 +761,9 @@ export const InquiryList: React.FC<InquiryListProps> = ({
                                         saveInquiryField={saveInquiryField}
                                         onSelectInquiry={onSelectInquiry}
                                         allProfiles={allProfiles}
-                                        onCopyToPending={onCopyToPending}
+                                        onRequestMoveToPending={handleRequestMoveToPending}
+                                        onRequestCopyToPending={handleRequestCopyToPending}
+                                        onRequestCopyToPendingBulk={handleRequestCopyToPendingBulk}
                                         onCopyToAddressed={onCopyToAddressed}
                                     />
                                 )}
@@ -711,6 +771,15 @@ export const InquiryList: React.FC<InquiryListProps> = ({
                         );
                     })}
                 </div>
+
+                <CategoryPickerModal
+                    isOpen={categoryPickerState.isOpen}
+                    onClose={() => setCategoryPickerState({ isOpen: false, actionType: 'copy', inquiries: [] })}
+                    actionType={categoryPickerState.actionType}
+                    clientName={categoryPickerState.inquiries.length === 1 ? (categoryPickerState.inquiries[0]?.cmgc_name ?? undefined) : undefined}
+                    itemCount={categoryPickerState.inquiries.length}
+                    onSelectCategory={handleSelectCategory}
+                />
             </div>
         );
     }
@@ -787,7 +856,9 @@ export const InquiryList: React.FC<InquiryListProps> = ({
                                         saveInquiryField={saveInquiryField}
                                         onSelectInquiry={onSelectInquiry}
                                         allProfiles={allProfiles}
-                                        onCopyToPending={onCopyToPending}
+                                        onRequestMoveToPending={handleRequestMoveToPending}
+                                        onRequestCopyToPending={handleRequestCopyToPending}
+                                        onRequestCopyToPendingBulk={handleRequestCopyToPendingBulk}
                                         onCopyToAddressed={onCopyToAddressed}
                                     />
                                 )}
@@ -796,6 +867,15 @@ export const InquiryList: React.FC<InquiryListProps> = ({
                     </div>
                 )}
             </div>
+
+            <CategoryPickerModal
+                isOpen={categoryPickerState.isOpen}
+                onClose={() => setCategoryPickerState({ isOpen: false, actionType: 'copy', inquiries: [] })}
+                actionType={categoryPickerState.actionType}
+                clientName={categoryPickerState.inquiries.length === 1 ? (categoryPickerState.inquiries[0]?.cmgc_name ?? undefined) : undefined}
+                itemCount={categoryPickerState.inquiries.length}
+                onSelectCategory={handleSelectCategory}
+            />
         </div>
     );
 };

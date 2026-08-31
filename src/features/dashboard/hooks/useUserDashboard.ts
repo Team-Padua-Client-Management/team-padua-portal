@@ -747,7 +747,7 @@ export const useUserDashboard = () => {
     }
   };
 
-  const copyInquiryToPendingSubmission = async (inquiry: ClientInquiry) => {
+  const copyInquiryToPendingSubmission = async (inquiry: ClientInquiry, targetCategory?: string) => {
     let activeUserId = currentUserIdRef.current || currentUserId;
     if (!activeUserId) {
       const { data: { user } } = await supabase.auth.getUser();
@@ -772,7 +772,7 @@ export const useUserDashboard = () => {
       user_id: activeUserId,
       title: clientName,
       notes: newNotes,
-      category: (inquiry as any).category || 'Others',
+      category: targetCategory || (inquiry as any).category || 'Others',
       status: 'Pending',
       service_request_number: currentMeta.service_request_number || (inquiry as any).service_request_number || null,
       assigned_to: (inquiry as any).assigned_to || activeUserId,
@@ -798,6 +798,11 @@ export const useUserDashboard = () => {
     } catch (err) {
       console.error('Error copying inquiry:', err);
     }
+  };
+
+  const moveInquiryToPendingSubmission = async (inquiry: ClientInquiry, targetCategory?: string) => {
+    await copyInquiryToPendingSubmission(inquiry, targetCategory);
+    await handleDeleteInquiry(inquiry.id);
   };
 
   const copyInquiryToAddressedConcerns = async (inquiry: ClientInquiry) => {
@@ -1301,6 +1306,7 @@ export const useUserDashboard = () => {
     handleCreateTask,
     handleCreateInquiry,
     copyInquiryToPendingSubmission,
+    moveInquiryToPendingSubmission,
     copyInquiryToAddressedConcerns,
     handleDeleteTask,
     handleDeleteInquiry,

@@ -34,7 +34,8 @@ export interface DashboardLayoutProps {
   onDeleteInquiry: (inquiryId: string) => void;
   onSaveInquiryField: (inquiryId: string, updates: Record<string, any>) => Promise<void>;
   onSelectInquiry: (inquiry: ClientInquiry) => void;
-  onCopyToPending: (inquiry: ClientInquiry) => void;
+  onCopyToPending: (inquiry: ClientInquiry, category?: string) => void;
+  onMoveToPending?: (inquiry: ClientInquiry, category?: string) => void;
   onCopyToAddressed: (inquiry: ClientInquiry) => void;
 
   setShowCalendarHistory: React.Dispatch<React.SetStateAction<boolean>>;

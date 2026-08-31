@@ -36,6 +36,7 @@ export default function DashboardLayout2({
   onSaveInquiryField,
   onSelectInquiry,
   onCopyToPending,
+  onMoveToPending,
   onCopyToAddressed,
   setShowCalendarHistory,
   onOpenCalendarModal,
@@ -74,6 +75,7 @@ export default function DashboardLayout2({
             saveInquiryField={onSaveInquiryField}
             onSelectInquiry={onSelectInquiry}
             onCopyToPending={onCopyToPending}
+            onMoveToPending={onMoveToPending}
             onCopyToAddressed={onCopyToAddressed}
             variant="compact-strip"
           />

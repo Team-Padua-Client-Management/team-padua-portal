@@ -55,6 +55,7 @@ export default function DashboardLayout4({
   onSaveInquiryField,
   onSelectInquiry,
   onCopyToPending,
+  onMoveToPending,
   onCopyToAddressed,
   setShowCalendarHistory,
   onOpenCalendarModal,
@@ -186,6 +187,7 @@ export default function DashboardLayout4({
             saveInquiryField={onSaveInquiryField}
             onSelectInquiry={onSelectInquiry}
             onCopyToPending={onCopyToPending}
+            onMoveToPending={onMoveToPending}
             onCopyToAddressed={onCopyToAddressed}
             variant={span === 2 ? 'compact-strip' : 'card'}
           />

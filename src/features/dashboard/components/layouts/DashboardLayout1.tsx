@@ -36,6 +36,7 @@ export default function DashboardLayout1({
   onSaveInquiryField,
   onSelectInquiry,
   onCopyToPending,
+  onMoveToPending,
   onCopyToAddressed,
   setShowCalendarHistory,
   onOpenCalendarModal,
@@ -71,6 +72,7 @@ export default function DashboardLayout1({
           saveInquiryField={onSaveInquiryField}
           onSelectInquiry={onSelectInquiry}
           onCopyToPending={onCopyToPending}
+          onMoveToPending={onMoveToPending}
           onCopyToAddressed={onCopyToAddressed}
           variant="card"
         />
