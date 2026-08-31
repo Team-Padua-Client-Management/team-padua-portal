@@ -9,10 +9,10 @@ import { AdminHeader as Header } from '@src/components/layout';
 import { AdminSidebar as Sidebar } from '@src/components/layout';
 import { supabase } from "@src/lib/supabase/client";
 import dynamic from 'next/dynamic';
-import { generateFundWithdrawalPdfFromScratch } from '@src/features/client-servicing/pdf/generateFundWithdrawalPdfFromScratch';
+import { generateFundWithdrawalPdfFromTemplate } from '@src/features/client-servicing/pdf/generateFundWithdrawalPdfFromTemplate';
 
-const FundWithdrawalStandardForm = dynamic(
-  () => import('@src/features/client-servicing/fund-withdrawal-engine/FundWithdrawalStandardForm'),
+const FwrStandardForm = dynamic(
+  () => import('@src/features/client-servicing/fwr-engine/FwrStandardForm'),
   { ssr: false }
 );
 
@@ -209,7 +209,7 @@ export default function FundWithdrawalPage() {
 
       const clientName = selectedClientDetails?.client_name || '';
       const clientDob = selectedClientDetails?.birthdate || '';
-      const pdfBytes = await generateFundWithdrawalPdfFromScratch(engineValues, clientName, clientDob);
+      const pdfBytes = await generateFundWithdrawalPdfFromTemplate(engineValues, clientName, clientDob);
 
       const blob = new Blob([toBlobPart(pdfBytes)], { type: 'application/pdf' });
       const downloadUrl = URL.createObjectURL(blob);
@@ -238,7 +238,7 @@ export default function FundWithdrawalPage() {
 
       const clientName = record.client?.client_name || '';
       const clientDob = record.client?.birthdate || '';
-      const pdfBytes = await generateFundWithdrawalPdfFromScratch(record, clientName, clientDob);
+      const pdfBytes = await generateFundWithdrawalPdfFromTemplate(record, clientName, clientDob);
 
       const blob = new Blob([toBlobPart(pdfBytes)], { type: 'application/pdf' });
       const downloadUrl = URL.createObjectURL(blob);
@@ -295,7 +295,7 @@ export default function FundWithdrawalPage() {
   if (isEditorOpen) {
     return (
       <div className="relative w-screen h-screen overflow-hidden bg-slate-950">
-        <FundWithdrawalStandardForm
+        <FwrStandardForm
           initialValues={formData}
           clientId={formData.client_id}
           selectedClientDetails={selectedClientDetails}

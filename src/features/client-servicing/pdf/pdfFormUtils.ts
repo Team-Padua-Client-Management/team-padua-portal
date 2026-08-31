@@ -151,6 +151,23 @@ export function formatDateAcro(isoDate: string | null | undefined): string {
 }
 
 /**
+ * Formats ISO date (YYYY-MM-DD) to Month - Day - Year (e.g. 08 - 27 - 2026 or AUG - 27 - 2026).
+ */
+export function formatDateMonthDayYear(isoDate: string | null | undefined): string {
+  if (!isoDate || typeof isoDate !== 'string' || !isoDate.trim()) return 'N/A';
+  const parts = isoDate.split('-');
+  if (parts.length !== 3) return isoDate.toUpperCase();
+  const year = parts[0];
+  const monthNum = parseInt(parts[1], 10);
+  const day = parts[2].padStart(2, '0');
+  const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+  if (isNaN(monthNum) || monthNum < 1 || monthNum > 12) return isoDate.toUpperCase();
+  const monthStr = months[monthNum - 1];
+  return `${monthStr} - ${day} - ${year}`;
+}
+
+
+/**
  * Shared signature image embedding for base64 PNG/JPG upload.
  */
 export async function embedPdfSignature(

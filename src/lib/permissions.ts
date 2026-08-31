@@ -49,6 +49,7 @@ export const routeToModuleKey: Record<string, ClientServicingModule> = {
   "/admin/bcr": "bcr",
   "/admin/fund-switching": "fst",
   "/admin/fund-withdrawal": "fw",
+  "/admin/fwr": "fw",
   "/admin/aca": "aca",
   "/admin/ada": "ada",
   "/admin/adat": "ada",
