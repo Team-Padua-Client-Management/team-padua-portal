@@ -21,8 +21,15 @@ export type KpiData = {
   members: number;
   cpst: number;
   acr: number;
+  bcr: number;
   cpc: number;
   fst: number;
+  fw: number;
+  ada: number;
+  aca: number;
+  sro: number;
+  ppi: number;
+  acicr: number;
   mngt: number;
   ppu: number;
   attendance: number;
@@ -68,8 +75,9 @@ export const useAdminDashboard = () => {
   const [isMounted, setIsMounted] = useState(false);
 
   const [kpis, setKpis] = useState<KpiData>({
-    members: 0, cpst: 0, acr: 0, cpc: 0, fst: 0, mngt: 0,
-    ppu: 0, attendance: 0, announcements: 0, designs: 0, faqs: 0
+    members: 0, cpst: 0, acr: 0, bcr: 0, cpc: 0, fst: 0, fw: 0,
+    ada: 0, aca: 0, sro: 0, ppi: 0, acicr: 0,
+    mngt: 0, ppu: 0, attendance: 0, announcements: 0, designs: 0, faqs: 0
   });
 
   const currentUserIdRef = useRef<string | null>(null);
@@ -372,8 +380,15 @@ export const useAdminDashboard = () => {
         members: membersCount || 0,
         cpst: cpstCount || 0,
         acr: acrCount || 0,
+        bcr: 0,
         cpc: cpcCount || 0,
         fst: fstCount || 0,
+        fw: 0,
+        ada: 0,
+        aca: 0,
+        sro: 0,
+        ppi: 0,
+        acicr: 0,
         mngt: mngtCount || 0,
         ppu: ppuCount || 0,
         attendance: attendanceCount || 0,
@@ -421,6 +436,11 @@ export const useAdminDashboard = () => {
     inquiryId: string,
     updates: Record<string, any>
   ) => {
+    if (!inquiryId) {
+      console.error("saveInquiryField called without inquiryId");
+      return;
+    }
+
     setClientInquiries(prev =>
       prev.map(item =>
         item.id === inquiryId
@@ -439,20 +459,24 @@ export const useAdminDashboard = () => {
       };
 
       if ("cmgc_name" in updates)
-        dbUpdates.cmgc_name = updates.cmgc_name;
+        dbUpdates.cmgc_name = updates.cmgc_name ?? null;
 
       if ("inquiry_concern" in updates)
-        dbUpdates.inquiry_concern = updates.inquiry_concern;
+        dbUpdates.inquiry_concern = updates.inquiry_concern ?? null;
 
       if ("inquiry_type" in updates)
-        dbUpdates.inquiry_type = updates.inquiry_type;
+        dbUpdates.inquiry_type = updates.inquiry_type ?? null;
 
       if ("status" in updates)
-        dbUpdates.status = updates.status;
+        dbUpdates.status = updates.status ?? null;
 
       if ("processed_by" in updates)
-        dbUpdates.processed_by = updates.processed_by;
+        dbUpdates.processed_by = (typeof updates.processed_by === 'string' && updates.processed_by.trim().length > 0)
+          ? updates.processed_by.trim()
+          : null;
 
+      if ("user_id" in updates && updates.user_id)
+        dbUpdates.user_id = updates.user_id;
 
       console.log("========== UPDATE INQUIRY ==========");
       console.log("Inquiry ID:", inquiryId);
@@ -462,18 +486,27 @@ export const useAdminDashboard = () => {
         .from("client_inquiries")
         .update(dbUpdates)
         .eq("id", inquiryId)
-        .select()
-        .single();
+        .select();
 
       console.log("Returned Data:", data);
-      console.log("Returned Error:", error);
 
       if (error) {
-        console.error("Supabase Update Error:", error);
+        console.error("Supabase Update Error:", {
+          message: error?.message,
+          details: error?.details,
+          hint: error?.hint,
+          code: error?.code,
+        });
         throw error;
       }
-    } catch (err) {
-      console.error("Error auto-saving inquiry:", err);
+    } catch (err: any) {
+      console.error("Error auto-saving inquiry:", {
+        message: err?.message,
+        details: err?.details,
+        hint: err?.hint,
+        code: err?.code,
+      });
+      throw err;
     }
   };
 

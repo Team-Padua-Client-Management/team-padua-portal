@@ -30,6 +30,18 @@ export default async function AdminMembers() {
         redirect("/auth/login");
     }
 
+    // ── Role Guard: only Admin may access this page ───────────────────────────
+    const { data: currentProfile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+
+    if (currentProfile?.role !== "Admin") {
+        redirect("/dashboard");
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.listUsers();
     if (authError) throw new Error(authError.message);
 

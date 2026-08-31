@@ -18,7 +18,7 @@ export type CalendarActivityItem = {
   createdAt: string;
   status?: ActivityLifecycleStatus | string;
   completed?: boolean;
-  _sourceTable?: 'client_servicing_tasks' | 'tasks';
+  _sourceTable?: 'client_servicing_tasks' | 'tasks' | 'calendar_events';
   onlinePlatform?: string;
   onlineMeetingLink?: string;
   meeting_link_raw?: string;

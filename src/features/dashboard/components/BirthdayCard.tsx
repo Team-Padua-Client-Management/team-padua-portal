@@ -29,28 +29,50 @@ interface BirthdayCardProps {
 }
 
 export default function BirthdayCard({
-  birthdays,
-  advisors,
+  birthdays: propBirthdays,
+  advisors: propAdvisors,
   collapsible = false,
   isCollapsed = false,
   onToggleCollapse,
   className = '',
 }: BirthdayCardProps) {
+  const isPropControlled = propBirthdays !== undefined;
+
   const {
-    filteredBirthdays,
+    filteredBirthdays: hookFilteredBirthdays,
     advisors: fetchedAdvisors,
-    loading,
-    error,
-    selectedAdvisor,
-    setSelectedAdvisor,
-    whenFilter,
-    setWhenFilter,
-    todayCount,
+    loading: hookLoading,
+    error: hookError,
+    selectedAdvisor: hookSelectedAdvisor,
+    setSelectedAdvisor: hookSetSelectedAdvisor,
+    whenFilter: hookWhenFilter,
+    setWhenFilter: hookSetWhenFilter,
+    todayCount: hookTodayCount,
   } = useClientBirthdays();
 
+  const [localAdvisor, setLocalAdvisor] = React.useState('All');
+  const [localWhen, setLocalWhen] = React.useState<'All' | 'Yesterday' | 'Today' | 'Tomorrow'>('All');
+
+  const selectedAdvisor = isPropControlled ? localAdvisor : hookSelectedAdvisor;
+  const setSelectedAdvisor = isPropControlled ? setLocalAdvisor : hookSetSelectedAdvisor;
+  const whenFilter = isPropControlled ? localWhen : hookWhenFilter;
+  const setWhenFilter = isPropControlled ? setLocalWhen : hookSetWhenFilter;
+
   const advisorOptions = useMemo(() => {
-    const list = advisors && advisors.length > 0
-      ? advisors
+    if (isPropControlled && propAdvisors) {
+      if (propAdvisors.length === 1) {
+        return [{ id: propAdvisors[0].id, name: propAdvisors[0].advisor_name }];
+      }
+      return [
+        { id: 'All', name: 'All Advisors' },
+        ...propAdvisors.map((a: any) => ({
+          id: a.id,
+          name: a.advisor_name || a.advisorName || 'Advisor',
+        })),
+      ];
+    }
+    const list = propAdvisors && propAdvisors.length > 0
+      ? propAdvisors
       : fetchedAdvisors.map((a) => ({ id: a.id, advisor_name: a.advisorName }));
     const opts = [
       { id: 'All', name: 'All Advisors' },
@@ -62,10 +84,32 @@ export default function BirthdayCard({
     const unique: Record<string, { id: string; name: string }> = {};
     for (const o of opts) unique[o.id] = o;
     return Object.values(unique);
-  }, [advisors, fetchedAdvisors]);
+  }, [isPropControlled, propAdvisors, fetchedAdvisors]);
 
-  const isLoading = loading;
-  const status = error ? 'error' : isLoading ? 'loading' : 'success';
+  const filteredBirthdays = useMemo(() => {
+    if (!isPropControlled) return hookFilteredBirthdays;
+
+    const source = propBirthdays || [];
+    let items = selectedAdvisor === 'All'
+      ? source
+      : source.filter((b) => b.advisorId === selectedAdvisor);
+
+    if (whenFilter !== 'All') {
+      const targetWhen = whenFilter.toLowerCase();
+      items = items.filter((b) => b.when === targetWhen);
+    }
+
+    const priority: Record<string, number> = { yesterday: 0, today: 1, tomorrow: 2 };
+    return [...items].sort((a, b) => (priority[a.when] ?? 99) - (priority[b.when] ?? 99));
+  }, [isPropControlled, propBirthdays, hookFilteredBirthdays, selectedAdvisor, whenFilter]);
+
+  const todayCount = useMemo(() => {
+    if (!isPropControlled) return hookTodayCount;
+    return filteredBirthdays.filter((b) => b.when === 'today').length;
+  }, [isPropControlled, hookTodayCount, filteredBirthdays]);
+
+  const isLoading = isPropControlled ? false : hookLoading;
+  const status = isPropControlled ? 'success' : (hookError ? 'error' : isLoading ? 'loading' : 'success');
 
   const groupedSections = useMemo(() => {
     if (whenFilter !== 'All') return [];

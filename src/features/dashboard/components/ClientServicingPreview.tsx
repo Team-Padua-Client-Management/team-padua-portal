@@ -198,6 +198,7 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
 
     const inputStyle: React.CSSProperties = {
         width: '100%',
+        minWidth: 0,
         background: 'transparent',
         border: 'none',
         outline: 'none',
@@ -206,6 +207,9 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
         color: '#1A1A1A',
         fontFamily: 'inherit',
         padding: 0,
+        wordBreak: 'break-word',
+        overflowWrap: 'anywhere',
+        whiteSpace: 'normal',
     };
 
     const fieldBoxStyle: React.CSSProperties = {
@@ -230,6 +234,7 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
                 maxWidth: `calc(100vw - ${VIEWPORT_MARGIN * 2}px)`,
                 maxHeight: `${maxHeight}px`,
                 overflowY: 'auto',
+                overflowX: 'hidden',
                 boxSizing: 'border-box',
                 background: '#FFFFFF',
                 borderRadius: '18px',
@@ -352,7 +357,7 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
             {/* Body */}
             <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    <div style={{ ...fieldBoxStyle, background: isEditing ? '#FFFFFF' : '#FCFAF4' }}>
+                    <div style={{ ...fieldBoxStyle, background: isEditing ? '#FFFFFF' : '#FCFAF4', minWidth: 0, overflow: 'hidden' }}>
                         <div style={sectionLabelStyle}>Policy Owner</div>
                         {isEditing ? (
                             <input
@@ -369,7 +374,7 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
                         )}
                     </div>
 
-                    <div style={{ ...fieldBoxStyle, background: isEditing ? '#FFFFFF' : '#FCFAF4' }}>
+                    <div style={{ ...fieldBoxStyle, background: isEditing ? '#FFFFFF' : '#FCFAF4', minWidth: 0, overflow: 'hidden' }}>
                         <div style={sectionLabelStyle}>Policy Insured</div>
                         {isEditing ? (
                             <input
@@ -387,8 +392,8 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
                     </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
-                    <div style={fieldBoxStyle}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', minWidth: 0 }}>
+                    <div style={{ ...fieldBoxStyle, minWidth: 0, overflow: 'hidden' }}>
                         <div style={sectionLabelStyle}>Policy Number</div>
                         {isEditing ? (
                             <input
@@ -405,7 +410,7 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
                         )}
                     </div>
 
-                    <div style={fieldBoxStyle}>
+                    <div style={{ ...fieldBoxStyle, minWidth: 0, overflow: 'hidden' }}>
                         <div style={sectionLabelStyle}>Service Request #</div>
                         {isEditing ? (
                             <input
@@ -422,50 +427,59 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
                         )}
                     </div>
 
-                    <div style={fieldBoxStyle}>
+                    <div style={{ ...fieldBoxStyle, minWidth: 0, overflow: 'hidden' }}>
                         <div style={sectionLabelStyle}>Workflow Status</div>
                         {isEditing ? (
-                            <select
-                                value={workflowStatus}
-                                onChange={(e) => setWorkflowStatus(e.target.value as WorkflowStatus)}
-                                style={{
-                                    display: 'inline-block',
-                                    marginTop: '2px',
-                                    padding: '3px 22px 3px 9px',
-                                    borderRadius: '999px',
-                                    fontSize: '0.72rem',
-                                    fontWeight: 700,
-                                    color: '#FFFFFF',
-                                    background: `${GOLD_HOVER} url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23ffffff'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2.5' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E") no-repeat right 5px center / 12px`,
-                                    border: 'none',
-                                    cursor: 'pointer',
-                                    outline: 'none',
-                                    appearance: 'none',
-                                    fontFamily: 'inherit',
-                                }}
-                            >
-                                {WORKFLOW_STATUS_OPTIONS.map((statusOpt) => (
-                                    <option key={statusOpt} value={statusOpt} style={{ color: '#111827', background: '#FFFFFF' }}>
-                                        {statusOpt}
-                                    </option>
-                                ))}
-                            </select>
+                            <div style={{ maxWidth: '100%', overflow: 'hidden' }}>
+                                <select
+                                    value={workflowStatus}
+                                    onChange={(e) => setWorkflowStatus(e.target.value as WorkflowStatus)}
+                                    style={{
+                                        display: 'block',
+                                        width: '100%',
+                                        marginTop: '2px',
+                                        padding: '3px 22px 3px 9px',
+                                        borderRadius: '999px',
+                                        fontSize: '0.72rem',
+                                        fontWeight: 700,
+                                        color: '#FFFFFF',
+                                        background: `${GOLD_HOVER} url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23ffffff'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2.5' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E") no-repeat right 5px center / 12px`,
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        outline: 'none',
+                                        appearance: 'none',
+                                        fontFamily: 'inherit',
+                                        boxSizing: 'border-box',
+                                    }}
+                                >
+                                    {WORKFLOW_STATUS_OPTIONS.map((statusOpt) => (
+                                        <option key={statusOpt} value={statusOpt} style={{ color: '#111827', background: '#FFFFFF' }}>
+                                            {statusOpt}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
                         ) : (
-                            <span
-                                style={{
-                                    display: 'inline-block',
-                                    marginTop: '2px',
-                                    padding: '3px 9px',
-                                    borderRadius: '999px',
-                                    fontSize: '0.72rem',
-                                    fontWeight: 700,
-                                    color: '#FFFFFF',
-                                    background: GOLD_HOVER,
-                                    whiteSpace: 'nowrap',
-                                }}
-                            >
-                                {workflowStatus}
-                            </span>
+                            <div style={{ marginTop: '2px', maxWidth: '100%' }}>
+                                <span
+                                    style={{
+                                        display: 'inline-block',
+                                        padding: '3px 9px',
+                                        borderRadius: '999px',
+                                        fontSize: '0.72rem',
+                                        fontWeight: 700,
+                                        color: '#FFFFFF',
+                                        background: GOLD_HOVER,
+                                        whiteSpace: 'normal',
+                                        wordBreak: 'break-word',
+                                        overflowWrap: 'anywhere',
+                                        maxWidth: '100%',
+                                        boxSizing: 'border-box',
+                                    }}
+                                >
+                                    {workflowStatus}
+                                </span>
+                            </div>
                         )}
                     </div>
                 </div>
@@ -507,7 +521,7 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
                                     ))}
                                 </select>
                             ) : (
-                                <div style={{ ...inputStyle, fontSize: '0.82rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                <div style={{ ...inputStyle, fontSize: '0.82rem' }}>
                                     {currentProcessedProfile?.full_name || currentProcessedProfile?.email || 'Unassigned'}
                                 </div>
                             )}
@@ -549,7 +563,7 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
                                     ))}
                                 </select>
                             ) : (
-                                <div style={{ ...inputStyle, fontSize: '0.82rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                <div style={{ ...inputStyle, fontSize: '0.82rem' }}>
                                     {currentAssignedProfile?.full_name || currentAssignedProfile?.email || 'Unassigned'}
                                 </div>
                             )}
@@ -557,8 +571,8 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
                     </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
-                    <div style={{ ...fieldBoxStyle, background: '#FCFAF4' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', minWidth: 0 }}>
+                    <div style={{ ...fieldBoxStyle, background: '#FCFAF4', minWidth: 0, overflow: 'hidden' }}>
                         <div style={sectionLabelStyle}>Date Requested</div>
                         {isEditing ? (
                             <input
@@ -575,6 +589,7 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
                                     color: '#1A1A1A',
                                     fontFamily: 'inherit',
                                     cursor: 'pointer',
+                                    boxSizing: 'border-box',
                                 }}
                             />
                         ) : (
@@ -584,14 +599,14 @@ export const ClientServicingPreview: React.FC<ClientServicingPreviewProps> = ({
                         )}
                     </div>
 
-                    <div style={fieldBoxStyle}>
+                    <div style={{ ...fieldBoxStyle, minWidth: 0, overflow: 'hidden' }}>
                         <div style={sectionLabelStyle}>Created</div>
                         <div style={{ ...inputStyle, fontSize: '0.78rem', paddingTop: '2px' }}>
                             {task.created_at ? formatDisplayDate(task.created_at.slice(0, 10)) : 'N/A'}
                         </div>
                     </div>
 
-                    <div style={fieldBoxStyle}>
+                    <div style={{ ...fieldBoxStyle, minWidth: 0, overflow: 'hidden' }}>
                         <div style={sectionLabelStyle}>Updated</div>
                         <div style={{ ...inputStyle, fontSize: '0.78rem', paddingTop: '2px' }}>
                             {task.updated_at ? formatRelativeTime(task.updated_at) : 'N/A'}

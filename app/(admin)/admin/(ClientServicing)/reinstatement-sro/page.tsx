@@ -91,15 +91,8 @@ export default function ReinstatementSroPage() {
   const fetchRecords = async () => {
     try {
       setLoading(true);
-      const { data, error: err } = await supabase
-        .from(TABLE_NAME)
-        .select(`
-          *,
-          client:cpst_clients(client_name, policy_number, birthdate)
-        `)
-        .order('created_at', { ascending: false });
-
-      if (err) throw err;
+      const { fetchScopedRequestRecords } = await import('@src/lib/authScope');
+      const data = await fetchScopedRequestRecords(TABLE_NAME, 'client_name, policy_number, birthdate');
       setRecords(data || []);
     } catch (err: any) {
       console.error("Error fetching SRO records:", err);

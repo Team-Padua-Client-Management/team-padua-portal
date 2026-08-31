@@ -400,7 +400,7 @@ export default function RequestFormsAccordion({
           ) : (
             <>
               {/* Form Rows List */}
-              <div className={`${styles.flatFormsList} space-y-1.5`}>
+              <div className={styles.flatFormsList}>
                 {formsWithAccess.map((form) => {
                   const isExpanded = expandedFormId === form.id;
 

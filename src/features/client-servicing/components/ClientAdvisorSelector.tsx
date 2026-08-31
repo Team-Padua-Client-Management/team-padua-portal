@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@src/lib/supabase/client';
 import { Loader2 } from 'lucide-react';
+import { getAuthScope } from '@src/lib/authScope';
 
 interface ClientAdvisorSelectorProps {
   selectedClient: string;
@@ -19,37 +20,73 @@ export default function ClientAdvisorSelector({
 
   const [isAdvisorsLoading, setIsAdvisorsLoading] = useState(true);
   const [isClientsLoading, setIsClientsLoading] = useState(false);
+  const [isAdvisorLocked, setIsAdvisorLocked] = useState(false);
 
-  // Load advisors on mount
+  // Load advisors on mount with auth scope
   useEffect(() => {
     async function loadAdvisorsAndInit() {
       setIsAdvisorsLoading(true);
-      const { data: adData } = await supabase
-        .from('advisors')
-        .select('id, advisor_name')
-        .order('advisor_name');
+      try {
+        const scope = await getAuthScope();
 
-      if (adData) {
-        setAdvisors(adData);
-      }
-      setIsAdvisorsLoading(false);
+        if (scope.isAdvisor) {
+          const visible = scope.visibleAdvisors.map(a => ({ id: a.id, advisor_name: a.advisor_name }));
+          setAdvisors(visible);
+          if (visible.length > 0) {
+            setSelectedAdvisor(visible[0].id);
+          }
+          setIsAdvisorLocked(true);
+        } else if (scope.isBizdev) {
+          const visible = scope.visibleAdvisors.map(a => ({ id: a.id, advisor_name: a.advisor_name }));
+          setAdvisors(visible);
+          if (visible.length > 0) {
+            setSelectedAdvisor(visible[0].id);
+          }
+          setIsAdvisorLocked(false);
+        } else if (scope.isAdmin) {
+          const { data: adData } = await supabase
+            .from('advisors')
+            .select('id, advisor_name')
+            .order('advisor_name');
 
-      // If a client is already selected (e.g. from a draft), load their advisor
-      if (selectedClient && !selectedAdvisor) {
-        const { data: cData } = await supabase
-          .from('cpst_clients')
-          .select('advisor_id')
-          .eq('id', selectedClient)
-          .single();
-
-        if (cData && cData.advisor_id) {
-          setSelectedAdvisor(cData.advisor_id);
+          if (adData) {
+            setAdvisors(adData);
+          }
+          setIsAdvisorLocked(false);
+        } else {
+          setAdvisors([]);
+          setIsAdvisorLocked(true);
         }
+
+        // If a client is already selected, verify and load advisor
+        if (selectedClient) {
+          let { data: cData } = await supabase
+            .from('cgpt_clients')
+            .select('advisor_id')
+            .eq('id', selectedClient)
+            .maybeSingle();
+
+          if (!cData || !cData.advisor_id) {
+            const fallback = await supabase
+              .from('cpst_clients')
+              .select('advisor_id')
+              .eq('id', selectedClient)
+              .maybeSingle();
+            if (fallback.data) cData = fallback.data;
+          }
+
+          if (cData && cData.advisor_id) {
+            setSelectedAdvisor(cData.advisor_id);
+          }
+        }
+      } catch (err) {
+        console.error('Error in ClientAdvisorSelector:', err);
+      } finally {
+        setIsAdvisorsLoading(false);
       }
     }
     loadAdvisorsAndInit();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [selectedClient]);
 
   // Fetch clients whenever the selected advisor changes
   useEffect(() => {
@@ -60,25 +97,38 @@ export default function ClientAdvisorSelector({
       }
 
       setIsClientsLoading(true);
-      const { data } = await supabase
-        .from('cpst_clients')
-        .select('id, client_name, policy_number, birthdate, mobile_number, email, address, beneficiary')
-        .eq('advisor_id', selectedAdvisor)
-        .order('client_name');
+      try {
+        let { data } = await supabase
+          .from('cgpt_clients')
+          .select('id, client_name, policy_number, birthdate, mobile_number, email, address, beneficiary')
+          .eq('advisor_id', selectedAdvisor)
+          .order('client_name');
 
-      if (data) {
-        setClients(data);
+        if (!data || data.length === 0) {
+          const fallback = await supabase
+            .from('cpst_clients')
+            .select('id, client_name, policy_number, birthdate, mobile_number, email, address, beneficiary')
+            .eq('advisor_id', selectedAdvisor)
+            .order('client_name');
+          if (fallback.data) data = fallback.data;
+        }
+
+        if (data) {
+          setClients(data);
+        }
+      } catch (err) {
+        console.error('Error fetching clients for advisor:', err);
+      } finally {
+        setIsClientsLoading(false);
       }
-      setIsClientsLoading(false);
     }
     loadClients();
   }, [selectedAdvisor]);
 
   const handleAdvisorSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    if (isAdvisorLocked) return;
     const val = e.target.value;
     setSelectedAdvisor(val);
-
-    // Clear the selected client when advisor changes
     onClientChange('', null);
   };
 
@@ -96,10 +146,10 @@ export default function ClientAdvisorSelector({
           <select
             value={selectedAdvisor}
             onChange={handleAdvisorSelect}
-            disabled={isAdvisorsLoading}
+            disabled={isAdvisorsLoading || isAdvisorLocked}
             className="w-full p-3 rounded-xl border border-slate-200 text-sm focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 transition-all font-medium text-slate-700 bg-slate-50 hover:bg-white disabled:opacity-60 appearance-none"
           >
-            <option value="">-- Select Advisor --</option>
+            {!isAdvisorLocked && <option value="">-- Select Advisor --</option>}
             {advisors.map(a => (
               <option key={a.id} value={a.id}>{a.advisor_name}</option>
             ))}
@@ -146,7 +196,7 @@ export default function ClientAdvisorSelector({
             )}
           </div>
         </div>
-        {!selectedAdvisor && (
+        {!selectedAdvisor && !isAdvisorLocked && (
           <p className="mt-2 text-xs text-amber-600 font-medium">Only clients assigned to the selected advisor will be shown.</p>
         )}
       </div>

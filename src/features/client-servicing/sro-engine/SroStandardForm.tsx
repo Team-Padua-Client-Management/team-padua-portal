@@ -39,7 +39,8 @@ export default function SroStandardForm({
 
   useEffect(() => {
     async function loadClients() {
-      const { data } = await supabase.from('cpst_clients').select('id, client_name, policy_number, birthdate, mobile_number, email, address').order('client_name');
+      const { fetchScopedClients } = await import('@src/lib/authScope');
+      const data = await fetchScopedClients('id, client_name, policy_number, birthdate, mobile_number, email, address');
       if (data) setClients(data);
     }
     loadClients();

@@ -40,7 +40,8 @@ export default function AcrStandardForm({
 
   useEffect(() => {
     async function loadClients() {
-      const { data } = await supabase.from('cpst_clients').select('id, client_name, policy_number, birthdate, mobile_number, email, address, beneficiary').order('client_name');
+      const { fetchScopedClients } = await import('@src/lib/authScope');
+      const data = await fetchScopedClients('id, client_name, policy_number, birthdate, mobile_number, email, address, beneficiary');
       if (data) setClients(data);
     }
     loadClients();
