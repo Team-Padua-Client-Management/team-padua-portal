@@ -9,6 +9,7 @@ import {
   FileCheck2,
   Hourglass,
   CheckCircle2,
+  XCircle,
   Clock,
   History,
 } from 'lucide-react';
@@ -126,13 +127,15 @@ export type WorkflowStatus =
   | 'Pending for Submission'
   | 'Submitted Requests'
   | 'Submitted with Pending Requirements'
-  | 'Approved Requests';
+  | 'Approved Requests'
+  | 'Rejected Requests';
 
 export const WORKFLOW_STATUS_OPTIONS: WorkflowStatus[] = [
   'Pending for Submission',
   'Submitted Requests',
   'Submitted with Pending Requirements',
   'Approved Requests',
+  'Rejected Requests',
 ];
 
 export const DEFAULT_WORKFLOW_STATUS: WorkflowStatus = 'Pending for Submission';
@@ -142,7 +145,7 @@ export function getRemainingWorkflowOptions(current?: string | null): WorkflowSt
   return WORKFLOW_STATUS_OPTIONS.filter((opt) => opt !== currentStatus);
 }
 
-type WorkflowStage = 'pending_submission' | 'submitted' | 'submitted_pending' | 'approved';
+type WorkflowStage = 'pending_submission' | 'submitted' | 'submitted_pending' | 'approved' | 'rejected';
 
 export interface WorkflowTaskItem extends TaskItem {
   workflow_status?: string | null;
@@ -169,6 +172,9 @@ function getWorkflowStage(task: WorkflowTaskItem): WorkflowStage {
       return 'submitted_pending';
     case 'approved requests':
       return 'approved';
+    case 'rejected requests':
+    case 'rejected':
+      return 'rejected';
     case 'pending for submission':
     default:
       return 'pending_submission';
@@ -183,6 +189,8 @@ function workflowStageToStatus(stage: WorkflowStage): WorkflowStatus {
       return 'Submitted with Pending Requirements';
     case 'approved':
       return 'Approved Requests';
+    case 'rejected':
+      return 'Rejected Requests';
     case 'pending_submission':
     default:
       return 'Pending for Submission';
@@ -200,6 +208,7 @@ const WORKFLOW_STAGES: StageMeta[] = [
   { id: 'submitted', label: 'Submitted Requests', icon: FileCheck2 },
   { id: 'submitted_pending', label: 'Submitted with Pending Requirements', icon: Hourglass },
   { id: 'approved', label: 'Approved Requests', icon: CheckCircle2 },
+  { id: 'rejected', label: 'Rejected Requests', icon: XCircle },
 ];
 
 export const PURPLE = '#6D28D9';
@@ -878,6 +887,7 @@ export default function TaskList({
       submitted: [],
       submitted_pending: [],
       approved: [],
+      rejected: [],
     };
     for (const task of servicingTasks) {
       buckets[getWorkflowStage(task)].push(task);

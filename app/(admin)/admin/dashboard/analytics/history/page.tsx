@@ -142,6 +142,7 @@ export default function AnalyticsHistoryPage() {
         status.toLowerCase() === filterStatus.toLowerCase() ||
         (filterStatus === 'Approved' && (status.toLowerCase().includes('approv') || status.toLowerCase().includes('done'))) ||
         (filterStatus === 'Submitted' && status.toLowerCase().includes('submit')) ||
+        (filterStatus === 'Rejected' && status.toLowerCase().includes('reject')) ||
         (filterStatus === 'Pending' && status.toLowerCase().includes('pending'));
 
       return matchesSearch && matchesCategory && matchesStatus;
@@ -216,7 +217,7 @@ export default function AnalyticsHistoryPage() {
   // Available status options based on active tab
   const availableStatuses = useMemo(() => {
     if (activeTab === 'servicing') {
-      return ['All', 'Approved Requests', 'Submitted Requests', 'Pending Requirements', 'Pending for Submission', 'Pending'];
+      return ['All', 'Approved Requests', 'Submitted Requests', 'Submitted with Pending Requirements', 'Rejected Requests', 'Pending for Submission', 'Pending'];
     }
     if (activeTab === 'inquiries') {
       return ['All', 'Pending', 'Pending Response', 'Addressed Concerns', 'Resolved'];
@@ -224,7 +225,7 @@ export default function AnalyticsHistoryPage() {
     if (activeTab === 'calendar') {
       return ['All', 'Upcoming', 'Today', 'Overdue', 'Completed', 'Cancelled'];
     }
-    return ['All', 'Approved', 'Submitted', 'Pending', 'Upcoming', 'Overdue', 'Completed'];
+    return ['All', 'Approved', 'Submitted', 'Rejected', 'Pending', 'Upcoming', 'Overdue', 'Completed'];
   }, [activeTab]);
 
   // Total filtered count

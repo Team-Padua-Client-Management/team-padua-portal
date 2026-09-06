@@ -103,6 +103,7 @@ const WORKFLOW_STAGES = [
   'Submitted Requests',
   'Submitted with Pending Requirements',
   'Approved Requests',
+  'Rejected Requests',
 ] as const;
 
 function parsePolicyGroups(parsedMeta: any): PolicyOwnerGroup[] {

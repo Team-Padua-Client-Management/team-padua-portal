@@ -33,12 +33,12 @@ export function getStatusStyle(status: string) {
     };
   }
 
-  // Red: Overdue
+  // Red: Overdue / Rejected
   if (normalized.includes('overdue') || normalized.includes('reject')) {
     return {
       bg: 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800/60',
       icon: AlertCircle,
-      displayLabel: status,
+      displayLabel: status.includes('Request') ? status : normalized.includes('reject') ? 'Rejected Requests' : status,
     };
   }
 
