@@ -32,33 +32,77 @@ export interface BirthdayItem {
   policyNo?: string;
 }
 
-export function extractMonthDayYear(birthRaw: string): { year: number; month: number; day: number } | null {
+function isValidDate(year: number, month: number, day: number): boolean {
+  if (typeof year !== 'number' || typeof month !== 'number' || typeof day !== 'number') return false;
+  if (isNaN(year) || isNaN(month) || isNaN(day)) return false;
+  const currentYear = new Date().getFullYear();
+  if (year < 1900 || year > currentYear + 1) return false;
+  if (month < 0 || month > 11) return false;
+  if (day < 1 || day > 31) return false;
+  const d = new Date(year, month, day);
+  d.setFullYear(year);
+  return d.getFullYear() === year && d.getMonth() === month && d.getDate() === day;
+}
+
+export function extractMonthDayYear(birthRaw: string | null | undefined): { year: number; month: number; day: number } | null {
   if (!birthRaw) return null;
   const trimmed = String(birthRaw).trim();
+  if (!trimmed) return null;
 
-  const dateOnlyMatch = trimmed.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
+  const dateOnlyMatch = trimmed.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})(?:[T\s].*)?$/);
   if (dateOnlyMatch) {
     const year = parseInt(dateOnlyMatch[1], 10);
     const month = parseInt(dateOnlyMatch[2], 10) - 1;
     const day = parseInt(dateOnlyMatch[3], 10);
-    if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+    if (isValidDate(year, month, day)) {
       return { year, month, day };
+    }
+    return null;
+  }
+
+  const slashMatch = trimmed.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
+  if (slashMatch) {
+    const p1 = parseInt(slashMatch[1], 10);
+    const p2 = parseInt(slashMatch[2], 10);
+    const year = parseInt(slashMatch[3], 10);
+    if (isValidDate(year, p1 - 1, p2)) {
+      return { year, month: p1 - 1, day: p2 };
+    }
+    if (isValidDate(year, p2 - 1, p1)) {
+      return { year, month: p2 - 1, day: p1 };
+    }
+    return null;
+  }
+
+  // Excel date serial number (e.g. 44927 -> 2023-01-01, 29221 -> 1980-01-01)
+  if (/^\d{5}$/.test(trimmed)) {
+    const num = Number(trimmed);
+    if (!isNaN(num) && num >= 10000 && num <= 60000) {
+      const d = new Date((num - 25569) * 86400 * 1000);
+      if (!isNaN(d.getTime())) {
+        const year = d.getUTCFullYear();
+        const month = d.getUTCMonth();
+        const day = d.getUTCDate();
+        if (isValidDate(year, month, day)) {
+          return { year, month, day };
+        }
+      }
     }
   }
 
-  const slashMatch = trimmed.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/);
-  if (slashMatch) {
-    const month = parseInt(slashMatch[1], 10) - 1;
-    const day = parseInt(slashMatch[2], 10);
-    const year = parseInt(slashMatch[3], 10);
-    if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
-      return { year, month, day };
-    }
+  // Reject standalone numbers or short digit strings (e.g. years like "1990")
+  if (/^\d+$/.test(trimmed)) {
+    return null;
   }
 
   const parsed = new Date(trimmed);
   if (!isNaN(parsed.getTime())) {
-    return { year: parsed.getFullYear(), month: parsed.getMonth(), day: parsed.getDate() };
+    const year = parsed.getFullYear();
+    const month = parsed.getMonth();
+    const day = parsed.getDate();
+    if (isValidDate(year, month, day)) {
+      return { year, month, day };
+    }
   }
 
   return null;
@@ -75,6 +119,7 @@ export function computeBirthdayWhenAndAge(birthRaw: string | null): {
   if (!extracted) return null;
 
   const { year: birthYear, month, day } = extracted;
+  if (!isValidDate(birthYear, month, day)) return null;
 
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -334,15 +379,27 @@ const MONTH_NAMES = [
   'July', 'August', 'September', 'October', 'November', 'December'
 ];
 
-function formatBirthdateWithYear(d: Date): string {
+export function getValidBirthDate(birthdate?: string | null): Date | null {
+  if (!birthdate) return null;
+  const extracted = extractMonthDayYear(birthdate);
+  if (!extracted) return null;
+  const { year, month, day } = extracted;
+  if (!isValidDate(year, month, day)) return null;
+  const d = new Date(year, month, day);
+  d.setFullYear(year);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+export function formatBirthdateWithYear(d: Date | null | undefined): string {
+  if (!d || isNaN(d.getTime())) return '—';
   const month = d.toLocaleString('default', { month: 'short' });
   return `${month} ${d.getDate()}, ${d.getFullYear()}`;
 }
 
-function calculateAge(birthdateStr?: string): { age: number | null; ageDisplay: string } {
+export function calculateAge(birthdateStr?: string | null): { age: number | null; ageDisplay: string } {
   if (!birthdateStr) return { age: null, ageDisplay: '—' };
-  const d = new Date(birthdateStr + 'T00:00:00');
-  if (isNaN(d.getTime())) return { age: null, ageDisplay: '—' };
+  const d = getValidBirthDate(birthdateStr);
+  if (!d) return { age: null, ageDisplay: '—' };
   
   const today = new Date();
   let age = today.getFullYear() - d.getFullYear();
@@ -353,7 +410,7 @@ function calculateAge(birthdateStr?: string): { age: number | null; ageDisplay: 
   return { age, ageDisplay: `${age} yrs` };
 }
 
-function getBirthdayCelebrationStatus(birthdateStr?: string): {
+export function getBirthdayCelebrationStatus(birthdateStr?: string | null): {
   statusText: string;
   statusType: 'today' | 'upcoming' | 'this_month' | 'passed' | 'none';
   daysRemaining: number | null;
@@ -361,9 +418,13 @@ function getBirthdayCelebrationStatus(birthdateStr?: string): {
 } {
   if (!birthdateStr) return { statusText: 'No birthdate set', statusType: 'none', daysRemaining: null, turningAge: null };
   const extracted = extractMonthDayYear(birthdateStr);
-  if (!extracted) return { statusText: 'Invalid date', statusType: 'none', daysRemaining: null, turningAge: null };
+  if (!extracted) return { statusText: 'No birthdate set', statusType: 'none', daysRemaining: null, turningAge: null };
 
   const { year: birthYear, month, day } = extracted;
+  if (!isValidDate(birthYear, month, day)) {
+    return { statusText: 'No birthdate set', statusType: 'none', daysRemaining: null, turningAge: null };
+  }
+
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const thisYear = todayStart.getFullYear();
@@ -402,6 +463,211 @@ export interface CGPTClientProps {
 
 const formInputClass = "w-full px-3.5 py-2.5 border border-border rounded-2xl text-xs focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 bg-card text-foreground transition-all duration-200";
 const formLabelClass = "block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5";
+
+// ─── IMPORT UTILITIES ─────────────────────────────────────────────────────────
+
+const HEADER_ALIASES: Record<string, string[]> = {
+  client_name: [
+    'client name / beneficiary name', 'client name', 'beneficiary name',
+    'name', 'client', 'full name', 'insured', 'policyholder',
+    'policy holder', 'assured', 'member',
+  ],
+  birthdate: [
+    'month - birthdate', 'birthdate', 'birth date', 'birthday',
+    'dob', 'date of birth', 'birth', 'bday', 'birthdate / age',
+  ],
+  beneficiary: [
+    'beneficiary policy owner', 'beneficiary/policy owner',
+    'policy owner', 'beneficiary', 'bene',
+  ],
+  relationship: ['relationship', 'relation'],
+  advisor: ['advisor', 'advisor name', 'adviser', 'agent'],
+};
+
+function headerFieldMatch(cell: string, alias: string): boolean {
+  if (cell === alias) return true;
+  const sep = /[\s/\-|]/;
+  if (cell.startsWith(alias) && (cell.length === alias.length || sep.test(cell[alias.length]))) return true;
+  if (alias.startsWith(cell) && (alias.length === cell.length || sep.test(alias[cell.length]))) return true;
+  return false;
+}
+
+function detectHeaderRow(
+  rows: string[][]
+): { headerRowIndex: number; colMap: Record<string, number> } | null {
+  for (let ri = 0; ri < Math.min(rows.length, 25); ri++) {
+    const row = rows[ri];
+    if (!row || row.length < 2) continue;
+    const colMap: Record<string, number> = {};
+    const usedCols = new Set<number>();
+    for (let ci = 0; ci < row.length; ci++) {
+      const cell = (row[ci] ?? '').toLowerCase().trim();
+      if (!cell || cell.length < 2) continue;
+      for (const [field, aliases] of Object.entries(HEADER_ALIASES)) {
+        if (field in colMap || usedCols.has(ci)) continue;
+        const matched = [...aliases]
+          .sort((a, b) => b.length - a.length)
+          .some(alias => headerFieldMatch(cell, alias));
+        if (matched) { colMap[field] = ci; usedCols.add(ci); }
+      }
+    }
+    if ('client_name' in colMap) return { headerRowIndex: ri, colMap };
+  }
+  return null;
+}
+
+export function normalizeImportDate(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const s = String(raw).trim();
+  if (!s) return null;
+  const extracted = extractMonthDayYear(s);
+  if (!extracted) return null;
+  const { year, month, day } = extracted;
+  if (!isValidDate(year, month, day)) return null;
+  return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+function parseDelimitedText(text: string): string[][] {
+  const lines = text.split(/\r?\n/);
+  const firstNonEmpty = lines.find(l => l.trim()) ?? '';
+  const delim = firstNonEmpty.includes('\t') ? '\t' : ',';
+  return lines.map(line => {
+    if (delim === '\t') return line.split('\t').map(c => c.trim());
+    const cells: string[] = [];
+    let cur = '';
+    let inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        if (inQ && line[i + 1] === '"') { cur += '"'; i++; }
+        else { inQ = !inQ; }
+      } else if (ch === ',' && !inQ) { cells.push(cur.trim()); cur = ''; }
+      else { cur += ch; }
+    }
+    cells.push(cur.trim());
+    return cells;
+  });
+}
+
+async function parsePdfToRows(file: File): Promise<string[][]> {
+  const buffer = await file.arrayBuffer();
+  const pdfjsLib = await import('pdfjs-dist');
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+  const loadingTask = pdfjsLib.getDocument({ data: buffer });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const pdf = await (loadingTask as any).promise as {
+    numPages: number;
+    getPage: (n: number) => Promise<{
+      getViewport: (o: { scale: number }) => { height: number };
+      getTextContent: () => Promise<{ items: unknown[] }>;
+    }>;
+  };
+  const Y_TOLERANCE = 6;
+  const rowBuckets: { y: number; items: { x: number; text: string }[] }[] = [];
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p);
+    const vp = page.getViewport({ scale: 1 });
+    const content = await page.getTextContent();
+    for (const it of content.items) {
+      const item = it as { str?: string; transform?: number[] };
+      if (!item.str?.trim() || !item.transform) continue;
+      const y = vp.height - item.transform[5];
+      const x = item.transform[4];
+      const bucket = rowBuckets.find(b => Math.abs(b.y - y) <= Y_TOLERANCE);
+      if (bucket) bucket.items.push({ x, text: item.str.trim() });
+      else rowBuckets.push({ y, items: [{ x, text: item.str.trim() }] });
+    }
+  }
+  rowBuckets.sort((a, b) => a.y - b.y);
+  return rowBuckets
+    .map(b => { b.items.sort((a, c) => a.x - c.x); return b.items.map(i => i.text); })
+    .filter(r => r.length > 0);
+}
+
+async function parseDocxToRows(file: File): Promise<string[][]> {
+  const mammoth = await import('mammoth');
+  const buffer = await file.arrayBuffer();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const result = await (mammoth as any).convertToHtml({ arrayBuffer: buffer }) as { value: string };
+  const doc = new DOMParser().parseFromString(result.value, 'text/html');
+  const tables = Array.from(doc.querySelectorAll('table'));
+  if (tables.length > 0) {
+    const best = tables.reduce((a, b) =>
+      b.querySelectorAll('tr').length > a.querySelectorAll('tr').length ? b : a
+    );
+    return Array.from(best.querySelectorAll('tr')).map(tr =>
+      Array.from(tr.querySelectorAll('td, th')).map(td => td.textContent?.trim() ?? '')
+    );
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rawResult = await (mammoth as any).extractRawText({ arrayBuffer: buffer }) as { value: string };
+  return parseDelimitedText(rawResult.value);
+}
+
+async function parseFileToRows(file: File): Promise<string[][]> {
+  const ext = (file.name.split('.').pop() ?? '').toLowerCase();
+  if (ext === 'xlsx' || ext === 'xls') {
+    const XLSX = await import('xlsx');
+    const buffer = await file.arrayBuffer();
+    const wb = XLSX.read(buffer, { type: 'array', cellDates: true });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' }) as unknown[][];
+    return raw.map(row =>
+      (row as unknown[]).map(cell => {
+        if (cell instanceof Date) {
+          if (isNaN(cell.getTime())) return '';
+          const y = cell.getFullYear();
+          const m = String(cell.getMonth() + 1).padStart(2, '0');
+          const d = String(cell.getDate()).padStart(2, '0');
+          return `${y}-${m}-${d}`;
+        }
+        return String(cell ?? '').trim();
+      })
+    );
+  }
+  if (ext === 'csv' || ext === 'txt') return parseDelimitedText(await file.text());
+  if (ext === 'pdf') return parsePdfToRows(file);
+  if (ext === 'docx') return parseDocxToRows(file);
+  throw new Error(`Unsupported file type: .${ext}. Supported: xlsx, xls, csv, pdf, docx, txt`);
+}
+
+const DECORATIVE_ROW_RE =
+  /^(january|february|march|april|may|june|july|august|september|october|november|december|\d{1,4}|[-=*#\s.]+)$/i;
+
+function mapRowsToClientRecords(
+  rows: string[][],
+  colMap: Record<string, number>,
+  headerRowIndex: number,
+  advisorId: string
+): { records: ClientRecord[]; skipped: number } {
+  const records: ClientRecord[] = [];
+  let skipped = 0;
+  for (let i = headerRowIndex + 1; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row || row.every(c => !c?.trim())) { skipped++; continue; }
+    const rawName = colMap.client_name !== undefined ? (row[colMap.client_name] ?? '') : '';
+    const name = rawName.replace(/\s+/g, ' ').trim();
+    if (!name || name.length < 2) { skipped++; continue; }
+    if (DECORATIVE_ROW_RE.test(name)) { skipped++; continue; }
+    const rawBirth = colMap.birthdate !== undefined ? (row[colMap.birthdate] ?? '') : '';
+    const birthdate = normalizeImportDate(rawBirth.trim());
+    const beneficiary = colMap.beneficiary !== undefined
+      ? (row[colMap.beneficiary] ?? '').replace(/\s+/g, ' ').trim() || null
+      : null;
+    const relationship = colMap.relationship !== undefined
+      ? (row[colMap.relationship] ?? '').trim() || null
+      : null;
+    records.push({
+      client_name: name,
+      birthdate: birthdate ?? null,
+      beneficiary,
+      relationship,
+      advisor_id: advisorId,
+    });
+  }
+  return { records, skipped };
+}
 
 export default function CGPTClient({
   canCreate = true,
@@ -443,6 +709,9 @@ export default function CGPTClient({
   const [importAdvisorId, setImportAdvisorId] = useState<string>('');
   const [isImporting, setIsImporting] = useState(false);
   const [importStatus, setImportStatus] = useState<string>('');
+  const [importPreview, setImportPreview] = useState<ClientRecord[] | null>(null);
+  const [importSkipped, setImportSkipped] = useState(0);
+  const [importParseError, setImportParseError] = useState('');
 
   const fetchData = async () => {
     try {
@@ -524,7 +793,10 @@ export default function CGPTClient({
           beneficiary: String(c.beneficiary || ''),
           fundAllocation: typeof c.fund_allocation === 'string' ? c.fund_allocation : undefined,
           modeOfPayment: typeof c.mode_of_payment === 'string' ? c.mode_of_payment : undefined,
-          birthdate: String(c.birthdate || c.birth_date || c.birthday || ''),
+          birthdate: (() => {
+            const raw = c.birthdate || c.birth_date || c.birthday;
+            return raw ? normalizeImportDate(String(raw)) : null;
+          })() ?? undefined,
           signatureData: typeof c.signature_data === 'string' ? c.signature_data : undefined,
           idType: typeof c.id_type === 'string' ? c.id_type : undefined,
           idNumber: typeof c.id_number === 'string' ? c.id_number : undefined,
@@ -714,7 +986,7 @@ export default function CGPTClient({
           .update({
             client_name: currentClient.clientName,
             beneficiary: currentClient.beneficiary || null,
-            birthdate: currentClient.birthdate || null,
+            birthdate: currentClient.birthdate ? (normalizeImportDate(currentClient.birthdate) || null) : null,
             advisor_id: advId
           })
           .eq('id', currentClient.id);
@@ -724,7 +996,7 @@ export default function CGPTClient({
           .insert([{
             client_name: currentClient.clientName,
             beneficiary: currentClient.beneficiary || null,
-            birthdate: currentClient.birthdate || null,
+            birthdate: currentClient.birthdate ? (normalizeImportDate(currentClient.birthdate) || null) : null,
             advisor_id: advId
           }]);
       }
@@ -766,8 +1038,9 @@ export default function CGPTClient({
   const handleExport = (format: 'csv' | 'pdf' | 'word') => {
     const headers = ['Client Name / Beneficiary Name', 'Beneficiary', 'Month - Birthdate', 'Age', 'Advisor Code', 'Advisor Name'];
     const rows = filteredClients.map(c => {
-      const formattedDate = c.birthdate ? formatBirthdateWithYear(new Date(c.birthdate + 'T00:00:00')) : '';
-      const age = calculateAge(c.birthdate).ageDisplay;
+      const validDate = getValidBirthDate(c.birthdate);
+      const formattedDate = validDate ? formatBirthdateWithYear(validDate) : '';
+      const age = validDate ? calculateAge(c.birthdate).ageDisplay : '—';
       return [
         c.clientName,
         c.beneficiary || '—',
@@ -815,11 +1088,11 @@ export default function CGPTClient({
       return;
     }
 
-    setIsImporting(true);
-    setImportStatus('Processing records...');
-
-    try {
-      if (importTarget === 'advisors') {
+    // Advisor import: keep existing simple paste-only logic
+    if (importTarget === 'advisors') {
+      setIsImporting(true);
+      setImportStatus('Importing advisors...');
+      try {
         const lines = pastedText.split('\n').map(l => l.trim()).filter(Boolean);
         const newAdvs: Array<{ advisor_name: string; advisor_code: string; email: string }> = [];
         for (const line of lines) {
@@ -832,56 +1105,85 @@ export default function CGPTClient({
             });
           }
         }
-        if (newAdvs.length > 0) {
-          await supabase.from('advisors').insert(newAdvs);
-        }
-      } else {
-        const rowsToInsert: ClientRecord[] = [];
-        if (importMethod === 'paste') {
-          const lines = pastedText.split('\n').map(l => l.trim()).filter(Boolean);
-          for (const line of lines) {
-            const parts = line.split(/[\t,]+/).map(p => p.trim());
-            if (parts[0]) {
-              rowsToInsert.push({
-                client_name: parts[0],
-                birthdate: parts[1] || null,
-                beneficiary: parts[2] || null,
-                advisor_id: targetAdvId
-              });
-            }
-          }
-        } else if (importFile) {
-          const XLSX = await import('xlsx');
-          const buffer = await importFile.arrayBuffer();
-          const wb = XLSX.read(buffer, { type: 'array' });
-          const firstSheet = wb.Sheets[wb.SheetNames[0]];
-          const rawData: Array<Array<unknown>> = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
-          
-          for (let i = 1; i < rawData.length; i++) {
-            const row = rawData[i];
-            if (row && row[0]) {
-              rowsToInsert.push({
-                client_name: String(row[0]).trim(),
-                birthdate: row[1] ? String(row[1]).trim() : null,
-                beneficiary: row[2] ? String(row[2]).trim() : null,
-                advisor_id: targetAdvId
-              });
-            }
-          }
-        }
+        if (newAdvs.length > 0) await supabase.from('advisors').insert(newAdvs);
+        setActiveModal(null);
+        setPastedText('');
+        await fetchData();
+      } catch (err: unknown) {
+        alert('Import error: ' + (err instanceof Error ? err.message : String(err)));
+      } finally {
+        setIsImporting(false);
+        setImportStatus('');
+      }
+      return;
+    }
 
-        if (rowsToInsert.length > 0) {
-          await supabase.from('cgpt_clients').insert(rowsToInsert);
-        }
+    // Client import: parse → detect headers → build preview (no DB insert yet)
+    setIsImporting(true);
+    setImportStatus('Parsing file...');
+    setImportParseError('');
+    try {
+      let rows: string[][] = [];
+      if (importMethod === 'paste') {
+        rows = parseDelimitedText(pastedText);
+      } else if (importFile) {
+        rows = await parseFileToRows(importFile);
+      } else {
+        setImportParseError('Please select a file or paste text to import.');
+        return;
       }
 
+      const detected = detectHeaderRow(rows);
+      if (!detected) {
+        setImportParseError(
+          'Could not detect a header row. Ensure your file has a header row with column names like "Client Name", "Birthdate", "Beneficiary", etc.'
+        );
+        return;
+      }
+
+      const { records, skipped } = mapRowsToClientRecords(
+        rows, detected.colMap, detected.headerRowIndex, targetAdvId
+      );
+      setImportPreview(records);
+      setImportSkipped(skipped);
+    } catch (err: unknown) {
+      setImportParseError('Parse error: ' + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setIsImporting(false);
+      setImportStatus('');
+    }
+  };
+
+  const handleConfirmImport = async () => {
+    if (!importPreview || importPreview.length === 0) return;
+    setIsImporting(true);
+    setImportStatus(`Inserting ${importPreview.length} record(s)...`);
+    try {
+      const scopeAdvisorId = selectedAdvisor?.id || importAdvisorId;
+      const existingKeys = new Set(
+        clients
+          .filter(c => c.advisorId === scopeAdvisorId)
+          .map(c => `${c.clientName.toLowerCase().trim()}|${c.birthdate ?? ''}`)
+      );
+      const toInsert = importPreview.filter(r => {
+        const key = `${r.client_name.toLowerCase().trim()}|${r.birthdate ?? ''}`;
+        return !existingKeys.has(key);
+      });
+      const duplicates = importPreview.length - toInsert.length;
+      if (toInsert.length > 0) {
+        await supabase.from('cgpt_clients').insert(toInsert);
+      }
       setActiveModal(null);
       setPastedText('');
       setImportFile(null);
+      setImportPreview(null);
+      setImportSkipped(0);
       await fetchData();
+      if (duplicates > 0) {
+        alert(`Import complete. ${toInsert.length} record(s) added, ${duplicates} duplicate(s) skipped.`);
+      }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      alert('Import error: ' + msg);
+      alert('Import error: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
       setIsImporting(false);
       setImportStatus('');
@@ -975,6 +1277,10 @@ export default function CGPTClient({
                   onClick={() => {
                     setImportTarget(selectedAdvisor ? 'clients' : 'advisors');
                     setImportAdvisorId(selectedAdvisor?.id || advisors[0]?.id || '');
+                    setImportPreview(null);
+                    setImportParseError('');
+                    setImportSkipped(0);
+                    setImportFile(null);
                     setActiveModal('import');
                   }}
                   className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl border border-border bg-card text-foreground text-xs font-bold shadow-sm hover:bg-surface-2 transition-all duration-200 active:scale-[0.98]"
@@ -1232,9 +1538,12 @@ export default function CGPTClient({
                         <tr><td colSpan={6} className="py-8 text-center text-muted-foreground text-xs">No birthday records found.</td></tr>
                       ) : filteredClients.map(c => {
                         const isSelected = selectedIds.includes(c.id);
-                        const status = getBirthdayCelebrationStatus(c.birthdate);
-                        const ageInfo = calculateAge(c.birthdate);
-                        const formattedBirthdate = c.birthdate ? formatBirthdateWithYear(new Date(c.birthdate + 'T00:00:00')) : '—';
+                        const validDate = getValidBirthDate(c.birthdate);
+                        const status = validDate
+                          ? getBirthdayCelebrationStatus(c.birthdate)
+                          : { statusText: 'No birthdate set', statusType: 'none' as const, daysRemaining: null, turningAge: null };
+                        const ageInfo = validDate ? calculateAge(c.birthdate) : { age: null, ageDisplay: '—' };
+                        const formattedBirthdate = validDate ? formatBirthdateWithYear(validDate) : '—';
 
                         return (
                           <tr
@@ -1391,7 +1700,10 @@ export default function CGPTClient({
                   <p className="text-xs font-bold text-foreground mt-0.5">{basicInfoCelebration.statusText}</p>
                 </div>
                 <span className="text-xs font-mono font-bold text-muted-foreground">
-                  {currentClient.birthdate ? formatBirthdateWithYear(new Date(currentClient.birthdate + 'T00:00:00')) : 'No Date'}
+                  {(() => {
+                    const vd = getValidBirthDate(currentClient.birthdate);
+                    return vd ? formatBirthdateWithYear(vd) : 'No Date';
+                  })()}
                 </span>
               </div>
 
@@ -1600,9 +1912,14 @@ export default function CGPTClient({
 
       {activeModal === 'import' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="bg-card border border-border w-full max-w-lg rounded-3xl shadow-2xl p-6 relative overflow-hidden animate-in zoom-in-95 duration-150">
+          <div className="bg-card border border-border w-full max-w-2xl rounded-3xl shadow-2xl p-6 relative overflow-hidden animate-in zoom-in-95 duration-150">
             <button
-              onClick={() => setActiveModal(null)}
+              onClick={() => {
+                setActiveModal(null);
+                setImportPreview(null);
+                setImportParseError('');
+                setImportSkipped(0);
+              }}
               className="absolute right-5 top-5 p-2 rounded-full text-muted-foreground hover:bg-surface-2 hover:text-foreground transition cursor-pointer"
             >
               <X size={16} />
@@ -1614,109 +1931,198 @@ export default function CGPTClient({
               </div>
               <div>
                 <h3 className="text-base font-bold text-foreground">Batch Import Birthday Records</h3>
-                <p className="text-xs text-muted-foreground">Import birthday directory from file or pasted text</p>
+                <p className="text-xs text-muted-foreground">
+                  {importPreview
+                    ? `Preview: ${importPreview.length} record${importPreview.length !== 1 ? 's' : ''} detected`
+                    : 'Import birthday directory from file or pasted text'}
+                </p>
               </div>
             </div>
 
-            <form onSubmit={handleImportSubmit} className="space-y-4">
-              <div className="flex gap-2 p-1 bg-surface-2 rounded-xl">
-                <button
-                  type="button"
-                  onClick={() => setImportTarget('clients')}
-                  className={`flex-1 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${importTarget === 'clients' ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground'}`}
-                >
-                  Import Birthdays / Clients
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setImportTarget('advisors')}
-                  className={`flex-1 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${importTarget === 'advisors' ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground'}`}
-                >
-                  Import Advisors
-                </button>
-              </div>
-
-              {importTarget === 'clients' && !selectedAdvisor && (
-                <div>
-                  <label className={formLabelClass}>Destination Advisor *</label>
-                  <select
-                    required
-                    value={importAdvisorId}
-                    onChange={e => setImportAdvisorId(e.target.value)}
-                    className={formInputClass}
+            {importPreview === null ? (
+              <form onSubmit={handleImportSubmit} className="space-y-4">
+                <div className="flex gap-2 p-1 bg-surface-2 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setImportTarget('clients')}
+                    className={`flex-1 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${importTarget === 'clients' ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground'}`}
                   >
-                    <option value="">Select Advisor</option>
-                    {advisors.map(a => (
-                      <option key={a.id} value={a.id}>{a.advisorName} ({a.advisorCode})</option>
-                    ))}
-                  </select>
+                    Import Birthdays / Clients
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setImportTarget('advisors')}
+                    className={`flex-1 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${importTarget === 'advisors' ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground'}`}
+                  >
+                    Import Advisors
+                  </button>
                 </div>
-              )}
 
-              <div className="flex gap-2 p-1 bg-surface-2 rounded-xl">
-                <button
-                  type="button"
-                  onClick={() => setImportMethod('file')}
-                  className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${importMethod === 'file' ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground'}`}
-                >
-                  Upload File (.xlsx / .csv)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setImportMethod('paste')}
-                  className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${importMethod === 'paste' ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground'}`}
-                >
-                  Paste Text
-                </button>
+                {importTarget === 'clients' && !selectedAdvisor && (
+                  <div>
+                    <label className={formLabelClass}>Destination Advisor *</label>
+                    <select
+                      required
+                      value={importAdvisorId}
+                      onChange={e => setImportAdvisorId(e.target.value)}
+                      className={formInputClass}
+                    >
+                      <option value="">Select Advisor</option>
+                      {advisors.map(a => (
+                        <option key={a.id} value={a.id}>{a.advisorName} ({a.advisorCode})</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div className="flex gap-2 p-1 bg-surface-2 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setImportMethod('file')}
+                    className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${importMethod === 'file' ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground'}`}
+                  >
+                    Upload File
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setImportMethod('paste')}
+                    className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${importMethod === 'paste' ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground'}`}
+                  >
+                    Paste Text / Table
+                  </button>
+                </div>
+
+                {importMethod === 'file' ? (
+                  <div className="border-2 border-dashed border-border rounded-2xl p-6 text-center hover:border-primary/50 transition">
+                    <FileSpreadsheet className="mx-auto text-muted-foreground mb-2" size={28} />
+                    <input
+                      type="file"
+                      accept=".xlsx,.xls,.csv,.pdf,.docx,.txt"
+                      onChange={e => { setImportFile(e.target.files?.[0] || null); setImportParseError(''); }}
+                      className="block w-full text-xs text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-black hover:file:bg-primary/90 cursor-pointer"
+                    />
+                    <p className="text-[11px] text-muted-foreground mt-2">
+                      Supported: <span className="font-semibold">.xlsx · .xls · .csv · .pdf · .docx · .txt</span>
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Headers auto-detected · Columns mapped by name, not position
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    <label className={formLabelClass}>Paste rows or table (tab or comma separated)</label>
+                    <textarea
+                      rows={6}
+                      value={pastedText}
+                      onChange={e => { setPastedText(e.target.value); setImportParseError(''); }}
+                      placeholder={"Client Name\tBirthdate\tBeneficiary\nJuan Dela Cruz\t1990-05-15\tMaria Dela Cruz"}
+                      className={`${formInputClass} font-mono`}
+                    />
+                    <p className="text-[10px] text-muted-foreground mt-1">Include a header row. Headers are auto-detected by name.</p>
+                  </div>
+                )}
+
+                {importParseError && (
+                  <div className="p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800/40 rounded-xl">
+                    <p className="text-xs text-red-600 dark:text-red-400 font-semibold">{importParseError}</p>
+                  </div>
+                )}
+
+                {importStatus && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold">{importStatus}</p>
+                )}
+
+                <div className="flex justify-end gap-3 pt-4 border-t border-border">
+                  <button
+                    type="button"
+                    onClick={() => setActiveModal(null)}
+                    className="px-5 py-2.5 bg-surface-2 hover:bg-surface-2/80 text-foreground font-bold text-xs rounded-xl transition cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isImporting}
+                    className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-[#F4C542] hover:from-amber-600 hover:to-[#e6b800] text-black font-extrabold text-xs rounded-xl shadow-sm transition active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+                  >
+                    {isImporting ? 'Parsing...' : 'Parse & Preview →'}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div>
+                    <p className="text-sm font-bold text-foreground">
+                      {importPreview.length} record{importPreview.length !== 1 ? 's' : ''} ready to import
+                    </p>
+                    {importSkipped > 0 && (
+                      <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+                        {importSkipped} blank or unrecognised row{importSkipped !== 1 ? 's' : ''} skipped
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setImportPreview(null); setImportParseError(''); }}
+                    className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 cursor-pointer"
+                  >
+                    ← Re-select file
+                  </button>
+                </div>
+
+                <div className="border border-border rounded-2xl overflow-hidden">
+                  <div className="overflow-auto max-h-72">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead className="bg-background border-b border-border sticky top-0">
+                        <tr>
+                          <th className="py-2.5 px-3 font-bold text-muted-foreground uppercase text-[10px] tracking-wider w-8">#</th>
+                          <th className="py-2.5 px-3 font-bold text-muted-foreground uppercase text-[10px] tracking-wider">Client Name</th>
+                          <th className="py-2.5 px-3 font-bold text-muted-foreground uppercase text-[10px] tracking-wider">Birthdate</th>
+                          <th className="py-2.5 px-3 font-bold text-muted-foreground uppercase text-[10px] tracking-wider">Beneficiary</th>
+                          <th className="py-2.5 px-3 font-bold text-muted-foreground uppercase text-[10px] tracking-wider">Rel.</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {importPreview.map((r, idx) => (
+                          <tr key={idx} className={!r.birthdate ? 'bg-amber-50/60 dark:bg-amber-950/10' : ''}>
+                            <td className="py-2 px-3 text-muted-foreground font-mono text-[10px]">{idx + 1}</td>
+                            <td className="py-2 px-3 font-semibold text-foreground whitespace-nowrap">{r.client_name}</td>
+                            <td className={`py-2 px-3 font-mono whitespace-nowrap ${!r.birthdate ? 'text-amber-600 dark:text-amber-400' : 'text-foreground'}`}>
+                              {r.birthdate ?? '⚠ no date'}
+                            </td>
+                            <td className="py-2 px-3 text-muted-foreground">{r.beneficiary ?? '—'}</td>
+                            <td className="py-2 px-3 text-muted-foreground">{r.relationship ?? '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {importStatus && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold">{importStatus}</p>
+                )}
+
+                <div className="flex justify-end gap-3 pt-4 border-t border-border">
+                  <button
+                    type="button"
+                    onClick={() => { setImportPreview(null); setImportParseError(''); }}
+                    className="px-5 py-2.5 bg-surface-2 hover:bg-surface-2/80 text-foreground font-bold text-xs rounded-xl transition cursor-pointer"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmImport}
+                    disabled={isImporting || importPreview.length === 0}
+                    className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-[#F4C542] hover:from-amber-600 hover:to-[#e6b800] text-black font-extrabold text-xs rounded-xl shadow-sm transition active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+                  >
+                    {isImporting ? 'Importing...' : `Confirm Import (${importPreview.length})`}
+                  </button>
+                </div>
               </div>
-
-              {importMethod === 'file' ? (
-                <div className="border-2 border-dashed border-border rounded-2xl p-6 text-center hover:border-primary/50 transition">
-                  <FileSpreadsheet className="mx-auto text-muted-foreground mb-2" size={28} />
-                  <input
-                    type="file"
-                    accept=".xlsx,.xls,.csv"
-                    onChange={e => setImportFile(e.target.files?.[0] || null)}
-                    className="block w-full text-xs text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-black hover:file:bg-primary/90 cursor-pointer"
-                  />
-                  <p className="text-[11px] text-muted-foreground mt-2">
-                    Columns: Name, Birthdate (YYYY-MM-DD), Beneficiary
-                  </p>
-                </div>
-              ) : (
-                <div>
-                  <label className={formLabelClass}>Paste rows (tab/comma separated: Name, Birthdate, Beneficiary)</label>
-                  <textarea
-                    rows={5}
-                    value={pastedText}
-                    onChange={e => setPastedText(e.target.value)}
-                    placeholder="Juan Dela Cruz, 1990-05-15, Maria Dela Cruz"
-                    className={`${formInputClass} font-mono`}
-                  />
-                </div>
-              )}
-
-              {importStatus && (
-                <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold">{importStatus}</p>
-              )}
-
-              <div className="flex justify-end gap-3 pt-4 border-t border-border">
-                <button
-                  type="button"
-                  onClick={() => setActiveModal(null)}
-                  className="px-5 py-2.5 bg-surface-2 hover:bg-surface-2/80 text-foreground font-bold text-xs rounded-xl transition cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isImporting}
-                  className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-[#F4C542] hover:from-amber-600 hover:to-[#e6b800] text-black font-extrabold text-xs rounded-xl shadow-sm transition active:scale-[0.98] disabled:opacity-50 cursor-pointer"
-                >
-                  {isImporting ? 'Importing...' : 'Start Import'}
-                </button>
-              </div>
-            </form>
+            )}
           </div>
         </div>
       )}

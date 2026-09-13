@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ClientInquiry } from '@src/features/dashboard/types/inquiry';
 import { UserProfile } from '@src/features/dashboard/components/UserAvatar';
 
@@ -10,6 +10,7 @@ export interface InquiryModalProps {
     handleDeleteInquiry: (inquiryId: string) => Promise<void>;
     allProfiles: UserProfile[];
     currentUserProfile: UserProfile | null;
+    copyInquiryToPendingSubmission?: (inquiry: ClientInquiry, category: string) => Promise<void>;
 }
 
 const GOLD = '#D89B1D';
@@ -21,6 +22,19 @@ const DANGER = '#EF4444';
 const INQUIRY_STATUS_OPTIONS = ['Pending Response', 'Addressed Concerns'];
 const TASK_STATUS_OPTIONS = ['Pending', 'Done'];
 
+const SERVICING_CATEGORIES = [
+    { value: 'ACR', label: 'ACR — Advisor Change Request' },
+    { value: 'BCR', label: 'BCR — Beneficiary Change Request' },
+    { value: 'FSR', label: 'FSR — Fund Switching Request' },
+    { value: 'FW', label: 'FW — Fund Withdrawal Request' },
+    { value: 'ACA', label: 'ACA — Auto Credits Arrangement' },
+    { value: 'CPST', label: 'CPST — Client Policy Status Tracking' },
+    { value: 'ACICR', label: 'ACICR — Address and Contact Information Change Request' },
+    { value: 'MNGT', label: 'MNGT' },
+    { value: 'PPU', label: 'PPU' },
+    { value: 'Others', label: 'Others / Miscellaneous' },
+];
+
 export const InquiryModal: React.FC<InquiryModalProps> = ({
     isOpen,
     onClose,
@@ -28,12 +42,19 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({
     saveInquiryField,
     handleDeleteInquiry,
     allProfiles,
-    currentUserProfile
+    currentUserProfile,
+    copyInquiryToPendingSubmission
 }) => {
     const [formData, setFormData] = useState<Partial<ClientInquiry>>({});
     const [isSaving, setIsSaving] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [selectedCategory, setSelectedCategory] = useState('Others');
+    const [isMoving, setIsMoving] = useState(false);
+    const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+    const [categorySearch, setCategorySearch] = useState('');
+    const categoryRef = useRef<HTMLDivElement>(null);
+    const categorySearchInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if (inquiry) {
@@ -44,13 +65,59 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({
                 status: inquiry.status || 'Pending',
                 processed_by: inquiry.processed_by || currentUserProfile?.id || null
             });
+            setSelectedCategory((inquiry as any).category || 'Others');
         }
     }, [inquiry, currentUserProfile]);
+
+    useEffect(() => {
+        if (!isCategoryOpen) return;
+
+        const handleClickOutside = (e: MouseEvent) => {
+            if (categoryRef.current && !categoryRef.current.contains(e.target as Node)) {
+                setIsCategoryOpen(false);
+                setCategorySearch('');
+            }
+        };
+
+        const handleEscape = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                e.stopPropagation();
+                setIsCategoryOpen(false);
+                setCategorySearch('');
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('keydown', handleEscape, true);
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('keydown', handleEscape, true);
+        };
+    }, [isCategoryOpen]);
+
+    useEffect(() => {
+        if (isCategoryOpen) {
+            requestAnimationFrame(() => {
+                categorySearchInputRef.current?.focus();
+            });
+        }
+    }, [isCategoryOpen]);
 
     if (!isOpen || !inquiry) return null;
 
     const handleChange = (field: keyof ClientInquiry, value: any) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
+        setFormData(prev => {
+            const next = { ...prev, [field]: value };
+            if (field === 'inquiry_type') {
+                if (value === 'Address Concern') {
+                    next.status = 'Addressed';
+                } else if (value === 'Pending Response' && prev.status === 'Addressed') {
+                    next.status = 'Pending';
+                }
+            }
+            return next;
+        });
     };
 
     const handleSave = async () => {
@@ -71,6 +138,8 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({
 
     const handleClose = () => {
         setShowDeleteConfirm(false);
+        setIsCategoryOpen(false);
+        setCategorySearch('');
         onClose();
     };
 
@@ -82,12 +151,55 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({
         onClose();
     };
 
+    const handleMoveToPendingSubmission = async () => {
+        if (!inquiry || !copyInquiryToPendingSubmission) return;
+        setIsMoving(true);
+        try {
+            await copyInquiryToPendingSubmission(inquiry, selectedCategory);
+            onClose();
+        } catch (err) {
+            console.error('Failed to move inquiry to Pending for Submission:', err);
+        } finally {
+            setIsMoving(false);
+        }
+    };
+
     const inputBaseClass =
         'w-full h-11 px-3.5 rounded-xl border text-sm font-medium bg-white transition-all duration-200 outline-none';
 
     const processedByInitial = (currentUserProfile?.full_name || currentUserProfile?.email || 'U')
         .charAt(0)
         .toUpperCase();
+
+    const isAddressedConcern = formData.inquiry_type === 'Address Concern';
+
+    const selectedCategoryLabel =
+        SERVICING_CATEGORIES.find((cat) => cat.value === selectedCategory)?.label || 'Select category';
+
+    const normalizedSearch = categorySearch.trim().toLowerCase();
+    const filteredCategories = normalizedSearch
+        ? SERVICING_CATEGORIES.filter(
+            (cat) =>
+                cat.label.toLowerCase().includes(normalizedSearch) ||
+                cat.value.toLowerCase().includes(normalizedSearch)
+        )
+        : SERVICING_CATEGORIES;
+
+    const toggleCategoryDropdown = () => {
+        setIsCategoryOpen((prev) => {
+            const next = !prev;
+            if (!next) {
+                setCategorySearch('');
+            }
+            return next;
+        });
+    };
+
+    const handleSelectCategory = (value: string) => {
+        setSelectedCategory(value);
+        setIsCategoryOpen(false);
+        setCategorySearch('');
+    };
 
     return (
         <>
@@ -109,6 +221,16 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({
                 }
                 .im-btn-lift:hover {
                     transform: translateY(-1px);
+                }
+                .im-category-option:hover {
+                    background: ${GOLD_LIGHT} !important;
+                }
+                .im-category-scroll::-webkit-scrollbar {
+                    width: 6px;
+                }
+                .im-category-scroll::-webkit-scrollbar-thumb {
+                    background: ${GOLD_BORDER};
+                    border-radius: 999px;
                 }
             `}</style>
 
@@ -270,18 +392,37 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({
                                     <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#4A4A4A', marginBottom: '6px', display: 'block' }}>
                                         Status
                                     </label>
-                                    <select
-                                        value={formData.status || 'Pending'}
-                                        onChange={(e) => handleChange('status', e.target.value)}
-                                        className={`${inputBaseClass} im-input`}
-                                        style={{ borderColor: GOLD_BORDER, cursor: 'pointer' }}
-                                    >
-                                        {TASK_STATUS_OPTIONS.map((opt) => (
-                                            <option key={opt} value={opt}>
-                                                {opt}
-                                            </option>
-                                        ))}
-                                    </select>
+                                    {isAddressedConcern ? (
+                                        <div
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                height: '44px',
+                                                borderRadius: '12px',
+                                                border: `1px solid ${GOLD_BORDER}`,
+                                                background: GOLD_LIGHT,
+                                                padding: '0 14px',
+                                                fontSize: '0.82rem',
+                                                fontWeight: 700,
+                                                color: GOLD_HOVER,
+                                            }}
+                                        >
+                                            Addressed
+                                        </div>
+                                    ) : (
+                                        <select
+                                            value={formData.status || 'Pending'}
+                                            onChange={(e) => handleChange('status', e.target.value)}
+                                            className={`${inputBaseClass} im-input`}
+                                            style={{ borderColor: GOLD_BORDER, cursor: 'pointer' }}
+                                        >
+                                            {TASK_STATUS_OPTIONS.map((opt) => (
+                                                <option key={opt} value={opt}>
+                                                    {opt}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    )}
                                 </div>
 
                                 <div>
@@ -363,6 +504,198 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({
                                 }}
                             />
                         </div>
+
+                        {isAddressedConcern && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                <div style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.06em', color: GOLD_HOVER, textTransform: 'uppercase' }}>
+                                    Client Servicing Monitoring
+                                </div>
+                                <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                                    <div ref={categoryRef} style={{ flex: 1, minWidth: '220px', position: 'relative' }}>
+                                        <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#4A4A4A', marginBottom: '6px', display: 'block' }}>
+                                            Category
+                                        </label>
+
+                                        <button
+                                            type="button"
+                                            onClick={toggleCategoryDropdown}
+                                            className="im-input"
+                                            style={{
+                                                width: '100%',
+                                                height: '44px',
+                                                padding: '0 14px',
+                                                borderRadius: '12px',
+                                                border: `1px solid ${GOLD_BORDER}`,
+                                                background: '#FFFFFF',
+                                                fontSize: '0.85rem',
+                                                fontWeight: 600,
+                                                color: '#1A1A1A',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'space-between',
+                                                gap: '8px',
+                                                textAlign: 'left',
+                                            }}
+                                        >
+                                            <span
+                                                style={{
+                                                    overflow: 'hidden',
+                                                    textOverflow: 'ellipsis',
+                                                    whiteSpace: 'nowrap',
+                                                }}
+                                            >
+                                                {selectedCategoryLabel}
+                                            </span>
+                                            <span
+                                                style={{
+                                                    fontSize: '0.7rem',
+                                                    color: GOLD_HOVER,
+                                                    flexShrink: 0,
+                                                    transform: isCategoryOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                                                    transition: 'transform 150ms ease',
+                                                }}
+                                            >
+                                                ▼
+                                            </span>
+                                        </button>
+
+                                        {isCategoryOpen && (
+                                            <div
+                                                style={{
+                                                    position: 'absolute',
+                                                    top: 'calc(100% + 6px)',
+                                                    left: 0,
+                                                    right: 0,
+                                                    background: '#FFFFFF',
+                                                    border: `1px solid ${GOLD_BORDER}`,
+                                                    borderRadius: '12px',
+                                                    boxShadow: '0 12px 28px rgba(0,0,0,0.14)',
+                                                    zIndex: 100,
+                                                    overflow: 'hidden',
+                                                }}
+                                            >
+                                                <div
+                                                    style={{
+                                                        padding: '8px',
+                                                        borderBottom: `1px solid ${GOLD_BORDER}`,
+                                                        background: GOLD_LIGHT,
+                                                    }}
+                                                >
+                                                    <div
+                                                        style={{
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: '6px',
+                                                            background: '#FFFFFF',
+                                                            border: `1px solid ${GOLD_BORDER}`,
+                                                            borderRadius: '8px',
+                                                            padding: '6px 10px',
+                                                        }}
+                                                    >
+                                                        <span style={{ fontSize: '0.8rem', color: GOLD_HOVER }}>🔍</span>
+                                                        <input
+                                                            ref={categorySearchInputRef}
+                                                            type="text"
+                                                            value={categorySearch}
+                                                            onChange={(e) => setCategorySearch(e.target.value)}
+                                                            placeholder="Search categories..."
+                                                            style={{
+                                                                flex: 1,
+                                                                border: 'none',
+                                                                outline: 'none',
+                                                                fontSize: '0.8rem',
+                                                                fontWeight: 500,
+                                                                color: '#1A1A1A',
+                                                                background: 'transparent',
+                                                            }}
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div
+                                                    className="im-category-scroll"
+                                                    style={{
+                                                        maxHeight: '220px',
+                                                        overflowY: 'auto',
+                                                    }}
+                                                >
+                                                    {filteredCategories.length === 0 ? (
+                                                        <div
+                                                            style={{
+                                                                padding: '14px',
+                                                                fontSize: '0.8rem',
+                                                                color: '#9A9A9A',
+                                                                textAlign: 'center',
+                                                            }}
+                                                        >
+                                                            No categories found
+                                                        </div>
+                                                    ) : (
+                                                        filteredCategories.map((cat) => {
+                                                            const isSelected = cat.value === selectedCategory;
+                                                            return (
+                                                                <div
+                                                                    key={cat.value}
+                                                                    onClick={() => handleSelectCategory(cat.value)}
+                                                                    className="im-category-option"
+                                                                    style={{
+                                                                        padding: '10px 14px',
+                                                                        fontSize: '0.82rem',
+                                                                        fontWeight: isSelected ? 700 : 500,
+                                                                        color: isSelected ? GOLD_HOVER : '#1A1A1A',
+                                                                        background: isSelected ? GOLD_LIGHT : 'transparent',
+                                                                        cursor: 'pointer',
+                                                                        display: 'flex',
+                                                                        alignItems: 'center',
+                                                                        justifyContent: 'space-between',
+                                                                        gap: '8px',
+                                                                    }}
+                                                                >
+                                                                    <span
+                                                                        style={{
+                                                                            overflow: 'hidden',
+                                                                            textOverflow: 'ellipsis',
+                                                                            whiteSpace: 'nowrap',
+                                                                        }}
+                                                                    >
+                                                                        {cat.label}
+                                                                    </span>
+                                                                    {isSelected && (
+                                                                        <span style={{ color: GOLD_HOVER, flexShrink: 0 }}>✓</span>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={handleMoveToPendingSubmission}
+                                        disabled={isMoving || !copyInquiryToPendingSubmission}
+                                        className="im-btn-lift"
+                                        style={{
+                                            height: '44px',
+                                            padding: '0 20px',
+                                            borderRadius: '12px',
+                                            border: 'none',
+                                            background: `linear-gradient(135deg, ${GOLD}, ${GOLD_HOVER})`,
+                                            color: '#FFFFFF',
+                                            fontSize: '0.82rem',
+                                            fontWeight: 700,
+                                            cursor: isMoving ? 'default' : 'pointer',
+                                            opacity: isMoving || !copyInquiryToPendingSubmission ? 0.6 : 1,
+                                            whiteSpace: 'nowrap',
+                                        }}
+                                    >
+                                        {isMoving ? 'Moving...' : 'Move to Pending for Submission'}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
 
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                             <div

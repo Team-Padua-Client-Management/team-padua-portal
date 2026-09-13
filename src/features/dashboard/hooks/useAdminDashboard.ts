@@ -478,17 +478,11 @@ export const useAdminDashboard = () => {
       if ("user_id" in updates && updates.user_id)
         dbUpdates.user_id = updates.user_id;
 
-      console.log("========== UPDATE INQUIRY ==========");
-      console.log("Inquiry ID:", inquiryId);
-      console.log("Updates:", dbUpdates);
-
       const { data, error } = await supabase
         .from("client_inquiries")
         .update(dbUpdates)
         .eq("id", inquiryId)
         .select();
-
-      console.log("Returned Data:", data);
 
       if (error) {
         console.error("Supabase Update Error:", {
@@ -604,7 +598,11 @@ export const useAdminDashboard = () => {
     }
   };
 
+<<<<<<< HEAD
   const copyInquiryToPendingSubmission = async (inquiry: ClientInquiry, targetCategory?: string) => {
+=======
+  const copyInquiryToPendingSubmission = async (inquiry: ClientInquiry, category?: string) => {
+>>>>>>> 9c5d699 (new update)
     let activeUserId = currentUserIdRef.current || currentUserId;
 
     if (!activeUserId) {
@@ -614,12 +612,45 @@ export const useAdminDashboard = () => {
 
     if (!activeUserId) return;
 
+    try {
+      const { data: existingTasks, error: existingErr } = await supabase
+        .from('client_servicing_tasks')
+        .select('id, notes')
+        .ilike('notes', `%${inquiry.id}%`);
+
+      if (!existingErr && existingTasks && existingTasks.length > 0) {
+        const alreadyExists = existingTasks.some((t: any) => {
+          try {
+            const meta = parseTaskMetadata(t.notes || '');
+            return meta.source_inquiry_id === inquiry.id && meta.workflow_status === 'Pending for Submission';
+          } catch {
+            return false;
+          }
+        });
+
+        if (alreadyExists) {
+          createNotification({
+            title: 'Already Pending for Submission',
+            description: 'This inquiry has already been moved to Pending for Submission.',
+            type: 'info',
+          });
+          return;
+        }
+      }
+    } catch (err) {
+      console.error('Error checking for duplicate Pending for Submission task:', err);
+    }
+
     const rawNotes = inquiry.inquiry_concern || (inquiry as any).notes || '';
     const currentMeta = parseTaskMetadata(rawNotes);
     const clientName = inquiry.cmgc_name || (inquiry as any).title || 'Untitled Client';
+    const selectedCategory = category || currentMeta.category || (inquiry as any).category || 'Others';
+
     const updatedMeta = {
       ...currentMeta,
       workflow_status: 'Pending for Submission',
+      category: selectedCategory,
+      source_inquiry_id: inquiry.id,
       policy_owner: currentMeta.policy_owner || clientName,
       policy_insured: currentMeta.policy_insured || clientName,
       date_of_request: currentMeta.date_of_request || new Date().toISOString().split('T')[0],
@@ -631,7 +662,11 @@ export const useAdminDashboard = () => {
       user_id: activeUserId,
       title: clientName,
       notes: newNotes,
+<<<<<<< HEAD
       category: targetCategory || (inquiry as any).category || 'Others',
+=======
+      category: selectedCategory,
+>>>>>>> 9c5d699 (new update)
       status: 'Pending',
       service_request_number: currentMeta.service_request_number || (inquiry as any).service_request_number || null,
       assigned_to: (inquiry as any).assigned_to || activeUserId,
@@ -654,6 +689,12 @@ export const useAdminDashboard = () => {
 
       const createdTask = mapDbTaskToUiTask(data, 'client_servicing_tasks');
       setUserTasks((prev) => [createdTask, ...prev]);
+
+      createNotification({
+        title: 'Moved to Pending for Submission',
+        description: `"${clientName}" was moved to Client Servicing Monitoring under ${selectedCategory}.`,
+        type: 'info',
+      });
     } catch (err) {
       console.error('Error copying inquiry:', err);
     }
@@ -684,7 +725,7 @@ export const useAdminDashboard = () => {
             cmgc_name: inquiry.cmgc_name || '',
             inquiry_type: 'Address Concern',
             inquiry_concern: inquiry.inquiry_concern || '',
-            status: inquiry.status || 'Pending',
+            status: 'Addressed',
           },
         ])
         .select()

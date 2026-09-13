@@ -1,3 +1,4 @@
+// C:\website\team-padua-portal\src\features\dashboard\components\InquiryPreview.tsx
 import React, { useState, useEffect, useMemo } from 'react';
 import { Edit2, Save, Check, Loader2 } from 'lucide-react';
 import { ClientInquiry } from '@src/features/dashboard/types/inquiry';
