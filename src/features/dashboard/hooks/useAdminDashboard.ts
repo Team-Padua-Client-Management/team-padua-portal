@@ -598,11 +598,7 @@ export const useAdminDashboard = () => {
     }
   };
 
-<<<<<<< HEAD
   const copyInquiryToPendingSubmission = async (inquiry: ClientInquiry, targetCategory?: string) => {
-=======
-  const copyInquiryToPendingSubmission = async (inquiry: ClientInquiry, category?: string) => {
->>>>>>> 9c5d699 (new update)
     let activeUserId = currentUserIdRef.current || currentUserId;
 
     if (!activeUserId) {
@@ -644,7 +640,7 @@ export const useAdminDashboard = () => {
     const rawNotes = inquiry.inquiry_concern || (inquiry as any).notes || '';
     const currentMeta = parseTaskMetadata(rawNotes);
     const clientName = inquiry.cmgc_name || (inquiry as any).title || 'Untitled Client';
-    const selectedCategory = category || currentMeta.category || (inquiry as any).category || 'Others';
+    const selectedCategory = targetCategory || currentMeta.category || (inquiry as any).category || 'Others';
 
     const updatedMeta = {
       ...currentMeta,
@@ -662,11 +658,7 @@ export const useAdminDashboard = () => {
       user_id: activeUserId,
       title: clientName,
       notes: newNotes,
-<<<<<<< HEAD
-      category: targetCategory || (inquiry as any).category || 'Others',
-=======
       category: selectedCategory,
->>>>>>> 9c5d699 (new update)
       status: 'Pending',
       service_request_number: currentMeta.service_request_number || (inquiry as any).service_request_number || null,
       assigned_to: (inquiry as any).assigned_to || activeUserId,
