@@ -13,6 +13,7 @@ import {
   getBirthdaysAroundNow,
   formatUiTaskToDbUpdates
 } from '@src/features/dashboard/utils/dashboardUtils';
+import { getClientBirthdays } from '@src/features/client-servicing/cgpt/CGPTClient';
 import { parseTaskMetadata, buildTaskNotes } from '@src/features/dashboard/components/TaskList';
 import createNotification from '@src/lib/notifications/createNotification';
 import { ClientInquiry } from '@src/features/dashboard/types/inquiry';
@@ -154,7 +155,11 @@ export const useAdminDashboard = () => {
         .order('advisor_name');
 
       if (!error && data) {
-        setAdvisors(data as AdvisorItem[]);
+        setAdvisors(data.map((a: any) => ({
+          id: a.id,
+          advisor_name: (a.advisor_name || '').trim(),
+          advisor_code: (a.advisor_code || '').trim(),
+        })));
       }
     } catch (err) {
       console.error('Exception loading advisors:', err);
@@ -321,43 +326,18 @@ export const useAdminDashboard = () => {
         }
       }
 
-      let { data: cpstClientsData, error: cpstErr } = await supabase
-        .from('cgpt_clients')
-        .select(`
-          id,
-          client_name,
-          birthdate,
-          advisor_id,
-          advisor:advisors(
-            id,
-            advisor_name,
-            advisor_code
-          )
-        `);
-
-      if (cpstErr || (!cpstClientsData || cpstClientsData.length === 0)) {
-        const fallbackRes = await supabase
-          .from('cpst_clients')
-          .select(`
-            id,
-            client_name,
-            birthdate,
-            advisor_id,
-            advisor:advisors(
-              id,
-              advisor_name,
-              advisor_code
-            )
-          `);
-        if (fallbackRes.data && fallbackRes.data.length > 0) {
-          cpstClientsData = fallbackRes.data;
-          cpstErr = null;
+      try {
+        const { birthdays: bdays, advisors: advs } = await getClientBirthdays();
+        setClientBirthdays(bdays);
+        if (advs && advs.length > 0) {
+          setAdvisors(advs.map((a) => ({
+            id: a.id,
+            advisor_name: (a.advisorName || '').trim(),
+            advisor_code: (a.advisorCode || '').trim(),
+          })));
         }
-      }
-
-      if (!cpstErr && cpstClientsData && Array.isArray(cpstClientsData)) {
-        const matched = getBirthdaysAroundNow(cpstClientsData);
-        setClientBirthdays(matched);
+      } catch (e) {
+        console.error('Error fetching client birthdays:', e);
       }
 
       const { count: membersCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });

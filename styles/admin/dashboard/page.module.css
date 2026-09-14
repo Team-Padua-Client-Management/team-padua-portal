@@ -4655,13 +4655,19 @@
 
 .birthdayItemCard:hover {
   border-color: var(--border-strong);
-  box-shadow: var(--shadow-xs);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
+  transform: translateY(-1px);
 }
 
 .birthdayItemToday {
-  background: var(--surface-hover);
-  border-color: #FCD34D;
-  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.12);
+  background: rgba(254, 243, 199, 0.28);
+  border-color: rgba(217, 119, 6, 0.45);
+  box-shadow: 0 2px 8px rgba(217, 119, 6, 0.08);
+}
+
+.birthdayItemToday:hover {
+  border-color: #D97706;
+  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.12);
 }
 
 .birthdayAvatarWrapper {
@@ -4672,6 +4678,11 @@
   height: 34px;
   border-radius: 999px;
   flex-shrink: 0;
+  transition: transform 0.18s ease;
+}
+
+.birthdayItemCard:hover .birthdayAvatarWrapper {
+  transform: scale(1.05);
 }
 
 .birthdayInfoGroup {
@@ -4701,9 +4712,9 @@
   border-radius: 6px;
   font-size: 10px;
   font-weight: 700;
-  color: var(--accent-strong);
-  background: var(--accent-soft);
-  border: 1px solid var(--border-strong);
+  color: #B45309;
+  background: rgba(254, 243, 199, 0.5);
+  border: 1px solid rgba(245, 158, 11, 0.3);
   white-space: nowrap;
 }
 
@@ -4737,20 +4748,30 @@
 
 .birthdayStatusBadge[data-when="today"] {
   background: #FEF3C7;
-  color: #B45309;
+  color: #92400E;
   border: 1px solid #FCD34D;
 }
 
 .birthdayStatusBadge[data-when="tomorrow"] {
-  background: #EFF6FF;
-  color: #1D4ED8;
-  border: 1px solid #BFDBFE;
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
 }
 
 .birthdayStatusBadge[data-when="yesterday"] {
-  background: #F1F5F9;
-  color: #475569;
-  border: 1px solid #CBD5E1;
+  background: var(--surface-2);
+  color: var(--text-tertiary);
+  border: 1px solid var(--border);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .birthdayItemCard,
+  .birthdayItemCard:hover,
+  .birthdayAvatarWrapper,
+  .birthdayItemCard:hover .birthdayAvatarWrapper {
+    transition: none !important;
+    transform: none !important;
+  }
 }
 
 /* ---------------------------------------------------------------------------

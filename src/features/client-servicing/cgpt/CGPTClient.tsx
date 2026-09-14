@@ -35,50 +35,105 @@ export interface BirthdayItem {
 function isValidDate(year: number, month: number, day: number): boolean {
   if (typeof year !== 'number' || typeof month !== 'number' || typeof day !== 'number') return false;
   if (isNaN(year) || isNaN(month) || isNaN(day)) return false;
-  const currentYear = new Date().getFullYear();
-  if (year < 1900 || year > currentYear + 1) return false;
+  if (year < 1900 || year > 2100) return false;
   if (month < 0 || month > 11) return false;
   if (day < 1 || day > 31) return false;
-  const d = new Date(year, month, day);
-  d.setFullYear(year);
-  return d.getFullYear() === year && d.getMonth() === month && d.getDate() === day;
+  const daysInMonth = [31, (year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0)) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  return day <= daysInMonth[month];
 }
 
-export function extractMonthDayYear(birthRaw: string | null | undefined): { year: number; month: number; day: number } | null {
-  if (!birthRaw) return null;
-  const trimmed = String(birthRaw).trim();
-  if (!trimmed) return null;
+const MONTH_NAME_MAP: Record<string, number> = {
+  jan: 1, january: 1,
+  feb: 2, february: 2,
+  mar: 3, march: 3,
+  apr: 4, april: 4,
+  may: 5,
+  jun: 6, june: 6,
+  jul: 7, july: 7,
+  aug: 8, august: 8,
+  sep: 9, sept: 9, september: 9,
+  oct: 10, october: 10,
+  nov: 11, november: 11,
+  dec: 12, december: 12,
+};
 
-  const dateOnlyMatch = trimmed.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})(?:[T\s].*)?$/);
-  if (dateOnlyMatch) {
-    const year = parseInt(dateOnlyMatch[1], 10);
-    const month = parseInt(dateOnlyMatch[2], 10) - 1;
-    const day = parseInt(dateOnlyMatch[3], 10);
-    if (isValidDate(year, month, day)) {
-      return { year, month, day };
-    }
+const SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+export function extractMonthDayYear(birthRaw: string | Date | null | undefined): { year: number; month: number; day: number } | null {
+  if (!birthRaw) return null;
+
+  if (birthRaw instanceof Date) {
+    if (isNaN(birthRaw.getTime())) return null;
+    const year = birthRaw.getFullYear();
+    const month = birthRaw.getMonth();
+    const day = birthRaw.getDate();
+    if (isValidDate(year, month, day)) return { year, month, day };
     return null;
   }
 
+  const trimmed = String(birthRaw).trim();
+  if (!trimmed) return null;
+
+  // 1. ISO date: YYYY-MM-DD or YYYY/MM/DD (with optional time part)
+  const isoMatch = trimmed.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})(?:[T\s].*)?$/);
+  if (isoMatch) {
+    const year = parseInt(isoMatch[1], 10);
+    const month = parseInt(isoMatch[2], 10) - 1;
+    const day = parseInt(isoMatch[3], 10);
+    if (isValidDate(year, month, day)) return { year, month, day };
+    return null;
+  }
+
+  // 2. Month name first: 'Dec 27, 1997', 'December 27, 1997', 'Dec 27 1997', 'Dec-27-1997'
+  const monthFirstMatch = trimmed.match(/^([a-zA-Z]+)[,\s\-\/]+(\d{1,2})(?:st|nd|rd|th)?[,\s\-\/]+(\d{4})$/);
+  if (monthFirstMatch) {
+    const mName = monthFirstMatch[1].toLowerCase();
+    const mNum = MONTH_NAME_MAP[mName];
+    if (mNum) {
+      const month = mNum - 1;
+      const day = parseInt(monthFirstMatch[2], 10);
+      const year = parseInt(monthFirstMatch[3], 10);
+      if (isValidDate(year, month, day)) return { year, month, day };
+    }
+  }
+
+  // 3. Day first with month name: '27 Dec 1997', '27 December 1997', '27-Dec-1997'
+  const dayFirstMonthMatch = trimmed.match(/^(\d{1,2})(?:st|nd|rd|th)?[,\s\-\/]+([a-zA-Z]+)[,\s\-\/]+(\d{4})$/);
+  if (dayFirstMonthMatch) {
+    const mName = dayFirstMonthMatch[2].toLowerCase();
+    const mNum = MONTH_NAME_MAP[mName];
+    if (mNum) {
+      const day = parseInt(dayFirstMonthMatch[1], 10);
+      const month = mNum - 1;
+      const year = parseInt(dayFirstMonthMatch[3], 10);
+      if (isValidDate(year, month, day)) return { year, month, day };
+    }
+  }
+
+  // 4. Numeric slashes or dashes: '12/27/1997', '12-27-1997', '27/12/1997'
   const slashMatch = trimmed.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
   if (slashMatch) {
     const p1 = parseInt(slashMatch[1], 10);
     const p2 = parseInt(slashMatch[2], 10);
     const year = parseInt(slashMatch[3], 10);
-    if (isValidDate(year, p1 - 1, p2)) {
-      return { year, month: p1 - 1, day: p2 };
-    }
-    if (isValidDate(year, p2 - 1, p1)) {
-      return { year, month: p2 - 1, day: p1 };
+    if (p1 > 12 && p2 <= 12) {
+      if (isValidDate(year, p2 - 1, p1)) return { year, month: p2 - 1, day: p1 };
+    } else if (p2 > 12 && p1 <= 12) {
+      if (isValidDate(year, p1 - 1, p2)) return { year, month: p1 - 1, day: p2 };
+    } else {
+      // Default standard MM/DD/YYYY
+      if (isValidDate(year, p1 - 1, p2)) return { year, month: p1 - 1, day: p2 };
+      if (isValidDate(year, p2 - 1, p1)) return { year, month: p2 - 1, day: p1 };
     }
     return null;
   }
 
-  // Excel date serial number (e.g. 44927 -> 2023-01-01, 29221 -> 1980-01-01)
-  if (/^\d{5}$/.test(trimmed)) {
+  // 5. Excel date serial number (e.g. 44927 -> 2023-01-01, 35791 -> 1997-12-27, 26555 -> 1972-09-13)
+  if (/^\d{4,5}$/.test(trimmed)) {
     const num = Number(trimmed);
-    if (!isNaN(num) && num >= 10000 && num <= 60000) {
-      const d = new Date((num - 25569) * 86400 * 1000);
+    if (!isNaN(num) && num >= 1000 && num <= 65000) {
+      // Pure UTC arithmetic avoids local timezone shifting
+      const d = new Date(Math.round((num - 25569) * 86400000));
       if (!isNaN(d.getTime())) {
         const year = d.getUTCFullYear();
         const month = d.getUTCMonth();
@@ -87,21 +142,6 @@ export function extractMonthDayYear(birthRaw: string | null | undefined): { year
           return { year, month, day };
         }
       }
-    }
-  }
-
-  // Reject standalone numbers or short digit strings (e.g. years like "1990")
-  if (/^\d+$/.test(trimmed)) {
-    return null;
-  }
-
-  const parsed = new Date(trimmed);
-  if (!isNaN(parsed.getTime())) {
-    const year = parsed.getFullYear();
-    const month = parsed.getMonth();
-    const day = parsed.getDate();
-    if (isValidDate(year, month, day)) {
-      return { year, month, day };
     }
   }
 
@@ -122,23 +162,31 @@ export function computeBirthdayWhenAndAge(birthRaw: string | null): {
   if (!isValidDate(birthYear, month, day)) return null;
 
   const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const thisYear = todayStart.getFullYear();
+  const todayY = now.getFullYear();
+  const todayM = now.getMonth();
+  const todayD = now.getDate();
 
-  const birthdayThisYear = new Date(thisYear, month, day);
-  const diffDays = Math.round((birthdayThisYear.getTime() - todayStart.getTime()) / 86400000);
+  const yesterday = new Date(todayY, todayM, todayD - 1);
+  const tomorrow = new Date(todayY, todayM, todayD + 1);
 
   let when: 'today' | 'yesterday' | 'tomorrow' | null = null;
-  if (diffDays === 0) when = 'today';
-  else if (diffDays === 1) when = 'tomorrow';
-  else if (diffDays === -1) when = 'yesterday';
+  let eventYear = todayY;
+
+  if (month === todayM && day === todayD) {
+    when = 'today';
+    eventYear = todayY;
+  } else if (month === yesterday.getMonth() && day === yesterday.getDate()) {
+    when = 'yesterday';
+    eventYear = yesterday.getFullYear();
+  } else if (month === tomorrow.getMonth() && day === tomorrow.getDate()) {
+    when = 'tomorrow';
+    eventYear = tomorrow.getFullYear();
+  }
 
   if (!when) return null;
 
-  const ageTurning = thisYear - birthYear;
-  const dateDisplay = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(
-    new Date(thisYear, month, day)
-  );
+  const ageTurning = eventYear - birthYear;
+  const dateDisplay = `${SHORT_MONTHS[month]} ${day}`;
 
   return { when, ageTurning, dateDisplay };
 }
@@ -156,17 +204,19 @@ export async function getClientBirthdays(options?: {
       supabase
         .from('cgpt_clients')
         .select('*, advisor:advisors(*)')
-        .order('created_at', { ascending: false }),
+        .order('created_at', { ascending: false })
+        .limit(10000),
     ]);
 
     const advisorsData = (advisorsRes.data || []) as Array<Record<string, unknown>>;
     let clientsData = (clientsRes.data || []) as Array<Record<string, unknown>>;
 
-    if (clientsRes.error) {
+    if (clientsRes.error || !clientsData || clientsData.length === 0) {
       const fallbackRes = await supabase
         .from('cpst_clients')
         .select('*, advisor:advisors(*)')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(10000);
       if (fallbackRes.data && fallbackRes.data.length > 0) {
         clientsData = fallbackRes.data as Array<Record<string, unknown>>;
       }
@@ -174,9 +224,9 @@ export async function getClientBirthdays(options?: {
 
     const advisors: AdvisorRecord[] = advisorsData.map((a) => ({
       id: String(a.id || ''),
-      advisorCode: String(a.advisor_code || ''),
-      advisorName: String(a.advisor_name || ''),
-      email: String(a.email || ''),
+      advisorCode: String(a.advisor_code || '').trim(),
+      advisorName: String(a.advisor_name || '').trim(),
+      email: String(a.email || '').trim(),
       createdAt: typeof a.created_at === 'string' ? a.created_at : undefined,
     }));
 
@@ -185,7 +235,7 @@ export async function getClientBirthdays(options?: {
     for (const c of clientsData) {
       const advisorRecord = Array.isArray(c.advisor) ? c.advisor[0] : (c.advisor as Record<string, unknown> | null);
       const advId = (c.advisor_id as string) || (advisorRecord?.id as string) || 'Unassigned';
-      const advName = (advisorRecord?.advisor_name as string) || 'Unassigned';
+      const advName = ((advisorRecord?.advisor_name as string) || 'Unassigned').trim();
 
       if (options?.advisorId && options.advisorId !== 'All' && advId !== options.advisorId) {
         continue;
@@ -197,7 +247,7 @@ export async function getClientBirthdays(options?: {
 
       items.push({
         id: String(c.id || ''),
-        name: String(c.client_name || c.name || 'Unnamed Client'),
+        name: String(c.client_name || c.name || 'Unnamed Client').trim(),
         date: computed.dateDisplay,
         when: computed.when,
         age: computed.ageTurning,
@@ -390,22 +440,41 @@ export function getValidBirthDate(birthdate?: string | null): Date | null {
   return isNaN(d.getTime()) ? null : d;
 }
 
-export function formatBirthdateWithYear(d: Date | null | undefined): string {
-  if (!d || isNaN(d.getTime())) return '—';
-  const month = d.toLocaleString('default', { month: 'short' });
-  return `${month} ${d.getDate()}, ${d.getFullYear()}`;
+export function formatBirthdateWithYear(d: Date | string | null | undefined): string {
+  if (!d) return '—';
+  if (typeof d === 'string') {
+    const extracted = extractMonthDayYear(d);
+    if (extracted && isValidDate(extracted.year, extracted.month, extracted.day)) {
+      return `${SHORT_MONTHS[extracted.month]} ${extracted.day}, ${extracted.year}`;
+    }
+  }
+  if (d instanceof Date && !isNaN(d.getTime())) {
+    const extracted = extractMonthDayYear(d);
+    if (extracted && isValidDate(extracted.year, extracted.month, extracted.day)) {
+      return `${SHORT_MONTHS[extracted.month]} ${extracted.day}, ${extracted.year}`;
+    }
+    const month = d.toLocaleString('default', { month: 'short' });
+    return `${month} ${d.getDate()}, ${d.getFullYear()}`;
+  }
+  return '—';
 }
 
 export function calculateAge(birthdateStr?: string | null): { age: number | null; ageDisplay: string } {
   if (!birthdateStr) return { age: null, ageDisplay: '—' };
-  const d = getValidBirthDate(birthdateStr);
-  if (!d) return { age: null, ageDisplay: '—' };
-  
+  const extracted = extractMonthDayYear(birthdateStr);
+  if (!extracted || !isValidDate(extracted.year, extracted.month, extracted.day)) {
+    return { age: null, ageDisplay: '—' };
+  }
+
   const today = new Date();
-  let age = today.getFullYear() - d.getFullYear();
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth();
+  const currentDay = today.getDate();
+
+  let age = currentYear - extracted.year;
   const hasHadBirthday =
-    today.getMonth() > d.getMonth() ||
-    (today.getMonth() === d.getMonth() && today.getDate() >= d.getDate());
+    currentMonth > extracted.month ||
+    (currentMonth === extracted.month && currentDay >= extracted.day);
   if (!hasHadBirthday) age--;
   return { age, ageDisplay: `${age} yrs` };
 }
@@ -426,17 +495,19 @@ export function getBirthdayCelebrationStatus(birthdateStr?: string | null): {
   }
 
   const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const thisYear = todayStart.getFullYear();
+  const todayY = now.getFullYear();
+  const todayM = now.getMonth();
+  const todayD = now.getDate();
 
-  let bday = new Date(thisYear, month, day);
+  const todayStart = new Date(todayY, todayM, todayD);
+  let bday = new Date(todayY, month, day);
   let daysDiff = Math.round((bday.getTime() - todayStart.getTime()) / 86400000);
-  let turning = thisYear - birthYear;
+  let turning = todayY - birthYear;
 
   if (daysDiff < 0) {
-    bday = new Date(thisYear + 1, month, day);
+    bday = new Date(todayY + 1, month, day);
     daysDiff = Math.round((bday.getTime() - todayStart.getTime()) / 86400000);
-    turning = thisYear + 1 - birthYear;
+    turning = todayY + 1 - birthYear;
   }
 
   if (daysDiff === 0) {
@@ -448,7 +519,7 @@ export function getBirthdayCelebrationStatus(birthdateStr?: string | null): {
   if (daysDiff <= 7) {
     return { statusText: `🎂 In ${daysDiff} days`, statusType: 'upcoming', daysRemaining: daysDiff, turningAge: turning };
   }
-  if (month === now.getMonth()) {
+  if (month === todayM) {
     return { statusText: `🎈 Later this month (${daysDiff} days)`, statusType: 'this_month', daysRemaining: daysDiff, turningAge: turning };
   }
   return { statusText: `In ${daysDiff} days`, statusType: 'passed', daysRemaining: daysDiff, turningAge: turning };
@@ -610,20 +681,11 @@ async function parseFileToRows(file: File): Promise<string[][]> {
   if (ext === 'xlsx' || ext === 'xls') {
     const XLSX = await import('xlsx');
     const buffer = await file.arrayBuffer();
-    const wb = XLSX.read(buffer, { type: 'array', cellDates: true });
+    const wb = XLSX.read(buffer, { type: 'array', cellDates: false });
     const ws = wb.Sheets[wb.SheetNames[0]];
-    const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' }) as unknown[][];
+    const raw = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: '' }) as unknown[][];
     return raw.map(row =>
-      (row as unknown[]).map(cell => {
-        if (cell instanceof Date) {
-          if (isNaN(cell.getTime())) return '';
-          const y = cell.getFullYear();
-          const m = String(cell.getMonth() + 1).padStart(2, '0');
-          const d = String(cell.getDate()).padStart(2, '0');
-          return `${y}-${m}-${d}`;
-        }
-        return String(cell ?? '').trim();
-      })
+      (row as unknown[]).map(cell => String(cell ?? '').trim())
     );
   }
   if (ext === 'csv' || ext === 'txt') return parseDelimitedText(await file.text());

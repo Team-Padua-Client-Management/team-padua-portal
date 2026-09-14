@@ -114,56 +114,25 @@ export const mapDbTaskToCalendarActivity = (
   };
 };
 
+import { computeBirthdayWhenAndAge, extractMonthDayYear } from '@src/features/client-servicing/cgpt/CGPTClient';
+
 export function parseFlexDate(val: any): Date | null {
   if (!val) return null;
-  if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
-  const s = String(val).trim();
-  if (!s) return null;
-
-  const d1 = new Date(s);
-  if (!isNaN(d1.getTime())) return d1;
-
-  const parts = s.split(/[\/\-\.]/);
-  if (parts.length === 3) {
-    const p1 = parseInt(parts[0], 10);
-    const p2 = parseInt(parts[1], 10);
-    const p3 = parseInt(parts[2], 10);
-    if (p1 > 0 && p2 > 0 && p3 > 1900) {
-      const d2 = new Date(p3, p1 - 1, p2);
-      if (!isNaN(d2.getTime())) return d2;
-    }
-  }
-
-  return null;
+  const extracted = extractMonthDayYear(val);
+  if (!extracted) return null;
+  const d = new Date(extracted.year, extracted.month, extracted.day);
+  return isNaN(d.getTime()) ? null : d;
 }
 
 function extractAdvisor(client: any): { advisorId?: string; advisorName?: string } {
   const advisorObj = Array.isArray(client.advisor) ? client.advisor[0] : client.advisor;
   return {
     advisorId: client.advisor_id || advisorObj?.id || undefined,
-    advisorName: advisorObj?.advisor_name || undefined,
+    advisorName: (advisorObj?.advisor_name || '').trim() || undefined,
   };
 }
 
 export function getBirthdaysAroundNow(clients: any[]): BirthdayItem[] {
-  const now = new Date();
-
-  const yesterday = new Date(now);
-  yesterday.setDate(now.getDate() - 1);
-
-  const tomorrow = new Date(now);
-  tomorrow.setDate(now.getDate() + 1);
-
-  const getMonthDayStr = (d: Date) => {
-    const m = (d.getMonth() + 1).toString().padStart(2, '0');
-    const day = d.getDate().toString().padStart(2, '0');
-    return `${m}-${day}`;
-  };
-
-  const yesterdayStr = getMonthDayStr(yesterday);
-  const todayStr = getMonthDayStr(now);
-  const tomorrowStr = getMonthDayStr(tomorrow);
-
   const matched: BirthdayItem[] = [];
 
   if (clients && Array.isArray(clients)) {
@@ -171,44 +140,20 @@ export function getBirthdaysAroundNow(clients: any[]): BirthdayItem[] {
       const bdateVal = client.birthdate || client.birth_date || client.dob || client.birthday;
       if (!bdateVal) continue;
 
-      const bDate = parseFlexDate(bdateVal);
-      if (!bDate) continue;
+      const computed = computeBirthdayWhenAndAge(bdateVal);
+      if (!computed) continue;
 
-      const bStr = getMonthDayStr(bDate);
+      const { advisorId, advisorName } = extractAdvisor(client);
 
-      let when: 'today' | 'yesterday' | 'tomorrow' | null = null;
-      const labelDate = bDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-
-      if (bStr === todayStr) {
-        when = 'today';
-      } else if (bStr === yesterdayStr) {
-        when = 'yesterday';
-      } else if (bStr === tomorrowStr) {
-        when = 'tomorrow';
-      }
-
-      if (when) {
-        let age: number | undefined;
-        if (bDate) {
-          const birthYear = bDate.getFullYear();
-          const currentYear = now.getFullYear();
-          if (birthYear > 1900 && birthYear <= currentYear) {
-            age = currentYear - birthYear;
-          }
-        }
-
-        const { advisorId, advisorName } = extractAdvisor(client);
-
-        matched.push({
-          id: String(client.id || crypto.randomUUID()),
-          name: client.client_name || client.name || 'Client',
-          date: labelDate,
-          when,
-          age,
-          advisorId: advisorId ?? '',
-          advisorName: advisorName ?? '',
-        });
-      }
+      matched.push({
+        id: String(client.id || crypto.randomUUID()),
+        name: String(client.client_name || client.name || 'Client').trim(),
+        date: computed.dateDisplay,
+        when: computed.when,
+        age: computed.ageTurning,
+        advisorId: advisorId ?? '',
+        advisorName: advisorName ?? '',
+      });
     }
   }
 

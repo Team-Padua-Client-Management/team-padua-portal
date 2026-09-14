@@ -14,8 +14,9 @@ import { supabase } from "@src/lib/supabase/client";
 import SignaturePad from '@src/components/ui/SignaturePad';
 import { exportToPDF, exportToDOCS } from '@src/lib/export';
 import ExportDropdown from '@src/components/shared/ExportDropdown';
-import { ConfirmModal } from '@src/components/modals/ConfirmModal';
 import styles from "@/styles/admin/cpst/page.module.css";
+import { ConfirmModal } from '@src/components/modals/ConfirmModal';
+import { normalizeImportDate } from '@src/features/client-servicing/cgpt/CGPTClient';
 
 export interface AdvisorRecord {
   id: string;
@@ -851,21 +852,7 @@ ${result.error?.hint}
   };
 
   const parseDateFlexible = (raw: string): string | null => {
-    if (!raw) return null;
-    const trimmed = raw.trim();
-    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
-    const mdy = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-    if (mdy) return `${mdy[3]}-${mdy[1].padStart(2, '0')}-${mdy[2].padStart(2, '0')}`;
-    const dmy = trimmed.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
-    if (dmy) return `${dmy[3]}-${dmy[2].padStart(2, '0')}-${dmy[1].padStart(2, '0')}`;
-    const serial = Number(trimmed);
-    if (!isNaN(serial) && serial > 10000) {
-      const d = new Date((serial - 25569) * 86400 * 1000);
-      if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
-    }
-    const parsed = new Date(trimmed);
-    if (!isNaN(parsed.getTime())) return parsed.toISOString().split('T')[0];
-    return null;
+    return normalizeImportDate(raw);
   };
 
   const parseClientRows = (rows: any[][]) => {
@@ -1220,10 +1207,7 @@ ${result.error?.hint}
     setImportState(prev => ({ ...prev, phase: 'importing', fileName }));
 
     const parseDate = (value: any) => {
-      if (!value) return null;
-      const date = new Date(value);
-      if (isNaN(date.getTime())) return null;
-      return date.toISOString().split("T")[0];
+      return normalizeImportDate(value);
     };
 
     try {

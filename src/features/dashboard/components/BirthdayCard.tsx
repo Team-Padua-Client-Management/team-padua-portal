@@ -2,12 +2,11 @@
 
 import React, { useMemo } from 'react';
 import Link from 'next/link';
+import { motion, useReducedMotion } from 'framer-motion';
 import { Cake, Sparkles, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
 import {
   BirthdayItem,
   useClientBirthdays,
-  extractMonthDayYear,
-  computeBirthdayWhenAndAge,
 } from '@src/features/client-servicing/cgpt/CGPTClient';
 import styles from '@/styles/admin/dashboard/page.module.css';
 
@@ -36,6 +35,7 @@ export default function BirthdayCard({
   onToggleCollapse,
   className = '',
 }: BirthdayCardProps) {
+  const shouldReduceMotion = useReducedMotion();
   const isPropControlled = propBirthdays !== undefined;
 
   const {
@@ -59,18 +59,6 @@ export default function BirthdayCard({
   const setWhenFilter = isPropControlled ? setLocalWhen : hookSetWhenFilter;
 
   const advisorOptions = useMemo(() => {
-    if (isPropControlled && propAdvisors) {
-      if (propAdvisors.length === 1) {
-        return [{ id: propAdvisors[0].id, name: propAdvisors[0].advisor_name }];
-      }
-      return [
-        { id: 'All', name: 'All Advisors' },
-        ...propAdvisors.map((a: any) => ({
-          id: a.id,
-          name: a.advisor_name || a.advisorName || 'Advisor',
-        })),
-      ];
-    }
     const list = propAdvisors && propAdvisors.length > 0
       ? propAdvisors
       : fetchedAdvisors.map((a) => ({ id: a.id, advisor_name: a.advisorName }));
@@ -78,13 +66,15 @@ export default function BirthdayCard({
       { id: 'All', name: 'All Advisors' },
       ...list.map((a: any) => ({
         id: a.id,
-        name: a.advisor_name || a.advisorName || 'Advisor',
+        name: (a.advisor_name || a.advisorName || 'Advisor').trim(),
       })),
     ];
     const unique: Record<string, { id: string; name: string }> = {};
-    for (const o of opts) unique[o.id] = o;
+    for (const o of opts) {
+      if (!unique[o.id]) unique[o.id] = o;
+    }
     return Object.values(unique);
-  }, [isPropControlled, propAdvisors, fetchedAdvisors]);
+  }, [propAdvisors, fetchedAdvisors]);
 
   const filteredBirthdays = useMemo(() => {
     if (!isPropControlled) return hookFilteredBirthdays;
@@ -124,20 +114,23 @@ export default function BirthdayCard({
   const renderBirthdayItem = (item: BirthdayItem) => {
     const isToday = item.when === 'today';
     const isTomorrow = item.when === 'tomorrow';
+    const isYesterday = item.when === 'yesterday';
+
     return (
-      <div
+      <motion.div
         key={item.id}
+        initial={shouldReduceMotion ? false : { opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.22, ease: 'easeOut' }}
         className={`${styles.birthdayItemCard} ${isToday ? styles.birthdayItemToday : ''}`}
       >
         <div
           className={styles.birthdayAvatarWrapper}
           style={{
             background: isToday
-              ? 'rgba(234, 179, 8, 0.15)'
-              : isTomorrow
-                ? 'rgba(37, 99, 235, 0.12)'
-                : 'var(--surface-2)',
-            color: isToday ? '#D97706' : isTomorrow ? '#2563EB' : 'var(--text-tertiary)',
+              ? 'rgba(217, 119, 6, 0.12)'
+              : 'var(--surface-2)',
+            color: isToday ? '#D97706' : 'var(--text-secondary)',
           }}
         >
           <Cake size={16} />
@@ -148,7 +141,7 @@ export default function BirthdayCard({
             <span className={styles.birthdayName}>{item.name}</span>
             {item.age !== undefined && item.age > 0 && (
               <span className={styles.birthdayAgeBadge}>
-                {item.when === 'yesterday' ? 'Turned' : 'Turning'} {item.age}
+                {isYesterday ? 'Turned' : isToday ? 'Turns' : 'Turning'} {item.age}
               </span>
             )}
           </div>
@@ -159,10 +152,19 @@ export default function BirthdayCard({
 
         <div className={styles.birthdayStatusRight}>
           <span className={styles.birthdayStatusBadge} data-when={item.when}>
-            {isToday ? 'Today 🎂' : isTomorrow ? 'Tomorrow' : 'Yesterday'}
+            {isToday ? (
+              <>
+                <Sparkles size={11} className="inline mr-1 text-amber-600 dark:text-amber-400" />
+                Today
+              </>
+            ) : isTomorrow ? (
+              'Tomorrow'
+            ) : (
+              'Yesterday'
+            )}
           </span>
         </div>
-      </div>
+      </motion.div>
     );
   };
 
@@ -172,12 +174,12 @@ export default function BirthdayCard({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className={`${styles.birthdayIconBadge} !w-9 !h-9 !p-2`}>
-              <Cake size={22} strokeWidth={2.5} />
+              <Cake size={20} strokeWidth={2.2} />
             </div>
             <div className="flex items-center">
-              <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight m-0 leading-none">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight m-0 leading-none">
                 Client Birthdays
-              </h1>
+              </h2>
             </div>
           </div>
 
@@ -185,7 +187,7 @@ export default function BirthdayCard({
             <select
               value={selectedAdvisor}
               onChange={(e) => setSelectedAdvisor(e.target.value)}
-              className="text-xs border border-border/70 bg-surface text-text-secondary rounded-lg px-2 py-1 outline-none"
+              className="text-xs border border-border/70 bg-surface text-text-secondary rounded-lg px-2.5 py-1 outline-none font-medium focus:border-amber-500/60"
             >
               {advisorOptions.map((advisor) => (
                 <option key={advisor.id} value={advisor.id}>
@@ -194,8 +196,8 @@ export default function BirthdayCard({
               ))}
             </select>
             {todayCount > 0 && (
-              <span className={`${styles.birthdayTodayPill} !text-[14px] !px-3.5 !py-1.5 !font-bold !gap-1.5`}>
-                <Sparkles size={16} />
+              <span className={`${styles.birthdayTodayPill} !text-[12px] !px-3 !py-1 !font-semibold !gap-1.5`}>
+                <Sparkles size={13} />
                 {todayCount} Today!
               </span>
             )}
@@ -224,8 +226,8 @@ export default function BirthdayCard({
                   onClick={() => setWhenFilter(filter)}
                   className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition-all shrink-0 cursor-pointer border ${
                     isActive
-                      ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white border-amber-500 shadow-sm shadow-amber-500/20 scale-[1.02]'
-                      : 'bg-surface/80 text-text-secondary border-border/70 hover:border-amber-500/50 hover:text-text hover:bg-surface'
+                      ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-900 dark:text-amber-200 border-amber-400 dark:border-amber-600 shadow-xs'
+                      : 'bg-surface text-text-secondary border-border/70 hover:border-amber-500/40 hover:text-text'
                   }`}
                 >
                   {filter}
@@ -254,9 +256,11 @@ export default function BirthdayCard({
           ) : filteredBirthdays.length === 0 ? (
             <div className={styles.birthdayEmptyContainer}>
               <div className={styles.birthdayEmptyIcon}>🎂</div>
-              <div className={styles.emptyStateTitle}>No client birthdays today, yesterday, or tomorrow</div>
+              <div className={styles.emptyStateTitle}>No client birthdays found</div>
               <div className={styles.emptyStateDescription}>
-                Upcoming client birthdays will automatically appear here when due.
+                {whenFilter === 'All'
+                  ? 'No client birthdays yesterday, today, or tomorrow.'
+                  : `No client birthdays matching ${whenFilter.toLowerCase()}.`}
               </div>
               <Link href="/admin/cgpt" className={styles.birthdayEmptyLinkBtn}>
                 <span>Open CPST Birthday Center</span>
