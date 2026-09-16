@@ -47,7 +47,7 @@ export default function ClientAdvisorSelector({
           const { data: adData } = await supabase
             .from('advisors')
             .select('id, advisor_name')
-            .order('advisor_name');
+            .order('created_at');
 
           if (adData) {
             setAdvisors(adData);

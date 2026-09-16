@@ -56,6 +56,39 @@ export async function POST(req: Request) {
             type: "member",
         });
 
+        // Sync with advisors table
+        if (role === "Advisor") {
+            const { data: profileData } = await supabaseAdmin
+                .from("profiles")
+                .select("email")
+                .eq("id", id)
+                .single();
+
+            const { data: existingAdvisor } = await supabaseAdmin
+                .from("advisors")
+                .select("id")
+                .eq("id", id)
+                .single();
+
+            if (!existingAdvisor) {
+                await supabaseAdmin.from("advisors").insert({
+                    id,
+                    advisor_code: employee_id || `ADV-${id.slice(0, 6).toUpperCase()}`,
+                    advisor_name: full_name,
+                    email: profileData?.email || "",
+                    created_at: new Date().toISOString(),
+                });
+            } else {
+                await supabaseAdmin.from("advisors").update({
+                    advisor_name: full_name,
+                    advisor_code: employee_id || `ADV-${id.slice(0, 6).toUpperCase()}`,
+                    email: profileData?.email || "",
+                }).eq("id", id);
+            }
+        } else {
+            await supabaseAdmin.from("advisors").delete().eq("id", id);
+        }
+
         return NextResponse.json({
             success: true,
         });

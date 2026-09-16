@@ -345,7 +345,7 @@ export default function CPSTClient({ canCreate, canEdit, canDelete, canExport }:
         const { data: advisorsData } = await supabase
           .from('advisors')
           .select('*')
-          .order('advisor_name', { ascending: true });
+          .order('created_at', { ascending: true });
         if (advisorsData) {
           loadedAdvisors = advisorsData.map((a: any) => ({
             id: a.id,

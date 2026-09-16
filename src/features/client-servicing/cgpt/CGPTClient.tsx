@@ -200,7 +200,7 @@ export async function getClientBirthdays(options?: {
 }> {
   try {
     const [advisorsRes, clientsRes] = await Promise.all([
-      supabase.from('advisors').select('*').order('advisor_name', { ascending: true }),
+      supabase.from('advisors').select('*').order('created_at', { ascending: true }),
       supabase
         .from('cgpt_clients')
         .select('*, advisor:advisors(*)')
@@ -812,7 +812,7 @@ export default function CGPTClient({
           clientsQuery = clientsQuery.eq('id', '00000000-0000-0000-0000-000000000000');
         }
       } else if (scope.isAdmin) {
-        const advisorsRes = await supabase.from('advisors').select('*').order('advisor_name', { ascending: true });
+        const advisorsRes = await supabase.from('advisors').select('*').order('created_at', { ascending: true });
         const advisorsData = (advisorsRes.data || []) as Array<Record<string, unknown>>;
         loadedAdvisors = advisorsData.map((a) => ({
           id: String(a.id || ''),

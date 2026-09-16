@@ -34,6 +34,8 @@ import {
   Sparkles,
   ArrowUpDown,
   Lock,
+  Trash2,
+  Plus
 } from 'lucide-react';
 import ProfileAvatar from '@src/components/shared/ProfileAvatar';
 import { supabase } from '@src/lib/supabase/client';
@@ -296,6 +298,7 @@ interface MemberRowProps {
   onOpenAvatarModal: (u: User) => void;
   onPreviewAvatar: (u: User) => void;
   onVerifyEmail: (id: string, e: React.MouseEvent) => void;
+  onDeleteUser: (id: string, e: React.MouseEvent) => void;
   currentUserRole: string;
 }
 
@@ -311,6 +314,7 @@ function MemberRow({
   onOpenAvatarModal,
   onPreviewAvatar,
   onVerifyEmail,
+  onDeleteUser,
   currentUserRole,
 }: MemberRowProps) {
   const router = useRouter();
@@ -493,6 +497,17 @@ function MemberRow({
             >
               <Camera size={11} />
               <span>Edit Avatar</span>
+            </button>
+          )}
+
+          {currentUserRole === 'Admin' && (
+            <button
+              type="button"
+              onClick={(e) => onDeleteUser(user.id, e)}
+              className="p-1.5 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/60 rounded-lg text-red-600 dark:text-red-400 transition-colors"
+              title="Delete User"
+            >
+              <Trash2 size={13} />
             </button>
           )}
         </div>
@@ -769,6 +784,41 @@ export default function AdminMembersTable({
             const err = await res.json().catch(() => null);
             setConfirmModal(null);
             showToast(err?.error || 'Verification failed.', 'error');
+          }
+        } catch (err) {
+          console.error(err);
+          setConfirmModal(null);
+          showToast('An unexpected error occurred.', 'error');
+        }
+      },
+    });
+  };
+
+  const handleDeleteUser = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const targetUser = users.find((u) => u.id === id);
+    const displayName = targetUser?.name || 'this user';
+    setConfirmModal({
+      isOpen: true,
+      title: 'Delete Member',
+      message: `Are you sure you want to permanently delete "${displayName}"? This action cannot be undone.`,
+      isVerifying: false,
+      onConfirm: async () => {
+        setConfirmModal((prev) => (prev ? { ...prev, isVerifying: true } : null));
+        try {
+          const res = await fetch('/api/admin/members/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id }),
+          });
+          if (res.ok) {
+            setUsers((prev) => prev.filter((u) => u.id !== id));
+            setConfirmModal(null);
+            showToast(`"${displayName}" has been deleted.`, 'success');
+          } else {
+            const err = await res.json().catch(() => null);
+            setConfirmModal(null);
+            showToast(err?.error || 'Failed to delete member.', 'error');
           }
         } catch (err) {
           console.error(err);
@@ -1222,6 +1272,7 @@ export default function AdminMembersTable({
                     }}
                     onPreviewAvatar={setAvatarPreviewModalUser}
                     onVerifyEmail={handleVerifyEmail}
+                    onDeleteUser={handleDeleteUser}
                     currentUserRole={currentUserRole}
                   />
                 ))}
