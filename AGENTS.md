@@ -32,8 +32,16 @@ This codebase is the **Team Padua Portal**, an enterprise Financial Advisory Ope
   - Signature pads (`react-signature-canvas` & file uploads) scaled to fit and centered inside bounding boxes.
   - Form UI inputs must cover all template fields and prioritize manual user edits over raw DB records.
 
-## 3. Skill & Reference Location
+## 3. Data Ingestion, Sanitization & Smart Upsert Conventions
+- **Formula Injection Sanitization:** Strip/escape dangerous spreadsheet formula characters (`=`, `+`, `-`, `@`, `|`, `%`) with `sanitizeCsvField()` during all file imports.
+- **Multi-Section Workbook Support:** Dynamically detect advisor section banners (e.g. `[ADVISOR] | CLIENTS & BENEFICIARIES`) and map advisor aliases (`Sir Pads`, `Kuya Wynn`, `Ate Rizza`, `Ate Mhalou`).
+- **Smart Upsert Diff Engine:**
+  - **🟢 New:** Insert new unique client records.
+  - **🟡 Update:** Update existing records in-place when birthdates or relationships change (no duplicate rows created).
+  - **⚪ Unchanged:** Skip identical rows with 0 unnecessary database writes.
+- **Multi-Advisor Preservation:** If a client or beneficiary belongs to multiple advisors, retain their records under both advisors and synchronize birthdates (`YYYY-MM-DD`).
+
+## 4. Skill & Reference Location
 - Main Skill: `.agents/skills/team-padua-portal/SKILL.md`
 - Database Schema: `.agents/skills/team-padua-portal/references/database_schema.md`
 - Client Servicing Modules: `.agents/skills/team-padua-portal/references/client_servicing_modules.md`
-

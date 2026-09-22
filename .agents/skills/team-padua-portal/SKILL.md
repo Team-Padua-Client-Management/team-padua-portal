@@ -66,7 +66,22 @@ The system supports multiple life insurance servicing request workflows:
     - Dates parsed into Day (`DD`), Month (`3-letter abbreviation` like `JAN`, `SEP`), and Year (`YYYY`).
 - **Signature Canvas Embedding:**
   - Captured via `SignaturePad` (`react-signature-canvas`) or image drag-and-drop file upload.
-  - Embedded using `embedSignature` with `image.scaleToFit(areaW, areaH)` centered inside the target bounding box.
+  - Embedded using `embedSignature` with `image.scaleToFit(areaW, areaH)` centered inside the target coordinate bounds.
+
+### 5. Data Ingestion, Sanitization & Smart Upsert Engine
+- **CSV / Formula Injection Sanitization:**
+  - All parsed spreadsheet cells are processed with `sanitizeCsvField()`.
+  - Leading formula triggers (`=`, `+`, `-`, `@`, `|`, `%`) are escaped with a leading apostrophe (`'`) to prevent formula execution during spreadsheet export/import.
+- **Multi-Section Workbook Awareness:**
+  - Ingestion recognizes advisor banner rows (e.g. `[ADVISOR NAME] | CLIENTS & BENEFICIARIES`) and switches the active `advisor_id` dynamically.
+  - Resolves advisor aliases (`Sir Pads` $\rightarrow$ Daniel Padua, `Kuya Wynn` $\rightarrow$ Triwynn Branzuela, `Ate Rizza` $\rightarrow$ Rizza, `Ate Mhalou` $\rightarrow$ Marilou Lacsamana).
+- **Clean Parenthetical Extraction:**
+  - Separates names and relationships: `Kidlat Zion De Jesus Amores (Anthony Ibañez Amores' Son)` $\rightarrow$ Name: `Kidlat Zion De Jesus Amores`, Relationship: `Son`, Beneficiary: `Anthony Ibañez Amores`.
+- **Smart 3-Bucket Diff & Upsert Engine (Zero-Duplicate Updates):**
+  - **🟢 New:** Client not found in DB under advisor $\rightarrow$ `INSERT`.
+  - **🟡 Update:** Client exists under advisor, but birthdate or details changed $\rightarrow$ `UPDATE in-place` (e.g. correcting a birthdate typo from 2012 to 2014).
+  - **⚪ Unchanged:** Exact match in DB $\rightarrow$ Skipped (zero unnecessary writes).
+  - Pre-import preview displays diff statistics and old $\rightarrow$ new value comparisons before user confirmation.
 
 ---
 
@@ -74,4 +89,3 @@ The system supports multiple life insurance servicing request workflows:
 For in-depth schema definitions and module breakdowns, refer to:
 - [Database Schema Reference](./references/database_schema.md)
 - [Client Servicing Modules Reference](./references/client_servicing_modules.md)
-

@@ -30,6 +30,8 @@ export interface BirthdayItem {
   advisorId: string;
   advisorName: string;
   policyNo?: string;
+  beneficiary?: string;
+  relationship?: string;
 }
 
 function isValidDate(year: number, month: number, day: number): boolean {
@@ -191,6 +193,42 @@ export function computeBirthdayWhenAndAge(birthRaw: string | null): {
   return { when, ageTurning, dateDisplay };
 }
 
+function formatPossessive(name: string): string {
+  const trimmed = name.trim();
+  if (!trimmed) return '';
+  if (trimmed.endsWith('s') || trimmed.endsWith('S')) {
+    return `${trimmed}'`;
+  }
+  return `${trimmed}'s`;
+}
+
+export function formatBirthdayDisplayName(
+  rawName: string,
+  relationship?: string | null,
+  beneficiary?: string | null
+): string {
+  const cleanName = rawName.trim();
+  if (cleanName.includes('(') && cleanName.includes(')')) {
+    return cleanName;
+  }
+
+  const rel = (relationship || '').trim();
+  const ben = (beneficiary || '').trim();
+
+  if (ben && rel && ben.toLowerCase() !== cleanName.toLowerCase()) {
+    if (!/^\d+yrs?$/i.test(ben) && !/^\d+yrs?$/i.test(rel)) {
+      return `${cleanName} (${formatPossessive(ben)} ${rel})`;
+    }
+  }
+
+  return cleanName;
+}
+
+export function extractBaseNameForDedup(name: string): string {
+  const withoutParens = name.replace(/\s*\([^)]*\)/g, '').trim();
+  return withoutParens.replace(/\s+/g, ' ').toLowerCase();
+}
+
 export async function getClientBirthdays(options?: {
   advisorId?: string;
   dateRange?: 'all' | 'yesterday' | 'today' | 'tomorrow' | 'All' | 'Yesterday' | 'Today' | 'Tomorrow';
@@ -199,29 +237,46 @@ export async function getClientBirthdays(options?: {
   advisors: AdvisorRecord[];
 }> {
   try {
-    const [advisorsRes, clientsRes] = await Promise.all([
-      supabase.from('advisors').select('*').order('created_at', { ascending: true }),
-      supabase
+    const advisorsRes = await supabase.from('advisors').select('*').order('created_at', { ascending: true });
+
+    // Fetch all clients in batches of 1000 to bypass PostgREST single-request limits
+    let clientsData: Array<Record<string, unknown>> = [];
+    const PAGE_SIZE = 1000;
+    let page = 0;
+    while (true) {
+      const from = page * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+      const { data, error } = await supabase
         .from('cgpt_clients')
         .select('*, advisor:advisors(*)')
         .order('created_at', { ascending: false })
-        .limit(10000),
-    ]);
+        .range(from, to);
 
-    const advisorsData = (advisorsRes.data || []) as Array<Record<string, unknown>>;
-    let clientsData = (clientsRes.data || []) as Array<Record<string, unknown>>;
+      if (error || !data || data.length === 0) break;
+      clientsData = clientsData.concat(data as Array<Record<string, unknown>>);
+      if (data.length < PAGE_SIZE) break;
+      page++;
+    }
 
-    if (clientsRes.error || !clientsData || clientsData.length === 0) {
-      const fallbackRes = await supabase
-        .from('cpst_clients')
-        .select('*, advisor:advisors(*)')
-        .order('created_at', { ascending: false })
-        .limit(10000);
-      if (fallbackRes.data && fallbackRes.data.length > 0) {
-        clientsData = fallbackRes.data as Array<Record<string, unknown>>;
+    if (clientsData.length === 0) {
+      page = 0;
+      while (true) {
+        const from = page * PAGE_SIZE;
+        const to = from + PAGE_SIZE - 1;
+        const { data, error } = await supabase
+          .from('cpst_clients')
+          .select('*, advisor:advisors(*)')
+          .order('created_at', { ascending: false })
+          .range(from, to);
+
+        if (error || !data || data.length === 0) break;
+        clientsData = clientsData.concat(data as Array<Record<string, unknown>>);
+        if (data.length < PAGE_SIZE) break;
+        page++;
       }
     }
 
+    const advisorsData = (advisorsRes.data || []) as Array<Record<string, unknown>>;
     const advisors: AdvisorRecord[] = advisorsData.map((a) => ({
       id: String(a.id || ''),
       advisorCode: String(a.advisor_code || '').trim(),
@@ -231,6 +286,7 @@ export async function getClientBirthdays(options?: {
     }));
 
     const items: BirthdayItem[] = [];
+    const seenKeys = new Set<string>();
 
     for (const c of clientsData) {
       const advisorRecord = Array.isArray(c.advisor) ? c.advisor[0] : (c.advisor as Record<string, unknown> | null);
@@ -245,14 +301,30 @@ export async function getClientBirthdays(options?: {
       const computed = computeBirthdayWhenAndAge(birthdate ?? null);
       if (!computed) continue;
 
+      const rawName = String(c.client_name || c.name || 'Unnamed Client').trim();
+      const baseName = extractBaseNameForDedup(rawName);
+      const dedupKey = `${baseName}|${advId}`;
+      if (seenKeys.has(dedupKey)) {
+        continue;
+      }
+      seenKeys.add(dedupKey);
+
+      const displayName = formatBirthdayDisplayName(
+        rawName,
+        (c.relationship as string) || null,
+        (c.beneficiary as string) || null
+      );
+
       items.push({
         id: String(c.id || ''),
-        name: String(c.client_name || c.name || 'Unnamed Client').trim(),
+        name: displayName,
         date: computed.dateDisplay,
         when: computed.when,
         age: computed.ageTurning,
         advisorId: advId,
         advisorName: advName,
+        beneficiary: (c.beneficiary as string) || undefined,
+        relationship: (c.relationship as string) || undefined,
       });
     }
 
@@ -694,41 +766,220 @@ async function parseFileToRows(file: File): Promise<string[][]> {
   throw new Error(`Unsupported file type: .${ext}. Supported: xlsx, xls, csv, pdf, docx, txt`);
 }
 
+export interface ImportPreviewItem {
+  client_name: string;
+  birthdate: string | null;
+  beneficiary: string | null;
+  relationship: string | null;
+  advisor_id: string;
+  advisor_name?: string;
+  action: 'new' | 'update' | 'unchanged';
+  existingId?: string;
+  oldBirthdate?: string | null;
+  turningAge?: number | null;
+}
+
+export function sanitizeCsvField(val: string | null | undefined): string {
+  if (!val) return '';
+  const trimmed = String(val).trim();
+  // Strip or escape dangerous CSV formula characters (=, +, -, @, |)
+  if (/^[=+\-@|%]/.test(trimmed)) {
+    return `'${trimmed}`;
+  }
+  return trimmed;
+}
+
+export function parseParentheticalDetails(rawName: string): {
+  cleanName: string;
+  extractedRelationship?: string;
+  extractedBeneficiary?: string;
+} {
+  const match = rawName.match(/^(.*?)\s*\((.*?)\)$/);
+  if (!match) return { cleanName: sanitizeCsvField(rawName) };
+
+  const cleanName = sanitizeCsvField(match[1]);
+  const parenthetical = match[2].trim();
+
+  let extractedRelationship: string | undefined = undefined;
+  let extractedBeneficiary: string | undefined = undefined;
+
+  const relMatch = parenthetical.match(/^(.*?)(?:'s|\s+and\s+.*?'s)\s+(Son|Daughter|Child|Wife|Husband|Father|Mother|Brother|Sister|Aunt|Uncle|Cousin|Nephew|Niece|Spouse|Domestic Partner|Brother In Law|Sister In Law|Grandmother|Grandfather|Grandson|Granddaughter|Grandparent|Friend|Partner|Fiancé|Fiancée)$/i);
+
+  if (relMatch) {
+    extractedBeneficiary = sanitizeCsvField(relMatch[1].replace(/'s/g, ''));
+    extractedRelationship = relMatch[2].trim();
+  } else {
+    const relKeywordMatch = parenthetical.match(/\b(Son|Daughter|Child|Wife|Husband|Father|Mother|Brother|Sister|Aunt|Uncle|Cousin|Nephew|Niece|Spouse|Domestic Partner|Brother In Law|Sister In Law|Grandmother|Grandfather|Grandson|Granddaughter|Grandparent)\b/i);
+    if (relKeywordMatch) {
+      extractedRelationship = relKeywordMatch[1];
+    }
+  }
+
+  return { cleanName: cleanName || sanitizeCsvField(rawName), extractedRelationship, extractedBeneficiary };
+}
+
+const ADVISOR_ALIASES: Record<string, string[]> = {
+  'daniel padua': ['sir pads', 'daniel padua', 'daniel agarao padua', 'pads', 'daniel'],
+  'triwynn branzuela': ['kuya wynn', 'triwynn branzuela', 'triwynn', 'wynn'],
+  'rizza': ['ate rizza', 'rizza', 'rizza tongol'],
+  'marilou lacsamana': ['ate mhalou', 'marilou lacsamana', 'mhalou', 'marilou'],
+};
+
+export function resolveAdvisorId(
+  rawAdvisorText: string,
+  advisorsList: AdvisorRecord[],
+  defaultAdvisorId: string
+): string {
+  if (!rawAdvisorText) return defaultAdvisorId;
+  const lower = rawAdvisorText.toLowerCase().trim();
+
+  const exact = advisorsList.find(
+    a => a.advisorName.toLowerCase() === lower || a.advisorCode.toLowerCase() === lower || a.id === rawAdvisorText
+  );
+  if (exact) return exact.id;
+
+  const sub = advisorsList.find(
+    a => lower.includes(a.advisorName.toLowerCase()) || a.advisorName.toLowerCase().includes(lower)
+  );
+  if (sub) return sub.id;
+
+  for (const [key, aliases] of Object.entries(ADVISOR_ALIASES)) {
+    if (aliases.some(alias => lower.includes(alias) || alias.includes(lower))) {
+      const match = advisorsList.find(a => a.advisorName.toLowerCase().includes(key));
+      if (match) return match.id;
+    }
+  }
+
+  return defaultAdvisorId;
+}
+
 const DECORATIVE_ROW_RE =
   /^(january|february|march|april|may|june|july|august|september|october|november|december|\d{1,4}|[-=*#\s.]+)$/i;
 
-function mapRowsToClientRecords(
+const SECTION_HEADER_RE =
+  /^(.*?)\s*\|\s*clients?\s*&?\s*beneficiar(?:ies|y)/i;
+
+function mapRowsToClientRecordsWithDiff(
   rows: string[][],
   colMap: Record<string, number>,
   headerRowIndex: number,
-  advisorId: string
-): { records: ClientRecord[]; skipped: number } {
-  const records: ClientRecord[] = [];
-  let skipped = 0;
+  defaultAdvisorId: string,
+  advisorsList: AdvisorRecord[],
+  existingClients: ClientManagementRecord[]
+): {
+  items: ImportPreviewItem[];
+  newCount: number;
+  updateCount: number;
+  unchangedCount: number;
+  skippedCount: number;
+} {
+  const items: ImportPreviewItem[] = [];
+  let newCount = 0;
+  let updateCount = 0;
+  let unchangedCount = 0;
+  let skippedCount = 0;
+
+  let currentAdvisorId = defaultAdvisorId;
+
   for (let i = headerRowIndex + 1; i < rows.length; i++) {
     const row = rows[i];
-    if (!row || row.every(c => !c?.trim())) { skipped++; continue; }
+    if (!row || row.every(c => !c?.trim())) { skippedCount++; continue; }
+
+    const firstNonEmpty = row.find(c => c && c.trim()) ?? '';
+    const sectionMatch = firstNonEmpty.match(SECTION_HEADER_RE);
+    if (sectionMatch) {
+      const parsedAdvName = sectionMatch[1].trim();
+      currentAdvisorId = resolveAdvisorId(parsedAdvName, advisorsList, currentAdvisorId);
+      skippedCount++;
+      continue;
+    }
+
     const rawName = colMap.client_name !== undefined ? (row[colMap.client_name] ?? '') : '';
-    const name = rawName.replace(/\s+/g, ' ').trim();
-    if (!name || name.length < 2) { skipped++; continue; }
-    if (DECORATIVE_ROW_RE.test(name)) { skipped++; continue; }
+    const rawTrimmed = rawName.replace(/\s+/g, ' ').trim();
+    if (!rawTrimmed || rawTrimmed.length < 2) { skippedCount++; continue; }
+    if (DECORATIVE_ROW_RE.test(rawTrimmed)) { skippedCount++; continue; }
+
+    let rowAdvisorId = currentAdvisorId;
+    if (colMap.advisor !== undefined && row[colMap.advisor]?.trim()) {
+      rowAdvisorId = resolveAdvisorId(row[colMap.advisor], advisorsList, currentAdvisorId);
+    }
+
+    const { cleanName, extractedRelationship, extractedBeneficiary } = parseParentheticalDetails(rawTrimmed);
+
     const rawBirth = colMap.birthdate !== undefined ? (row[colMap.birthdate] ?? '') : '';
     const birthdate = normalizeImportDate(rawBirth.trim());
-    const beneficiary = colMap.beneficiary !== undefined
-      ? (row[colMap.beneficiary] ?? '').replace(/\s+/g, ' ').trim() || null
-      : null;
-    const relationship = colMap.relationship !== undefined
-      ? (row[colMap.relationship] ?? '').trim() || null
-      : null;
-    records.push({
-      client_name: name,
-      birthdate: birthdate ?? null,
-      beneficiary,
-      relationship,
-      advisor_id: advisorId,
-    });
+
+    const beneficiary = sanitizeCsvField(
+      (colMap.beneficiary !== undefined ? (row[colMap.beneficiary] ?? '') : '') || extractedBeneficiary || ''
+    ) || null;
+
+    const relationship = sanitizeCsvField(
+      (colMap.relationship !== undefined ? (row[colMap.relationship] ?? '') : '') || extractedRelationship || ''
+    ) || null;
+
+    const matchedAdvObj = advisorsList.find(a => a.id === rowAdvisorId);
+    const advisorName = matchedAdvObj ? matchedAdvObj.advisorName : 'Advisor';
+
+    const normalizedKey = cleanName.toLowerCase().trim();
+    const existing = existingClients.find(
+      c => c.advisorId === rowAdvisorId && (
+        c.clientName.toLowerCase().trim() === normalizedKey ||
+        c.clientName.toLowerCase().replace(/\s*\(.*?\)/, '').trim() === normalizedKey
+      )
+    );
+
+    const turningAge = calculateAge(birthdate).age;
+
+    if (existing) {
+      const sameBirthdate = (existing.birthdate ?? '') === (birthdate ?? '');
+      const sameBene = (existing.beneficiary ?? '') === (beneficiary ?? '');
+      const sameRel = (existing.relationship ?? '') === (relationship ?? '');
+
+      if (sameBirthdate && sameBene && sameRel) {
+        unchangedCount++;
+        items.push({
+          client_name: cleanName,
+          birthdate: birthdate ?? null,
+          beneficiary,
+          relationship,
+          advisor_id: rowAdvisorId,
+          advisor_name: advisorName,
+          action: 'unchanged',
+          existingId: existing.id,
+          oldBirthdate: existing.birthdate,
+          turningAge,
+        });
+      } else {
+        updateCount++;
+        items.push({
+          client_name: cleanName,
+          birthdate: birthdate ?? null,
+          beneficiary,
+          relationship,
+          advisor_id: rowAdvisorId,
+          advisor_name: advisorName,
+          action: 'update',
+          existingId: existing.id,
+          oldBirthdate: existing.birthdate,
+          turningAge,
+        });
+      }
+    } else {
+      newCount++;
+      items.push({
+        client_name: cleanName,
+        birthdate: birthdate ?? null,
+        beneficiary,
+        relationship,
+        advisor_id: rowAdvisorId,
+        advisor_name: advisorName,
+        action: 'new',
+        turningAge,
+      });
+    }
   }
-  return { records, skipped };
+
+  return { items, newCount, updateCount, unchangedCount, skippedCount };
 }
 
 export default function CGPTClient({
@@ -771,7 +1022,8 @@ export default function CGPTClient({
   const [importAdvisorId, setImportAdvisorId] = useState<string>('');
   const [isImporting, setIsImporting] = useState(false);
   const [importStatus, setImportStatus] = useState<string>('');
-  const [importPreview, setImportPreview] = useState<ClientRecord[] | null>(null);
+  const [importPreview, setImportPreview] = useState<ImportPreviewItem[] | null>(null);
+  const [importStats, setImportStats] = useState<{ newCount: number; updateCount: number; unchangedCount: number }>({ newCount: 0, updateCount: 0, unchangedCount: 0 });
   const [importSkipped, setImportSkipped] = useState(0);
   const [importParseError, setImportParseError] = useState('');
 
@@ -1180,9 +1432,9 @@ export default function CGPTClient({
       return;
     }
 
-    // Client import: parse → detect headers → build preview (no DB insert yet)
+    // Client import: parse → detect headers → build preview with Smart Diff (no DB insert yet)
     setIsImporting(true);
-    setImportStatus('Parsing file...');
+    setImportStatus('Parsing file & calculating diffs...');
     setImportParseError('');
     try {
       let rows: string[][] = [];
@@ -1203,11 +1455,12 @@ export default function CGPTClient({
         return;
       }
 
-      const { records, skipped } = mapRowsToClientRecords(
-        rows, detected.colMap, detected.headerRowIndex, targetAdvId
+      const { items, newCount, updateCount, unchangedCount, skippedCount } = mapRowsToClientRecordsWithDiff(
+        rows, detected.colMap, detected.headerRowIndex, targetAdvId, advisors, clients
       );
-      setImportPreview(records);
-      setImportSkipped(skipped);
+      setImportPreview(items);
+      setImportStats({ newCount, updateCount, unchangedCount });
+      setImportSkipped(skippedCount);
     } catch (err: unknown) {
       setImportParseError('Parse error: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
@@ -1219,31 +1472,40 @@ export default function CGPTClient({
   const handleConfirmImport = async () => {
     if (!importPreview || importPreview.length === 0) return;
     setIsImporting(true);
-    setImportStatus(`Inserting ${importPreview.length} record(s)...`);
+    const toInsert = importPreview
+      .filter(r => r.action === 'new')
+      .map(r => ({
+        client_name: r.client_name,
+        birthdate: r.birthdate,
+        beneficiary: r.beneficiary,
+        relationship: r.relationship,
+        advisor_id: r.advisor_id,
+      }));
+
+    const toUpdate = importPreview.filter(r => r.action === 'update' && r.existingId);
+    setImportStatus(`Applying changes (${toInsert.length} new, ${toUpdate.length} updates)...`);
+
     try {
-      const scopeAdvisorId = selectedAdvisor?.id || importAdvisorId;
-      const existingKeys = new Set(
-        clients
-          .filter(c => c.advisorId === scopeAdvisorId)
-          .map(c => `${c.clientName.toLowerCase().trim()}|${c.birthdate ?? ''}`)
-      );
-      const toInsert = importPreview.filter(r => {
-        const key = `${r.client_name.toLowerCase().trim()}|${r.birthdate ?? ''}`;
-        return !existingKeys.has(key);
-      });
-      const duplicates = importPreview.length - toInsert.length;
       if (toInsert.length > 0) {
         await supabase.from('cgpt_clients').insert(toInsert);
       }
+
+      for (const u of toUpdate) {
+        await supabase.from('cgpt_clients').update({
+          client_name: u.client_name,
+          birthdate: u.birthdate,
+          beneficiary: u.beneficiary,
+          relationship: u.relationship,
+        }).eq('id', u.existingId!);
+      }
+
       setActiveModal(null);
       setPastedText('');
       setImportFile(null);
       setImportPreview(null);
       setImportSkipped(0);
       await fetchData();
-      if (duplicates > 0) {
-        alert(`Import complete. ${toInsert.length} record(s) added, ${duplicates} duplicate(s) skipped.`);
-      }
+      alert(`Import complete: ${toInsert.length} added, ${toUpdate.length} updated, ${importStats.unchangedCount} unchanged.`);
     } catch (err: unknown) {
       alert('Import error: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
@@ -2116,11 +2378,11 @@ export default function CGPTClient({
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <div>
                     <p className="text-sm font-bold text-foreground">
-                      {importPreview.length} record{importPreview.length !== 1 ? 's' : ''} ready to import
+                      {importPreview.length} record{importPreview.length !== 1 ? 's' : ''} parsed
                     </p>
                     {importSkipped > 0 && (
                       <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
-                        {importSkipped} blank or unrecognised row{importSkipped !== 1 ? 's' : ''} skipped
+                        {importSkipped} blank or header row{importSkipped !== 1 ? 's' : ''} skipped
                       </p>
                     )}
                   </div>
@@ -2133,30 +2395,95 @@ export default function CGPTClient({
                   </button>
                 </div>
 
+                <div className="grid grid-cols-3 gap-2.5 p-3 bg-surface-2 rounded-2xl border border-border">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></span>
+                    <div>
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">New to Add</p>
+                      <p className="text-sm font-extrabold text-foreground">{importStats.newCount}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0"></span>
+                    <div>
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">To Update</p>
+                      <p className="text-sm font-extrabold text-amber-600 dark:text-amber-400">{importStats.updateCount}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0"></span>
+                    <div>
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Unchanged</p>
+                      <p className="text-sm font-extrabold text-muted-foreground">{importStats.unchangedCount}</p>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="border border-border rounded-2xl overflow-hidden">
                   <div className="overflow-auto max-h-72">
                     <table className="w-full text-left text-xs border-collapse">
                       <thead className="bg-background border-b border-border sticky top-0">
                         <tr>
                           <th className="py-2.5 px-3 font-bold text-muted-foreground uppercase text-[10px] tracking-wider w-8">#</th>
+                          <th className="py-2.5 px-3 font-bold text-muted-foreground uppercase text-[10px] tracking-wider">Status</th>
                           <th className="py-2.5 px-3 font-bold text-muted-foreground uppercase text-[10px] tracking-wider">Client Name</th>
+                          <th className="py-2.5 px-3 font-bold text-muted-foreground uppercase text-[10px] tracking-wider">Advisor</th>
                           <th className="py-2.5 px-3 font-bold text-muted-foreground uppercase text-[10px] tracking-wider">Birthdate</th>
-                          <th className="py-2.5 px-3 font-bold text-muted-foreground uppercase text-[10px] tracking-wider">Beneficiary</th>
+                          <th className="py-2.5 px-3 font-bold text-muted-foreground uppercase text-[10px] tracking-wider">Owner / Beneficiary</th>
                           <th className="py-2.5 px-3 font-bold text-muted-foreground uppercase text-[10px] tracking-wider">Rel.</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-border">
-                        {importPreview.map((r, idx) => (
-                          <tr key={idx} className={!r.birthdate ? 'bg-amber-50/60 dark:bg-amber-950/10' : ''}>
-                            <td className="py-2 px-3 text-muted-foreground font-mono text-[10px]">{idx + 1}</td>
-                            <td className="py-2 px-3 font-semibold text-foreground whitespace-nowrap">{r.client_name}</td>
-                            <td className={`py-2 px-3 font-mono whitespace-nowrap ${!r.birthdate ? 'text-amber-600 dark:text-amber-400' : 'text-foreground'}`}>
-                              {r.birthdate ?? '⚠ no date'}
-                            </td>
-                            <td className="py-2 px-3 text-muted-foreground">{r.beneficiary ?? '—'}</td>
-                            <td className="py-2 px-3 text-muted-foreground">{r.relationship ?? '—'}</td>
-                          </tr>
-                        ))}
+                        {importPreview.map((r, idx) => {
+                          const isNew = r.action === 'new';
+                          const isUpdate = r.action === 'update';
+                          const isUnchanged = r.action === 'unchanged';
+
+                          return (
+                            <tr key={idx} className={isUpdate ? 'bg-amber-50/40 dark:bg-amber-950/10' : isNew ? 'bg-emerald-50/30 dark:bg-emerald-950/10' : ''}>
+                              <td className="py-2 px-3 text-muted-foreground font-mono text-[10px]">{idx + 1}</td>
+                              <td className="py-2 px-3 whitespace-nowrap">
+                                {isNew && (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400">
+                                    New
+                                  </span>
+                                )}
+                                {isUpdate && (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400">
+                                    Update
+                                  </span>
+                                )}
+                                {isUnchanged && (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                                    Unchanged
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-2 px-3 font-semibold text-foreground whitespace-nowrap">{r.client_name}</td>
+                              <td className="py-2 px-3 text-muted-foreground whitespace-nowrap">{r.advisor_name || 'Advisor'}</td>
+                              <td className="py-2 px-3 font-mono whitespace-nowrap">
+                                {isUpdate && r.oldBirthdate && r.oldBirthdate !== r.birthdate ? (
+                                  <span>
+                                    <span className="line-through text-muted-foreground mr-1">{r.oldBirthdate}</span>
+                                    <span className="font-bold text-amber-600 dark:text-amber-400">→ {r.birthdate}</span>
+                                    {r.turningAge !== undefined && r.turningAge !== null && (
+                                      <span className="ml-1 text-[10px] text-muted-foreground font-sans">(Age {r.turningAge})</span>
+                                    )}
+                                  </span>
+                                ) : (
+                                  <span className={!r.birthdate ? 'text-amber-600 dark:text-amber-400' : 'text-foreground'}>
+                                    {r.birthdate ?? '⚠ no date'}
+                                    {r.turningAge !== undefined && r.turningAge !== null && (
+                                      <span className="ml-1 text-[10px] text-muted-foreground font-sans">(Age {r.turningAge})</span>
+                                    )}
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-2 px-3 text-muted-foreground">{r.beneficiary ?? '—'}</td>
+                              <td className="py-2 px-3 text-muted-foreground">{r.relationship ?? '—'}</td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -2180,7 +2507,7 @@ export default function CGPTClient({
                     disabled={isImporting || importPreview.length === 0}
                     className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-[#F4C542] hover:from-amber-600 hover:to-[#e6b800] text-black font-extrabold text-xs rounded-xl shadow-sm transition active:scale-[0.98] disabled:opacity-50 cursor-pointer"
                   >
-                    {isImporting ? 'Importing...' : `Confirm Import (${importPreview.length})`}
+                    {isImporting ? 'Applying...' : `Confirm & Apply Changes (${importStats.newCount + importStats.updateCount})`}
                   </button>
                 </div>
               </div>

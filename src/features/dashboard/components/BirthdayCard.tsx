@@ -147,6 +147,11 @@ export default function BirthdayCard({
           </div>
           <span className={styles.birthdayDateMeta}>
             {item.date} &bull; {item.advisorName || 'Advisor'}
+            {item.beneficiary && !item.name.includes('(') && (
+              <span className="block text-[11px] text-muted-foreground truncate font-normal">
+                {item.relationship ? `${item.relationship} of ` : 'Beneficiary of '}{item.beneficiary}
+              </span>
+            )}
           </span>
         </div>
 
