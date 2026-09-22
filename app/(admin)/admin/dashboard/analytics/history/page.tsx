@@ -54,6 +54,9 @@ export default function AnalyticsHistoryPage() {
     handleDeleteInquiry,
     handleSaveCalendarActivity,
     handleCompleteCalendarActivity,
+    activityToDelete,
+    setActivityToDelete,
+    executeDeleteCalendarActivity,
     isMounted,
   } = useAdminDashboard();
 
@@ -71,7 +74,6 @@ export default function AnalyticsHistoryPage() {
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editingInquiryId, setEditingInquiryId] = useState<string | null>(null);
   const [editingCalendarActivity, setEditingCalendarActivity] = useState<CalendarActivityItem | null>(null);
-  const [activityToDelete, setActivityToDelete] = useState<string | null>(null);
 
   const workflowTasks = userTasks as WorkflowTaskItem[];
 
@@ -522,13 +524,7 @@ export default function AnalyticsHistoryPage() {
       {/* Confirm Delete Activity Modal */}
       {isMounted && activityToDelete && createPortal(
         <ConfirmDeleteModal
-          onConfirm={async () => {
-            if (activityToDelete) {
-              const id = activityToDelete;
-              setActivityToDelete(null);
-              await handleDeleteTask(id);
-            }
-          }}
+          onConfirm={executeDeleteCalendarActivity}
           onCancel={() => setActivityToDelete(null)}
         />,
         document.body

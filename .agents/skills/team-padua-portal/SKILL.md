@@ -72,16 +72,38 @@ The system supports multiple life insurance servicing request workflows:
 - **CSV / Formula Injection Sanitization:**
   - All parsed spreadsheet cells are processed with `sanitizeCsvField()`.
   - Leading formula triggers (`=`, `+`, `-`, `@`, `|`, `%`) are escaped with a leading apostrophe (`'`) to prevent formula execution during spreadsheet export/import.
-- **Multi-Section Workbook Awareness:**
-  - Ingestion recognizes advisor banner rows (e.g. `[ADVISOR NAME] | CLIENTS & BENEFICIARIES`) and switches the active `advisor_id` dynamically.
-  - Resolves advisor aliases (`Sir Pads` $\rightarrow$ Daniel Padua, `Kuya Wynn` $\rightarrow$ Triwynn Branzuela, `Ate Rizza` $\rightarrow$ Rizza, `Ate Mhalou` $\rightarrow$ Marilou Lacsamana).
-- **Clean Parenthetical Extraction:**
+- **3-Mode Advisor Ingestion Scoping:**
+  - 🎯 **Filter Selected (`filter_selected`):** When importing for a specific advisor (e.g. Daniel Padua), only rows matching that advisor's section banner or alias (`Sir Pads`) are extracted. Rows belonging to other advisors in the master file are automatically skipped to prevent cross-advisor database pollution.
+  - 🌐 **Auto-Detect All (`auto_detect_all`):** Master workbook mode. Parses all section banners and `ADVISOR` columns, auto-routing clients to their respective advisors with a multi-advisor summary preview.
+  - ⚡ **Force Assign (`force_selected`):** Assigns all rows in the file to the chosen advisor (ideal for simple spreadsheets without advisor headers).
+- **Multi-Section Workbook Awareness & Alias Resolution:**
+  - Recognizes advisor banner rows (e.g. `[ADVISOR NAME] | CLIENTS & BENEFICIARIES`) and updates active `advisor_id` dynamically.
+  - Resolves advisor aliases (`Sir Pads` $\rightarrow$ Daniel Padua, `Kuya Wynn` $\rightarrow$ Triwynn Branzuela, `Ate Rizza` $\rightarrow$ Nerizza Dela Cruz, `Ate Mhalou` $\rightarrow$ Marilou Lacsamana).
+- **Clean Backend Data Model with Structured Parenthetical Extraction:**
+  - Backend stores clean, structured columns: `client_name` (clean full name), `relationship` (e.g. `Son`, `Wife`), `beneficiary` (e.g. `Anthony Ibañez Amores`).
   - Separates names and relationships: `Kidlat Zion De Jesus Amores (Anthony Ibañez Amores' Son)` $\rightarrow$ Name: `Kidlat Zion De Jesus Amores`, Relationship: `Son`, Beneficiary: `Anthony Ibañez Amores`.
 - **Smart 3-Bucket Diff & Upsert Engine (Zero-Duplicate Updates):**
   - **🟢 New:** Client not found in DB under advisor $\rightarrow$ `INSERT`.
-  - **🟡 Update:** Client exists under advisor, but birthdate or details changed $\rightarrow$ `UPDATE in-place` (e.g. correcting a birthdate typo from 2012 to 2014).
+  - **🟡 Update:** Client exists under advisor, but birthdate or details changed $\rightarrow$ `UPDATE in-place` (e.g. correcting a birthdate typo from 2012 to 2014 without creating duplicate rows).
   - **⚪ Unchanged:** Exact match in DB $\rightarrow$ Skipped (zero unnecessary writes).
-  - Pre-import preview displays diff statistics and old $\rightarrow$ new value comparisons before user confirmation.
+  - Pre-import preview displays diff statistics, skipped other-advisor count, and old $\rightarrow$ new value comparisons before user confirmation.
+
+### 6. Multi-Advisor Birthday & Dashboard Architecture
+- **Zero-Deletion Multi-Advisor Architecture:**
+  - If a client belongs to multiple advisors (e.g. Daniel Padua and Triwynn Branzuela), separate records are maintained under each advisor's `advisor_id`.
+  - Birthdays are synchronized across all advisor records for that client (`YYYY-MM-DD`).
+- **Composite Key Birthday Deduplication:**
+  - `getClientBirthdays()` deduplicates celebrating clients using `${extractBaseNameForDedup(name)}|${advisorId}`.
+  - Strips any parenthetical strings when computing the key so variations in relationship notes never create duplicate cards under the same advisor.
+  - Preserves 1 card per assigned advisor when viewing "All Advisors".
+- **Dynamic Contextual Birthday Title Formatting:**
+  - Formats card titles dynamically via `formatBirthdayDisplayName(clientName, relationship, beneficiary)`:
+    `Kidlat Zion De Jesus Amores` + `Anthony Ibañez Amores` + `Son` $\rightarrow$ **`Kidlat Zion De Jesus Amores (Anthony Ibañez Amores' Son)`**.
+  - Preserves pre-existing parenthetical strings (e.g. `Mary Chloie De Guzman Amante (John Ezekiel De Guzman De Luna's Sister)`).
+  - Suppresses redundant second-line relationship subtitles in UI cards when the relationship is already shown in the title.
+- **PostgREST Batched Range Pagination:**
+  - PostgREST server caps single requests at 1,000 rows.
+  - All large client queries must implement batched `.range(from, to)` pagination in increments of 1,000 to ensure 100% of client records across all advisors are scanned without omissions.
 
 ---
 

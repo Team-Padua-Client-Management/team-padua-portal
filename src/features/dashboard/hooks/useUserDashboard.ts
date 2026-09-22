@@ -331,7 +331,8 @@ export const useUserDashboard = () => {
           const combinedCalendarLogs = [...dbCalendarLogs, ...extraCalLogs];
           const map = new Map<string, CalendarActivityItem>();
           for (const item of combinedCalendarLogs) {
-            if (!map.has(item.id)) map.set(item.id, item);
+            const dedupKey = `${(item.title || '').trim().toLowerCase()}|${item.date || ''}|${item.time || ''}`;
+            if (!map.has(dedupKey)) map.set(dedupKey, item);
           }
           setCalendarLogs(Array.from(map.values()));
         } else {
@@ -1146,25 +1147,63 @@ export const useUserDashboard = () => {
   const executeDeleteCalendarActivity = async () => {
     if (!activityToDelete) return;
     const targetId = activityToDelete;
-    const targetItem = calendarLogs.find(log => log.id === targetId);
-
-    setCalendarLogs(prev => prev.filter(log => log.id !== targetId));
+    const targetItem = calendarLogs.find(log => log.id === targetId) || activities.find(a => a.id === targetId);
     setActivityToDelete(null);
 
-    try {
-      if (targetItem?._sourceTable === 'calendar_events') {
-        const { error } = await supabase
-          .from('calendar_events')
-          .delete()
-          .eq('id', targetId);
-        if (error) console.error('Error deleting from calendar_events:', error);
-      } else {
-        const { error } = await supabase
-          .from('client_servicing_tasks')
-          .delete()
-          .eq('id', targetId);
-        if (error) console.error('Error deleting from client_servicing_tasks:', error);
+    let linkedCalId: string | null = null;
+    if ((targetItem as any)?.notes) {
+      try {
+        const parsed = JSON.parse((targetItem as any).notes);
+        if (parsed?.linked_calendar_event_id) linkedCalId = parsed.linked_calendar_event_id;
+      } catch {}
+    }
+
+    const targetTitle = targetItem?.title?.trim();
+    const targetDate = (targetItem as any)?.date;
+
+    setCalendarLogs(prev => prev.filter(log => {
+      if (log.id === targetId) return false;
+      if (linkedCalId && log.id === linkedCalId) return false;
+      if (targetTitle && log.title?.trim().toLowerCase() === targetTitle.toLowerCase() && (!targetDate || log.date === targetDate)) return false;
+      return true;
+    }));
+
+    setActivities(prev => {
+      const next = prev.filter(a => {
+        if (a.id === targetId) return false;
+        if (linkedCalId && a.id === linkedCalId) return false;
+        if (targetTitle && a.title?.trim().toLowerCase() === targetTitle.toLowerCase() && (!targetDate || a.date === targetDate)) return false;
+        return true;
+      });
+      try {
+        localStorage.setItem('tp_user_activities', JSON.stringify(next));
+      } catch (e) {
+        console.error(e);
       }
+      return next;
+    });
+
+    try {
+      const deletePromises: Promise<any>[] = [
+        Promise.resolve(supabase.from('client_servicing_tasks').delete().eq('id', targetId)),
+        Promise.resolve(supabase.from('calendar_events').delete().eq('id', targetId))
+      ];
+
+      if (linkedCalId) {
+        deletePromises.push(
+          Promise.resolve(supabase.from('client_servicing_tasks').delete().eq('id', linkedCalId)),
+          Promise.resolve(supabase.from('calendar_events').delete().eq('id', linkedCalId))
+        );
+      }
+
+      if (targetTitle) {
+        deletePromises.push(
+          Promise.resolve(supabase.from('calendar_events').delete().ilike('title', targetTitle)),
+          Promise.resolve(supabase.from('client_servicing_tasks').delete().ilike('title', targetTitle))
+        );
+      }
+
+      await Promise.allSettled(deletePromises);
     } catch (err) {
       console.error('Error deleting calendar activity:', err);
     }
@@ -1233,6 +1272,9 @@ export const useUserDashboard = () => {
   const handleDeleteEvent = async () => {
     if (!selectedEvent) return;
     const eventId = selectedEvent.id;
+    const targetTitle = selectedEvent.title;
+    const targetDate = selectedEvent.date;
+
     setActivities((prev) => {
       const next = prev.filter((a) => a.id !== eventId);
       try {
@@ -1242,10 +1284,20 @@ export const useUserDashboard = () => {
       }
       return next;
     });
+    setCalendarLogs((prev) => prev.filter((log) => log.id !== eventId));
     setSelectedEvent(null);
 
     try {
-      await supabase.from('calendar_events').delete().eq('id', eventId);
+      const deletePromises: Promise<any>[] = [
+        Promise.resolve(supabase.from('calendar_events').delete().eq('id', eventId)),
+        Promise.resolve(supabase.from('client_servicing_tasks').delete().eq('id', eventId))
+      ];
+      if (targetTitle && targetDate) {
+        deletePromises.push(
+          Promise.resolve(supabase.from('calendar_events').delete().eq('title', targetTitle).eq('event_date', targetDate))
+        );
+      }
+      await Promise.allSettled(deletePromises);
     } catch (err) {
       console.error('Error deleting from calendar_events:', err);
     }

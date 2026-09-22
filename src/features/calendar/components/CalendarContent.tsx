@@ -755,13 +755,21 @@ export default function CalendarContent({ title, subtitle }: CalendarContentProp
       return;
     }
 
+    const targetTitle = targetEvent?.title?.trim();
     const { error } = await supabase.from('calendar_events').delete().eq('id', id);
     if (error) {
       showToast(error.message);
       return;
     }
 
-    setEvents(prev => prev.filter(ev => ev.id !== id));
+    try {
+      if (targetTitle) {
+        await supabase.from('client_servicing_tasks').delete().ilike('title', targetTitle);
+      }
+      await supabase.from('client_servicing_tasks').delete().eq('id', id);
+    } catch {}
+
+    setEvents(prev => prev.filter(ev => ev.id !== id && (targetTitle ? ev.title !== targetTitle : true)));
     showToast('Event deleted successfully.');
 
     await supabase.from('notifications').insert({

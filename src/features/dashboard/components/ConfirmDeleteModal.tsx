@@ -1,5 +1,4 @@
 import React from 'react';
-import { createPortal } from 'react-dom';
 import { X, AlertTriangle } from 'lucide-react';
 
 interface ConfirmDeleteModalProps {
@@ -17,9 +16,7 @@ export default function ConfirmDeleteModal({
   onConfirm,
   onCancel
 }: ConfirmDeleteModalProps) {
-  if (typeof document === 'undefined') return null;
-
-  return createPortal(
+  return (
     <div
       style={{
         position: 'fixed',
@@ -156,7 +153,6 @@ export default function ConfirmDeleteModal({
           </div>
         </div>
       </div>
-    </div>,
-    document.body
+    </div>
   );
 }

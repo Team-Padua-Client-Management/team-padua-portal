@@ -34,12 +34,19 @@ This codebase is the **Team Padua Portal**, an enterprise Financial Advisory Ope
 
 ## 3. Data Ingestion, Sanitization & Smart Upsert Conventions
 - **Formula Injection Sanitization:** Strip/escape dangerous spreadsheet formula characters (`=`, `+`, `-`, `@`, `|`, `%`) with `sanitizeCsvField()` during all file imports.
+- **3-Mode Ingestion Scoping:**
+  - `filter_selected`: Extract only rows matching selected advisor banner/alias (`Sir Pads`), skipping other advisors in master files.
+  - `auto_detect_all`: Split master multi-advisor workbook across all advisors dynamically.
+  - `force_selected`: Assign 100% of rows in single-advisor files to chosen advisor.
 - **Multi-Section Workbook Support:** Dynamically detect advisor section banners (e.g. `[ADVISOR] | CLIENTS & BENEFICIARIES`) and map advisor aliases (`Sir Pads`, `Kuya Wynn`, `Ate Rizza`, `Ate Mhalou`).
 - **Smart Upsert Diff Engine:**
   - **🟢 New:** Insert new unique client records.
   - **🟡 Update:** Update existing records in-place when birthdates or relationships change (no duplicate rows created).
   - **⚪ Unchanged:** Skip identical rows with 0 unnecessary database writes.
-- **Multi-Advisor Preservation:** If a client or beneficiary belongs to multiple advisors, retain their records under both advisors and synchronize birthdates (`YYYY-MM-DD`).
+- **Multi-Advisor Preservation & Birthday Deduplication:**
+  - Retain separate records under each advisor for multi-advisor clients with synchronized birthdates (`YYYY-MM-DD`).
+  - Dashboard and birthday queries deduplicate by `${extractBaseNameForDedup(name)}|${advisorId}` to guarantee 0 duplicate cards under the same advisor.
+  - Large client queries must use batched `.range(from, to)` pagination (1,000-row chunks) to bypass PostgREST single-request limits.
 
 ## 4. Skill & Reference Location
 - Main Skill: `.agents/skills/team-padua-portal/SKILL.md`
