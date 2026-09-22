@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Save, Download, Loader2, Eye, FileEdit } from 'lucide-react';
 import { supabase } from '@src/lib/supabase/client';
 import { generateFundWithdrawalPdfFromTemplate } from '@src/features/client-servicing/pdf/generateFundWithdrawalPdfFromTemplate';
+import SignaturePad from '@src/components/ui/SignaturePad';
 import ClientServicingLayout from '@src/features/client-servicing/components/ClientServicingLayout';
 
 interface FundWithdrawalStandardFormProps {
@@ -202,15 +203,29 @@ export default function FundWithdrawalStandardForm({
                     <h2 className="text-base font-bold text-slate-900 border-b pb-2">2. Payout & Bank Account Details</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs font-semibold text-slate-600 mb-1">Payout Option</label>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Payout Method *</label>
                         <select
-                          value={formData.payout_option || 'direct_credit'}
-                          onChange={(e) => handleChange('payout_option', e.target.value)}
-                          className="w-full p-2.5 rounded-lg border border-slate-200 text-sm"
+                          value={formData.payout_method || formData.payout_option || 'telegraphic_transfer'}
+                          onChange={(e) => {
+                            handleChange('payout_method', e.target.value);
+                            handleChange('payout_option', e.target.value);
+                          }}
+                          className="w-full p-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 font-medium"
                         >
-                          <option value="direct_credit">Direct Credit (Bank Deposit)</option>
+                          <option value="telegraphic_transfer">Direct Credit / Telegraphic Transfer (Bank Deposit)</option>
                           <option value="check">Check</option>
+                          <option value="demand_draft">Demand Draft</option>
                         </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Encashment Branch (For Check / Demand Draft)</label>
+                        <input
+                          type="text"
+                          value={formData.encashment_branch || ''}
+                          onChange={(e) => handleChange('encashment_branch', e.target.value)}
+                          className="w-full p-2.5 rounded-lg border border-slate-200 text-sm uppercase focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
+                          placeholder="e.g. SLOCPI MAKATI / BDO BRANCH"
+                        />
                       </div>
                       <div>
                         <label className="block text-xs font-semibold text-slate-600 mb-1">Bank Name</label>
@@ -218,18 +233,21 @@ export default function FundWithdrawalStandardForm({
                           type="text"
                           value={formData.bank_name || ''}
                           onChange={(e) => handleChange('bank_name', e.target.value)}
-                          className="w-full p-2.5 rounded-lg border border-slate-200 text-sm"
-                          placeholder="e.g. BDO / BPI / Metrobank"
+                          className="w-full p-2.5 rounded-lg border border-slate-200 text-sm uppercase focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
+                          placeholder="e.g. BDO / BPI / METROBANK"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-slate-600 mb-1">Bank Branch</label>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Bank Branch / Address</label>
                         <input
                           type="text"
-                          value={formData.bank_branch || ''}
-                          onChange={(e) => handleChange('bank_branch', e.target.value)}
-                          className="w-full p-2.5 rounded-lg border border-slate-200 text-sm"
-                          placeholder="e.g. Makati Main Branch"
+                          value={formData.bank_branch || formData.bank_address || ''}
+                          onChange={(e) => {
+                            handleChange('bank_branch', e.target.value);
+                            handleChange('bank_address', e.target.value);
+                          }}
+                          className="w-full p-2.5 rounded-lg border border-slate-200 text-sm uppercase focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
+                          placeholder="e.g. MAKATI MAIN BRANCH"
                         />
                       </div>
                       <div>
@@ -237,7 +255,7 @@ export default function FundWithdrawalStandardForm({
                         <select
                           value={formData.account_type || 'savings'}
                           onChange={(e) => handleChange('account_type', e.target.value)}
-                          className="w-full p-2.5 rounded-lg border border-slate-200 text-sm"
+                          className="w-full p-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
                         >
                           <option value="savings">Savings Account</option>
                           <option value="checking">Checking Account</option>
@@ -249,7 +267,8 @@ export default function FundWithdrawalStandardForm({
                           type="text"
                           value={formData.bank_account_number || ''}
                           onChange={(e) => handleChange('bank_account_number', e.target.value)}
-                          className="w-full p-2.5 rounded-lg border border-slate-200 text-sm"
+                          className="w-full p-2.5 rounded-lg border border-slate-200 text-sm uppercase focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
+                          placeholder="ACCOUNT NUMBER"
                         />
                       </div>
                       <div>
@@ -258,7 +277,21 @@ export default function FundWithdrawalStandardForm({
                           type="text"
                           value={formData.bank_account_name || ''}
                           onChange={(e) => handleChange('bank_account_name', e.target.value)}
-                          className="w-full p-2.5 rounded-lg border border-slate-200 text-sm"
+                          className="w-full p-2.5 rounded-lg border border-slate-200 text-sm uppercase focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
+                          placeholder="ACCOUNT HOLDER NAME"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">SWIFT Code / Routing No. (Optional)</label>
+                        <input
+                          type="text"
+                          value={formData.swift_code || formData.routing_number || ''}
+                          onChange={(e) => {
+                            handleChange('swift_code', e.target.value);
+                            handleChange('routing_number', e.target.value);
+                          }}
+                          className="w-full p-2.5 rounded-lg border border-slate-200 text-sm uppercase focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
+                          placeholder="SWIFT OR ROUTING CODE"
                         />
                       </div>
                     </div>
@@ -292,6 +325,33 @@ export default function FundWithdrawalStandardForm({
                           value={formData.date_of_signing || ''}
                           onChange={(e) => handleChange('date_of_signing', e.target.value)}
                           className="w-full p-2.5 rounded-lg border border-slate-200 text-sm"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
+                      <div>
+                        <SignaturePad
+                          title="Signature of Policy Owner"
+                          initialSignature={formData.signature_base64}
+                          onSignatureChange={(sig) => handleChange('signature_base64', sig || '')}
+                        />
+                      </div>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-600 mb-1">Witness Printed Name</label>
+                          <input
+                            type="text"
+                            value={formData.witness_printed_name || ''}
+                            onChange={(e) => handleChange('witness_printed_name', e.target.value)}
+                            placeholder="Witness Name"
+                            className="w-full p-2.5 rounded-lg border border-slate-200 text-sm"
+                          />
+                        </div>
+                        <SignaturePad
+                          title="Signature of Witness"
+                          initialSignature={formData.witness_signature_base64}
+                          onSignatureChange={(sig) => handleChange('witness_signature_base64', sig || '')}
                         />
                       </div>
                     </div>

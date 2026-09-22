@@ -23,8 +23,8 @@ export interface MaintenanceSetting {
 // Client Servicing sub-module keys (covered by the 'client_servicing' group)
 // ─────────────────────────────────────────────────────────────────────────────
 const CLIENT_SERVICING_MODULES = new Set([
-  "acr", "bcr", "aca", "fund_switching", "fund_withdrawal",
-  "reinstatement", "sro", "pdi", "cpst",
+  "acr", "acicr", "bcr", "fund_switching", "fund_withdrawal",
+  "aca", "reinstatement", "sro", "pdi", "cpst",
   // Additional CS routes that exist in the codebase
   "cpc", "fst", "mngt", "ppu", "csmv", "cv", "adat", "cgpt", "pptm",
   "jf_application", "jf_bizdev",
@@ -47,6 +47,8 @@ const PATH_TO_MODULE: Record<string, string> = {
 
   // Client Servicing modules
   "acr": "acr",
+  "acicr": "acicr",
+  "acic": "acicr",
   "bcr": "bcr",
   "aca": "aca",
   "fund-switching": "fund_switching",

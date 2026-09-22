@@ -27,11 +27,7 @@ console.log("🔥 generateAdvisorChangeRequestPdfFromTemplate CALLED");
 import { PDFDocument, StandardFonts, rgb, PDFFont, PDFPage } from 'pdf-lib';
 import { FormRecord } from '@/app/(admin)/admin/(ClientServicing)/acr/page';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Tiny, self-contained helpers (no external deps beyond pdf-lib)
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** Split "YYYY-MM-DD" (from <input type="date">) into day / month / year parts. */
+// ────────────────────────────────────────────────────────────────────────/** Split "YYYY-MM-DD" or ISO date string into day / month / year parts. */
 function parseISODate(
   iso: string | null | undefined
 ): {
@@ -39,7 +35,6 @@ function parseISODate(
   month: string;
   year: string;
 } {
-
   if (!iso) {
     return {
       day: "",
@@ -48,7 +43,17 @@ function parseISODate(
     };
   }
 
-  const [year, month, day] = iso.split("-");
+  const clean = iso.split('T')[0].trim();
+  const parts = clean.split("-");
+  if (parts.length < 3) {
+    return {
+      day: "",
+      month: "",
+      year: ""
+    };
+  }
+
+  const [year, month, day] = parts;
 
   const months = [
     "JAN",
@@ -66,13 +71,112 @@ function parseISODate(
   ];
 
   return {
-    day,
+    day: day ? day.padStart(2, '0') : "",
     month: months[Number(month) - 1] || "",
-    year,
+    year: year || "",
   };
 }
 
-/** Draw plain text; silently no-ops on falsy value. */
+interface Box {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+interface DateBoxesConfig {
+  day: Box[];
+  month: Box[];
+  year: Box[];
+}
+
+// Section A.1 Date of Birth boxes on Page 1
+const DOB_BOXES: DateBoxesConfig = {
+  day: [
+    { x: 471.225, y: 504.82, w: 9.486, h: 12.523 },
+    { x: 482.04, y: 504.82, w: 9.486, h: 12.523 },
+  ],
+  month: [
+    { x: 497.503, y: 504.82, w: 9.486, h: 12.523 },
+    { x: 508.317, y: 504.82, w: 9.487, h: 12.523 },
+    { x: 519.132, y: 504.82, w: 9.487, h: 12.523 },
+  ],
+  year: [
+    { x: 535.069, y: 504.642, w: 9.487, h: 12.523 },
+    { x: 545.884, y: 504.642, w: 9.487, h: 12.523 },
+    { x: 556.699, y: 504.642, w: 9.486, h: 12.523 },
+    { x: 567.513, y: 504.642, w: 9.487, h: 12.523 },
+  ],
+};
+
+// Section E.1 Date of Signing boxes on Page 2
+const SIGNING_DATE_BOXES: DateBoxesConfig = {
+  day: [
+    { x: 451.0, y: 429.208, w: 11.365, h: 14.594 },
+    { x: 463.956, y: 429.208, w: 11.364, h: 14.594 },
+  ],
+  month: [
+    { x: 482.48, y: 429.208, w: 11.364, h: 14.594 },
+    { x: 495.435, y: 429.208, w: 11.365, h: 14.594 },
+    { x: 508.391, y: 429.208, w: 11.364, h: 14.594 },
+  ],
+  year: [
+    { x: 527.483, y: 429.0, w: 11.365, h: 14.593 },
+    { x: 540.439, y: 429.0, w: 11.364, h: 14.593 },
+    { x: 553.395, y: 429.0, w: 11.364, h: 14.593 },
+    { x: 566.35, y: 429.0, w: 11.365, h: 14.593 },
+  ],
+};
+
+// Section G Date Received boxes on Page 2
+const DATE_RECEIVED_BOXES: DateBoxesConfig = {
+  day: [
+    { x: 149.239, y: 58.698, w: 14.328, h: 18.495 },
+    { x: 165.573, y: 58.698, w: 14.328, h: 18.495 },
+  ],
+  month: [
+    { x: 188.928, y: 58.698, w: 14.329, h: 18.495 },
+    { x: 205.263, y: 58.698, w: 14.328, h: 18.495 },
+    { x: 221.597, y: 58.698, w: 14.328, h: 18.495 },
+  ],
+  year: [
+    { x: 245.669, y: 58.434, w: 14.328, h: 18.494 },
+    { x: 262.003, y: 58.434, w: 14.328, h: 18.494 },
+    { x: 278.337, y: 58.434, w: 14.329, h: 18.494 },
+    { x: 294.672, y: 58.434, w: 14.328, h: 18.494 },
+  ],
+};
+
+/**
+ * Render individual date characters centered inside each designated box.
+ */
+function drawDateInBoxes(
+  page: PDFPage,
+  dateObj: { day: string; month: string; year: string },
+  config: DateBoxesConfig,
+  font: PDFFont,
+  size = 8.5,
+  color = rgb(0, 0, 0),
+): void {
+  const renderChars = (chars: string, boxes: Box[]) => {
+    const text = chars.toUpperCase();
+    for (let i = 0; i < boxes.length; i++) {
+      const char = text[i];
+      if (!char) continue;
+      const box = boxes[i];
+      const charWidth = font.widthOfTextAtSize(char, size);
+      const x = box.x + (box.w - charWidth) / 2;
+      const y = box.y + (box.h - size * 0.75) / 2;
+      page.drawText(char, { x, y, size, font, color });
+    }
+  };
+
+  if (dateObj.day) renderChars(dateObj.day, config.day);
+  if (dateObj.month) renderChars(dateObj.month, config.month);
+  if (dateObj.year) renderChars(dateObj.year, config.year);
+}
+
+/** Draw plain uppercase text; silently no-ops on falsy value. */
 function txt(
   page: PDFPage,
   value: string | null | undefined,
@@ -83,11 +187,11 @@ function txt(
   color = rgb(0, 0, 0),
 ): void {
   if (!value) return;
-  page.drawText(value, { x, y, size, font, color });
+  page.drawText(String(value).toUpperCase(), { x, y, size, font, color });
 }
 
 /**
- * Draw a word-wrapped block of text.
+ * Draw a word-wrapped block of uppercase text.
  * Returns the Y coordinate immediately below the last line drawn.
  */
 function wrappedTxt(
@@ -102,7 +206,8 @@ function wrappedTxt(
   color = rgb(0, 0, 0),
 ): number {
   if (!text) return y;
-  const paragraphs = text.split(/\r\n|\r|\n/);
+  const uppercaseText = String(text).toUpperCase();
+  const paragraphs = uppercaseText.split(/\r\n|\r|\n/);
   let curY = y;
   for (const para of paragraphs) {
     const words = para.trim().split(/\s+/).filter(Boolean);
@@ -198,7 +303,6 @@ export async function generateAdvisorChangeRequestPdfFromTemplate(
     record
   });
 
-
   // ── 1. Fetch the blank template ──────────────────────────────────────────
   const res = await fetch('/forms/SLOCPI_Advisor_Change_Request.pdf');
   if (!res.ok) {
@@ -245,38 +349,37 @@ export async function generateAdvisorChangeRequestPdfFromTemplate(
   txt(pg1, clientNameParts.last, 35, 518, regular, VS); // COORD A.1 Last Name
   txt(pg1, clientNameParts.first, 176, 518, regular, VS); // COORD A.1 First Name
   txt(pg1, clientNameParts.middle, 310, 518, regular, VS); // COORD A.1 Middle Name
+
   // ── A.1  Date of Birth ────────────────────────────────────────────────────
-  // Sub-header labels at y=524;  values just below at y≈513
   const dob = parseISODate(clientDob);
-  txt(pg1, dob.day, 472, 510, regular, VS); // COORD A.1 DOB Day
-  txt(pg1, dob.month, 502, 510, regular, VS); // COORD A.1 DOB Month
-  txt(pg1, dob.year, 549, 510, regular, VS); // COORD A.1 DOB Year
+  drawDateInBoxes(pg1, dob, DOB_BOXES, regular, VS);
 
   // ── A.2  Company Name ─────────────────────────────────────────────────────
-  // Label at x=45 y=495.7;  value at y≈480
+  // Label at x=45 y=495.7;  value at y≈465
   txt(pg1, record.company_name, 45, 465, regular, VS); // COORD A.2 Company Name
 
   // ── A.2  Designation ─────────────────────────────────────────────────────
-  // Label at x=456 y=495.7;  value at y≈480
+  // Label at x=456 y=495.7;  value at y≈465
   txt(pg1, record.designation, 472, 465, regular, VS); // COORD A.2 Designation
 
   // ── B.1  Specific-policy checkbox ────────────────────────────────────────
-  // The B.1 radio checkbox square is printed on the template at approx x=51.
+  // The B.1 radio checkbox square is printed on the template at approx x=47, y=435.
   // Label: "B.1 Request a particular policy/plan/account number(s) only."
-  // We place the X at y that aligns with B.1 header — tune as needed.
-  //checkMark(pg1, record.request_type === 'specific_policy', 51, 435, bold, 9); // COORD B.1 checkbox
+  checkMark(pg1, record.request_type === 'specific_policy', 47, 435, bold, 9); // COORD B.1 checkbox
 
   // ── B.1  Policy number(s) text area ──────────────────────────────────────
-  // "Specify below..." label ends y=408.9; text area starts y≈395
+  // "Specify below..." label ends y=408.9; text area starts y≈380
   if (record.request_type === 'specific_policy' && record.policy_numbers) {
     wrappedTxt(pg1, record.policy_numbers, 55, 380, 500, regular, VS); // COORD B.1 policy numbers
   }
 
   // ── B.2  All-accounts checkbox ───────────────────────────────────────────
-  //checkMark(pg1, record.request_type === 'all_accounts', 51, 350, bold, 9); // COORD B.2 checkbox
+  // The B.2 radio checkbox square is printed on the template at approx x=47, y=350.
+  // Label: "B.2 Request change of servicing Advisor for all my policies/plans/accounts."
+  checkMark(pg1, record.request_type === 'all_accounts', 47, 350, bold, 9); // COORD B.2 checkbox
 
   // ── B.2  Account-type sub-checkboxes ─────────────────────────────────────
-  // Labels measured at specific y values; checkboxes drawn at x≈51, same y.
+  // Labels measured at specific y values; checkboxes drawn at x≈47, same y.
   const isAll = record.request_type === 'all_accounts';
   checkMark(pg1, isAll && !!record.account_individual_life, 47, 274.5, bold, 9); // COORD B.2 Individual Life
   checkMark(pg1, isAll && !!record.account_group_life, 47, 261.8, bold, 9); // COORD B.2 Group Life
@@ -284,7 +387,7 @@ export async function generateAdvisorChangeRequestPdfFromTemplate(
   checkMark(pg1, isAll && !!record.account_pre_need, 47, 236.8, bold, 9); // COORD B.2 Pre-Need Plans
 
   // ── B.2  Reference policy number (inline underline) ──────────────────────
-  // "number:" ends at x=326.9 y=231.8; value starts x≈330, y≈233
+  // "number:" ends at x=326.9 y=231.8; value starts x≈330, y≈226
   if (isAll && record.reference_policy_number) {
     txt(pg1, record.reference_policy_number, 330, 226, regular, VS); // COORD B.2 ref policy number
   }
@@ -294,7 +397,7 @@ export async function generateAdvisorChangeRequestPdfFromTemplate(
   checkMark(pg1, record.reason_type === 'prefer_another', 47, 171, bold, 9); // COORD C "prefer another"
 
   // ── C.  Reason details text (multi-line) ─────────────────────────────────
-  // Below the two C options; approximate y≈158
+  // Below the two C options; approximate y≈153
   if (record.reason_type === 'prefer_another' && record.reason_details) {
     wrappedTxt(pg1, record.reason_details, 70, 153, 500, regular, VS); // COORD C reason details
   }
@@ -304,7 +407,7 @@ export async function generateAdvisorChangeRequestPdfFromTemplate(
   // ══════════════════════════════════════════════════════════════════════════
 
   // ── D.  New Advisor Name ─────────────────────────────────────────────────
-  // Labels at y=721.8;  values at y≈707  (label_y − 15)
+  // Labels at y=721.8;  values at y≈705  (label_y − 15)
   txt(pg2, record.new_advisor_last_name, 35, 705, regular, VS); // COORD D Last Name
   txt(pg2, record.new_advisor_first_name, 218, 705, regular, VS); // COORD D First Name
   txt(pg2, record.new_advisor_middle_name, 401, 705, regular, VS); // COORD D Middle Name
@@ -320,11 +423,8 @@ export async function generateAdvisorChangeRequestPdfFromTemplate(
   txt(pg2, record.place_of_signing, 35, 434, regular, VS); // COORD E.1 Place of Signing
 
   // ── E.1  Date of Signing ─────────────────────────────────────────────────
-  // Sub-header labels at y=451.1;  values at y≈441
   const sigDate = parseISODate(record.date_of_signing);
-  txt(pg2, sigDate.day, 457, 441.5, regular, VS); // COORD E.1 Signing Day
-  txt(pg2, sigDate.month, 490, 441.5, regular, VS); // COORD E.1 Signing Month
-  txt(pg2, sigDate.year, 545, 441.5, regular, VS); // COORD E.1 Signing Year
+  drawDateInBoxes(pg2, sigDate, SIGNING_DATE_BOXES, regular, VS);
 
   // ── E.2  Policy Owner Signature ──────────────────────────────────────────
   // Signature box: roughly x=35–575, y=358–398 (height ~40)
@@ -346,40 +446,37 @@ export async function generateAdvisorChangeRequestPdfFromTemplate(
   );
 
   // ── E.2  Code Number ──────────────────────────────────────────────────────
-  // Code Number label x=218.2 y=369.3; value just below at y≈355
+  // Code Number label x=218.2 y=369.3; value just below at y≈352
   txt(pg2, record.code_number, 218, 352, regular, VS); // COORD E.2 Code Number
 
   // ── E.2  NBO / ISO ────────────────────────────────────────────────────────
-  // NBO/ISO label x=401.4 y=369.3; value at y≈355
+  // NBO/ISO label x=401.4 y=369.3; value at y≈352
   txt(pg2, record.nbo_iso, 401, 352, regular, VS); // COORD E.2 NBO/ISO
 
   // ── F.2  Wants Communication — Yes / No checkboxes ───────────────────────
-  // "Yes" label x=142.4 y=167.8 → checkbox just left: x≈130, y≈167
-  // "No"  label x=174.4 y=167.8 → checkbox just left: x≈162, y≈167
+  // "Yes" label x=142.4 y=167.8 → checkbox just left: x≈131.2, y≈161.5
+  // "No"  label x=174.4 y=167.8 → checkbox just left: x≈163.2, y≈161.5
   checkMark(pg2, record.wants_communication === true, 131.2, 161.5, bold, 9); // COORD F.2 Yes
   checkMark(pg2, record.wants_communication === false, 163.2, 161.5, bold, 9); // COORD F.2 No
 
   // ── G.  For Office Use Only ───────────────────────────────────────────────
 
-  // Complete Name of Staff — label x=153.5 y=117.2; value at y≈102
+  // Complete Name of Staff — label x=153.5 y=117.2; value at y≈100
   txt(pg2, record.received_by_staff, 153.5, 100, regular, VS); // COORD G Staff Name
 
-  // Receiving Department/Office — label x=367 y=117.2; value at y≈102
+  // Receiving Department/Office — label x=367 y=117.2; value at y≈100
   txt(pg2, record.receiving_department, 367.7, 100, regular, VS); // COORD G Department
 
-  // Date Received — sub-headers at y=85.6; values at y≈74
+  // Date Received — character boxes
   const recDate = parseISODate(record.date_received);
-  txt(pg2, recDate.day, 158, 74, regular, VS); // COORD G Date Received Day
-  txt(pg2, recDate.month, 201, 74, regular, VS); // COORD G Date Received Month
-  txt(pg2, recDate.year, 270, 74, regular, VS); // COORD G Date Received Year
+  drawDateInBoxes(pg2, recDate, DATE_RECEIVED_BOXES, regular, VS);
 
   // Time Received — label x=327 y=77.6; value at y≈62
   txt(pg2, record.time_received, 327, 62, regular, VS); // COORD G Time Received
 
   // ── Serialise and return ──────────────────────────────────────────────────
   return pdfDoc.save();
-
-
 }
+
 
 

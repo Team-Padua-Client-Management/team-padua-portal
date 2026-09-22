@@ -31,8 +31,8 @@ export async function generateFundWithdrawalPdfFromTemplate(
   const amountVal = record.amount ? Number(record.amount).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '';
   const formattedFigures = amountVal ? `${record.currency || 'PHP'} ${amountVal}` : '';
 
-  // Helper options: preserve natural case and don't fallback to N/A
-  const opts = { uppercase: false, useDefaultFallback: false };
+  // Helper options: enforce uppercase normalization
+  const opts = { uppercase: true, useDefaultFallback: false };
 
   // ─── Section 1: General Information (Page 1) ────────────────────────────────
   setPdfTextField(form, '5', ownerName, opts); // Policy Owner

@@ -44,8 +44,15 @@ export interface ACICRFormRecord {
   citizenship_country: string;
   residence_country: string;
 
-  // D. Consent
+  // D. Consent & Signatures
   receive_offers: 'Yes' | 'No' | '';
+  policy_owner_printed_name?: string;
+  place_of_signing?: string;
+  date_of_signing?: string;
+  policy_owner_signature?: string;
+  witness_name?: string;
+  witness_signature?: string;
 }
 
 export type AcicrRecord = ACICRFormRecord;
+

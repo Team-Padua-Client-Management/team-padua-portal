@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Save, Download, Loader2, Eye, FileEdit, Upload } from 'lucide-react';
+import { ArrowLeft, Save, Download, Loader2, Eye, FileEdit } from 'lucide-react';
 import { supabase } from '@src/lib/supabase/client';
 import { generateAcicrPdfFromTemplate } from '@src/features/client-servicing/pdf/generateAcicrPdfFromTemplate';
 import ClientServicingLayout from '@src/features/client-servicing/components/ClientServicingLayout';
+import SignaturePad from '@src/components/ui/SignaturePad';
 
 interface AcicrStandardFormProps {
   initialValues: Record<string, any>;
@@ -17,65 +18,6 @@ interface AcicrStandardFormProps {
   onExportPdf: (values: Record<string, any>) => void;
   isSubmitting: boolean;
   isGeneratingPdf: boolean;
-}
-
-function SignatureUploadInput({
-  label,
-  value,
-  onChange,
-  required = false,
-}: {
-  label: string;
-  value: string | null | undefined;
-  onChange: (base64: string | null) => void;
-  required?: boolean;
-}) {
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        onChange(reader.result);
-      }
-    };
-    reader.readAsDataURL(file);
-  };
-
-  return (
-    <div className="space-y-1.5">
-      <label className="block text-xs font-semibold text-slate-700">
-        {label} {required && <span className="text-red-500">*</span>}
-      </label>
-      {value ? (
-        <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-lg">
-          <div className="h-12 w-28 bg-white border border-slate-200 rounded flex items-center justify-center overflow-hidden shrink-0">
-            <img src={value} alt="Signature Preview" className="max-h-full max-w-full object-contain" />
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="px-3 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 cursor-pointer transition-colors shadow-sm">
-              Replace
-              <input type="file" accept="image/png, image/jpeg, image/jpg" onChange={handleFileChange} className="hidden" />
-            </label>
-            <button
-              type="button"
-              onClick={() => onChange(null)}
-              className="px-3 py-1.5 text-xs font-medium text-red-600 bg-white border border-slate-200 rounded-md hover:bg-red-50 transition-colors shadow-sm"
-            >
-              Remove
-            </button>
-          </div>
-        </div>
-      ) : (
-        <label className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-slate-200 rounded-lg hover:border-slate-300 bg-slate-50 hover:bg-white cursor-pointer transition-all text-center">
-          <Upload className="w-5 h-5 text-slate-400 mb-1" />
-          <span className="text-xs text-slate-600 font-medium">Upload Signature Image</span>
-          <span className="text-[10px] text-slate-400">PNG, JPG, or JPEG</span>
-          <input type="file" accept="image/png, image/jpeg, image/jpg" onChange={handleFileChange} className="hidden" />
-        </label>
-      )}
-    </div>
-  );
 }
 
 export default function AcicrStandardForm({
@@ -156,6 +98,7 @@ export default function AcicrStandardForm({
     if (words.length === 1) {
       return { last: '', first: words[0], middle: '' };
     }
+
     return {
       last: words[words.length - 1],
       first: words.slice(0, -1).join(' '),
@@ -163,21 +106,42 @@ export default function AcicrStandardForm({
     };
   };
 
-  const handleClientSelectLocal = async (newClientId: string, selectedClient?: any) => {
+  const handleClientSelectLocal = async (newClientId: string, selectedClientFromSelector?: any) => {
     handleChange('client_id', newClientId);
     onClientSelect(newClientId);
 
-    if (!newClientId || !selectedClient) return;
+    if (!newClientId) return;
 
-    const nameParts = getClientNameParts(selectedClient.client_name);
+    let client = selectedClientFromSelector;
+    if (!client) {
+      try {
+        const { data, error } = await supabase
+          .from('cpst_clients')
+          .select('id, client_name, policy_number, birthdate, mobile_number, email, address')
+          .eq('id', newClientId)
+          .single();
 
-    setFormData(prev => ({
-      ...prev,
-      first_name: (nameParts.first || '').toUpperCase(),
-      last_name: (nameParts.last || '').toUpperCase(),
-      middle_initial: (nameParts.middle ? nameParts.middle.charAt(0) : '').toUpperCase(),
-      policy_number: (selectedClient.policy_number || prev.policy_number || '').toUpperCase(),
-    }));
+        if (!error && data) client = data;
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    if (client) {
+      const nameParts = getClientNameParts(client.client_name);
+      setFormData(prev => ({
+        ...prev,
+        client_id: newClientId,
+        policy_number: (client.policy_number || prev.policy_number || '').toUpperCase(),
+        first_name: (nameParts.first || prev.first_name || '').toUpperCase(),
+        last_name: (nameParts.last || prev.last_name || '').toUpperCase(),
+        middle_initial: (nameParts.middle ? nameParts.middle.charAt(0) : prev.middle_initial || '').toUpperCase(),
+        permanent_address: (client.address || prev.permanent_address || '').toUpperCase(),
+        mobile_phone: (client.mobile_number || prev.mobile_phone || '').toUpperCase(),
+        email_address: (client.email || prev.email_address || '').toUpperCase(),
+        policy_owner_printed_name: (client.client_name || prev.policy_owner_printed_name || '').toUpperCase(),
+      }));
+    }
   };
 
   const handleViewModeChange = async (mode: 'form' | 'literal') => {
@@ -185,14 +149,10 @@ export default function AcicrStandardForm({
     if (mode === 'literal') {
       setIsPreviewLoading(true);
       try {
-        const selectedClient = selectedClientDetails;
-        const ownerName = {
-          last: (formData.last_name ?? getClientNameParts(selectedClient?.client_name).last ?? '').toUpperCase(),
-          first: (formData.first_name ?? getClientNameParts(selectedClient?.client_name).first ?? '').toUpperCase(),
-          middle: (formData.middle_initial ?? getClientNameParts(selectedClient?.client_name).middle ?? '').toUpperCase(),
-        };
-
-        const pdfBytes = await generateAcicrPdfFromTemplate(formData, ownerName);
+        const clientNameParts = getClientNameParts(
+          formData.policy_owner_printed_name || `${formData.first_name || ''} ${formData.last_name || ''}`.trim()
+        );
+        const pdfBytes = await generateAcicrPdfFromTemplate(formData, clientNameParts);
         const blob = new Blob([new Uint8Array(pdfBytes)], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
         setPdfPreviewUrl(prev => {
@@ -735,11 +695,10 @@ export default function AcicrStandardForm({
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* 18 & 19 */}
-                        <SignatureUploadInput
-                          label="18. Signature of Policy Owner/Planholder/Investor"
-                          value={formData.policy_owner_signature}
-                          onChange={(base64) => handleChange('policy_owner_signature', base64)}
-                          required
+                        <SignaturePad
+                          title="18. Signature of Policy Owner / Planholder"
+                          initialSignature={formData.policy_owner_signature}
+                          onSignatureChange={(sig) => handleChange('policy_owner_signature', sig)}
                         />
                         <div>
                           <label className="block text-xs font-semibold text-slate-600 mb-1">
@@ -754,10 +713,10 @@ export default function AcicrStandardForm({
                         </div>
 
                         {/* 20 & 21 */}
-                        <SignatureUploadInput
-                          label="20. Signature of Authorized Signatory #1"
-                          value={formData.authorized_signatory_1_signature}
-                          onChange={(base64) => handleChange('authorized_signatory_1_signature', base64)}
+                        <SignaturePad
+                          title="20. Signature of Authorized Signatory #1"
+                          initialSignature={formData.authorized_signatory_1_signature}
+                          onSignatureChange={(sig) => handleChange('authorized_signatory_1_signature', sig)}
                         />
                         <div>
                           <label className="block text-xs font-semibold text-slate-600 mb-1">21. Printed Name & Job Title (Authorized Signatory #1)</label>
@@ -771,10 +730,10 @@ export default function AcicrStandardForm({
                         </div>
 
                         {/* 22 & 23 */}
-                        <SignatureUploadInput
-                          label="22. Signature of Authorized Signatory #2"
-                          value={formData.authorized_signatory_2_signature}
-                          onChange={(base64) => handleChange('authorized_signatory_2_signature', base64)}
+                        <SignaturePad
+                          title="22. Signature of Authorized Signatory #2"
+                          initialSignature={formData.authorized_signatory_2_signature}
+                          onSignatureChange={(sig) => handleChange('authorized_signatory_2_signature', sig)}
                         />
                         <div>
                           <label className="block text-xs font-semibold text-slate-600 mb-1">23. Printed Name & Job Title (Authorized Signatory #2)</label>
@@ -788,12 +747,12 @@ export default function AcicrStandardForm({
                         </div>
 
                         {/* 24 & 25 */}
-                        <SignatureUploadInput
-                          label="24. Signature of Witness"
-                          value={formData.witness_signature || formData.primary_witness_signature}
-                          onChange={(base64) => {
-                            handleChange('witness_signature', base64);
-                            handleChange('primary_witness_signature', base64);
+                        <SignaturePad
+                          title="24. Signature of Witness"
+                          initialSignature={formData.witness_signature || formData.primary_witness_signature}
+                          onSignatureChange={(sig) => {
+                            handleChange('witness_signature', sig);
+                            handleChange('primary_witness_signature', sig);
                           }}
                         />
                         <div>

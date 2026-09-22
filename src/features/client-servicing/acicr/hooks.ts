@@ -35,6 +35,12 @@ export function useACICRForm(initialData?: Partial<ACICRFormRecord>) {
     citizenship_country: '',
     residence_country: '',
     receive_offers: '',
+    policy_owner_printed_name: '',
+    place_of_signing: '',
+    date_of_signing: new Date().toISOString().split('T')[0],
+    policy_owner_signature: '',
+    witness_name: '',
+    witness_signature: '',
     ...initialData
   });
 

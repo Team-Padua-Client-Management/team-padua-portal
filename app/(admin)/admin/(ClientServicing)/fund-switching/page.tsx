@@ -219,7 +219,7 @@ export default function FundSwitchingPage() {
   } | null>(null);
 
   useEffect(() => {
-    if (!formData.client_id) {
+    if (!formData.client_id || !formData.client_id.trim()) {
       setSelectedClientDetails(null);
       return;
     }
@@ -229,16 +229,19 @@ export default function FundSwitchingPage() {
           .from('cpst_clients')
           .select('client_name, birthdate, policy_number')
           .eq('id', formData.client_id)
-          .single();
+          .maybeSingle();
         if (err) throw err;
-        setSelectedClientDetails(data);
-
-        // Auto-fill policy number if empty
-        if (!formData.policy_number && data.policy_number) {
-          setFormData(prev => ({ ...prev, policy_number: data.policy_number || '' }));
+        if (data) {
+          setSelectedClientDetails(data);
+          // Auto-fill policy number if empty
+          if (!formData.policy_number && data.policy_number) {
+            setFormData(prev => ({ ...prev, policy_number: data.policy_number || '' }));
+          }
+        } else {
+          setSelectedClientDetails(null);
         }
       } catch (err: any) {
-        console.error('Error fetching client details:', err);
+        console.error('Error fetching client details:', err?.message || err);
       }
     };
     fetchClientDetails();

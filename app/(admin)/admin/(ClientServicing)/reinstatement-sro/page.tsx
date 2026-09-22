@@ -68,7 +68,7 @@ export default function ReinstatementSroPage() {
   const [selectedClientDetails, setSelectedClientDetails] = useState<any>(null);
 
   useEffect(() => {
-    if (!formData.client_id) {
+    if (!formData.client_id || !formData.client_id.trim()) {
       setSelectedClientDetails(null);
       return;
     }
@@ -78,11 +78,11 @@ export default function ReinstatementSroPage() {
           .from('cpst_clients')
           .select('client_name, birthdate, policy_number')
           .eq('id', formData.client_id)
-          .single();
+          .maybeSingle();
         if (err) throw err;
-        setSelectedClientDetails(data);
+        setSelectedClientDetails(data || null);
       } catch (err: any) {
-        console.error('Error fetching client details:', err);
+        console.error('Error fetching client details:', err?.message || err);
       }
     };
     fetchClientDetails();

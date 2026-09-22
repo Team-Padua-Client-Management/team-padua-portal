@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-  ArrowLeft, Save, Download, Loader2, Eye, FileEdit, Upload
+  ArrowLeft, Save, Download, Loader2, Eye, FileEdit
 } from 'lucide-react';
 import { supabase } from '@src/lib/supabase/client';
 import { generateBeneficiaryChangeRequestPdfFromTemplate } from '@src/features/client-servicing/pdf/generateBeneficiaryChangeRequestPdfFromTemplate';
 import ClientServicingLayout from '@src/features/client-servicing/components/ClientServicingLayout';
+import SignaturePad from '@src/components/ui/SignaturePad';
 
 interface BcrStandardFormProps {
   initialValues: Record<string, any>;
@@ -20,65 +21,6 @@ interface BcrStandardFormProps {
   isSubmitting: boolean;
   isGeneratingPdf: boolean;
   config?: any;
-}
-
-function SignatureUploadInput({
-  label,
-  value,
-  onChange,
-  required = false,
-}: {
-  label: string;
-  value: string | null | undefined;
-  onChange: (base64: string | null) => void;
-  required?: boolean;
-}) {
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        onChange(reader.result);
-      }
-    };
-    reader.readAsDataURL(file);
-  };
-
-  return (
-    <div className="space-y-1.5">
-      <label className="block text-xs font-semibold text-slate-700">
-        {label} {required && <span className="text-red-500">*</span>}
-      </label>
-      {value ? (
-        <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-lg">
-          <div className="h-12 w-28 bg-white border border-slate-200 rounded flex items-center justify-center overflow-hidden shrink-0">
-            <img src={value} alt="Signature Preview" className="max-h-full max-w-full object-contain" />
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="px-3 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 cursor-pointer transition-colors shadow-sm">
-              Replace
-              <input type="file" accept="image/png, image/jpeg, image/jpg" onChange={handleFileChange} className="hidden" />
-            </label>
-            <button
-              type="button"
-              onClick={() => onChange(null)}
-              className="px-3 py-1.5 text-xs font-medium text-red-600 bg-white border border-slate-200 rounded-md hover:bg-red-50 transition-colors shadow-sm"
-            >
-              Remove
-            </button>
-          </div>
-        </div>
-      ) : (
-        <label className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-slate-200 rounded-lg hover:border-slate-300 bg-slate-50 hover:bg-white cursor-pointer transition-all text-center">
-          <Upload className="w-5 h-5 text-slate-400 mb-1" />
-          <span className="text-xs text-slate-600 font-medium">Upload Signature Image</span>
-          <span className="text-[10px] text-slate-400">PNG, JPG, or JPEG</span>
-          <input type="file" accept="image/png, image/jpeg, image/jpg" onChange={handleFileChange} className="hidden" />
-        </label>
-      )}
-    </div>
-  );
 }
 
 export default function BcrStandardForm({
@@ -111,11 +53,23 @@ export default function BcrStandardForm({
   }, []);
 
   const uppercaseFields = [
+    'policy_number',
     'plan_numbers',
+    'policy_owner_last_name',
+    'policy_owner_first_name',
+    'policy_owner_mi',
+    'policy_owner_printed_name',
     'planholder_last_name',
     'planholder_first_name',
     'planholder_mi',
     'planholder_printed_name',
+    'company_name',
+    'designation',
+    'corporate_name',
+    'corporate_relationship_others',
+    'corporate_country',
+    'corporate_phone',
+    'corporate_address',
     'beneficiary1_name',
     'beneficiary1_country_birth',
     'beneficiary1_citizenships',
@@ -130,6 +84,7 @@ export default function BcrStandardForm({
     'beneficiary2_address',
     'remove_beneficiary1_name',
     'remove_beneficiary2_name',
+    'remove_beneficiary3_name',
     'change_original_name',
     'change_new_name',
     'change_new_other_legal_names',
@@ -145,7 +100,11 @@ export default function BcrStandardForm({
     'witness_name',
     'irrevocable_ben1_name',
     'irrevocable_ben1_witness_name',
+    'irrevocable_ben2_name',
     'witness2_name',
+    'assignee_name',
+    'assignee_signatory1_title',
+    'assignee_signatory2_title',
   ];
 
   const handleChange = (field: string, value: any) => {
@@ -405,6 +364,27 @@ export default function BcrStandardForm({
                           placeholder="M.I."
                           value={formData.planholder_mi || ''}
                           onChange={(e) => handleChange('planholder_mi', e.target.value)}
+                          className="w-full p-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 uppercase"
+                        />
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Company / Business Name (If Corporate Policy Owner)</label>
+                        <input
+                          type="text"
+                          placeholder="COMPANY / BUSINESS NAME"
+                          value={formData.company_name || ''}
+                          onChange={(e) => handleChange('company_name', e.target.value)}
+                          className="w-full p-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 uppercase"
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Designation / Title (For Authorized Signatory)</label>
+                        <input
+                          type="text"
+                          placeholder="DESIGNATION / JOB TITLE"
+                          value={formData.designation || ''}
+                          onChange={(e) => handleChange('designation', e.target.value)}
                           className="w-full p-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 uppercase"
                         />
                       </div>
@@ -1088,12 +1068,18 @@ export default function BcrStandardForm({
                             className="w-full p-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 uppercase"
                           />
                         </div>
-                        <SignatureUploadInput
-                          label="Upload Planholder Signature"
-                          value={formData.planholder_signature}
-                          onChange={(base64) => handleChange('planholder_signature', base64)}
-                          required
-                        />
+                        <div className="md:col-span-2">
+                          <label className="block text-xs font-semibold text-slate-600 mb-1">
+                            Policy Owner / Planholder Signature <span className="text-red-500">*</span>
+                          </label>
+                          <SignaturePad
+                            initialSignature={formData.policy_owner_signature || formData.planholder_signature}
+                            onSignatureChange={(sig: string | null) => {
+                              handleChange('policy_owner_signature', sig);
+                              handleChange('planholder_signature', sig);
+                            }}
+                          />
+                        </div>
 
                         <div>
                           <label className="block text-xs font-semibold text-slate-600 mb-1">Primary Witness Printed Name *</label>
@@ -1105,11 +1091,15 @@ export default function BcrStandardForm({
                             className="w-full p-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 uppercase"
                           />
                         </div>
-                        <SignatureUploadInput
-                          label="Upload Primary Witness Signature"
-                          value={formData.witness_signature}
-                          onChange={(base64) => handleChange('witness_signature', base64)}
-                        />
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-600 mb-1">
+                            Primary Witness Signature
+                          </label>
+                          <SignaturePad
+                            initialSignature={formData.witness_signature}
+                            onSignatureChange={(sig: string | null) => handleChange('witness_signature', sig)}
+                          />
+                        </div>
                       </div>
                     </div>
 
@@ -1128,11 +1118,15 @@ export default function BcrStandardForm({
                               className="w-full p-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 uppercase"
                             />
                           </div>
-                          <SignatureUploadInput
-                            label="Upload Irrevocable Beneficiary Signature"
-                            value={formData.irrevocable_ben1_signature}
-                            onChange={(base64) => handleChange('irrevocable_ben1_signature', base64)}
-                          />
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-600 mb-1">
+                              Irrevocable Beneficiary Signature
+                            </label>
+                            <SignaturePad
+                              initialSignature={formData.irrevocable_ben1_signature}
+                              onSignatureChange={(sig: string | null) => handleChange('irrevocable_ben1_signature', sig)}
+                            />
+                          </div>
 
                           <div>
                             <label className="block text-xs font-semibold text-slate-600 mb-1">Irrevocable Witness Printed Name</label>
@@ -1144,11 +1138,15 @@ export default function BcrStandardForm({
                               className="w-full p-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 uppercase"
                             />
                           </div>
-                          <SignatureUploadInput
-                            label="Upload Witness Signature"
-                            value={formData.irrevocable_ben1_witness_signature}
-                            onChange={(base64) => handleChange('irrevocable_ben1_witness_signature', base64)}
-                          />
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-600 mb-1">
+                              Irrevocable Witness Signature
+                            </label>
+                            <SignaturePad
+                              initialSignature={formData.irrevocable_ben1_witness_signature}
+                              onSignatureChange={(sig: string | null) => handleChange('irrevocable_ben1_witness_signature', sig)}
+                            />
+                          </div>
 
                           <div>
                             <label className="block text-xs font-semibold text-slate-600 mb-1">Second Witness Printed Name *</label>
@@ -1160,14 +1158,18 @@ export default function BcrStandardForm({
                               className="w-full p-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 uppercase"
                             />
                           </div>
-                          <SignatureUploadInput
-                            label="Upload Second Witness Signature"
-                            value={formData.witness2_signature || formData.irrevocable_witness2_signature}
-                            onChange={(base64) => {
-                              handleChange('witness2_signature', base64);
-                              handleChange('irrevocable_witness2_signature', base64);
-                            }}
-                          />
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-600 mb-1">
+                              Second Witness Signature
+                            </label>
+                            <SignaturePad
+                              initialSignature={formData.witness2_signature || formData.irrevocable_witness2_signature}
+                              onSignatureChange={(sig: string | null) => {
+                                handleChange('witness2_signature', sig);
+                                handleChange('irrevocable_witness2_signature', sig);
+                              }}
+                            />
+                          </div>
                         </div>
                       </div>
                     )}
@@ -1182,7 +1184,7 @@ export default function BcrStandardForm({
                           className="accent-amber-500 rounded"
                         />
                         <span>
-                          Yes, I consent to receive notices and electronic communications from Sun Life Financial Plans, Inc. via electronic mail / mobile.
+                          Yes, I consent to receive notices and electronic communications from Sun Life of Canada (Philippines), Inc. via electronic mail / mobile.
                         </span>
                       </label>
                     </div>

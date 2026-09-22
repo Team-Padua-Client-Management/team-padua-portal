@@ -6,6 +6,8 @@ import { supabase } from '@src/lib/supabase/client';
 import { generateAdvisorChangeRequestPdfFromTemplate } from '@src/features/client-servicing/pdf/generateAdvisorChangeRequestPdfFromTemplate';
 import ClientServicingLayout from '@src/features/client-servicing/components/ClientServicingLayout';
 
+import SignaturePad from '@src/components/ui/SignaturePad';
+
 interface AcrStandardFormProps {
   initialValues: Record<string, any>;
   clientId: string;
@@ -263,24 +265,73 @@ export default function AcrStandardForm({
                   {/* Section A */}
                   <section className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
                     <h2 className="text-base font-bold text-slate-900 border-b pb-2">A. General Information</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-600 mb-1">Company Name</label>
+                    
+                    <div className="space-y-4">
+                      <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">A.1 Policy Owner Details</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-600 mb-1">Owner Last Name</label>
+                          <input
+                            type="text"
+                            value={formData.client_last_name ?? ''}
+                            onChange={(e) => handleChange('client_last_name', e.target.value)}
+                            placeholder="Last Name"
+                            className="w-full p-2.5 rounded-lg border border-slate-200 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-600 mb-1">Owner First Name</label>
+                          <input
+                            type="text"
+                            value={formData.client_first_name ?? ''}
+                            onChange={(e) => handleChange('client_first_name', e.target.value)}
+                            placeholder="First Name"
+                            className="w-full p-2.5 rounded-lg border border-slate-200 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-600 mb-1">Owner Middle Name</label>
+                          <input
+                            type="text"
+                            value={formData.client_middle_name ?? ''}
+                            onChange={(e) => handleChange('client_middle_name', e.target.value)}
+                            placeholder="Middle Name"
+                            className="w-full p-2.5 rounded-lg border border-slate-200 text-sm"
+                          />
+                        </div>
+                      </div>
+                      <div className="w-full md:w-1/3">
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Owner Date of Birth</label>
                         <input
-                          type="text"
-                          value={formData.company_name || 'Sun Life of Canada (Philippines), Inc.'}
-                          onChange={(e) => handleChange('company_name', e.target.value)}
+                          type="date"
+                          value={formData.client_dob ?? ''}
+                          onChange={(e) => handleChange('client_dob', e.target.value)}
                           className="w-full p-2.5 rounded-lg border border-slate-200 text-sm"
                         />
                       </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-600 mb-1">Designation</label>
-                        <input
-                          type="text"
-                          value={formData.designation || ''}
-                          onChange={(e) => handleChange('designation', e.target.value)}
-                          className="w-full p-2.5 rounded-lg border border-slate-200 text-sm"
-                        />
+                    </div>
+
+                    <div className="border-t pt-4">
+                      <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">A.2 Company & Signatory Details</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-600 mb-1">Company Name</label>
+                          <input
+                            type="text"
+                            value={formData.company_name || 'Sun Life of Canada (Philippines), Inc.'}
+                            onChange={(e) => handleChange('company_name', e.target.value)}
+                            className="w-full p-2.5 rounded-lg border border-slate-200 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-600 mb-1">Designation</label>
+                          <input
+                            type="text"
+                            value={formData.designation || ''}
+                            onChange={(e) => handleChange('designation', e.target.value)}
+                            className="w-full p-2.5 rounded-lg border border-slate-200 text-sm"
+                          />
+                        </div>
                       </div>
                     </div>
                   </section>
@@ -472,6 +523,26 @@ export default function AcrStandardForm({
                       onChange={(e) => handleChange('nbo_iso', e.target.value)}
                       className="w-full p-2.5 rounded-lg border border-slate-200 text-sm"
                     />
+                  </div>
+                </div>
+
+                <div className="border-t pt-4 space-y-4">
+                  <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">E.2 Signatures</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <SignaturePad
+                        title="Signature of Policy Owner / Policy Holder"
+                        initialSignature={formData.policy_owner_signature}
+                        onSignatureChange={(sig) => handleChange('policy_owner_signature', sig || '')}
+                      />
+                    </div>
+                    <div>
+                      <SignaturePad
+                        title="Signature of New Advisor"
+                        initialSignature={formData.new_advisor_signature}
+                        onSignatureChange={(sig) => handleChange('new_advisor_signature', sig || '')}
+                      />
+                    </div>
                   </div>
                 </div>
               </section>

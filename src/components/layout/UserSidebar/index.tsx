@@ -116,17 +116,10 @@ export default function UserSidebar({ isOpen, onClose }: UserSidebarProps) {
     const subItems: { name: string; href: string }[] = [];
     if (isAdvisor || permissions?.cpst?.view) subItems.push({ name: "CPST", href: "/admin/cpst" });
     if (isAdvisor || permissions?.acr?.view) subItems.push({ name: "ACR", href: "/admin/acr" });
-    if (isAdvisor || permissions?.fst?.view) subItems.push({ name: "FST", href: "/admin/fund-switching" });
-    if (isAdvisor || permissions?.cpc?.view) subItems.push({ name: "CPC", href: "/admin/cpc" });
-    if (isAdvisor || permissions?.ppu?.view) subItems.push({ name: "PPU", href: "/admin/ppu" });
-    if (isAdvisor || permissions?.mngt?.view) subItems.push({ name: "MNGT", href: "/admin/mngt" });
+    if (isAdvisor || permissions?.acicr?.view || permissions?.acic?.view) subItems.push({ name: "ACIC", href: "/admin/acicr" });
     if (isAdvisor || permissions?.bcr?.view) subItems.push({ name: "BCR", href: "/admin/bcr" });
-    if (isAdvisor || permissions?.aca?.view) subItems.push({ name: "ACA", href: "/admin/aca" });
-    if (isAdvisor || permissions?.ada?.view) subItems.push({ name: "ADA", href: "/admin/ada" });
-    if (isAdvisor || permissions?.sro?.view) subItems.push({ name: "SRO", href: "/admin/reinstatement-sro" });
-    if (isAdvisor || permissions?.pdi?.view) subItems.push({ name: "PPI", href: "/admin/reinstatement-pdi" });
-    if (isAdvisor || permissions?.csmv?.view) subItems.push({ name: "CSMV", href: "/admin/csmv" });
-    if (isAdvisor || permissions?.form?.view) subItems.push({ name: "FORM", href: "/admin/form" });
+    if (isAdvisor || permissions?.fst?.view) subItems.push({ name: "FSR", href: "/admin/fund-switching" });
+    if (isAdvisor || permissions?.fw?.view || permissions?.fwr?.view) subItems.push({ name: "FWR", href: "/admin/fund-withdrawal" });
 
     if (subItems.length > 0) {
       menuItems.push({

@@ -29,8 +29,17 @@ import { S1, S2, S3, S4, S5, FieldCoord, CheckCoord } from './templates/fundSwit
 /** Split "YYYY-MM-DD" (from <input type="date">) into day / month / year parts. */
 function parseISODate(iso: string | null | undefined): { day: string; month: string; year: string } {
   if (!iso) return { day: '', month: '', year: '' };
-  const [year, month, day] = iso.split('-');
-  return { day: day ?? '', month: month ?? '', year: year ?? '' };
+  const clean = iso.split('T')[0].trim();
+  const parts = clean.split('-');
+  if (parts.length < 3) return { day: '', month: '', year: '' };
+  const [year, month, day] = parts;
+  const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+  const mIdx = parseInt(month, 10) - 1;
+  return {
+    day: day ? day.padStart(2, '0') : '',
+    month: months[mIdx] || month || '',
+    year: year || '',
+  };
 }
 
 /** Draw plain text; silently no-ops on falsy value. */
@@ -45,7 +54,7 @@ function txt(
   if (!value) return;
   const page = pages[coord.page - 1];
   if (!page) return;
-  page.drawText(value, { x: coord.x, y: coord.y, size, font, color });
+  page.drawText(String(value).toUpperCase(), { x: coord.x, y: coord.y, size, font, color });
 }
 
 /** Draw plain text directly at explicit coordinates (for table rows). */
@@ -59,7 +68,7 @@ function txtAt(
   color = rgb(0, 0, 0),
 ): void {
   if (!value) return;
-  page.drawText(value, { x, y, size, font, color });
+  page.drawText(String(value).toUpperCase(), { x, y, size, font, color });
 }
 
 /**
@@ -78,7 +87,8 @@ function wrappedTxtAt(
   color = rgb(0, 0, 0),
 ): number {
   if (!text) return y;
-  const paragraphs = text.split(/\r\n|\r|\n/);
+  const uppercaseText = String(text).toUpperCase();
+  const paragraphs = uppercaseText.split(/\r\n|\r|\n/);
   let curY = y;
   for (const para of paragraphs) {
     const words = para.trim().split(/\s+/).filter(Boolean);
@@ -205,9 +215,13 @@ export async function generateFundSwitchingPdf(
   // SECTION 1 — General Information (Page 1)
   // ══════════════════════════════════════════════════════════════════════════
 
-  txt(pages, S1.policyOwnerLast, clientNameParts.last, regular, VS);
-  txt(pages, S1.policyOwnerFirst, clientNameParts.first, regular, VS);
-  txt(pages, S1.policyOwnerMiddle, clientNameParts.middle, regular, VS);
+  const ownerLastName = (record as any).policy_owner_last_name || clientNameParts.last || '';
+  const ownerFirstName = (record as any).policy_owner_first_name || clientNameParts.first || '';
+  const ownerMiddleName = (record as any).policy_owner_middle_name || (record as any).policy_owner_mi || clientNameParts.middle || '';
+
+  txt(pages, S1.policyOwnerLast, ownerLastName, regular, VS);
+  txt(pages, S1.policyOwnerFirst, ownerFirstName, regular, VS);
+  txt(pages, S1.policyOwnerMiddle, ownerMiddleName, regular, VS);
 
   txt(pages, S1.policyNumber, record.policy_number, regular, VS);
   txt(pages, S1.lifeInsured, record.life_insured, regular, VS);

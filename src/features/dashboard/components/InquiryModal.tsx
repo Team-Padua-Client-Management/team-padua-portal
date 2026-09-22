@@ -24,14 +24,10 @@ const TASK_STATUS_OPTIONS = ['Pending', 'Done'];
 
 const SERVICING_CATEGORIES = [
     { value: 'ACR', label: 'ACR — Advisor Change Request' },
+    { value: 'ACIC', label: 'ACIC — Address & Contact Information Change' },
     { value: 'BCR', label: 'BCR — Beneficiary Change Request' },
     { value: 'FSR', label: 'FSR — Fund Switching Request' },
-    { value: 'FW', label: 'FW — Fund Withdrawal Request' },
-    { value: 'ACA', label: 'ACA — Auto Credits Arrangement' },
-    { value: 'CPST', label: 'CPST — Client Policy Status Tracking' },
-    { value: 'ACICR', label: 'ACICR — Address and Contact Information Change Request' },
-    { value: 'MNGT', label: 'MNGT' },
-    { value: 'PPU', label: 'PPU' },
+    { value: 'FWR', label: 'FWR — Fund Withdrawal Request' },
     { value: 'Others', label: 'Others / Miscellaneous' },
 ];
 

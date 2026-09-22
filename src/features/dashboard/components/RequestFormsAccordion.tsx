@@ -81,6 +81,18 @@ export default function RequestFormsAccordion({
       moduleKey: 'acr'
     },
     {
+      id: 'ACIC',
+      name: 'Address & Contact Information Change',
+      category: 'Client Profile',
+      description: 'Update client registered address, contact numbers, and email information.',
+      sla: '24-48 hrs turnaround',
+      count: kpis.acicr || kpis.acic || 0,
+      href: '/admin/acicr',
+      accent: '#D946EF',
+      tint: 'rgba(217, 70, 239, 0.12)',
+      moduleKey: 'acicr'
+    },
+    {
       id: 'BCR',
       name: 'Beneficiary Change Request',
       category: 'Transfers & Policy',
@@ -98,14 +110,14 @@ export default function RequestFormsAccordion({
       category: 'Funds & Investments',
       description: 'Reallocate or switch existing investment-linked policy fund balances and unit ratios.',
       sla: '1-2 business days',
-      count: kpis.fst || 0,
+      count: kpis.fst || kpis.fsr || 0,
       href: '/admin/fund-switching',
       accent: '#059669',
       tint: 'rgba(5, 150, 105, 0.12)',
       moduleKey: 'fst'
     },
     {
-      id: 'FW',
+      id: 'FWR',
       name: 'Fund Withdrawal Request',
       category: 'Funds & Investments',
       description: 'Process partial or full investment fund redemptions and payout bank account instructions.',
@@ -115,90 +127,6 @@ export default function RequestFormsAccordion({
       accent: '#10B981',
       tint: 'rgba(16, 185, 129, 0.12)',
       moduleKey: 'fw'
-    },
-    {
-      id: 'ACA',
-      name: 'Auto Credits Arrangement',
-      category: 'Billing & Payment',
-      description: 'Setup automated credit payout authorization and direct account distribution.',
-      sla: 'Same-day verification',
-      count: kpis.aca || 0,
-      href: '/admin/aca',
-      accent: '#7C3AED',
-      tint: 'rgba(124, 58, 237, 0.12)',
-      moduleKey: 'aca'
-    },
-    {
-      id: 'ADA / MOA',
-      name: 'Auto Debit Arrangement',
-      category: 'Billing & Payment',
-      description: 'Setup bank account automated debit authorization for recurring premium payments.',
-      sla: 'Same-day verification',
-      count: kpis.ada || 0,
-      href: '/admin/ada',
-      accent: '#8B5CF6',
-      tint: 'rgba(139, 92, 246, 0.12)',
-      moduleKey: 'ada'
-    },
-    {
-      id: 'SRO',
-      name: 'Reinstatement (SRO)',
-      category: 'Billing & Reinstatement',
-      description: 'Special Reinstatement Offer processing for lapsed policies under simplified guidelines.',
-      sla: '24-48 hrs turnaround',
-      count: kpis.sro || 0,
-      href: '/admin/reinstatement-sro',
-      accent: '#D97706',
-      tint: 'rgba(217, 119, 6, 0.12)',
-      moduleKey: 'sro'
-    },
-    {
-      id: 'PPI',
-      name: 'Reinstatement (PPI)',
-      category: 'Billing & Reinstatement',
-      description: 'Policy Payor Insurability / Personal Statement of Insurability medical reinstatement assessment.',
-      sla: '48-72 hrs medical review',
-      count: kpis.ppi || 0,
-      href: '/admin/reinstatement-pdi',
-      accent: '#EA580C',
-      tint: 'rgba(234, 88, 12, 0.12)',
-      moduleKey: 'pdi'
-    },
-    {
-      id: 'CPST',
-      name: 'Client Policy Status Tracking',
-      category: 'Transfers & Policy',
-      description: 'Track real-time policy lifecycle status, processing milestones, and servicing history.',
-      sla: 'Real-time update',
-      count: kpis.cpst || 0,
-      href: '/admin/cpst',
-      accent: '#0D9488',
-      tint: 'rgba(13, 148, 136, 0.12)',
-      moduleKey: 'cpst'
-    },
-    {
-      id: 'CSMV',
-      name: 'Client Servicing Monitoring Verification',
-      category: 'Compliance & Verification',
-      description: 'Audit trail, identity verification & compliance monitoring portal for servicing requests.',
-      sla: 'Audit compliant',
-      count: 0,
-      href: '/admin/csmv',
-      accent: '#099268',
-      tint: 'rgba(9, 146, 104, 0.12)',
-      moduleKey: 'csmv'
-    },
-    {
-      id: 'ACICR',
-      name: 'Address and Contact Information Change Request',
-      category: 'Client Profile',
-      description: 'Update client registered address, contact numbers, and email information.',
-      sla: '24-48 hrs turnaround',
-      count: kpis.acicr || 0,
-      href: '/admin/acicr',
-      accent: '#D946EF',
-      tint: 'rgba(217, 70, 239, 0.12)',
-      moduleKey: 'acicr'
     }
   ], [kpis]);
 
@@ -213,11 +141,8 @@ export default function RequestFormsAccordion({
 
   const formCategories = useMemo(() => [
     { label: 'Transfers & Policy', color: '#4F46E5' },
-    { label: 'Funds & Investments', color: '#059669' },
-    { label: 'Billing & Payment', color: '#7C3AED' },
-    { label: 'Billing & Reinstatement', color: '#D97706' },
-    { label: 'Compliance & Verification', color: '#099268' },
     { label: 'Client Profile', color: '#D946EF' },
+    { label: 'Funds & Investments', color: '#059669' },
   ], []);
 
   const totalActiveRequests = useMemo(() => {

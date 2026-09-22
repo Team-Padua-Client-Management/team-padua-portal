@@ -165,7 +165,7 @@ export default function AdvisorChangeRequestPage() {
   } | null>(null);
 
   useEffect(() => {
-    if (!formData.client_id) {
+    if (!formData.client_id || !formData.client_id.trim()) {
       setSelectedClientDetails(null);
       return;
     }
@@ -175,11 +175,11 @@ export default function AdvisorChangeRequestPage() {
           .from('cpst_clients')
           .select('client_name, birthdate, policy_number')
           .eq('id', formData.client_id)
-          .single();
+          .maybeSingle();
         if (err) throw err;
-        setSelectedClientDetails(data);
+        setSelectedClientDetails(data || null);
       } catch (err: any) {
-        console.error('Error fetching client details:', err);
+        console.error('Error fetching client details:', err?.message || err);
       }
     };
     fetchClientDetails();
@@ -258,12 +258,13 @@ export default function AdvisorChangeRequestPage() {
 
   const handleClientSelect = async (clientId: string) => {
     setFormData(prev => ({ ...prev, client_id: clientId }));
+    if (!clientId || !clientId.trim()) return;
     try {
       const { data, error } = await supabase
         .from('cpst_clients')
         .select('client_name, birthdate, policy_number')
         .eq('id', clientId)
-        .single();
+        .maybeSingle();
       if (!error && data) {
         setSelectedClientDetails(data);
         setFormData(prev => ({
@@ -272,8 +273,8 @@ export default function AdvisorChangeRequestPage() {
           reference_policy_number: data.policy_number || prev.reference_policy_number
         }));
       }
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      console.error('Error selecting client:', err?.message || err);
     }
   };
 
@@ -410,8 +411,13 @@ export default function AdvisorChangeRequestPage() {
       setError("");
 
       const formRec = mapEngineValuesToFormRecord(engineValues) as FormRecord;
-      const ownerName = getClientNameParts(selectedClientDetails?.client_name);
-      const ownerDob = selectedClientDetails?.birthdate || '';
+      const parsedDbName = getClientNameParts(selectedClientDetails?.client_name);
+      const ownerName = {
+        last: engineValues.client_last_name ?? parsedDbName.last,
+        first: engineValues.client_first_name ?? parsedDbName.first,
+        middle: engineValues.client_middle_name ?? parsedDbName.middle,
+      };
+      const ownerDob = engineValues.client_dob || selectedClientDetails?.birthdate || '';
       console.log("selectedClientDetails", selectedClientDetails);
       console.log("ownerDob", ownerDob);
 

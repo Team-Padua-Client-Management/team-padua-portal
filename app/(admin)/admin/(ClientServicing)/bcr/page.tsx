@@ -343,7 +343,7 @@ export default function BeneficiaryChangeRequestPage() {
   };
 
   useEffect(() => {
-    if (!formData.client_id) {
+    if (!formData.client_id || !formData.client_id.trim()) {
       setSelectedClientDetails(null);
       return;
     }
@@ -353,22 +353,25 @@ export default function BeneficiaryChangeRequestPage() {
           .from('cpst_clients')
           .select('client_name, birthdate, policy_number')
           .eq('id', formData.client_id)
-          .single();
+          .maybeSingle();
         if (err) throw err;
-        setSelectedClientDetails(data);
+        if (data) {
+          setSelectedClientDetails(data);
+          const nameParts = getClientNameParts(data.client_name);
 
-        const nameParts = getClientNameParts(data.client_name);
-
-        setFormData(prev => ({
-          ...prev,
-          plan_numbers: prev.plan_numbers || data.policy_number || '',
-          planholder_last_name: prev.planholder_last_name || nameParts.last,
-          planholder_first_name: prev.planholder_first_name || nameParts.first,
-          planholder_mi: prev.planholder_mi || nameParts.mi,
-          planholder_printed_name: prev.planholder_printed_name || data.client_name,
-        }));
+          setFormData(prev => ({
+            ...prev,
+            plan_numbers: prev.plan_numbers || data.policy_number || '',
+            planholder_last_name: prev.planholder_last_name || nameParts.last,
+            planholder_first_name: prev.planholder_first_name || nameParts.first,
+            planholder_mi: prev.planholder_mi || nameParts.mi,
+            planholder_printed_name: prev.planholder_printed_name || data.client_name,
+          }));
+        } else {
+          setSelectedClientDetails(null);
+        }
       } catch (err: any) {
-        console.error('Error fetching client details:', err);
+        console.error('Error fetching client details:', err?.message || err);
       }
     };
     fetchClientDetails();

@@ -3,6 +3,7 @@ import { supabase } from '@src/lib/supabase/client';
 import { useACICRForm } from './hooks';
 import { ACICRFormRecord } from './types';
 import { Loader2, Save, X, User, FileText, CheckCircle2 } from 'lucide-react';
+import SignaturePad from '@src/components/ui/SignaturePad';
 
 interface ACICRFormProps {
   initialData?: Partial<ACICRFormRecord>;
@@ -309,8 +310,9 @@ export default function ACICRForm({ initialData, onClose, onSuccess }: ACICRForm
           </div>
 
           <div className={sectionClass}>
-            <h3 className={sectionTitleClass}><CheckCircle2 size={16} className="text-primary" /> D. Signatures</h3>
-            <div className="flex flex-col gap-3 p-3 bg-primary/5 border border-primary/20 rounded-xl">
+            <h3 className={sectionTitleClass}><CheckCircle2 size={16} className="text-primary" /> D. Signatures & Consent</h3>
+            
+            <div className="flex flex-col gap-3 p-3 bg-primary/5 border border-primary/20 rounded-xl mb-4">
               <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
                 28. Would you like to receive personalized communication and product offers from Sun Life of Canada (Philippines), Inc. (SLOCPI) and other members?
               </p>
@@ -323,6 +325,42 @@ export default function ACICRForm({ initialData, onClose, onSuccess }: ACICRForm
                   <input type="radio" id="consent_no" name="consent" className="w-4 h-4 border-slate-300 text-primary focus:ring-primary" checked={formData.receive_offers === 'No'} onChange={() => updateField('receive_offers', 'No')} />
                   <label htmlFor="consent_no" className="text-sm font-medium text-slate-700 dark:text-slate-300">No</label>
                 </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div>
+                <label className={labelClass}>Policy Owner Printed Name</label>
+                <input type="text" className={inputClass} value={formData.policy_owner_printed_name || ''} onChange={e => updateField('policy_owner_printed_name', e.target.value)} placeholder="Printed Name" />
+              </div>
+              <div>
+                <label className={labelClass}>Place of Signing</label>
+                <input type="text" className={inputClass} value={formData.place_of_signing || ''} onChange={e => updateField('place_of_signing', e.target.value)} placeholder="City / Province" />
+              </div>
+              <div>
+                <label className={labelClass}>Date of Signing</label>
+                <input type="date" className={inputClass} value={formData.date_of_signing || ''} onChange={e => updateField('date_of_signing', e.target.value)} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+              <div>
+                <SignaturePad
+                  title="Signature of Policy Owner / Planholder"
+                  initialSignature={formData.policy_owner_signature}
+                  onSignatureChange={(sig) => updateField('policy_owner_signature', sig || '')}
+                />
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className={labelClass}>Witness Printed Name</label>
+                  <input type="text" className={inputClass} value={formData.witness_name || ''} onChange={e => updateField('witness_name', e.target.value)} placeholder="Witness Full Name" />
+                </div>
+                <SignaturePad
+                  title="Signature of Witness"
+                  initialSignature={formData.witness_signature}
+                  onSignatureChange={(sig) => updateField('witness_signature', sig || '')}
+                />
               </div>
             </div>
           </div>

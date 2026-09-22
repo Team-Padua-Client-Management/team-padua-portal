@@ -311,50 +311,86 @@ export async function fetchScopedRequestRecords(
   try {
     const scope = await getAuthScope();
 
-    if (scope.isAdmin) {
-      const { data, error } = await supabase
-        .from(tableName)
-        .select(`*, client:cpst_clients(${clientFields})`)
-        .order('created_at', { ascending: false });
+    // Helper to query a table with relation fallback
+    const executeQuery = async (table: string, clientIds?: string[]): Promise<any[] | null> => {
+      try {
+        // 1. Try with joined client relation
+        let query = supabase.from(table).select(`*, client:cpst_clients(${clientFields})`);
+        if (clientIds && clientIds.length > 0) {
+          query = query.in('client_id', clientIds);
+        }
+        const { data, error } = await query.order('created_at', { ascending: false });
 
-      if (error) throw error;
-      return data || [];
-    }
+        if (!error) return data || [];
 
+        // 2. If error is relationship-related (e.g. PGRST200), fallback to flat select
+        const errMsg = error.message || '';
+        const errCode = error.code || '';
+        if (errCode === 'PGRST200' || errMsg.includes('relationship') || errMsg.includes('schema cache')) {
+          let flatQuery = supabase.from(table).select('*');
+          if (clientIds && clientIds.length > 0) {
+            flatQuery = flatQuery.in('client_id', clientIds);
+          }
+          const flatRes = await flatQuery.order('created_at', { ascending: false });
+          if (!flatRes.error) return flatRes.data || [];
+        }
+
+        // 3. If table does not exist (42P01 or PGRST204)
+        if (errCode === '42P01' || errCode === 'PGRST204' || errMsg.includes('does not exist')) {
+          return null;
+        }
+
+        return [];
+      } catch {
+        return null;
+      }
+    };
+
+    const getClientIds = async () => {
+      const scopedClients = await fetchScopedClients('id');
+      return scopedClients.map(c => c.id);
+    };
+
+    let clientIds: string[] | undefined = undefined;
     if (scope.isAdvisor && scope.advisorId) {
-      const scopedClients = await fetchScopedClients('id');
-      const clientIds = scopedClients.map(c => c.id);
+      clientIds = await getClientIds();
       if (clientIds.length === 0) return [];
-
-      const { data, error } = await supabase
-        .from(tableName)
-        .select(`*, client:cpst_clients(${clientFields})`)
-        .in('client_id', clientIds)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data || [];
+    } else if (scope.isBizdev && scope.authorizedAdvisorIds.length > 0) {
+      clientIds = await getClientIds();
+      if (clientIds.length === 0) return [];
+    } else if (!scope.isAdmin) {
+      return [];
     }
 
-    if (scope.isBizdev && scope.authorizedAdvisorIds.length > 0) {
-      const scopedClients = await fetchScopedClients('id');
-      const clientIds = scopedClients.map(c => c.id);
-      if (clientIds.length === 0) return [];
+    // Try primary table
+    let records = await executeQuery(tableName, clientIds);
 
-      const { data, error } = await supabase
-        .from(tableName)
-        .select(`*, client:cpst_clients(${clientFields})`)
-        .in('client_id', clientIds)
-        .order('created_at', { ascending: false });
+    // If primary table returns null (doesn't exist), check known alias fallbacks
+    if (records === null) {
+      const tableFallbacks: Record<string, string[]> = {
+        'acicr_requests': ['auto_change_arrangements', 'client_address_changes'],
+        'auto_change_arrangements': ['acicr_requests'],
+        'beneficiary_change_requests': ['bcr_requests'],
+        'bcr_requests': ['beneficiary_change_requests'],
+        'advisor_change_requests': ['acr_requests'],
+        'acr_requests': ['advisor_change_requests'],
+      };
 
-      if (error) throw error;
-      return data || [];
+      const fallbacks = tableFallbacks[tableName] || [];
+      for (const fallbackTable of fallbacks) {
+        records = await executeQuery(fallbackTable, clientIds);
+        if (records !== null) break;
+      }
     }
 
-    return [];
-  } catch (err) {
-    console.error(`Error fetching scoped request records for ${tableName}:`, err);
+    return records || [];
+  } catch (err: any) {
+    const errDetails = err?.message || err?.details || (typeof err === 'object' ? JSON.stringify(err) : String(err));
+    if (!errDetails.includes('does not exist') && !errDetails.includes('42P01')) {
+      console.warn(`[authScope] fetchScopedRequestRecords (${tableName}):`, errDetails);
+    }
     return [];
   }
 }
+
 

@@ -130,8 +130,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
   useEffect(() => {
     const clientServicingPaths = ['/admin/cpst', '/admin/cpc', '/admin/pptm', '/admin/cgpt', '/admin/csmv'];
     const sunlifeFormPaths = [
-      '/admin/acr', '/admin/acicr', '/admin/bcr', '/admin/fund-switching', '/admin/fund-withdrawal',
-      '/admin/aca', '/admin/ada', '/admin/reinstatement-sro', '/admin/reinstatement-pdi'
+      '/admin/acr', '/admin/acicr', '/admin/bcr', '/admin/fund-switching', '/admin/fund-withdrawal'
     ];
 
     const isClientServicing = clientServicingPaths.some(p => pathname.startsWith(p));
@@ -161,14 +160,10 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
 
   const sunlifeFormItems = [
     { name: 'ACR', href: '/admin/acr' },
-    { name: 'ACICR', href: '/admin/acicr' },
+    { name: 'ACIC', href: '/admin/acicr' },
     { name: 'BCR', href: '/admin/bcr' },
     { name: 'FSR', href: '/admin/fund-switching' },
     { name: 'FWR', href: '/admin/fund-withdrawal' },
-    { name: 'ACA', href: '/admin/aca' },
-    { name: 'ADA', href: '/admin/ada' },
-    { name: 'Reinstatement SRO', href: '/admin/reinstatement-sro' },
-    { name: 'Reinstatement PDI', href: '/admin/reinstatement-pdi' },
   ];
 
   const camsActive = [

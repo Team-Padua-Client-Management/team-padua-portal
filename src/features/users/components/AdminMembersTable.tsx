@@ -1002,20 +1002,13 @@ export default function AdminMembersTable({
     }
   };
 
-  const clientServicingModules: ClientServicingModule[] = ['mngt', 'cpc', 'ppu'];
+  const clientServicingModules: ClientServicingModule[] = ['cpst', 'cpc', 'ppu'];
   const sunLifeModules: ClientServicingModule[] = [
-    'form',
     'acr',
+    'acicr',
     'bcr',
     'fst',
     'fw',
-    'aca',
-    'ada',
-    'sro',
-    'pdi',
-    'cpst',
-    'csmv',
-    'acicr',
   ];
 
   const isMemberOnline = useCallback(

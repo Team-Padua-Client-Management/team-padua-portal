@@ -32,11 +32,11 @@ export async function GET() {
       faqsResult,
     ] = await Promise.all([
       // Total clients in the CPST table
-      supabase.from('clients').select('*', { count: 'exact', head: true }),
+      supabase.from('cpst_clients').select('*', { count: 'exact', head: true }),
 
       // Active / Serviced clients
       supabase
-        .from('clients')
+        .from('cpst_clients')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'Serviced'),
 
@@ -55,7 +55,7 @@ export async function GET() {
       // Clients with birthdays this calendar month
       // birthdate is stored as TEXT (ISO string) — extract month via LIKE pattern
       supabase
-        .from('clients')
+        .from('cpst_clients')
         .select('birthdate', { count: 'exact', head: false })
         .then(async ({ data }) => {
           if (!data) return { count: 0, error: null };
