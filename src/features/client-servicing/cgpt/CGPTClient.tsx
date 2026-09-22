@@ -863,23 +863,28 @@ function mapRowsToClientRecordsWithDiff(
   rows: string[][],
   colMap: Record<string, number>,
   headerRowIndex: number,
-  defaultAdvisorId: string,
+  targetAdvisorId: string,
   advisorsList: AdvisorRecord[],
-  existingClients: ClientManagementRecord[]
+  existingClients: ClientManagementRecord[],
+  advisorScope: 'filter_selected' | 'auto_detect_all' | 'force_selected' = 'filter_selected'
 ): {
   items: ImportPreviewItem[];
   newCount: number;
   updateCount: number;
   unchangedCount: number;
   skippedCount: number;
+  skippedOtherAdvisorsCount: number;
+  advisorCounts: Record<string, number>;
 } {
   const items: ImportPreviewItem[] = [];
   let newCount = 0;
   let updateCount = 0;
   let unchangedCount = 0;
   let skippedCount = 0;
+  let skippedOtherAdvisorsCount = 0;
+  const advisorCounts: Record<string, number> = {};
 
-  let currentAdvisorId = defaultAdvisorId;
+  let currentAdvisorId = targetAdvisorId || (advisorsList[0]?.id ?? '');
 
   for (let i = headerRowIndex + 1; i < rows.length; i++) {
     const row = rows[i];
@@ -900,8 +905,18 @@ function mapRowsToClientRecordsWithDiff(
     if (DECORATIVE_ROW_RE.test(rawTrimmed)) { skippedCount++; continue; }
 
     let rowAdvisorId = currentAdvisorId;
-    if (colMap.advisor !== undefined && row[colMap.advisor]?.trim()) {
-      rowAdvisorId = resolveAdvisorId(row[colMap.advisor], advisorsList, currentAdvisorId);
+    if (advisorScope === 'force_selected') {
+      rowAdvisorId = targetAdvisorId;
+    } else {
+      if (colMap.advisor !== undefined && row[colMap.advisor]?.trim()) {
+        rowAdvisorId = resolveAdvisorId(row[colMap.advisor], advisorsList, currentAdvisorId);
+      }
+    }
+
+    // In filter_selected mode, skip rows that belong to other advisors
+    if (advisorScope === 'filter_selected' && targetAdvisorId && rowAdvisorId !== targetAdvisorId) {
+      skippedOtherAdvisorsCount++;
+      continue;
     }
 
     const { cleanName, extractedRelationship, extractedBeneficiary } = parseParentheticalDetails(rawTrimmed);
@@ -919,6 +934,7 @@ function mapRowsToClientRecordsWithDiff(
 
     const matchedAdvObj = advisorsList.find(a => a.id === rowAdvisorId);
     const advisorName = matchedAdvObj ? matchedAdvObj.advisorName : 'Advisor';
+    advisorCounts[advisorName] = (advisorCounts[advisorName] || 0) + 1;
 
     const normalizedKey = cleanName.toLowerCase().trim();
     const existing = existingClients.find(
@@ -979,7 +995,7 @@ function mapRowsToClientRecordsWithDiff(
     }
   }
 
-  return { items, newCount, updateCount, unchangedCount, skippedCount };
+  return { items, newCount, updateCount, unchangedCount, skippedCount, skippedOtherAdvisorsCount, advisorCounts };
 }
 
 export default function CGPTClient({
@@ -1016,6 +1032,7 @@ export default function CGPTClient({
   const [isDeletingAdvisor, setIsDeletingAdvisor] = useState(false);
 
   const [importTarget, setImportTarget] = useState<'clients' | 'advisors'>('clients');
+  const [importAdvisorScope, setImportAdvisorScope] = useState<'filter_selected' | 'auto_detect_all' | 'force_selected'>('filter_selected');
   const [importFile, setImportFile] = useState<File | null>(null);
   const [pastedText, setPastedText] = useState('');
   const [importMethod, setImportMethod] = useState<'file' | 'paste'>('file');
@@ -1025,6 +1042,8 @@ export default function CGPTClient({
   const [importPreview, setImportPreview] = useState<ImportPreviewItem[] | null>(null);
   const [importStats, setImportStats] = useState<{ newCount: number; updateCount: number; unchangedCount: number }>({ newCount: 0, updateCount: 0, unchangedCount: 0 });
   const [importSkipped, setImportSkipped] = useState(0);
+  const [importSkippedOtherAdvisors, setImportSkippedOtherAdvisors] = useState(0);
+  const [importAdvisorCounts, setImportAdvisorCounts] = useState<Record<string, number>>({});
   const [importParseError, setImportParseError] = useState('');
 
   const fetchData = async () => {
@@ -1397,8 +1416,8 @@ export default function CGPTClient({
   const handleImportSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const targetAdvId = selectedAdvisor ? selectedAdvisor.id : importAdvisorId;
-    if (importTarget === 'clients' && !targetAdvId) {
-      alert('Please select an advisor destination for the imported clients.');
+    if (importTarget === 'clients' && importAdvisorScope !== 'auto_detect_all' && !targetAdvId) {
+      alert('Please select a target advisor for this import.');
       return;
     }
 
@@ -1455,12 +1474,14 @@ export default function CGPTClient({
         return;
       }
 
-      const { items, newCount, updateCount, unchangedCount, skippedCount } = mapRowsToClientRecordsWithDiff(
-        rows, detected.colMap, detected.headerRowIndex, targetAdvId, advisors, clients
+      const { items, newCount, updateCount, unchangedCount, skippedCount, skippedOtherAdvisorsCount, advisorCounts } = mapRowsToClientRecordsWithDiff(
+        rows, detected.colMap, detected.headerRowIndex, targetAdvId, advisors, clients, importAdvisorScope
       );
       setImportPreview(items);
       setImportStats({ newCount, updateCount, unchangedCount });
       setImportSkipped(skippedCount);
+      setImportSkippedOtherAdvisors(skippedOtherAdvisorsCount);
+      setImportAdvisorCounts(advisorCounts);
     } catch (err: unknown) {
       setImportParseError('Parse error: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
@@ -2282,20 +2303,55 @@ export default function CGPTClient({
                   </button>
                 </div>
 
-                {importTarget === 'clients' && !selectedAdvisor && (
-                  <div>
-                    <label className={formLabelClass}>Destination Advisor *</label>
-                    <select
-                      required
-                      value={importAdvisorId}
-                      onChange={e => setImportAdvisorId(e.target.value)}
-                      className={formInputClass}
-                    >
-                      <option value="">Select Advisor</option>
-                      {advisors.map(a => (
-                        <option key={a.id} value={a.id}>{a.advisorName} ({a.advisorCode})</option>
-                      ))}
-                    </select>
+                {importTarget === 'clients' && (
+                  <div className="space-y-3 p-3.5 bg-surface-2 rounded-2xl border border-border">
+                    <label className={formLabelClass}>Advisor Ingestion Scope</label>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setImportAdvisorScope('filter_selected')}
+                        className={`p-2.5 rounded-xl text-left border transition cursor-pointer flex flex-col justify-between ${importAdvisorScope === 'filter_selected' ? 'bg-primary/10 border-primary text-foreground' : 'bg-card border-border text-muted-foreground hover:border-primary/40'}`}
+                      >
+                        <span className="text-xs font-bold block mb-1">🎯 Filter Selected</span>
+                        <span className="text-[10px] leading-tight opacity-80">Import only rows for the chosen advisor; skip other advisors in file.</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setImportAdvisorScope('auto_detect_all')}
+                        className={`p-2.5 rounded-xl text-left border transition cursor-pointer flex flex-col justify-between ${importAdvisorScope === 'auto_detect_all' ? 'bg-primary/10 border-primary text-foreground' : 'bg-card border-border text-muted-foreground hover:border-primary/40'}`}
+                      >
+                        <span className="text-xs font-bold block mb-1">🌐 Auto-Detect All</span>
+                        <span className="text-[10px] leading-tight opacity-80">Master workbook mode: split clients across all advisors automatically.</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setImportAdvisorScope('force_selected')}
+                        className={`p-2.5 rounded-xl text-left border transition cursor-pointer flex flex-col justify-between ${importAdvisorScope === 'force_selected' ? 'bg-primary/10 border-primary text-foreground' : 'bg-card border-border text-muted-foreground hover:border-primary/40'}`}
+                      >
+                        <span className="text-xs font-bold block mb-1">⚡ Force Assign</span>
+                        <span className="text-[10px] leading-tight opacity-80">Assign all rows in file to chosen advisor (single list).</span>
+                      </button>
+                    </div>
+
+                    {importAdvisorScope !== 'auto_detect_all' && (
+                      <div className="mt-2 pt-2 border-t border-border/50">
+                        <label className={formLabelClass}>Target Advisor *</label>
+                        <select
+                          required
+                          value={selectedAdvisor ? selectedAdvisor.id : importAdvisorId}
+                          onChange={e => setImportAdvisorId(e.target.value)}
+                          disabled={Boolean(selectedAdvisor)}
+                          className={formInputClass}
+                        >
+                          <option value="">Select Advisor</option>
+                          {advisors.map(a => (
+                            <option key={a.id} value={a.id}>{a.advisorName} ({a.advisorCode})</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -2380,11 +2436,18 @@ export default function CGPTClient({
                     <p className="text-sm font-bold text-foreground">
                       {importPreview.length} record{importPreview.length !== 1 ? 's' : ''} parsed
                     </p>
-                    {importSkipped > 0 && (
-                      <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
-                        {importSkipped} blank or header row{importSkipped !== 1 ? 's' : ''} skipped
-                      </p>
-                    )}
+                    <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                      {importSkipped > 0 && (
+                        <p className="text-xs text-amber-600 dark:text-amber-400">
+                          {importSkipped} blank or header row{importSkipped !== 1 ? 's' : ''} skipped
+                        </p>
+                      )}
+                      {importSkippedOtherAdvisors > 0 && (
+                        <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                          • {importSkippedOtherAdvisors} record{importSkippedOtherAdvisors !== 1 ? 's' : ''} for other advisors skipped
+                        </p>
+                      )}
+                    </div>
                   </div>
                   <button
                     type="button"
@@ -2394,6 +2457,19 @@ export default function CGPTClient({
                     ← Re-select file
                   </button>
                 </div>
+
+                {importAdvisorScope === 'auto_detect_all' && Object.keys(importAdvisorCounts).length > 0 && (
+                  <div className="p-3 bg-surface-2 rounded-2xl border border-border">
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1.5">Advisor Breakdown</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {Object.entries(importAdvisorCounts).map(([advName, count]) => (
+                        <span key={advName} className="px-2.5 py-1 rounded-lg bg-card border border-border text-[11px] font-semibold text-foreground">
+                          {advName}: <strong className="text-amber-600 dark:text-amber-400 font-bold">{count}</strong>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-3 gap-2.5 p-3 bg-surface-2 rounded-2xl border border-border">
                   <div className="flex items-center gap-2">
