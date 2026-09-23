@@ -25,7 +25,7 @@ export default function NavBar() {
           <div className="relative">
             <div className="absolute inset-0 bg-[#FFC72C] blur-md opacity-0 group-hover:opacity-40 transition-opacity duration-300 rounded-full" />
             <Image
-              src="/Image/icon/TPC.png"
+              src="/Image/icon/new_logo.png"
               alt="Team Padua Logo"
               width={32}
               height={32}

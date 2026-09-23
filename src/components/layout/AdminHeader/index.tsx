@@ -289,7 +289,7 @@ export default function AdminHeader({ onMenuClick }: HeaderProps) {
           </button>
           <Link href="/admin/dashboard" className="flex items-center gap-3.5 group transition-opacity hover:opacity-90">
             <Image
-              src="/Image/icon/TPC.png"
+              src="/Image/icon/new_logo.png"
               alt="Team Padua Logo"
               width={38}
               height={38}

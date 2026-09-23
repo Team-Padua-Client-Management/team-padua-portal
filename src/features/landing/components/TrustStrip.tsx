@@ -23,6 +23,7 @@ const pillars = (stats: LandingStats) => {
       ...totalClients,
       sublabel: 'Managed in the portal',
       color: 'text-blue-600 bg-blue-50',
+      hoverColor: 'group-hover:bg-blue-100',
     },
     {
       icon: FileText,
@@ -30,6 +31,7 @@ const pillars = (stats: LandingStats) => {
       ...acr,
       sublabel: 'ACR submissions logged',
       color: 'text-amber-600 bg-amber-50',
+      hoverColor: 'group-hover:bg-amber-100',
     },
     {
       icon: Wallet,
@@ -38,20 +40,23 @@ const pillars = (stats: LandingStats) => {
       isSample: false,
       sublabel: 'Payment status tracking',
       color: 'text-emerald-600 bg-emerald-50',
+      hoverColor: 'group-hover:bg-emerald-100',
     },
     {
       icon: HeartHandshake,
       label: 'Birthday Touchpoints',
       ...birthdays,
-      sublabel: 'Client celebrations this month',
+      sublabel: 'Celebrations this month',
       color: 'text-rose-500 bg-rose-50',
+      hoverColor: 'group-hover:bg-rose-100',
     },
     {
       icon: Activity,
       label: 'Portal Users',
       ...teamMembers,
-      sublabel: 'Team Padua members active',
+      sublabel: 'Team members active',
       color: 'text-violet-600 bg-violet-50',
+      hoverColor: 'group-hover:bg-violet-100',
     },
   ];
 };
@@ -62,7 +67,10 @@ export default function TrustStrip({ stats }: TrustStripProps) {
 
   return (
     <section className="mx-auto max-w-7xl px-6 lg:px-8">
-      <div className="bg-white border border-slate-100 rounded-[28px] shadow-sm px-6 py-8 lg:px-10">
+      <div className="relative bg-white/80 backdrop-blur-sm border border-slate-100/80 rounded-[28px] shadow-sm px-6 py-8 lg:px-10 overflow-hidden">
+        {/* Gradient accent line at top */}
+        <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-[#FFC72C]/40 to-transparent" />
+
         <p className="text-center text-[10px] font-bold uppercase tracking-[0.25em] text-[#A3843B] mb-8">
           What the portal supports
         </p>
@@ -76,9 +84,9 @@ export default function TrustStrip({ stats }: TrustStripProps) {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.4, delay: i * 0.07 }}
-                className="flex flex-col items-center text-center gap-2"
+                className="group flex flex-col items-center text-center gap-2 cursor-default p-3 rounded-2xl hover:bg-slate-50/80 transition-all duration-300"
               >
-                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${item.color}`}>
+                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-300 ${item.color} ${item.hoverColor} group-hover:scale-110 group-hover:shadow-sm`}>
                   <Icon size={17} />
                 </div>
                 <p className="text-xl font-extrabold text-[#111111] leading-none mt-1">
@@ -103,4 +111,3 @@ export default function TrustStrip({ stats }: TrustStripProps) {
     </section>
   );
 }
-

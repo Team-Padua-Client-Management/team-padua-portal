@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import type { LandingStats } from '@/app/api/landing-stats/route';
+import DecorativeBackground from '@src/components/ui/DecorativeBackground';
 
 // Section components
 import NavBar from './components/NavBar';
@@ -89,59 +90,63 @@ export default function HomePage() {
       className="min-h-screen bg-white text-[#111111] font-sans selection:bg-[#FFC72C]/30 overflow-x-hidden relative"
       style={{ fontFamily: "'Inter', 'system-ui', sans-serif" }}
     >
-      {/* Subtle ambient background gradient */}
-      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-[15%] -left-[5%] w-[40vw] h-[40vw] rounded-full bg-[#FFC72C]/6 blur-[140px]" />
-        <div className="absolute top-[30%] -right-[10%] w-[35vw] h-[35vw] rounded-full bg-[#FFF6D6]/80 blur-[120px]" />
-        <div className="absolute -bottom-[10%] left-[20%] w-[50vw] h-[40vw] rounded-full bg-[#FFC72C]/4 blur-[160px]" />
-      </div>
-
+      <DecorativeBackground />
       <NavBar />
 
-      <main className="relative z-10 pt-32 space-y-28 pb-0">
+      <main className="relative z-10 space-y-0 pb-0">
 
-        {/* 1. Hero */}
+        {/* 1. Cinematic Hero */}
         <HeroSection stats={resolvedStats} />
 
-        {/* 2. Trust Strip */}
-        {loading ? <StatSkeleton /> : <TrustStrip stats={resolvedStats} />}
-
-        {/* 3. Core Advisor Modules */}
-        <ModuleCards stats={resolvedStats} />
-
-        {/* 4. Advisor Journey (3-step) */}
-        <AdvisorJourney />
-
-        {/* 5. About the Platform (now includes "complements Sun Life" note) */}
-        <AboutSection />
-
-        {/* 6. Module Deep-Dives (alternating) */}
-        <ModuleDeepDives stats={resolvedStats} />
-
-        {/* 7. Bento Grid */}
-        <BentoGrid />
-
-        {/* 8. Security & Data Privacy */}
-        <SecuritySection />
-
-        {/* 9. Team Padua (leadership + intern depts) */}
-        <TeamSection />
-
-        {/* 10. Live Portal Preview */}
-        <LivePreview />
-
-        {/* 11. Stats Band (dark section) */}
-        <div className="!mt-0">
-          <StatsBand stats={resolvedStats} />
+        {/* 2. Elevated Trust & Core Capabilities Container */}
+        <div className="relative z-20 bg-white rounded-t-[3rem] shadow-[0_-20px_50px_rgba(0,0,0,0.05)] pt-12 pb-32 -mt-16">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-1.5 bg-slate-100 rounded-full mt-4" />
+          {loading ? <StatSkeleton /> : <TrustStrip stats={resolvedStats} />}
+          <div className="mt-20">
+            <BentoGrid />
+          </div>
         </div>
 
-        {/* 12. FAQ */}
-        <FaqSection stats={resolvedStats} />
+        {/* 3. Immersive Product Experience (Sticky/Scrolling) */}
+        <div className="relative z-10 bg-[#F8F9FA] py-32 border-t border-slate-100">
+          <div className="mx-auto max-w-7xl px-6 lg:px-8 text-center mb-16">
+            <h2 className="text-3xl font-extrabold tracking-tight text-[#111111] sm:text-4xl mb-4">
+              Designed for your workflow.
+            </h2>
+            <p className="text-sm text-[#666666] max-w-2xl mx-auto">
+              Every interaction is engineered to save time and reduce friction.
+            </p>
+          </div>
+          <ModuleDeepDives stats={resolvedStats} />
+          <div className="mt-32">
+            <LivePreview />
+          </div>
+        </div>
 
-        {/* 13. Contact form */}
-        <ContactSection />
+        {/* 4. Journey & Team (Overlapping) */}
+        <div className="relative z-20 bg-white rounded-t-[3rem] shadow-[0_-20px_50px_rgba(0,0,0,0.05)] pt-32 pb-24 -mt-16">
+          <AdvisorJourney />
+          <div className="mt-32">
+            <TeamSection />
+          </div>
+        </div>
 
-        {/* 14. Final CTA */}
+        {/* 5. Metrics & Assurance */}
+        <div className="relative z-10">
+          <StatsBand stats={resolvedStats} />
+          <div className="bg-[#111111] pb-32 pt-20">
+             <SecuritySection />
+          </div>
+        </div>
+
+        {/* 6. Support & Action */}
+        <div className="bg-[#F8F9FA] rounded-t-[3rem] -mt-16 relative z-20 pt-24 pb-12 shadow-[0_-20px_50px_rgba(0,0,0,0.05)]">
+          <FaqSection stats={resolvedStats} />
+          <div className="mt-24">
+            <ContactSection />
+          </div>
+        </div>
+
         <FinalCTA />
 
       </main>
@@ -152,7 +157,7 @@ export default function HomePage() {
         <div className="mx-auto max-w-7xl px-6 py-12 lg:px-8 relative z-10 space-y-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-3 opacity-70 hover:opacity-100 transition-opacity">
-              <Image src="/Image/icon/TPC.png" alt="Team Padua Logo" width={24} height={24} />
+              <Image src="/Image/icon/new_logo.png" alt="Team Padua Logo" width={24} height={24} />
               <div className="text-left">
                 <p className="text-xs font-extrabold tracking-widest text-[#111111]">TEAMPADUA</p>
                 <p className="text-[9px] font-semibold text-[#666666] uppercase">
@@ -164,9 +169,7 @@ export default function HomePage() {
             <div className="text-center md:text-right">
               <p className="text-[10px] text-[#666666] uppercase font-semibold">Built and Developed by</p>
               <p className="text-xs font-bold text-[#111111]">John Renz Bandianon</p>
-              <p className="text-[9px] text-[#A3843B] font-semibold uppercase tracking-wider">
-                Advisor Support Associate
-              </p>
+              <p className="text-xs font-bold text-[#111111]">William Kyle Iballa</p>
             </div>
           </div>
 

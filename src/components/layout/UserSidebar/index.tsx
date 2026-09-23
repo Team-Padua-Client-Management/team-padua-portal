@@ -182,7 +182,7 @@ export default function UserSidebar({ isOpen, onClose }: UserSidebarProps) {
         <div className={styles.railHeader}>
           <Link href="/dashboard" className={styles.railLogoLink} title="Team Padua Dashboard">
             <Image
-              src="/Image/icon/TPC.png"
+              src="/Image/icon/new_logo.png"
               alt="Team Padua Logo"
               width={32}
               height={32}
@@ -241,7 +241,7 @@ export default function UserSidebar({ isOpen, onClose }: UserSidebarProps) {
         <div className={styles.sidebarHeaderContainer}>
           <Link href="/dashboard" className="flex items-center gap-3">
             <Image
-              src="/Image/icon/TPC.png"
+              src="/Image/icon/new_logo.png"
               alt="Team Padua Logo"
               width={32}
               height={32}

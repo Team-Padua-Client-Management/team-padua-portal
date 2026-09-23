@@ -40,6 +40,7 @@ import {
 import ProfileAvatar from '@src/components/shared/ProfileAvatar';
 import { supabase } from '@src/lib/supabase/client';
 import { usePresence } from '@src/lib/presence/usePresence';
+import { usePageGuide } from '@src/components/providers/OnboardingProvider';
 
 export type ClientServicingModule =
   | 'cpst'
@@ -526,6 +527,12 @@ export default function AdminMembersTable({
   currentUserRole?: string;
   currentUserId?: string;
 }) {
+  usePageGuide(
+    'members',
+    'Team Members',
+    'View and manage Team Padua members, their roles, and access permissions.'
+  );
+
   const [users, setUsers] = useState<User[]>(initialUsers);
   const [search, setSearch] = useState('');
   const [presenceFilter, setPresenceFilter] = useState('All');

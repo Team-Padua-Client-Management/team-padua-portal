@@ -26,6 +26,7 @@ const SAVED_GOOGLE_KEY = "tp_saved_google";
 
 type AuthFormProps = {
   action?: (formData: FormData) => Promise<AuthActionResult>;
+  mode?: "login" | "register";
 };
 
 type SavedGoogle = { name: string; email: string; avatar: string } | null;
@@ -123,7 +124,7 @@ function FloatingLabelInput({
           isInvalid
             ? "border-rose-400 bg-rose-50/40 dark:border-rose-500/80 dark:bg-rose-950/20 ring-2 ring-rose-500/10"
             : focused
-              ? "border-[#FFC72C] ring-2 ring-[#FFC72C]/20 bg-white dark:bg-slate-950 shadow-sm"
+              ? "border-[var(--primary)] ring-2 ring-[var(--primary)]/20 bg-white dark:bg-slate-950 shadow-sm"
               : "border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60 hover:border-slate-300 dark:hover:border-slate-700"
         }`}
       >
@@ -134,7 +135,7 @@ function FloatingLabelInput({
               isInvalid
                 ? "text-rose-500"
                 : focused 
-                  ? "text-[#A3843B] dark:text-[#FFC72C]" 
+                  ? "text-[#A3843B] dark:text-[var(--primary)]" 
                   : "text-slate-400"
             } 
           />
@@ -166,7 +167,7 @@ function FloatingLabelInput({
                 ? `-top-1 text-[9px] font-bold uppercase tracking-wider ${
                     isInvalid 
                       ? "text-rose-600 dark:text-rose-400" 
-                      : "text-[#A3843B] dark:text-[#FFC72C]"
+                      : "text-[#A3843B] dark:text-[var(--primary)]"
                   }` 
                 : "top-2 text-xs md:text-sm text-slate-400"
             }`}
@@ -225,7 +226,7 @@ function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
             </div>
             <h2 className="text-xl font-bold text-slate-950 dark:text-white">Check your inbox</h2>
             <p className="text-xs text-slate-500 dark:text-slate-400">Reset link sent to <span className="font-semibold text-slate-800 dark:text-slate-200">{email}</span></p>
-            <button onClick={onClose} className="w-full bg-[#FFC72C] hover:bg-[#d8ad2d] text-slate-950 font-bold py-3 rounded-xl transition-all text-xs uppercase tracking-wider active:scale-[0.98]">
+            <button onClick={onClose} className="w-full bg-[var(--primary)] hover:bg-[var(--primary-bright)] text-slate-950 font-bold py-3 rounded-xl transition-all text-xs uppercase tracking-wider active:scale-[0.98]">
               Done
             </button>
           </div>
@@ -255,7 +256,7 @@ function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
             <button
               onClick={handleReset}
               disabled={loading}
-              className="w-full bg-[#FFC72C] hover:bg-[#d8ad2d] text-[#1B1B1B] font-bold py-3 rounded-xl transition-all text-xs uppercase tracking-wider disabled:opacity-50 active:scale-[0.98]"
+              className="w-full bg-[var(--primary)] hover:bg-[var(--primary-bright)] text-[#1B1B1B] font-bold py-3 rounded-xl transition-all text-xs uppercase tracking-wider disabled:opacity-50 active:scale-[0.98]"
             >
               {loading ? "Sending…" : "Send reset link"}
             </button>
@@ -318,8 +319,8 @@ function PendingApprovalModal({ onClose }: { onClose: () => void }) {
           </div>
         </div>
 
-        <div className="mt-6 bg-[#FFF9EC] dark:bg-[#FFC72C]/10 border border-[#FFC72C]/30 rounded-2xl p-4 text-center shadow-sm">
-          <p className="text-xs text-[#A3843B] dark:text-[#FFC72C] font-bold leading-relaxed">
+        <div className="mt-6 bg-[#FFF9EC] dark:bg-[var(--primary)]/10 border border-[var(--primary)]/30 rounded-2xl p-4 text-center shadow-sm">
+          <p className="text-xs text-[#A3843B] dark:text-[var(--primary)] font-bold leading-relaxed">
             You will gain access immediately once your account is approved.
           </p>
         </div>
@@ -328,7 +329,7 @@ function PendingApprovalModal({ onClose }: { onClose: () => void }) {
           <button
             type="button"
             onClick={onClose}
-            className="w-full rounded-2xl bg-[#FFC72C] hover:bg-[#d8ad2d] px-4 py-4 text-xs font-extrabold uppercase tracking-wider text-slate-950 transition-all shadow-lg shadow-[#FFC72C]/20 hover:shadow-xl hover:shadow-[#FFC72C]/30 active:scale-[0.98]"
+            className="w-full rounded-2xl bg-[var(--primary)] hover:bg-[var(--primary-bright)] px-4 py-4 text-xs font-extrabold uppercase tracking-wider text-slate-950 transition-all shadow-lg shadow-[var(--primary)]/20 hover:shadow-xl hover:shadow-[var(--primary)]/30 active:scale-[0.98]"
           >
             Return to Login
           </button>
@@ -338,7 +339,7 @@ function PendingApprovalModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-export const AuthForm = ({ action }: AuthFormProps) => {
+export const AuthForm = ({ action, mode = "login" }: AuthFormProps) => {
   const searchParams = useSearchParams();
   const urlMessage = searchParams.get("message");
   const urlError = searchParams.get("error");
@@ -346,13 +347,14 @@ export const AuthForm = ({ action }: AuthFormProps) => {
 
   const [isPending, startTransition] = useTransition();
 
-  const [isLogin, setIsLogin] = useState(true);
+  const [isLogin, setIsLogin] = useState(mode === "login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [phone, setPhone] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [accountType, setAccountType] = useState<"Advisor" | "Guest">("Advisor");
 
   // Field touched state for inline real-time error display
   const [nameTouched, setNameTouched] = useState(false);
@@ -487,7 +489,7 @@ export const AuthForm = ({ action }: AuthFormProps) => {
       : localStorage.removeItem(SAVED_EMAIL_KEY);
 
     const formData = new FormData(e.currentTarget);
-    formData.append("role", "Financial Advisor"); // Standardized advisor role
+    formData.append("role", accountType === "Advisor" ? "Financial Advisor" : "Guest");
     formData.append("termsAccepted", termsAccepted ? "true" : "false");
 
     startTransition(async () => {
@@ -579,7 +581,7 @@ export const AuthForm = ({ action }: AuthFormProps) => {
 
               <div className="space-y-6">
                 <div className="bg-slate-50/80 dark:bg-slate-900/50 rounded-2xl p-4 text-center border border-slate-200/60 dark:border-slate-800 shadow-inner">
-                  <a href={`mailto:${confirmationEmail || email}`} className="text-base font-bold text-[#A3843B] dark:text-[#FFC72C] hover:underline break-all">
+                  <a href={`mailto:${confirmationEmail || email}`} className="text-base font-bold text-[#A3843B] dark:text-[var(--primary)] hover:underline break-all">
                     {confirmationEmail || email}
                   </a>
                 </div>
@@ -591,11 +593,11 @@ export const AuthForm = ({ action }: AuthFormProps) => {
                     <span className="font-bold text-slate-800 dark:text-slate-200 text-sm">Verify your email address</span>
                   </div>
                   <div className="flex items-center gap-4 bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-100 dark:border-slate-800 shadow-sm transition-transform hover:-translate-y-0.5">
-                    <div className="w-8 h-8 rounded-full bg-[#FFF9EC] dark:bg-[#FFC72C]/10 flex items-center justify-center shrink-0 text-[#A3843B] dark:text-[#FFC72C] font-extrabold text-sm border border-[#FFC72C]/30">2</div>
+                    <div className="w-8 h-8 rounded-full bg-[#FFF9EC] dark:bg-[var(--primary)]/10 flex items-center justify-center shrink-0 text-[#A3843B] dark:text-[var(--primary)] font-extrabold text-sm border border-[var(--primary)]/30">2</div>
                     <span className="font-bold text-slate-800 dark:text-slate-200 text-sm">Administrator approval review</span>
                   </div>
                   <div className="flex items-center gap-4 bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-100 dark:border-slate-800 shadow-sm transition-transform hover:-translate-y-0.5">
-                    <div className="w-8 h-8 rounded-full bg-[#FFF9EC] dark:bg-[#FFC72C]/10 flex items-center justify-center shrink-0 text-[#A3843B] dark:text-[#FFC72C] font-extrabold text-sm border border-[#FFC72C]/30">3</div>
+                    <div className="w-8 h-8 rounded-full bg-[#FFF9EC] dark:bg-[var(--primary)]/10 flex items-center justify-center shrink-0 text-[#A3843B] dark:text-[var(--primary)] font-extrabold text-sm border border-[var(--primary)]/30">3</div>
                     <span className="font-bold text-slate-800 dark:text-slate-200 text-sm">Access your advisor dashboard</span>
                   </div>
                 </div>
@@ -609,7 +611,7 @@ export const AuthForm = ({ action }: AuthFormProps) => {
                     setIsLogin(true);
                     setError(null);
                   }}
-                  className="w-full rounded-2xl bg-[#FFC72C] hover:bg-[#d8ad2d] px-4 py-4 text-xs font-extrabold uppercase tracking-wider text-slate-950 transition-all shadow-lg shadow-[#FFC72C]/20 hover:shadow-xl hover:shadow-[#FFC72C]/30 active:scale-[0.98] cursor-pointer"
+                  className="w-full rounded-2xl bg-[var(--primary)] hover:bg-[var(--primary-bright)] px-4 py-4 text-xs font-extrabold uppercase tracking-wider text-slate-950 transition-all shadow-lg shadow-[var(--primary)]/20 hover:shadow-xl hover:shadow-[var(--primary)]/30 active:scale-[0.98] cursor-pointer"
                 >
                   Return to Sign In
                 </button>
@@ -647,6 +649,34 @@ export const AuthForm = ({ action }: AuthFormProps) => {
         {/* REGISTRATION FIELDS */}
         {!isLogin && (
           <div className="space-y-4 animate-in fade-in duration-300">
+            {/* Account Type Selection */}
+            <div className="space-y-1.5">
+              <label className="text-xs md:text-sm text-slate-400">Account Type</label>
+              <div className="flex bg-slate-50 dark:bg-slate-900/60 p-1 rounded-2xl border border-slate-200 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setAccountType("Advisor")}
+                  className={`flex-1 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl transition-all ${
+                    accountType === "Advisor"
+                      ? "bg-white dark:bg-slate-800 text-[#1B1B1B] dark:text-white shadow-sm"
+                      : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                  }`}
+                >
+                  Advisor
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAccountType("Guest")}
+                  className={`flex-1 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl transition-all ${
+                    accountType === "Guest"
+                      ? "bg-white dark:bg-slate-800 text-[#1B1B1B] dark:text-white shadow-sm"
+                      : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                  }`}
+                >
+                  Guest
+                </button>
+              </div>
+            </div>
             {/* Full Name */}
             <FloatingLabelInput
               id="name"
@@ -728,7 +758,7 @@ export const AuthForm = ({ action }: AuthFormProps) => {
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               aria-label={showPassword ? "Hide password" : "Show password"}
-              className="p-1.5 hover:bg-slate-200/60 dark:hover:bg-slate-800 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-[#FFC72C] outline-none"
+              className="p-1.5 hover:bg-slate-200/60 dark:hover:bg-slate-800 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-[var(--primary)] outline-none"
             >
               {showPassword ? (
                 <EyeOff size={15} className="text-slate-500 hover:text-slate-800 dark:hover:text-slate-200" />
@@ -807,7 +837,7 @@ export const AuthForm = ({ action }: AuthFormProps) => {
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
-                  className="p-1.5 hover:bg-slate-200/60 dark:hover:bg-slate-800 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-[#FFC72C] outline-none"
+                  className="p-1.5 hover:bg-slate-200/60 dark:hover:bg-slate-800 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-[var(--primary)] outline-none"
                 >
                   {showConfirmPassword ? (
                     <EyeOff size={15} className="text-slate-500 hover:text-slate-800 dark:hover:text-slate-200" />
@@ -847,7 +877,7 @@ export const AuthForm = ({ action }: AuthFormProps) => {
                 name="termsAcceptedCheckbox"
                 checked={termsAccepted}
                 onChange={(e) => setTermsAccepted(e.target.checked)}
-                className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-[#FFC72C] focus:ring-[#FFC72C] focus:ring-offset-0 cursor-pointer accent-[#FFC72C]"
+                className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-[var(--primary)] focus:ring-[var(--primary)] focus:ring-offset-0 cursor-pointer accent-[var(--primary)]"
               />
             </div>
             <label htmlFor="termsAccepted" className="text-xs text-slate-600 dark:text-slate-400 font-medium cursor-pointer leading-tight">
@@ -856,7 +886,7 @@ export const AuthForm = ({ action }: AuthFormProps) => {
                 href="/terms" 
                 target="_blank" 
                 rel="noopener noreferrer" 
-                className="font-bold text-[#A3843B] dark:text-[#FFC72C] hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#FFC72C] rounded-sm"
+                className="font-bold text-[#A3843B] dark:text-[var(--primary)] hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--primary)] rounded-sm"
               >
                 Terms and Conditions
               </a>
@@ -872,14 +902,14 @@ export const AuthForm = ({ action }: AuthFormProps) => {
                 type="checkbox"
                 checked={rememberMe}
                 onChange={() => setRememberMe(!rememberMe)}
-                className="w-4 h-4 rounded border-slate-300 text-[#FFC72C] focus:ring-[#FFC72C] cursor-pointer accent-[#FFC72C]"
+                className="w-4 h-4 rounded border-slate-300 text-[var(--primary)] focus:ring-[var(--primary)] cursor-pointer accent-[var(--primary)]"
               />
               <span className="text-slate-600 dark:text-slate-400 font-medium">Remember me</span>
             </label>
             <button
               type="button"
               onClick={() => setShowForgot(true)}
-              className="text-[#A3843B] dark:text-[#FFC72C] hover:underline font-bold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#FFC72C] rounded-sm"
+              className="text-[#A3843B] dark:text-[var(--primary)] hover:underline font-bold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--primary)] rounded-sm"
             >
               Forgot password?
             </button>
@@ -890,10 +920,10 @@ export const AuthForm = ({ action }: AuthFormProps) => {
         <button
           type="submit"
           disabled={isPending || !canSubmit}
-          className={`w-full bg-[#FFC72C] text-slate-950 font-extrabold py-3.5 rounded-2xl transition-all duration-200 text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md shadow-amber-400/10 ${
+          className={`w-full bg-[var(--primary)] text-slate-950 font-extrabold py-3.5 rounded-2xl transition-all duration-200 text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md shadow-amber-400/10 ${
             !canSubmit || isPending
               ? "opacity-50 cursor-not-allowed"
-              : "hover:bg-[#d8ad2d] hover:shadow-lg hover:shadow-amber-400/20 active:scale-[0.98] cursor-pointer"
+              : "hover:bg-[var(--primary-bright)] hover:shadow-lg hover:shadow-amber-400/20 active:scale-[0.98] cursor-pointer"
           }`}
         >
           {isPending ? (
@@ -908,20 +938,21 @@ export const AuthForm = ({ action }: AuthFormProps) => {
 
         {/* Switch Login / Sign Up Toggle */}
         <div className="text-center pt-2">
-          <button
-            type="button"
-            onClick={() => {
-              setIsLogin(!isLogin);
-              resetValidationState();
-              setPassword("");
-              setConfirmPassword("");
-              setShowPassword(false);
-              setShowConfirmPassword(false);
-            }}
-            className="text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#FFC72C] rounded-sm"
-          >
-            {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
-          </button>
+          {isLogin ? (
+            <a
+              href="/auth/register"
+              className="text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--primary)] rounded-sm"
+            >
+              Don't have an account? Sign up
+            </a>
+          ) : (
+            <a
+              href="/auth/login"
+              className="text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--primary)] rounded-sm"
+            >
+              Already have an account? Sign in
+            </a>
+          )}
         </div>
 
         {/* Divider */}
@@ -938,7 +969,7 @@ export const AuthForm = ({ action }: AuthFormProps) => {
               type="button"
               onClick={signInWithGoogle}
               disabled={googleLoading}
-              className="flex items-center gap-3 text-left flex-1 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#FFC72C] rounded-xl"
+              className="flex items-center gap-3 text-left flex-1 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--primary)] rounded-xl"
             >
               {savedGoogle.avatar ? (
                 <img src={savedGoogle.avatar} alt={savedGoogle.name} className="w-9 h-9 rounded-full border border-slate-200" />
@@ -967,7 +998,7 @@ export const AuthForm = ({ action }: AuthFormProps) => {
             type="button"
             onClick={signInWithGoogle}
             disabled={googleLoading}
-            className="w-full flex items-center justify-center gap-3 border border-slate-200 dark:border-slate-800 hover:bg-slate-100/60 dark:hover:bg-slate-900/80 rounded-2xl py-3.5 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 transition-all cursor-pointer active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFC72C]"
+            className="w-full flex items-center justify-center gap-3 border border-slate-200 dark:border-slate-800 hover:bg-slate-100/60 dark:hover:bg-slate-900/80 rounded-2xl py-3.5 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 transition-all cursor-pointer active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
           >
             <GoogleIcon />
             <span>{googleLoading ? "Connecting…" : "Continue with Google"}</span>

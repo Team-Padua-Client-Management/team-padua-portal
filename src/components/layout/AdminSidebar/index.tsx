@@ -295,7 +295,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
         <div className={styles.railHeader}>
           <Link href="/admin/dashboard" className={styles.railLogoLink} title="Team Padua Dashboard">
             <Image
-              src="/Image/icon/TPC.png"
+              src="/Image/icon/new_logo.png"
               alt="Team Padua Logo"
               width={32}
               height={32}
@@ -375,7 +375,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
         <div className={styles.sidebarHeaderContainer}>
           <Link href="/admin/dashboard" className="flex items-center justify-center p-1" title="Team Padua Dashboard">
             <Image
-              src="/Image/icon/TPC.png"
+              src="/Image/icon/new_logo.png"
               alt="Team Padua Logo"
               width={34}
               height={34}

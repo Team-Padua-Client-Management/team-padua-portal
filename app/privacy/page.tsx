@@ -13,7 +13,7 @@ export default function PrivacyPolicy() {
       <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
           <a href="/" className="flex items-center gap-3">
-            <Image src="/Image/icon/TPC.png" alt="Team Padua Logo" width={32} height={32} className="object-contain" priority />
+            <Image src="/Image/icon/new_logo.png" alt="Team Padua Logo" width={32} height={32} className="object-contain" priority />
             <span className="text-sm font-semibold tracking-wider text-slate-900">TEAMPADUA</span>
           </a>
           <a href="/" className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-slate-900 transition">

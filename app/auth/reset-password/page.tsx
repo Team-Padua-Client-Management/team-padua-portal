@@ -120,7 +120,7 @@ export default function ResetPasswordPage() {
           <div className="relative mb-3">
             <div className="absolute inset-0 bg-[#FFC72C] blur-md opacity-20 rounded-full" />
             <Image
-              src="/Image/icon/TPC.png"
+              src="/Image/icon/new_logo.png"
               alt="Team Padua Logo"
               width={64}
               height={64}

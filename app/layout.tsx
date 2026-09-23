@@ -16,6 +16,8 @@ import "@/styles/globals/globals.css";
 import { cn } from "@src/lib/utils";
 import MaintenanceOverlay from "@src/components/shared/MaintenanceOverlay";
 import { ThemeProvider } from "@src/components/providers/ThemeProvider";
+import { OnboardingProvider } from "@src/components/providers/OnboardingProvider";
+import OnboardingModal from "@src/components/modals/OnboardingModal";
 
 const figtree = Figtree({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -75,8 +77,11 @@ export default function RootLayout({
           enableSystem={false}
           disableTransitionOnChange
         >
-          <MaintenanceOverlay />
-          {children}
+          <OnboardingProvider>
+            <MaintenanceOverlay />
+            <OnboardingModal />
+            {children}
+          </OnboardingProvider>
         </ThemeProvider>
       </body>
     </html>

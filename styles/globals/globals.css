@@ -104,16 +104,20 @@
 }
 
 :root.light {
-    --background:#F6F7FB;
+    --background:#FFFFFF;
     --surface:#FFFFFF;
-    --surface-2:#F3F4F6;
+    --surface-2:#F7F5F0;
     --card:#FFFFFF;
-    --border:#E5E7EB;
-    --text:#111827;
-    --text-secondary:#6B7280;
-    --muted:#9CA3AF;
-    --primary:#F4C542;
-    --shadow:0 10px 30px rgba(0,0,0,.08);
+    --border:rgba(245,166,35,0.2);
+    --text:#171717;
+    --text-secondary:#6B6B6B;
+    --muted:#6B6B6B;
+    --primary:#F5A623;
+    --primary-bright:#FFAA1F;
+    --primary-light:#FFD49A;
+    --primary-soft:#FFE7C2;
+    --shadow:0 8px 30px rgba(245,166,35,.08);
+    --radius: 16px;
 }
 
 :root.dark {
@@ -169,7 +173,7 @@
 }
 
 :root.sunlife {
-    --background:#FFFDF2;
+    --background:#FFFFFF;
     --surface:#FFFFFF;
     --surface-2:#FFF9E6;
     --card:#FFFFFF;

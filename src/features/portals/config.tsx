@@ -151,7 +151,7 @@ export const portalsConfig: PortalListItem[] = [
     brandColor: '#E44D26',
     logo: (className = "w-10 h-10") => (
       <img
-        src="/Image/icon/TP.png"
+        src="/Image/icon/new_logo.png"
         alt="Bizdev Tracker"
         className={`${className} object-contain`}
       />

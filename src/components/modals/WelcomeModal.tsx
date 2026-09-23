@@ -73,13 +73,19 @@ function getRandomIndexWithoutRepeat(length: number, storageKey: string): number
   return newIndex;
 }
 
+import { useOnboarding } from '@src/components/providers/OnboardingProvider';
+
 export default function WelcomeModal({ userName, role }: WelcomeModalProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isDismissing, setIsDismissing] = useState(false);
   const [description, setDescription] = useState(WELCOME_DESCRIPTIONS[0]);
   const [quote, setQuote] = useState(MOTIVATIONAL_QUOTES[0]);
+  const { isReady, hasSeenWelcome, currentPageGuide } = useOnboarding();
 
   useEffect(() => {
+    // Only proceed if onboarding is fully complete and ready
+    if (!isReady || !hasSeenWelcome || currentPageGuide) return;
+
     // Pick unique description and quote avoiding immediate previous repeats
     const descIdx = getRandomIndexWithoutRepeat(WELCOME_DESCRIPTIONS.length, 'tp-last-welcome-desc-idx');
     const quoteIdx = getRandomIndexWithoutRepeat(MOTIVATIONAL_QUOTES.length, 'tp-last-welcome-quote-idx');
@@ -97,7 +103,7 @@ export default function WelcomeModal({ userName, role }: WelcomeModalProps) {
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, []);
+  }, [isReady, hasSeenWelcome, currentPageGuide]);
 
   const handleDismiss = (dontShowToday = false) => {
     setIsDismissing(true);
@@ -133,7 +139,7 @@ export default function WelcomeModal({ userName, role }: WelcomeModalProps) {
         {/* Logo with ring pulse */}
         <div className={styles.logoWrapper}>
           <div className={styles.logoRing} />
-          <img src="/Image/icon/TPC.png" alt="Team Padua" className={styles.logoImg} />
+          <img src="/Image/icon/new_logo.png" alt="Team Padua" className={styles.logoImg} />
           <div className={styles.logoGlow} />
         </div>
 

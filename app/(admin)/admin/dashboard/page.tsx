@@ -48,7 +48,6 @@ interface ConfirmDeleteItem {
   type: 'task' | 'inquiry';
   title: string;
 }
-
 /**
  * Inner component — contains all data hooks and admin UI.
  * Only rendered when the user is confirmed Admin by AdminRouteGuard.

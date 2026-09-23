@@ -285,7 +285,7 @@ export default function UserHeader({ onMenuClick, isSidebarOpen }: UserHeaderPro
         )}
         <div className="flex md:hidden items-center">
           <Image
-            src="/Image/icon/TP.png"
+            src="/Image/icon/new_logo.png"
             alt="Team Padua Logo"
             width={28}
             height={28}

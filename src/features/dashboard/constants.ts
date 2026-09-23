@@ -33,7 +33,7 @@ export const defaultPortals: Portal[] = [
   { name: 'Sun Life Website', logo: '/images/logos/sunlife.svg', width: 24, url: 'https://www.sunlife.com.ph/en/', manage: '/admin/portals/sun-life' },
   { name: 'Advisor Home Office', logo: '/images/logos/advisor_office.svg', width: 24, url: 'https://advisorhomeoffice.sunlife.com.ph/aho/index.html#/:', manage: '/admin/portals/advisor-office' },
   { name: 'Google Sheets', logo: '/images/logos/google_sheets.svg', width: 24, url: 'https://bit.ly/4f2fpLK', manage: '/admin/portals/google-sheets' },
-  { name: 'Bizdev Tracker', logo: '/Image/icon/TP.png', width: 24, url: 'https://teampaduatracker.vercel.app/tasktracker', manage: '/admin/portals/task-tracker' },
+  { name: 'Bizdev Tracker', logo: '/Image/icon/new_logo.png', width: 24, url: 'https://teampaduatracker.vercel.app/tasktracker', manage: '/admin/portals/task-tracker' },
   { name: 'Jot Form', logo: '/images/logos/jotform.svg', width: 24, url: 'https://www.jotform.com/', manage: '/admin/portals/jotform' },
   { name: 'Jot Form Intern', logo: '/images/logos/jotform_intern.svg', width: 24, url: 'https://form.jotform.com/261829362405055', manage: '/admin/portals/jotform' },
   { name: 'Microsoft Teams', logo: '/images/logos/microsoft_teams.svg', width: 24, url: 'https://teams.microsoft.com/', manage: '/admin/portals/microsoft-teams' },
