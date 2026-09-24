@@ -70,13 +70,13 @@ export default function ModuleDeepDives({ stats }: ModuleDeepDivesProps) {
   const sections = dives(stats);
 
   return (
-    <section className="mx-auto max-w-7xl px-6 lg:px-8 space-y-24">
+    <section className="mx-auto max-w-7xl px-6 lg:px-8 space-y-28 lg:space-y-36">
       <div className="text-center max-w-2xl mx-auto space-y-4">
         <motion.p
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          className="text-xs font-bold uppercase tracking-[0.2em] text-[#A3843B]"
+          className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#A3843B]"
         >
           Module Deep-Dives
         </motion.p>
@@ -90,44 +90,44 @@ export default function ModuleDeepDives({ stats }: ModuleDeepDivesProps) {
         </motion.h2>
       </div>
 
-      {sections.map((item, i) => (
+      {sections.map((item) => (
         <motion.div
           key={item.tag}
-          initial={{ opacity: 0, y: 24 }}
+          initial={{ opacity: 0, y: 32 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-80px' }}
-          transition={{ duration: 0.55 }}
-          className={`grid grid-cols-1 lg:grid-cols-12 gap-10 items-center ${item.imageLeft ? '' : 'lg:[&>*:first-child]:order-2'}`}
+          viewport={{ once: true, margin: '-100px' }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          className={`grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center ${item.imageLeft ? '' : 'lg:[&>*:first-child]:order-2'}`}
         >
           {/* Image */}
-          <div className="lg:col-span-6 relative">
-            <div className="absolute -inset-3 bg-[#FFC72C]/8 rounded-[44px] blur-2xl pointer-events-none" />
-            <div className="relative rounded-[28px] overflow-hidden border border-slate-100 shadow-sm aspect-[4/3]">
+          <div className="lg:col-span-7 relative group">
+            <div className="absolute -inset-4 bg-[#FFC72C]/[0.04] rounded-3xl blur-2xl pointer-events-none group-hover:bg-[#FFC72C]/[0.07] transition-colors duration-700" />
+            <div className="relative rounded-2xl overflow-hidden border border-slate-200/80 shadow-[0_4px_24px_rgba(0,0,0,0.06)] aspect-[4/3]">
               <Image
                 src={item.image}
                 alt={item.imageAlt}
                 fill
-                className="object-cover hover:scale-[1.04] transition-transform duration-700"
+                className="object-cover group-hover:scale-[1.02] transition-transform duration-700 ease-out"
               />
             </div>
           </div>
 
           {/* Copy */}
-          <div className="lg:col-span-6 space-y-6">
-            <span className="inline-block text-[10px] font-bold uppercase tracking-widest bg-[#FFF6D6] text-[#A3843B] border border-[#FFC72C]/20 px-3 py-1 rounded-full">
+          <div className="lg:col-span-5 space-y-5">
+            <span className="inline-block text-[10px] font-bold uppercase tracking-[0.15em] text-[#A3843B] border-b-2 border-[#FFC72C]/30 pb-1">
               {item.tag}
             </span>
-            <h3 className="text-2xl lg:text-3xl font-extrabold text-[#111111] leading-tight whitespace-pre-line">
+            <h3 className="text-2xl lg:text-[1.75rem] font-extrabold text-[#111111] leading-tight whitespace-pre-line tracking-tight">
               {item.headline}
             </h3>
             <p className="text-sm text-[#666666] leading-relaxed">{item.body}</p>
 
             {/* Stat callout */}
             <div className="flex items-center gap-4 pt-2">
-              <div className="w-1 h-12 bg-[#FFC72C] rounded-full shrink-0" />
+              <div className="w-1 h-10 bg-[#FFC72C] rounded-full shrink-0" />
               <div>
-                <p className="text-2xl font-extrabold text-[#111111]">{item.stat}</p>
-                <p className="text-xs text-[#666666] uppercase tracking-wider font-semibold mt-0.5">
+                <p className="text-xl font-extrabold text-[#111111] tracking-tight">{item.stat}</p>
+                <p className="text-[10px] text-[#888888] uppercase tracking-wider font-semibold mt-0.5">
                   {item.statLabel}
                 </p>
               </div>
@@ -138,5 +138,3 @@ export default function ModuleDeepDives({ stats }: ModuleDeepDivesProps) {
     </section>
   );
 }
-
-

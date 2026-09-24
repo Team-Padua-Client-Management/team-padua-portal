@@ -36,14 +36,14 @@ const EMPTY_STATS: LandingStats = {
 function StatSkeleton() {
   return (
     <div className="mx-auto max-w-7xl px-6 lg:px-8">
-      <div className="bg-white border border-slate-100 rounded-[28px] px-6 py-8 lg:px-10">
-        <div className="h-3 w-48 bg-slate-100 rounded-full mx-auto mb-8 animate-pulse" />
+      <div className="bg-white border border-slate-100 rounded-[2.5rem] px-6 py-12 lg:px-10 shadow-sm relative z-30">
+        <div className="h-3 w-48 bg-slate-100 rounded-full mx-auto mb-10 animate-pulse" />
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="flex flex-col items-center gap-2">
-              <div className="w-10 h-10 rounded-2xl bg-slate-100 animate-pulse" />
-              <div className="h-5 w-12 bg-slate-100 rounded-full animate-pulse" />
-              <div className="h-3 w-20 bg-slate-100 rounded-full animate-pulse" />
+            <div key={i} className="flex flex-col items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-slate-100 animate-pulse" />
+              <div className="h-8 w-20 bg-slate-100 rounded-full animate-pulse" />
+              <div className="h-3 w-24 bg-slate-100 rounded-full animate-pulse" />
             </div>
           ))}
         </div>
@@ -87,7 +87,7 @@ export default function HomePage() {
 
   return (
     <div
-      className="min-h-screen bg-white text-[#111111] font-sans selection:bg-[#FFC72C]/30 overflow-x-hidden relative"
+      className="min-h-screen bg-slate-50 text-[#111111] font-sans selection:bg-[#FFC72C]/30 overflow-x-hidden relative"
       style={{ fontFamily: "'Inter', 'system-ui', sans-serif" }}
     >
       <DecorativeBackground />
@@ -99,50 +99,44 @@ export default function HomePage() {
         <HeroSection stats={resolvedStats} />
 
         {/* 2. Elevated Trust & Core Capabilities Container */}
-        <div className="relative z-20 bg-white rounded-t-[3rem] shadow-[0_-20px_50px_rgba(0,0,0,0.05)] pt-12 pb-32 -mt-16">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-1.5 bg-slate-100 rounded-full mt-4" />
-          {loading ? <StatSkeleton /> : <TrustStrip stats={resolvedStats} />}
-          <div className="mt-20">
+        <div className="relative z-20 bg-slate-50 pt-2 pb-24">
+          <div className="max-w-[1200px] mx-auto relative -mt-24 px-4 sm:px-6 lg:px-8 z-30">
+            {loading ? <StatSkeleton /> : <TrustStrip stats={resolvedStats} />}
+          </div>
+          <div className="mt-28">
             <BentoGrid />
           </div>
         </div>
 
-        {/* 3. Immersive Product Experience (Sticky/Scrolling) */}
-        <div className="relative z-10 bg-[#F8F9FA] py-32 border-t border-slate-100">
-          <div className="mx-auto max-w-7xl px-6 lg:px-8 text-center mb-16">
-            <h2 className="text-3xl font-extrabold tracking-tight text-[#111111] sm:text-4xl mb-4">
-              Designed for your workflow.
-            </h2>
-            <p className="text-sm text-[#666666] max-w-2xl mx-auto">
-              Every interaction is engineered to save time and reduce friction.
-            </p>
-          </div>
+        {/* 3. Immersive Product Experience */}
+        <div className="relative z-10 bg-white py-28 border-y border-slate-200/60 shadow-[0_-10px_40px_rgba(0,0,0,0.02)]">
           <ModuleDeepDives stats={resolvedStats} />
-          <div className="mt-32">
+          <div className="mt-28">
             <LivePreview />
           </div>
         </div>
 
-        {/* 4. Journey & Team (Overlapping) */}
-        <div className="relative z-20 bg-white rounded-t-[3rem] shadow-[0_-20px_50px_rgba(0,0,0,0.05)] pt-32 pb-24 -mt-16">
+        {/* 4. Journey & Team */}
+        <div className="relative z-20 bg-slate-50 pt-28 pb-28 overflow-hidden">
           <AdvisorJourney />
-          <div className="mt-32">
+          <div className="mt-32 relative">
+             <div className="absolute top-1/2 left-0 w-full h-[600px] bg-white -skew-y-2 -z-10 shadow-[0_-20px_50px_rgba(0,0,0,0.02)]" />
             <TeamSection />
           </div>
         </div>
 
         {/* 5. Metrics & Assurance */}
-        <div className="relative z-10">
+        <div className="relative z-30 bg-white border-t border-slate-200/60 pt-24 pb-32 shadow-[0_-20px_50px_rgba(0,0,0,0.03)]">
           <StatsBand stats={resolvedStats} />
-          <div className="bg-[#111111] pb-32 pt-20">
+          <div className="mt-28">
              <SecuritySection />
           </div>
         </div>
 
         {/* 6. Support & Action */}
-        <div className="bg-[#F8F9FA] rounded-t-[3rem] -mt-16 relative z-20 pt-24 pb-12 shadow-[0_-20px_50px_rgba(0,0,0,0.05)]">
+        <div className="bg-slate-50 border-t border-slate-200/60 relative z-10 pt-28 pb-20">
           <FaqSection stats={resolvedStats} />
-          <div className="mt-24">
+          <div className="mt-28">
             <ContactSection />
           </div>
         </div>
@@ -152,30 +146,32 @@ export default function HomePage() {
       </main>
 
       {/* Footer */}
-      <footer className="relative border-t border-slate-100 bg-white overflow-hidden mt-0">
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-[#FFC72C]/5 blur-[100px] rounded-t-full pointer-events-none" />
-        <div className="mx-auto max-w-7xl px-6 py-12 lg:px-8 relative z-10 space-y-6">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-3 opacity-70 hover:opacity-100 transition-opacity">
-              <Image src="/Image/icon/new_logo.png" alt="Team Padua Logo" width={24} height={24} />
+      <footer className="relative bg-white overflow-hidden border-t border-slate-200/60">
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[#FFC72C]/10 blur-[120px] rounded-t-full pointer-events-none" />
+        <div className="mx-auto max-w-[1200px] px-6 py-16 lg:px-8 relative z-10">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+            <div className="flex items-center gap-4 opacity-80 hover:opacity-100 transition-opacity">
+              <div className="bg-white p-2.5 rounded-xl shadow-sm border border-slate-100">
+                 <Image src="/Image/icon/new_logo.png" alt="Team Padua Logo" width={32} height={32} />
+              </div>
               <div className="text-left">
-                <p className="text-xs font-extrabold tracking-widest text-[#111111]">TEAMPADUA</p>
-                <p className="text-[9px] font-semibold text-[#666666] uppercase">
-                  Business Development Team — Sun Life Philippines
+                <p className="text-sm font-black tracking-widest text-[#111111] leading-tight">TEAMPADUA</p>
+                <p className="text-[9px] font-bold text-[#A3843B] uppercase tracking-[0.2em] mt-0.5">
+                  Business Development Team
                 </p>
               </div>
             </div>
 
             <div className="text-center md:text-right">
-              <p className="text-[10px] text-[#666666] uppercase font-semibold">Built and Developed by</p>
-              <p className="text-xs font-bold text-[#111111]">John Renz Bandianon</p>
-              <p className="text-xs font-bold text-[#111111]">William Kyle Iballa</p>
+              <p className="text-[10px] text-[#888888] uppercase font-bold tracking-widest mb-1">Built and Developed by</p>
+              <p className="text-sm font-bold text-[#111111]">John Renz Bandianon</p>
+              <p className="text-sm font-bold text-[#111111]">William Kyle Iballa</p>
             </div>
           </div>
 
-          <hr className="border-slate-100" />
+          <hr className="border-slate-100 my-8" />
 
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-[10px] uppercase tracking-wider font-bold text-[#666666]">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-6 text-[11px] uppercase tracking-wider font-bold text-[#888888]">
             <p>© {new Date().getFullYear()} TeamPadua. All rights reserved.</p>
             <div className="flex gap-8">
               <a href="/privacy" className="hover:text-[#111111] transition-colors">Privacy Policy</a>
@@ -187,4 +183,3 @@ export default function HomePage() {
     </div>
   );
 }
-

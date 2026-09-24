@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export interface ModalProps {
   isOpen: boolean;
@@ -12,6 +13,8 @@ export interface ModalProps {
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl' | '7xl' | 'full';
   hideCloseButton?: boolean;
   footer?: React.ReactNode;
+  className?: string;
+  style?: React.CSSProperties;
 }
 
 const maxWidthClasses: Record<NonNullable<ModalProps['maxWidth']>, string> = {
@@ -25,7 +28,7 @@ const maxWidthClasses: Record<NonNullable<ModalProps['maxWidth']>, string> = {
   '5xl': 'max-w-5xl',
   '6xl': 'max-w-6xl',
   '7xl': 'max-w-7xl',
-  full: 'max-w-full m-4',
+  full: 'max-w-[calc(100%-2rem)] m-4',
 };
 
 export function Modal({
@@ -37,9 +40,9 @@ export function Modal({
   maxWidth = 'md',
   hideCloseButton = false,
   footer,
+  className = '',
+  style,
 }: ModalProps) {
-  const modalRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
@@ -52,59 +55,73 @@ export function Modal({
       document.body.style.overflow = 'hidden';
     } else {
       document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = '';
     }
 
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = '';
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto overflow-x-hidden bg-slate-900/45 backdrop-blur-sm p-4 animate-in fade-in duration-200"
-      onClick={onClose}
-    >
-      <div
-        ref={modalRef}
-        className={`relative w-full ${maxWidthClasses[maxWidth]} max-h-[90vh] flex flex-col bg-card rounded-[28px] shadow-2xl border border-border animate-in zoom-in-95 slide-in-from-bottom-2 duration-200 overflow-hidden`}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {(title || !hideCloseButton) && (
-          <div className="flex items-start justify-between gap-4 border-b border-border px-6 py-5 shrink-0 bg-muted/60">
-            <div className="min-w-0">
-              {title && (
-                <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">
-                  {title}
-                </h3>
-              )}
-              {subtitle && (
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  {subtitle}
-                </p>
-              )}
-            </div>
-            {!hideCloseButton && (
-              <button
-                onClick={onClose}
-                className="shrink-0 flex h-9 w-9 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-100 transition-colors duration-200"
-                aria-label="Close modal"
-              >
-                <X size={18} />
-              </button>
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto overflow-x-hidden p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm"
+            onClick={onClose}
+          />
+          
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96, y: 12 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96, y: 12 }}
+            transition={{ duration: 0.4, type: "spring", bounce: 0, ease: "easeOut" }}
+            className={`relative w-full ${maxWidthClasses[maxWidth]} max-h-[90vh] flex flex-col bg-white rounded-[24px] shadow-[0_8px_40px_-12px_rgba(0,0,0,0.2)] border border-slate-200/60 overflow-hidden ${className}`}
+            style={style}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {(title || !hideCloseButton) && (
+              <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5 shrink-0 bg-slate-50/50">
+                <div className="min-w-0">
+                  {title && (
+                    <h3 className="text-[1.05rem] font-bold text-slate-900 tracking-tight">
+                      {title}
+                    </h3>
+                  )}
+                  {subtitle && (
+                    <p className="text-[0.9rem] text-slate-500 mt-0.5">
+                      {subtitle}
+                    </p>
+                  )}
+                </div>
+                {!hideCloseButton && (
+                  <button
+                    onClick={onClose}
+                    className="shrink-0 flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors duration-200"
+                    aria-label="Close modal"
+                  >
+                    <X size={18} />
+                  </button>
+                )}
+              </div>
             )}
-          </div>
-        )}
-        <div className="p-6 overflow-y-auto flex-1">{children}</div>
-        {footer && (
-          <div className="px-6 py-4 border-t border-border shrink-0 bg-card">
-            {footer}
-          </div>
-        )}
-      </div>
-    </div>
+            <div className={`overflow-y-auto flex-1 ${!title && hideCloseButton && !footer ? '' : 'p-6'}`}>
+              {children}
+            </div>
+            {footer && (
+              <div className="px-6 py-4 border-t border-slate-100 shrink-0 bg-slate-50/50">
+                {footer}
+              </div>
+            )}
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
   );
 }

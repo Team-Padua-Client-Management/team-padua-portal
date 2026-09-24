@@ -21,42 +21,32 @@ const pillars = (stats: LandingStats) => {
       icon: Users,
       label: 'Client Records',
       ...totalClients,
-      sublabel: 'Managed in the portal',
-      color: 'text-blue-600 bg-blue-50',
-      hoverColor: 'group-hover:bg-blue-100',
+      sublabel: 'Managed seamlessly',
     },
     {
       icon: FileText,
       label: 'Service Requests',
       ...acr,
-      sublabel: 'ACR submissions logged',
-      color: 'text-amber-600 bg-amber-50',
-      hoverColor: 'group-hover:bg-amber-100',
+      sublabel: 'Automated logging',
     },
     {
       icon: Wallet,
-      label: 'Premium Monitoring',
+      label: 'Premium Data',
       value: 'Real-time',
       isSample: false,
-      sublabel: 'Payment status tracking',
-      color: 'text-emerald-600 bg-emerald-50',
-      hoverColor: 'group-hover:bg-emerald-100',
+      sublabel: 'Status tracking',
     },
     {
       icon: HeartHandshake,
-      label: 'Birthday Touchpoints',
+      label: 'Client Birthdays',
       ...birthdays,
-      sublabel: 'Celebrations this month',
-      color: 'text-rose-500 bg-rose-50',
-      hoverColor: 'group-hover:bg-rose-100',
+      sublabel: 'Engagement this month',
     },
     {
       icon: Activity,
-      label: 'Portal Users',
+      label: 'Active Users',
       ...teamMembers,
-      sublabel: 'Team members active',
-      color: 'text-violet-600 bg-violet-50',
-      hoverColor: 'group-hover:bg-violet-100',
+      sublabel: 'Platform adoption',
     },
   ];
 };
@@ -66,48 +56,46 @@ export default function TrustStrip({ stats }: TrustStripProps) {
   const anySample = items.some((i) => i.isSample);
 
   return (
-    <section className="mx-auto max-w-7xl px-6 lg:px-8">
-      <div className="relative bg-white/80 backdrop-blur-sm border border-slate-100/80 rounded-[28px] shadow-sm px-6 py-8 lg:px-10 overflow-hidden">
-        {/* Gradient accent line at top */}
-        <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-[#FFC72C]/40 to-transparent" />
+    <div className="bg-white rounded-[2.5rem] shadow-[0_20px_50px_-10px_rgba(0,0,0,0.05)] border border-slate-100 p-8 md:p-10 relative z-30">
+      <p className="text-center text-[11px] font-bold uppercase tracking-[0.2em] text-[#A3843B] mb-10">
+        Trusted by top advisors for core operations
+      </p>
 
-        <p className="text-center text-[10px] font-bold uppercase tracking-[0.25em] text-[#A3843B] mb-8">
-          What the portal supports
-        </p>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 lg:gap-4">
-          {items.map((item, i) => {
-            const Icon = item.icon;
-            return (
-              <motion.div
-                key={item.label}
-                initial={{ opacity: 0, y: 12 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: i * 0.07 }}
-                className="group flex flex-col items-center text-center gap-2 cursor-default p-3 rounded-2xl hover:bg-slate-50/80 transition-all duration-300"
-              >
-                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-300 ${item.color} ${item.hoverColor} group-hover:scale-110 group-hover:shadow-sm`}>
-                  <Icon size={17} />
-                </div>
-                <p className="text-xl font-extrabold text-[#111111] leading-none mt-1">
-                  {item.value}
-                </p>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-[#111111]">
-                  {item.label}
-                </p>
-                <p className="text-[10px] text-[#666666] leading-snug">
-                  {item.sublabel}
-                </p>
-              </motion.div>
-            );
-          })}
-        </div>
-        {anySample && (
-          <p className="text-center text-[9px] text-[#A3843B]/60 mt-6 uppercase tracking-wider font-semibold">
-            Sample figures shown until your live data connects
-          </p>
-        )}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-6 lg:gap-8">
+        {items.map((item, i) => {
+          const Icon = item.icon;
+          return (
+            <motion.div
+              key={item.label}
+              initial={{ opacity: 0, y: 15 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: i * 0.08, ease: "easeOut" }}
+              className="group flex flex-col items-center text-center relative overflow-hidden"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-[#A3843B] group-hover:bg-[#FFF6D6] group-hover:scale-110 transition-all duration-300 mb-4 border border-slate-100 group-hover:border-[#FFC72C]/20">
+                <Icon size={20} strokeWidth={2} />
+              </div>
+
+              <p className="text-3xl lg:text-4xl font-black text-[#111111] tracking-tight mb-1">
+                {item.value}
+              </p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[#333333] mb-1">
+                {item.label}
+              </p>
+              <p className="text-xs text-[#888888] font-medium">
+                {item.sublabel}
+              </p>
+            </motion.div>
+          );
+        })}
       </div>
-    </section>
+
+      {anySample && (
+        <p className="text-center text-[10px] text-[#A3843B]/60 mt-10 uppercase tracking-widest font-bold">
+          Sample figures shown until live data connects
+        </p>
+      )}
+    </div>
   );
 }

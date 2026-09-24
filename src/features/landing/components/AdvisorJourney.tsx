@@ -11,9 +11,6 @@ const steps = [
     title: 'Manage Clients',
     description:
       'Onboard client demographics, organize policy details, and maintain a complete relationship record in one unified profile.',
-    emphasized: false,
-    bg: 'bg-white',
-    border: 'border-slate-100',
   },
   {
     number: '02',
@@ -22,8 +19,6 @@ const steps = [
     description:
       'Submit ACR, BCR, fund switching, and withdrawal requests digitally — and track every step of the approval process in real time.',
     emphasized: true,
-    bg: 'bg-[#FFC72C]',
-    border: 'border-[#FFC72C]',
   },
   {
     number: '03',
@@ -31,22 +26,19 @@ const steps = [
     title: 'Build Relationships',
     description:
       'Use birthday engagement, proactive reminders, and personalized touchpoints to strengthen client loyalty and retention.',
-    emphasized: false,
-    bg: 'bg-white',
-    border: 'border-slate-100',
   },
 ];
 
 export default function AdvisorJourney() {
   return (
-    <section className="bg-[#FFF6D6]/50 border-y border-[#FFC72C]/10 py-24">
+    <section className="py-24 lg:py-28">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="text-center max-w-2xl mx-auto space-y-4 mb-16">
           <motion.p
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
-            className="text-xs font-bold uppercase tracking-[0.2em] text-[#A3843B]"
+            className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#A3843B]"
           >
             Advisor Journey
           </motion.p>
@@ -65,71 +57,66 @@ export default function AdvisorJourney() {
             transition={{ delay: 0.1 }}
             className="text-sm text-[#666666] leading-relaxed"
           >
-            Three connected phases that define how the portal supports every advisor's workflow
+            Three connected phases that define how the portal supports every advisor&apos;s workflow
             — from client acquisition to long-term relationship management.
           </motion.p>
         </div>
 
-        <div className="flex flex-col lg:flex-row items-stretch gap-0 lg:gap-0 max-w-5xl mx-auto">
-          {steps.map((step, i) => {
-            const Icon = step.icon;
-            const isLast = i === steps.length - 1;
+        {/* Steps */}
+        <div className="relative max-w-5xl mx-auto">
+          {/* Connecting line (desktop only) */}
+          <div className="hidden lg:block absolute top-16 left-[16.5%] right-[16.5%] h-px bg-slate-200" />
 
-            return (
-              <React.Fragment key={step.title}>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-0">
+            {steps.map((step, i) => {
+              const Icon = step.icon;
+              const isEmphasized = step.emphasized;
+
+              return (
                 <motion.div
+                  key={step.title}
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ duration: 0.5, delay: i * 0.15 }}
-                  className={`flex-1 ${step.bg} border-2 ${step.border} rounded-[28px] p-8 flex flex-col gap-5 relative
-                    ${step.emphasized ? 'shadow-lg shadow-[#FFC72C]/30 scale-[1.02] z-10' : 'shadow-sm'}`}
+                  transition={{ duration: 0.5, delay: i * 0.12 }}
+                  className="flex flex-col items-center text-center px-6 lg:px-10 relative"
                 >
-                  {/* Step number */}
-                  <span className={`text-4xl font-serif font-bold leading-none ${step.emphasized ? 'text-[#111111]/30' : 'text-[#FFC72C]'}`}>
+                  {/* Step number circle */}
+                  <div
+                    className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold mb-6 relative z-10 ${
+                      isEmphasized
+                        ? 'bg-[#FFC72C] text-[#111111] shadow-lg shadow-[#FFC72C]/20'
+                        : 'bg-white border-2 border-slate-200 text-[#111111]'
+                    }`}
+                  >
                     {step.number}
-                  </span>
+                  </div>
 
                   {/* Icon */}
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center
-                    ${step.emphasized
-                      ? 'bg-[#111111]/10 text-[#111111]'
-                      : 'bg-[#FFF6D6] text-[#A3843B] border border-[#FFC72C]/20'}`}
+                  <div
+                    className={`w-12 h-12 rounded-xl flex items-center justify-center mb-5 ${
+                      isEmphasized
+                        ? 'bg-[#111111] text-[#FFC72C]'
+                        : 'bg-slate-50 border border-slate-100 text-[#A3843B]'
+                    }`}
                   >
                     <Icon size={20} />
                   </div>
 
-                  {/* Content */}
-                  <div>
-                    <h3 className={`text-lg font-bold mb-2 ${step.emphasized ? 'text-[#111111]' : 'text-[#111111]'}`}>
-                      {step.title}
-                    </h3>
-                    <p className={`text-sm leading-relaxed ${step.emphasized ? 'text-[#111111]/80' : 'text-[#666666]'}`}>
-                      {step.description}
-                    </p>
-                  </div>
+                  <h3 className="text-base font-bold text-[#111111] mb-2">{step.title}</h3>
+                  <p className="text-sm text-[#666666] leading-relaxed">{step.description}</p>
 
-                  {/* Emphasized badge */}
-                  {step.emphasized && (
-                    <span className="self-start text-[10px] font-bold uppercase tracking-wider bg-[#111111] text-white px-3 py-1 rounded-full">
+                  {isEmphasized && (
+                    <span className="mt-5 text-[9px] font-bold uppercase tracking-[0.15em] bg-[#111111] text-white px-3 py-1.5 rounded-md">
                       Core Workflow
                     </span>
                   )}
                 </motion.div>
-
-                {/* Arrow connector (between steps, not after last) */}
-                {!isLast && (
-                  <div className="hidden lg:flex items-center justify-center px-2 shrink-0">
-                    <ArrowRight size={18} className="text-[#FFC72C]" />
-                  </div>
-                )}
-              </React.Fragment>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </div>
     </section>
   );
 }
-
-

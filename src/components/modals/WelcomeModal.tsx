@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ArrowRight } from 'lucide-react';
-import styles from '@/styles/components/shared/WelcomeModal.module.css';
+import { ArrowRight, Quote } from 'lucide-react';
+import { Modal } from './Modal';
+import { motion, type Variants } from 'framer-motion';
+import { useOnboarding } from '@src/components/providers/OnboardingProvider';
 
 interface WelcomeModalProps {
   userName: string;
@@ -39,10 +41,6 @@ export const MOTIVATIONAL_QUOTES = [
   "Focus on serving with integrity, and success will surely follow."
 ];
 
-/**
- * Selects a random item index from an array while ensuring it doesn't repeat
- * the index stored in localStorage from the immediately preceding session.
- */
 function getRandomIndexWithoutRepeat(length: number, storageKey: string): number {
   if (length <= 1) return 0;
   
@@ -56,7 +54,7 @@ function getRandomIndexWithoutRepeat(length: number, storageKey: string): number
       }
     }
   } catch {
-    // Graceful fallback if localStorage is unavailable
+    // Graceful fallback
   }
 
   let newIndex: number;
@@ -67,26 +65,21 @@ function getRandomIndexWithoutRepeat(length: number, storageKey: string): number
   try {
     localStorage.setItem(storageKey, newIndex.toString());
   } catch {
-    // Graceful fallback if localStorage is unavailable
+    // Graceful fallback
   }
 
   return newIndex;
 }
 
-import { useOnboarding } from '@src/components/providers/OnboardingProvider';
-
 export default function WelcomeModal({ userName, role }: WelcomeModalProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [isDismissing, setIsDismissing] = useState(false);
   const [description, setDescription] = useState(WELCOME_DESCRIPTIONS[0]);
   const [quote, setQuote] = useState(MOTIVATIONAL_QUOTES[0]);
   const { isReady, hasSeenWelcome, currentPageGuide } = useOnboarding();
 
   useEffect(() => {
-    // Only proceed if onboarding is fully complete and ready
     if (!isReady || !hasSeenWelcome || currentPageGuide) return;
 
-    // Pick unique description and quote avoiding immediate previous repeats
     const descIdx = getRandomIndexWithoutRepeat(WELCOME_DESCRIPTIONS.length, 'tp-last-welcome-desc-idx');
     const quoteIdx = getRandomIndexWithoutRepeat(MOTIVATIONAL_QUOTES.length, 'tp-last-welcome-quote-idx');
 
@@ -106,72 +99,117 @@ export default function WelcomeModal({ userName, role }: WelcomeModalProps) {
   }, [isReady, hasSeenWelcome, currentPageGuide]);
 
   const handleDismiss = (dontShowToday = false) => {
-    setIsDismissing(true);
-    setTimeout(() => {
-      sessionStorage.setItem('tp-welcome-seen-session', 'true');
-      if (dontShowToday) {
-        localStorage.setItem('tp-welcome-seen-date', new Date().toDateString());
-      }
-      setIsOpen(false);
-    }, 400);
+    sessionStorage.setItem('tp-welcome-seen-session', 'true');
+    if (dontShowToday) {
+      localStorage.setItem('tp-welcome-seen-date', new Date().toDateString());
+    }
+    setIsOpen(false);
   };
-
-  if (!isOpen) return null;
 
   const firstName = userName?.split(' ')[0] || 'Advisor';
 
+  const contentVariants: Variants = {
+    hidden: { opacity: 0, y: 15, scale: 0.98 },
+    visible: (i: number) => ({
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: {
+        delay: 0.15 + i * 0.12,
+        duration: 0.6,
+        ease: [0.22, 1, 0.36, 1] as [number, number, number, number]
+      }
+    })
+  };
+
   return (
-    <div className={`${styles.overlay} ${isDismissing ? styles.fadeOut : ''}`}>
-      {/* Floating gold particles */}
-      <div className={styles.particles}>
-        <span className={styles.particle} />
-        <span className={styles.particle} />
-        <span className={styles.particle} />
-        <span className={styles.particle} />
-        <span className={styles.particle} />
-        <span className={styles.particle} />
-      </div>
+    <Modal
+      isOpen={isOpen}
+      onClose={() => handleDismiss(false)}
+      maxWidth="md"
+      hideCloseButton
+      className="p-1 overflow-hidden"
+    >
+      {/* Decorative background glow */}
+      <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-amber-500/10 to-transparent pointer-events-none" />
 
-      <div className={`${styles.modalCard} ${isDismissing ? styles.scaleOut : ''}`}>
-        {/* Shimmer sweep */}
-        <div className={styles.shimmer} />
-
-        {/* Logo with ring pulse */}
-        <div className={styles.logoWrapper}>
-          <div className={styles.logoRing} />
-          <img src="/Image/icon/new_logo.png" alt="Team Padua" className={styles.logoImg} />
-          <div className={styles.logoGlow} />
-        </div>
+      <div className="relative flex flex-col items-center max-w-[420px] mx-auto pt-8 pb-6 px-6 text-center">
+        {/* Logo */}
+        <motion.div 
+          custom={0}
+          initial="hidden"
+          animate="visible"
+          variants={contentVariants}
+          className="relative w-20 h-20 rounded-2xl bg-white shadow-[0_2px_12px_rgba(0,0,0,0.04)] flex items-center justify-center mb-6 border border-slate-100/60 group overflow-hidden"
+        >
+          <div className="absolute inset-0 bg-gradient-to-tr from-amber-100/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <img src="/Image/icon/new_logo.png" alt="Team Padua" className="w-12 h-12 object-contain relative z-10" />
+        </motion.div>
 
         {/* Greeting */}
-        <h2 className={styles.title}>
-          Welcome Back, <span className={styles.username}>{firstName}</span> 👋
-        </h2>
+        <motion.h2 
+          custom={1}
+          initial="hidden"
+          animate="visible"
+          variants={contentVariants}
+          className="text-[1.75rem] font-bold text-slate-900 mb-3 tracking-tight leading-tight"
+        >
+          Welcome Back, <br className="sm:hidden" />
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-600 inline-block">
+            {firstName}
+          </span> 👋
+        </motion.h2>
 
-        {/* Dynamic Description */}
-        <p className={styles.subtitle}>
+        {/* Description */}
+        <motion.p 
+          custom={2}
+          initial="hidden"
+          animate="visible"
+          variants={contentVariants}
+          className="text-[0.95rem] text-slate-500/90 leading-relaxed mb-7 max-w-[90%]"
+        >
           {description}
-        </p>
+        </motion.p>
 
-        {/* Divider line that draws itself */}
-        <div className={styles.divider} />
-
-        {/* Dynamic Motivational Quote */}
-        <div className={styles.quoteSection}>
-          <span className={styles.quoteText}>&ldquo;{quote}&rdquo;</span>
-        </div>
+        {/* Quote Card */}
+        <motion.div 
+          custom={3}
+          initial="hidden"
+          animate="visible"
+          variants={contentVariants}
+          className="w-full relative bg-slate-50/70 rounded-2xl p-5 mb-8 border border-slate-100/80 shadow-[inset_0_1px_3px_rgba(0,0,0,0.02)]"
+        >
+          <Quote className="absolute top-4 left-4 text-amber-500/20 rotate-180" size={24} />
+          <p className="relative text-[0.95rem] font-medium text-slate-700 italic leading-relaxed z-10 pl-7 pr-2">
+            "{quote}"
+          </p>
+        </motion.div>
 
         {/* Actions */}
-        <div className={styles.actions}>
-          <button onClick={() => handleDismiss(false)} className={styles.primaryBtn}>
-            <span className={styles.btnShimmer} />
-            Start My Day <ArrowRight size={16} className={styles.arrowIcon} />
+        <motion.div 
+          custom={4}
+          initial="hidden"
+          animate="visible"
+          variants={contentVariants}
+          className="flex flex-col items-center w-full gap-3"
+        >
+          <button 
+            onClick={() => handleDismiss(false)} 
+            className="group relative w-full bg-slate-900 hover:bg-slate-800 text-white border-none py-3.5 px-6 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-300 shadow-[0_4px_14px_0_rgba(15,23,42,0.15)] hover:shadow-[0_6px_20px_rgba(15,23,42,0.23)] hover:-translate-y-0.5 overflow-hidden"
+          >
+            <div className="absolute inset-0 bg-white/10 translate-y-[100%] group-hover:translate-y-[0%] transition-transform duration-300 ease-out" />
+            <span className="relative z-10">Start My Day</span>
+            <ArrowRight size={16} className="relative z-10 group-hover:translate-x-1 transition-transform duration-300" />
           </button>
-          <button onClick={() => handleDismiss(true)} className={styles.secondaryBtn}>
-            Don&apos;t show again today
+          
+          <button 
+            onClick={() => handleDismiss(true)} 
+            className="text-[0.8rem] font-medium text-slate-400 hover:text-slate-600 transition-colors py-2 px-4 rounded-lg hover:bg-slate-50"
+          >
+            Don't show again today
           </button>
-        </div>
+        </motion.div>
       </div>
-    </div>
+    </Modal>
   );
 }

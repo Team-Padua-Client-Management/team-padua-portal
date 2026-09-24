@@ -3,6 +3,7 @@ import { X, Clock, Calendar, CheckCircle2, XCircle } from 'lucide-react';
 import { ActivityEvent, ActivityType, ActivityStatus } from './ActivityCard';
 import styles from '@/styles/admin/dashboard/page.module.css';
 import { getStatusColorHex } from './StatusBadge';
+import { Modal } from '@src/components/modals/Modal';
 
 const ACTIVITY_TYPES: ActivityType[] = [
   'Client Meeting', 'Follow Up', 'Presentation', 'Recruitment',
@@ -28,12 +29,8 @@ export default function ActivityModal({
   const currentStatusColor = getStatusColorHex(activityForm.status || 'Scheduled');
 
   return (
-    <div className={styles.taskModalOverlay} onClick={onClose}>
-      <div 
-        className={styles.taskModalCard} 
-        style={{ borderTop: `4px solid ${currentStatusColor}` }}
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Modal isOpen={true} onClose={onClose} maxWidth="lg" hideCloseButton className="p-0 border-t-4" style={{ borderTopColor: currentStatusColor }}>
+      <div className="flex flex-col h-full bg-white">
         <div className={styles.taskModalHeader}>
           <div className={styles.modalTitleGroup}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
@@ -151,7 +148,7 @@ export default function ActivityModal({
           </div>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }
 
